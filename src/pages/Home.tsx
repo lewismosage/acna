@@ -18,7 +18,7 @@ const Home = () => {
           muted
           playsInline
           preload="auto"
-          poster={heroimage}
+          //poster={heroimage}
         />
         {/* Overlay for readability */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-900/60 via-blue-800/40 to-transparent z-10" />
