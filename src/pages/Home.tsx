@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Users, BookOpen, Calendar, Award, Search, Play, ChevronRight } from 'lucide-react';
 import heroVideo from '../assets/hero.video.mp4';
+import heroimage from '../assets/hero.poster.jpg';
 
 const Home = () => {
   return (
@@ -17,6 +18,7 @@ const Home = () => {
           muted
           playsInline
           preload="auto"
+          poster={heroimage}
         />
         {/* Overlay for readability */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-900/60 via-blue-800/40 to-transparent z-10" />
