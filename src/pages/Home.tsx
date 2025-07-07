@@ -17,7 +17,6 @@ const Home = () => {
           muted
           playsInline
           preload="auto"
-          poster="https://images.pexels.com/photos/7855612/pexels-photo-7855612.jpeg?auto=compress&cs=tinysrgb&w=800"
         />
         {/* Overlay for readability */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-900/60 via-blue-800/40 to-transparent z-10" />
