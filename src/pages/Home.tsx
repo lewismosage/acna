@@ -16,6 +16,7 @@ const Home = () => {
           loop
           muted
           playsInline
+          preload="auto"
           poster="https://images.pexels.com/photos/7855612/pexels-photo-7855612.jpeg?auto=compress&cs=tinysrgb&w=800"
         />
         {/* Overlay for readability */}
