@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Brain, Mail, Phone, MapPin, Facebook, Twitter, Linkedin } from 'lucide-react';
-import ACNALogo from '../assets/ACNA.jpg';
+import ACNALogo from '../../assets/ACNA.jpg';
 
 const Footer = () => {
   return (
@@ -88,7 +88,7 @@ const Footer = () => {
 
         <div className="border-t border-gray-800 mt-8 pt-8 text-center">
           <p className="text-gray-400 text-sm">
-            © 2024 Africa Child Neurology Association. All rights reserved.
+            © 2025 Africa Child Neurology Association. All rights reserved.
           </p>
         </div>
       </div>

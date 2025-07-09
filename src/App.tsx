@@ -1,13 +1,15 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Header from './components/Header';
-import Footer from './components/Footer';
-import Home from './pages/Home';
-import About from './pages/About';
-import Membership from './pages/Membership';
-import Events from './pages/Events';
-import News from './pages/News';
-import Awards from './pages/Awards';
+import Header from './components/layout/Header';
+import Footer from './components/layout/Footer';
+import Home from './pages/homepage/Home';
+import About from './pages/about/About';
+import Membership from './pages/membershippages/Membership';
+import Events from './pages/eventsandnews/Events';
+import News from './pages/eventsandnews/News';
+import Awards from './pages/eventsandnews/AwardsAndRecognition';
+import Login from './pages/membershippages/Login'
+import Donate from './pages/donationpage/Donate';
 
 function App() {
   return (
@@ -22,6 +24,25 @@ function App() {
             <Route path="/events" element={<Events />} />
             <Route path="/news" element={<News />} />
             <Route path="/awards" element={<Awards />} />
+            <Route path="/donate" element={<Donate />} />
+            {/*Education Pages*/}
+            <Route path="/news" element={<News />} />
+            <Route path="/e-resources" element={<Membership />} />
+            <Route path="/neurology-resources" element={<Membership />} />
+            <Route path="/acna-portal" element={<Membership />} />    
+            {/*Membership Pages*/}
+            <Route path="/login" element={<Login />} />
+            <Route path="/membership-benefits" element={<Membership />} />
+            <Route path="/membership-categories" element={<Membership />} />
+            <Route path="/membership-fees" element={<Membership />} />
+            <Route path="/membership-application" element={<Membership />} />
+            <Route path="/membership-renewal" element={<Membership />} />
+            <Route path="/membership-upgrade" element={<Membership />} />
+            <Route path="/membership-directory" element={<Membership />} />
+            <Route path="/membership-faqs" element={<Membership />} />
+            {/*Events Pages*/}
+            <Route path="/upcoming-events" element={<Events />} />
+            <Route path="/past-events" element={<Events />} />    
           </Routes>
         </main>
         <Footer />
