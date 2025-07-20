@@ -110,7 +110,9 @@ const Header = () => {
             {/* Logo and Site Name */}
             <div className="flex items-center justify-between md:justify-start space-x-3 mb-4 md:mb-0">
               <div className="flex items-center space-x-3">
-                <img src={ACNALogo} alt="ACNA Logo" className="w-12 h-12 rounded object-cover" />
+                <Link to="/">
+                  <img src={ACNALogo} alt="ACNA Logo" className="w-12 h-12 rounded object-cover cursor-pointer" />
+                </Link>
                 <div>
                   <div className="text-3xl font-bold text-white underline">ACNA</div>
                   <div className="text-base text-gray-200">Official Website of The ACNA</div>

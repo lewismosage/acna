@@ -10,6 +10,7 @@ import News from './pages/eventsandnews/News';
 import Awards from './pages/eventsandnews/AwardsAndRecognition';
 import Login from './pages/membershippages/Login'
 import Donate from './pages/donationpage/Donate';
+import Gallery from './pages/eventsandnews/Gallery';
 
 function App() {
   return (
@@ -42,7 +43,8 @@ function App() {
             <Route path="/membership-faqs" element={<Membership />} />
             {/*Events Pages*/}
             <Route path="/upcoming-events" element={<Events />} />
-            <Route path="/past-events" element={<Events />} />    
+            <Route path="/past-events" element={<Events />} /> 
+            <Route path="/gallery" element={<Gallery />} />
           </Routes>
         </main>
         <Footer />

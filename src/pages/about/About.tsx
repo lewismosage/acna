@@ -1,27 +1,55 @@
 import React from 'react';
 import { Users, Target, Eye, Heart, Globe, Award, Map, BookOpen, BarChart2, Shield, Handshake } from 'lucide-react';
 import ContinentalReach from './ContinentalReach';
+import Pediatrics from '../../assets/Pediatric-Doc.jpg';
 
 const About = () => {
   return (
     <div className="bg-white">
       {/* Hero Section with Map Background */}
-      <section className="relative bg-blue-900 overflow-hidden">
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute inset-0 bg-[url('https://upload.wikimedia.org/wikipedia/commons/8/80/Africa_%28orthographic_projection%29.svg')] bg-center bg-no-repeat bg-contain"></div>
-        </div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32 relative">
-          <div className="text-center">
-            <h1 className="text-4xl lg:text-6xl font-bold text-white mb-6">
-              African Child Neurology Association
-            </h1>
-            <p className="text-xl text-blue-100 max-w-4xl mx-auto leading-relaxed">
-              Uniting professionals across Africa to advance neurological care for children through 
-              education, research, and advocacy since 2008.
-            </p>
-          </div>
-        </div>
-      </section>
+<section className="relative bg-blue-900 overflow-hidden">
+  <div className="absolute inset-0 opacity-20">
+    <div className="absolute inset-0 bg-[url('https://upload.wikimedia.org/wikipedia/commons/8/80/Africa_%28orthographic_projection%29.svg')] bg-center bg-no-repeat bg-contain"></div>
+  </div>
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20 relative">
+    <div className="flex flex-col lg:flex-row items-start gap-8 lg:gap-12"> {/* Changed from items-center to items-start */}
+      {/* Text Content - Left Side */}
+      <div className="lg:w-1/2 text-left">
+        <h2 className="text-3xl font-bold text-white mb-6">
+          About Us
+        </h2>
+        <p className="text-xl text-blue-100 mb-8 leading-relaxed">
+          A continent-wide community where professionals come together, share knowledge, 
+          and shape the future of child neurology in Africa.
+        </p>
+        
+        <p className="text-lg text-blue-100 mb-4 leading-relaxed">
+          The <span className="font-semibold">African Child Neurology Association (ACNA)</span> is a continental organization 
+          founded in 2008. Bringing together pediatric neurologists, healthcare workers, 
+          researchers, and advocates from across Africa, ACNA is dedicated to improving 
+          neurological care for children through education, research, and advocacy.
+        </p>
+        
+        <p className="text-lg text-blue-100 leading-relaxed">
+          Over the years, ACNA has evolved to meet the growing challenges in child neurology 
+          across diverse African contexts. Yet one thing remains constant: it is the one platform 
+          on the continent where experts can unite, exchange ideas, and develop shared strategies 
+          to ensure that every child in Africa has access to quality neurological care, regardless 
+          of where they are born.
+        </p>
+      </div>
+
+      {/* Image - Right Side */}
+      <div className="lg:w-1/2">
+        <img 
+          src={Pediatrics} 
+          alt="Pediatric neurologist with child patient" 
+          className="rounded-lg shadow-xl w-full h-auto object-cover"
+        />
+      </div>
+    </div>
+  </div>
+</section>
 
       {/* Quick Facts */}
       <section className="py-16 bg-blue-50">
