@@ -1,17 +1,11 @@
+// pages/Home.tsx
 import React from "react";
 import { Link } from "react-router-dom";
-import {
-  ArrowRight,
-  Users,
-  BookOpen,
-  Calendar,
-  Award,
-  Search,
-  Play,
-  ChevronRight,
-} from "lucide-react";
+import { ArrowRight, Play } from "lucide-react";
 import heroVideo from "../../assets/hero.video.mp4";
 import pediatricVisit from "../../assets/pediatric-visit.jpg";
+import LatestNews from "./LatestNews";
+import KeyFeatures from "./KeyFeatures";
 
 const Home = () => {
   return (
@@ -114,186 +108,11 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Key Features */}
-      <section className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-              Empowering Child Neurology Excellence
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              ACNA provides comprehensive resources, networking opportunities,
-              and professional development for neurologists, researchers, and
-              healthcare advocates across Africa.
-            </p>
-          </div>
+      {/* Key Features Component */}
+      <KeyFeatures />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="bg-white p-8 rounded-xl shadow-sm hover:shadow-lg transition-shadow duration-200">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-6">
-                <Users className="w-6 h-6 text-blue-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                Professional Network
-              </h3>
-              <p className="text-gray-600 mb-4">
-                Connect with leading child neurologists and researchers across
-                the African continent.
-              </p>
-              <Link
-                to="#"
-                className="text-blue-600 font-medium hover:text-blue-700 inline-flex items-center"
-              >
-                Join Network <ChevronRight className="ml-1 w-4 h-4" />
-              </Link>
-            </div>
-
-            <div className="bg-white p-8 rounded-xl shadow-sm hover:shadow-lg transition-shadow duration-200">
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-6">
-                <BookOpen className="w-6 h-6 text-green-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                Research & Publications
-              </h3>
-              <p className="text-gray-600 mb-4">
-                Access cutting-edge research, clinical guidelines, and
-                educational resources.
-              </p>
-              <Link
-                to="#"
-                className="text-blue-600 font-medium hover:text-blue-700 inline-flex items-center"
-              >
-                Explore Research <ChevronRight className="ml-1 w-4 h-4" />
-              </Link>
-            </div>
-
-            <div className="bg-white p-8 rounded-xl shadow-sm hover:shadow-lg transition-shadow duration-200">
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-6">
-                <Calendar className="w-6 h-6 text-purple-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                Events & Training
-              </h3>
-              <p className="text-gray-600 mb-4">
-                Participate in conferences, workshops, and professional
-                development programs.
-              </p>
-              <Link
-                to="#"
-                className="text-blue-600 font-medium hover:text-blue-700 inline-flex items-center"
-              >
-                View Events <ChevronRight className="ml-1 w-4 h-4" />
-              </Link>
-            </div>
-
-            <div className="bg-white p-8 rounded-xl shadow-sm hover:shadow-lg transition-shadow duration-200">
-              <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center mb-6">
-                <Award className="w-6 h-6 text-yellow-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                Recognition & Awards
-              </h3>
-              <p className="text-gray-600 mb-4">
-                Celebrate excellence in child neurology research, clinical care,
-                and advocacy.
-              </p>
-              <Link
-                to="#"
-                className="text-blue-600 font-medium hover:text-blue-700 inline-flex items-center"
-              >
-                Learn More <ChevronRight className="ml-1 w-4 h-4" />
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Latest News */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-end mb-12">
-            <div>
-              <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-                Latest News & Updates
-              </h2>
-              <p className="text-xl text-gray-600">
-                Stay informed about the latest developments in child neurology
-              </p>
-            </div>
-            <Link
-              to="#"
-              className="text-blue-600 font-medium hover:text-blue-700 inline-flex items-center"
-            >
-              View All News <ArrowRight className="ml-2 w-4 h-4" />
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <article className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-shadow duration-200">
-              <img
-                src="https://images.pexels.com/photos/4021775/pexels-photo-4021775.jpeg?auto=compress&cs=tinysrgb&w=600"
-                alt="Conference"
-                className="w-full h-48 object-cover"
-              />
-              <div className="p-6">
-                <div className="text-sm text-blue-600 font-medium mb-2">
-                  Conference Update
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                  ACNA 2024 Annual Conference: Registration Now Open
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  Join us in Cape Town for three days of cutting-edge research
-                  presentations and networking.
-                </p>
-                <div className="text-sm text-gray-500">December 15, 2024</div>
-              </div>
-            </article>
-
-            <article className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-shadow duration-200">
-              <img
-                src="https://images.pexels.com/photos/3825583/pexels-photo-3825583.jpeg?auto=compress&cs=tinysrgb&w=600"
-                alt="Research"
-                className="w-full h-48 object-cover"
-              />
-              <div className="p-6">
-                <div className="text-sm text-green-600 font-medium mb-2">
-                  Research Publication
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                  New Guidelines for Pediatric Epilepsy Management
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  ACNA releases updated clinical guidelines based on latest
-                  research and African context.
-                </p>
-                <div className="text-sm text-gray-500">December 10, 2024</div>
-              </div>
-            </article>
-
-            <article className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-shadow duration-200">
-              <img
-                src="https://images.pexels.com/photos/5215024/pexels-photo-5215024.jpeg?auto=compress&cs=tinysrgb&w=600"
-                alt="Award"
-                className="w-full h-48 object-cover"
-              />
-              <div className="p-6">
-                <div className="text-sm text-yellow-600 font-medium mb-2">
-                  Award Announcement
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                  Dr. Sarah Mwaniki Receives Excellence Award
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  Recognizing outstanding contributions to pediatric
-                  neuroscience research in East Africa.
-                </p>
-                <div className="text-sm text-gray-500">December 5, 2024</div>
-              </div>
-            </article>
-          </div>
-        </div>
-      </section>
+      {/* Latest News Component */}
+      <LatestNews />
 
       {/* CTA Section */}
       <section className="w-full min-h-[400px] flex flex-col lg:flex-row items-stretch">
@@ -313,8 +132,8 @@ const Home = () => {
               Together we can create a better world for every child
             </h2>
             <p className="text-base md:text-lg text-orange-100 mb-6">
-              Even the smallest actions can add up to a big
-              difference. Let’s work together to protect every child’s health and future.
+              Even the smallest actions can add up to a big difference. Let's
+              work together to protect every child's health and future.
             </p>
             <Link
               to="/join"
