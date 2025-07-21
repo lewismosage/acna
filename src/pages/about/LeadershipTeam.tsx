@@ -6,10 +6,10 @@ const LeadershipTeam = () => {
     <section className="py-20 bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+          <h2 className="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
             Leadership Team
           </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <p className="mt-4 max-w-2xl text-xl text-gray-500 lg:mx-auto">
             Meet the dedicated professionals leading ACNA's mission across
             Africa
           </p>
@@ -56,7 +56,7 @@ const LeadershipTeam = () => {
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6">
                 <div className="relative">
                   <h3 className="text-2xl font-bold text-white">
-                  Sahar Hassanein
+                    Sahar Hassanein
                   </h3>
                   <p className="text-blue-300 font-medium">Secretary</p>
                   <p className="text-blue-100 text-sm">Egypt</p>
@@ -66,7 +66,8 @@ const LeadershipTeam = () => {
 
             <div className="bg-blue-50 p-6">
               <p className="text-gray-600">
-              Professor of Pediatrics at Ain Shams University, Cairo. Director of Children's hospital with 25+ years in paediatric neurology
+                Professor of Pediatrics at Ain Shams University, Cairo. Director
+                of Children's hospital with 25+ years in paediatric neurology
               </p>
             </div>
           </div>

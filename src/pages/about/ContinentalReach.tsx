@@ -1,8 +1,8 @@
-import React from 'react';
+import React from "react";
 
 interface Country {
   name: string;
-  code: string; 
+  code: string;
   members: number;
 }
 
@@ -25,17 +25,21 @@ const ContinentalReach: React.FC = () => (
   <section className="py-20 bg-white">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="text-center mb-16">
-        <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">Our Continental Reach</h2>
-        <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-          ACNA members span across Africa, united in improving child neurology care
+        <h2 className="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">Our Continental Reach</h2>
+        <p className="mt-4 max-w-2xl text-xl text-gray-500 lg:mx-auto">
+          ACNA members span across Africa, united in improving child neurology
+          care
         </p>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
         {memberCountries.map((country) => (
-          <div key={country.code} className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm text-center hover:shadow-md transition-transform hover:scale-105">
+          <div
+            key={country.code}
+            className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm text-center hover:shadow-md transition-transform hover:scale-105"
+          >
             <div className="mb-3 flex justify-center">
-              <img 
+              <img
                 src={`https://flagcdn.com/w80/${country.code.toLowerCase()}.png`}
                 alt={`Flag of ${country.name}`}
                 className="w-16 h-12 object-cover rounded shadow-sm border border-gray-200"
@@ -51,9 +55,12 @@ const ContinentalReach: React.FC = () => (
       <div className="mt-12 bg-blue-50 rounded-xl p-8">
         <div className="lg:flex lg:items-center lg:justify-between">
           <div className="lg:w-1/2">
-            <h3 className="text-2xl font-bold text-gray-900 mb-4">Regional Committees</h3>
+            <h3 className="text-2xl font-bold text-gray-900 mb-4">
+              Regional Committees
+            </h3>
             <p className="text-gray-600 mb-6 lg:mb-0">
-              ACNA operates through five regional committees ensuring representation across Africa:
+              ACNA operates through five regional committees ensuring
+              representation across Africa:
             </p>
           </div>
           <div className="lg:w-1/2">

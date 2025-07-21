@@ -69,7 +69,7 @@ const LatestNews = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Heading */}
         <div className="mb-10">
-          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
+        <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-2 text-left">
             Latest News & Updates
           </h2>
           <div className="h-2 w-16 bg-red-600 mb-6" />

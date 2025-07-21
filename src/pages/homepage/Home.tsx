@@ -84,7 +84,7 @@ const Home = () => {
               <div className="text-gray-600">Children with Epilepsy</div>
             </div>
           </div>
-
+          
           <div className="mt-12 bg-gray-50 p-8 rounded-xl">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-center">
               <div>
@@ -119,7 +119,7 @@ const Home = () => {
         {/* Left: Image */}
         <div className="flex-1 min-h-[400px] bg-black flex items-center justify-center">
           <img
-            src={pediatricVisit}
+            src={pediatricVisit} 
             alt="Pediatric visit"
             className="w-full h-full object-cover object-left"
             style={{ maxHeight: "500px" }}
