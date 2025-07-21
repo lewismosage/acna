@@ -314,8 +314,7 @@ const Home = () => {
             </h2>
             <p className="text-base md:text-lg text-orange-100 mb-6">
               Even the smallest actions can add up to a big
-              difference. Let's help all children find their voice and know
-              their rights.
+              difference. Let’s work together to protect every child’s health and future.
             </p>
             <Link
               to="/join"
