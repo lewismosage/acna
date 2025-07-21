@@ -7,6 +7,7 @@ import LeadershipTeam from "./LeadershipTeam";
 import CoreValues from "./CoreValues";
 import Pediatrics from "../../assets/Pediatric-Doc.jpg";
 import HappyDoctor from "../../assets/happy-female-doctor.jpg";
+import MedicalTeam from "../../assets/medical-team-training.webp"
 import { Link } from "react-router-dom";
 
 const About = () => {
@@ -61,9 +62,9 @@ const About = () => {
           <div className="flex flex-col gap-4 flex-1 min-w-[260px] max-w-xs justify-center py-8">
             {/* Card 1 */}
             <div className="relative h-48 rounded-lg overflow-hidden flex items-end">
-              <img
-                src="https://images.pexels.com/photos/5452201/pexels-photo-5452201.jpeg?auto=compress&w=600"
-                alt="Events"
+            <img
+                src={MedicalTeam}
+                alt="Training"
                 className="absolute inset-0 w-full h-full object-cover object-center"
               />
               <div className="absolute inset-0 bg-black/40" />

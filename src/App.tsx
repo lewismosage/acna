@@ -13,6 +13,7 @@ import Donate from './pages/donationpage/Donate';
 import Gallery from './pages/eventsandnews/Gallery';
 import Contact from './pages/support/ContactUs';
 import GetInvolved from './pages/support/GetInvolved';
+import Careers from './pages/careers/Careers';
 
 
 function App() {
@@ -32,6 +33,7 @@ function App() {
             {/*Support Pages*/}
             <Route path="/get-involved" element={<GetInvolved />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/careers" element={<Careers />} />
             {/*Education Pages*/}
             <Route path="/news" element={<News />} />
             <Route path="/e-resources" element={<Membership />} />
