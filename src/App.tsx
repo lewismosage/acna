@@ -11,6 +11,8 @@ import Awards from './pages/eventsandnews/AwardsAndRecognition';
 import Login from './pages/membershippages/Login'
 import Donate from './pages/donationpage/Donate';
 import Gallery from './pages/eventsandnews/Gallery';
+import Contact from './pages/support/ContactUs';
+
 
 function App() {
   return (
@@ -26,6 +28,10 @@ function App() {
             <Route path="/news" element={<News />} />
             <Route path="/awards" element={<Awards />} />
             <Route path="/donate" element={<Donate />} />
+            {/*Support Pages*/}
+            <Route path="/help" element={<Contact />} />
+            <Route path="/get-involved" element={<Contact />} />
+            <Route path="/contact" element={<Contact />} />
             {/*Education Pages*/}
             <Route path="/news" element={<News />} />
             <Route path="/e-resources" element={<Membership />} />

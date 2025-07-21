@@ -1,55 +1,57 @@
 import React from 'react';
 import { Users, Target, Eye, Heart, Globe, Award, Map, BookOpen, BarChart2, Shield, Handshake } from 'lucide-react';
 import ContinentalReach from './ContinentalReach';
+import Governance from './Governance';
+import LeadershipTeam from './LeadershipTeam'
 import Pediatrics from '../../assets/Pediatric-Doc.jpg';
 
 const About = () => {
   return (
     <div className="bg-white">
       {/* Hero Section with Map Background */}
-<section className="relative bg-blue-900 overflow-hidden">
-  <div className="absolute inset-0 opacity-20">
-    <div className="absolute inset-0 bg-[url('https://upload.wikimedia.org/wikipedia/commons/8/80/Africa_%28orthographic_projection%29.svg')] bg-center bg-no-repeat bg-contain"></div>
-  </div>
-  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20 relative">
-    <div className="flex flex-col lg:flex-row items-start gap-8 lg:gap-12"> {/* Changed from items-center to items-start */}
-      {/* Text Content - Left Side */}
-      <div className="lg:w-1/2 text-left">
-        <h2 className="text-3xl font-bold text-white mb-6">
-          About Us
-        </h2>
-        <p className="text-xl text-blue-100 mb-8 leading-relaxed">
-          A continent-wide community where professionals come together, share knowledge, 
-          and shape the future of child neurology in Africa.
-        </p>
-        
-        <p className="text-lg text-blue-100 mb-4 leading-relaxed">
-          The <span className="font-semibold">African Child Neurology Association (ACNA)</span> is a continental organization 
-          founded in 2008. Bringing together pediatric neurologists, healthcare workers, 
-          researchers, and advocates from across Africa, ACNA is dedicated to improving 
-          neurological care for children through education, research, and advocacy.
-        </p>
-        
-        <p className="text-lg text-blue-100 leading-relaxed">
-          Over the years, ACNA has evolved to meet the growing challenges in child neurology 
-          across diverse African contexts. Yet one thing remains constant: it is the one platform 
-          on the continent where experts can unite, exchange ideas, and develop shared strategies 
-          to ensure that every child in Africa has access to quality neurological care, regardless 
-          of where they are born.
-        </p>
-      </div>
+      <section className="relative bg-blue-900 overflow-hidden">
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute inset-0 bg-[url('https://upload.wikimedia.org/wikipedia/commons/8/80/Africa_%28orthographic_projection%29.svg')] bg-center bg-no-repeat bg-contain"></div>
+        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20 relative">
+          <div className="flex flex-col lg:flex-row items-start gap-8 lg:gap-12"> {/* Changed from items-center to items-start */}
+            {/* Text Content - Left Side */}
+            <div className="lg:w-1/2 text-left">
+              <h2 className="text-3xl font-bold text-white mb-6">
+                About Us
+              </h2>
+              <p className="text-xl text-blue-100 mb-8 leading-relaxed">
+                A continent-wide community where professionals come together, share knowledge, 
+                and shape the future of child neurology in Africa.
+              </p>
+              
+              <p className="text-lg text-blue-100 mb-4 leading-relaxed">
+                The <span className="font-semibold">African Child Neurology Association (ACNA)</span> is a continental organization 
+                founded in 2008. Bringing together pediatric neurologists, healthcare workers, 
+                researchers, and advocates from across Africa, ACNA is dedicated to improving 
+                neurological care for children through education, research, and advocacy.
+              </p>
+              
+              <p className="text-lg text-blue-100 leading-relaxed">
+                Over the years, ACNA has evolved to meet the growing challenges in child neurology 
+                across diverse African contexts. Yet one thing remains constant: it is the one platform 
+                on the continent where experts can unite, exchange ideas, and develop shared strategies 
+                to ensure that every child in Africa has access to quality neurological care, regardless 
+                of where they are born.
+              </p>
+            </div>
 
-      {/* Image - Right Side */}
-      <div className="lg:w-1/2">
-        <img 
-          src={Pediatrics} 
-          alt="Pediatric neurologist with child patient" 
-          className="rounded-lg shadow-xl w-full h-auto object-cover"
-        />
-      </div>
-    </div>
-  </div>
-</section>
+            {/* Image - Right Side */}
+            <div className="lg:w-1/2">
+              <img 
+                src={Pediatrics} 
+                alt="Pediatric neurologist with child patient" 
+                className="rounded-lg shadow-xl w-full h-auto object-cover"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Quick Facts */}
       <section className="py-16 bg-blue-50">
@@ -254,194 +256,10 @@ const About = () => {
       </section>
 
       {/* Governance */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="lg:text-center mb-16">
-            <h2 className="text-base font-semibold tracking-wide text-blue-600 uppercase">Our Structure</h2>
-            <p className="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
-              Governance & Leadership
-            </p>
-            <p className="mt-4 max-w-2xl text-xl text-gray-500 lg:mx-auto">
-              A robust framework guiding our continental operations
-            </p>
-          </div>
+      <Governance />
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-            <div className="bg-blue-50 p-6 rounded-lg">
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">General Assembly</h3>
-              <p className="text-gray-600 mb-4">
-                The supreme governing body consisting of all members, convening 
-                biennially to set strategic direction.
-              </p>
-              <ul className="space-y-2">
-                <li className="flex items-start">
-                  <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3"></div>
-                  <span className="text-gray-600">Approves constitution changes</span>
-                </li>
-                <li className="flex items-start">
-                  <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3"></div>
-                  <span className="text-gray-600">Elects executive board</span>
-                </li>
-                <li className="flex items-start">
-                  <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3"></div>
-                  <span className="text-gray-600">Reviews association reports</span>
-                </li>
-              </ul>
-            </div>
-
-            <div className="bg-blue-50 p-6 rounded-lg">
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Executive Board</h3>
-              <p className="text-gray-600 mb-4">
-                12-member board elected for 4-year terms providing strategic 
-                oversight between General Assemblies.
-              </p>
-              <ul className="space-y-2">
-                <li className="flex items-start">
-                  <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3"></div>
-                  <span className="text-gray-600">Chairperson, Secretary, Treasurer</span>
-                </li>
-                <li className="flex items-start">
-                  <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3"></div>
-                  <span className="text-gray-600">5 regional representatives</span>
-                </li>
-                <li className="flex items-start">
-                  <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3"></div>
-                  <span className="text-gray-600">4 specialist committee chairs</span>
-                </li>
-              </ul>
-            </div>
-
-            <div className="bg-blue-50 p-6 rounded-lg">
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Committees</h3>
-              <p className="text-gray-600 mb-4">
-                Specialist groups driving key areas of our work through volunteer expertise.
-              </p>
-              <ul className="space-y-2">
-                <li className="flex items-start">
-                  <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3"></div>
-                  <span className="text-gray-600">Education & Training</span>
-                </li>
-                <li className="flex items-start">
-                  <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3"></div>
-                  <span className="text-gray-600">Research & Publications</span>
-                </li>
-                <li className="flex items-start">
-                  <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3"></div>
-                  <span className="text-gray-600">Policy & Advocacy</span>
-                </li>
-                <li className="flex items-start">
-                  <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3"></div>
-                  <span className="text-gray-600">Membership & Ethics</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Leadership */}
-      <section className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">Leadership Team</h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Meet the dedicated professionals leading ACNA's mission across Africa
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div className="bg-white p-8 rounded-xl shadow-sm text-center">
-              <img
-                src="https://images.pexels.com/photos/4173239/pexels-photo-4173239.jpeg?auto=compress&cs=tinysrgb&w=300"
-                alt="Sam Gwer"
-                className="w-24 h-24 rounded-full mx-auto mb-4 object-cover"
-              />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Sam Gwer</h3>
-              <p className="text-blue-600 font-medium mb-1">Chairperson</p>
-              <p className="text-sm text-gray-500 mb-2">Kenya</p>
-              <p className="text-gray-600 text-sm">
-                Paediatric Neurologist at Ubuntu Neurology and Gertrude's Children's Hospital, 
-                Nairobi. Senior lecturer at Kenyatta University with PhD from University of Amsterdam.
-              </p>
-            </div>
-
-            <div className="bg-white p-8 rounded-xl shadow-sm text-center">
-              <img
-                src="https://images.pexels.com/photos/5215024/pexels-photo-5215024.jpeg?auto=compress&cs=tinysrgb&w=300"
-                alt="Sahar Hassanein"
-                className="w-24 h-24 rounded-full mx-auto mb-4 object-cover"
-              />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Sahar Hassanein</h3>
-              <p className="text-blue-600 font-medium mb-1">Secretary</p>
-              <p className="text-sm text-gray-500 mb-2">Egypt</p>
-              <p className="text-gray-600 text-sm">
-                Professor of Pediatrics at Ain Shams University, Cairo. Director of Children's 
-                hospital with 25+ years in paediatric neurology.
-              </p>
-            </div>
-
-            <div className="bg-white p-8 rounded-xl shadow-sm text-center">
-              <img
-                src="https://images.pexels.com/photos/5452293/pexels-photo-5452293.jpeg?auto=compress&cs=tinysrgb&w=300"
-                alt="Jo Wilmshurst"
-                className="w-24 h-24 rounded-full mx-auto mb-4 object-cover"
-              />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Jo Wilmshurst</h3>
-              <p className="text-blue-600 font-medium mb-1">Board Member</p>
-              <p className="text-sm text-gray-500 mb-2">South Africa</p>
-              <p className="text-gray-600 text-sm">
-                Head of Paediatric Neurology at Red Cross War Memorial Children's Hospital, 
-                University of Cape Town. Past-President of ICNA (2018-2022).
-              </p>
-            </div>
-            
-            <div className="bg-white p-8 rounded-xl shadow-sm text-center">
-              <img
-                src="https://images.pexels.com/photos/4021775/pexels-photo-4021775.jpeg?auto=compress&cs=tinysrgb&w=300"
-                alt="Ilhem Ben Youssef"
-                className="w-24 h-24 rounded-full mx-auto mb-4 object-cover"
-              />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Ilhem Ben Youssef</h3>
-              <p className="text-blue-600 font-medium mb-1">Board Member</p>
-              <p className="text-sm text-gray-500 mb-2">Tunisia</p>
-              <p className="text-gray-600 text-sm">
-                Professor of Neurology at Tunis El Manar University. Former head of pediatric 
-                neurology department at NINT hospital, Tunisia.
-              </p>
-            </div>
-            
-            <div className="bg-white p-8 rounded-xl shadow-sm text-center">
-              <img
-                src="https://images.pexels.com/photos/3825583/pexels-photo-3825583.jpeg?auto=compress&cs=tinysrgb&w=300"
-                alt="Chahnez Triki"
-                className="w-24 h-24 rounded-full mx-auto mb-4 object-cover"
-              />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Chahnez Triki</h3>
-              <p className="text-blue-600 font-medium mb-1">Board Member</p>
-              <p className="text-sm text-gray-500 mb-2">Tunisia</p>
-              <p className="text-gray-600 text-sm">
-                Distinguished member of the ACNA leadership team contributing to advancing 
-                child neurology across Africa.
-              </p>
-            </div>
-            
-            <div className="bg-white p-8 rounded-xl shadow-sm text-center">
-              <img
-                src="https://images.pexels.com/photos/4173239/pexels-photo-4173239.jpeg?auto=compress&cs=tinysrgb&w=300"
-                alt="Uduak Offiong"
-                className="w-24 h-24 rounded-full mx-auto mb-4 object-cover"
-              />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Uduak Offiong</h3>
-              <p className="text-blue-600 font-medium mb-1">Board Member</p>
-              <p className="text-sm text-gray-500 mb-2">Nigeria</p>
-              <p className="text-gray-600 text-sm">
-                Dedicated professional contributing to ACNA's mission of improving neurological 
-                care for children across the African continent.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Leadership Team */}
+      <LeadershipTeam />
 
       {/* Partnerships */}
       <section className="py-20 bg-gray-50">

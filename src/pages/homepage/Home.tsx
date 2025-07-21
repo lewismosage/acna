@@ -1,7 +1,17 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowRight, Users, BookOpen, Calendar, Award, Search, Play, ChevronRight } from 'lucide-react';
-import heroVideo from '../../assets/hero.video.mp4';
+import React from "react";
+import { Link } from "react-router-dom";
+import {
+  ArrowRight,
+  Users,
+  BookOpen,
+  Calendar,
+  Award,
+  Search,
+  Play,
+  ChevronRight,
+} from "lucide-react";
+import heroVideo from "../../assets/hero.video.mp4";
+import pediatricVisit from "../../assets/pediatric-visit.jpg";
 
 const Home = () => {
   return (
@@ -23,11 +33,13 @@ const Home = () => {
         {/* Hero Content */}
         <div className="relative z-20 w-full flex flex-col items-center justify-center text-center px-4 sm:px-6 lg:px-8">
           <h1 className="text-4xl lg:text-6xl font-bold text-white leading-tight mb-6 drop-shadow-lg">
-            Advancing Child <span className="text-yellow-300">Neurology</span> Across Africa
+            Advancing Child <span className="text-yellow-300">Neurology</span>{" "}
+            Across Africa
           </h1>
           <p className="text-xl text-blue-100 mb-8 leading-relaxed drop-shadow max-w-2xl mx-auto">
-            Join the Africa Child Neurology Association and be part of a pan-African community 
-            dedicated to improving neurological care for children across the continent.
+            Join the Africa Child Neurology Association and be part of a
+            pan-African community dedicated to improving neurological care for
+            children across the continent.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 mb-8 justify-center">
             <Link
@@ -52,8 +64,13 @@ const Home = () => {
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Our Impact Across Africa</h2>
-            <p className="text-xl text-gray-600">Key statistics highlighting our reach and the need for child neurology care</p>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              Our Impact Across Africa
+            </h2>
+            <p className="text-xl text-gray-600">
+              Key statistics highlighting our reach and the need for child
+              neurology care
+            </p>
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="text-center">
@@ -73,16 +90,24 @@ const Home = () => {
               <div className="text-gray-600">Children with Epilepsy</div>
             </div>
           </div>
-          
+
           <div className="mt-12 bg-gray-50 p-8 rounded-xl">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-center">
               <div>
-                <div className="text-3xl font-bold text-red-600 mb-2">0.8-10 per 1000</div>
-                <div className="text-gray-600">Children have Cerebral Palsy</div>
+                <div className="text-3xl font-bold text-red-600 mb-2">
+                  0.8-10 per 1000
+                </div>
+                <div className="text-gray-600">
+                  Children have Cerebral Palsy
+                </div>
               </div>
               <div>
-                <div className="text-3xl font-bold text-purple-600 mb-2">Growing Need</div>
-                <div className="text-gray-600">For specialized neurological care across Africa</div>
+                <div className="text-3xl font-bold text-purple-600 mb-2">
+                  Growing Need
+                </div>
+                <div className="text-gray-600">
+                  For specialized neurological care across Africa
+                </div>
               </div>
             </div>
           </div>
@@ -97,21 +122,28 @@ const Home = () => {
               Empowering Child Neurology Excellence
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              ACNA provides comprehensive resources, networking opportunities, and professional development 
-              for neurologists, researchers, and healthcare advocates across Africa.
+              ACNA provides comprehensive resources, networking opportunities,
+              and professional development for neurologists, researchers, and
+              healthcare advocates across Africa.
             </p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="bg-white p-8 rounded-xl shadow-sm hover:shadow-lg transition-shadow duration-200">
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-6">
                 <Users className="w-6 h-6 text-blue-600" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Professional Network</h3>
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                Professional Network
+              </h3>
               <p className="text-gray-600 mb-4">
-                Connect with leading child neurologists and researchers across the African continent.
+                Connect with leading child neurologists and researchers across
+                the African continent.
               </p>
-              <Link to="#" className="text-blue-600 font-medium hover:text-blue-700 inline-flex items-center">
+              <Link
+                to="#"
+                className="text-blue-600 font-medium hover:text-blue-700 inline-flex items-center"
+              >
                 Join Network <ChevronRight className="ml-1 w-4 h-4" />
               </Link>
             </div>
@@ -120,11 +152,17 @@ const Home = () => {
               <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-6">
                 <BookOpen className="w-6 h-6 text-green-600" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Research & Publications</h3>
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                Research & Publications
+              </h3>
               <p className="text-gray-600 mb-4">
-                Access cutting-edge research, clinical guidelines, and educational resources.
+                Access cutting-edge research, clinical guidelines, and
+                educational resources.
               </p>
-              <Link to="#" className="text-blue-600 font-medium hover:text-blue-700 inline-flex items-center">
+              <Link
+                to="#"
+                className="text-blue-600 font-medium hover:text-blue-700 inline-flex items-center"
+              >
                 Explore Research <ChevronRight className="ml-1 w-4 h-4" />
               </Link>
             </div>
@@ -133,11 +171,17 @@ const Home = () => {
               <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-6">
                 <Calendar className="w-6 h-6 text-purple-600" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Events & Training</h3>
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                Events & Training
+              </h3>
               <p className="text-gray-600 mb-4">
-                Participate in conferences, workshops, and professional development programs.
+                Participate in conferences, workshops, and professional
+                development programs.
               </p>
-              <Link to="#" className="text-blue-600 font-medium hover:text-blue-700 inline-flex items-center">
+              <Link
+                to="#"
+                className="text-blue-600 font-medium hover:text-blue-700 inline-flex items-center"
+              >
                 View Events <ChevronRight className="ml-1 w-4 h-4" />
               </Link>
             </div>
@@ -146,11 +190,17 @@ const Home = () => {
               <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center mb-6">
                 <Award className="w-6 h-6 text-yellow-600" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Recognition & Awards</h3>
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                Recognition & Awards
+              </h3>
               <p className="text-gray-600 mb-4">
-                Celebrate excellence in child neurology research, clinical care, and advocacy.
+                Celebrate excellence in child neurology research, clinical care,
+                and advocacy.
               </p>
-              <Link to="#" className="text-blue-600 font-medium hover:text-blue-700 inline-flex items-center">
+              <Link
+                to="#"
+                className="text-blue-600 font-medium hover:text-blue-700 inline-flex items-center"
+              >
                 Learn More <ChevronRight className="ml-1 w-4 h-4" />
               </Link>
             </div>
@@ -163,10 +213,17 @@ const Home = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-end mb-12">
             <div>
-              <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">Latest News & Updates</h2>
-              <p className="text-xl text-gray-600">Stay informed about the latest developments in child neurology</p>
+              <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+                Latest News & Updates
+              </h2>
+              <p className="text-xl text-gray-600">
+                Stay informed about the latest developments in child neurology
+              </p>
             </div>
-            <Link to="#" className="text-blue-600 font-medium hover:text-blue-700 inline-flex items-center">
+            <Link
+              to="#"
+              className="text-blue-600 font-medium hover:text-blue-700 inline-flex items-center"
+            >
               View All News <ArrowRight className="ml-2 w-4 h-4" />
             </Link>
           </div>
@@ -179,12 +236,15 @@ const Home = () => {
                 className="w-full h-48 object-cover"
               />
               <div className="p-6">
-                <div className="text-sm text-blue-600 font-medium mb-2">Conference Update</div>
+                <div className="text-sm text-blue-600 font-medium mb-2">
+                  Conference Update
+                </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-3">
                   ACNA 2024 Annual Conference: Registration Now Open
                 </h3>
                 <p className="text-gray-600 mb-4">
-                  Join us in Cape Town for three days of cutting-edge research presentations and networking.
+                  Join us in Cape Town for three days of cutting-edge research
+                  presentations and networking.
                 </p>
                 <div className="text-sm text-gray-500">December 15, 2024</div>
               </div>
@@ -197,12 +257,15 @@ const Home = () => {
                 className="w-full h-48 object-cover"
               />
               <div className="p-6">
-                <div className="text-sm text-green-600 font-medium mb-2">Research Publication</div>
+                <div className="text-sm text-green-600 font-medium mb-2">
+                  Research Publication
+                </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-3">
                   New Guidelines for Pediatric Epilepsy Management
                 </h3>
                 <p className="text-gray-600 mb-4">
-                  ACNA releases updated clinical guidelines based on latest research and African context.
+                  ACNA releases updated clinical guidelines based on latest
+                  research and African context.
                 </p>
                 <div className="text-sm text-gray-500">December 10, 2024</div>
               </div>
@@ -215,12 +278,15 @@ const Home = () => {
                 className="w-full h-48 object-cover"
               />
               <div className="p-6">
-                <div className="text-sm text-yellow-600 font-medium mb-2">Award Announcement</div>
+                <div className="text-sm text-yellow-600 font-medium mb-2">
+                  Award Announcement
+                </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-3">
                   Dr. Sarah Mwaniki Receives Excellence Award
                 </h3>
                 <p className="text-gray-600 mb-4">
-                  Recognizing outstanding contributions to pediatric neuroscience research in East Africa.
+                  Recognizing outstanding contributions to pediatric
+                  neuroscience research in East Africa.
                 </p>
                 <div className="text-sm text-gray-500">December 5, 2024</div>
               </div>
@@ -230,28 +296,32 @@ const Home = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-blue-600">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl lg:text-4xl font-bold text-white mb-6">
-            Ready to Join Our Association?
-          </h2>
-          <p className="text-xl text-blue-100 mb-8 max-w-3xl mx-auto">
-            Become part of Africa's leading professional association for child neurology. 
-            Access exclusive resources, networking opportunities, and make a lasting impact.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+      <section className="w-full min-h-[400px] flex flex-col lg:flex-row items-stretch">
+        {/* Left: Image */}
+        <div className="flex-1 min-h-[400px] bg-black flex items-center justify-center">
+          <img
+            src={pediatricVisit}
+            alt="Pediatric visit"
+            className="w-full h-full object-cover object-left"
+            style={{ maxHeight: "500px" }}
+          />
+        </div>
+        {/* Right: Orange content */}
+        <div className="flex-1 bg-orange-700 flex items-center justify-center p-12">
+          <div className="max-w-md mx-auto text-left">
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-4 leading-tight">
+              Together we can create a better world for every child
+            </h2>
+            <p className="text-base md:text-lg text-orange-100 mb-6">
+              Even the smallest actions can add up to a big
+              difference. Let's help all children find their voice and know
+              their rights.
+            </p>
             <Link
-              to="#"
-              className="inline-flex items-center justify-center bg-white text-blue-600 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-50 transition-colors duration-200"
+              to="/join"
+              className="inline-block bg-white text-orange-700 px-6 py-2 rounded font-semibold shadow hover:bg-orange-50 transition-colors duration-200"
             >
-              Become a Member
-              <ArrowRight className="ml-2 w-5 h-5" />
-            </Link>
-            <Link
-              to="/about"
-              className="inline-flex items-center justify-center border-2 border-white text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors duration-200"
-            >
-              Learn About ACNA
+              Join us
             </Link>
           </div>
         </div>
