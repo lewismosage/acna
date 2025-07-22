@@ -17,7 +17,7 @@ const LeadershipTeam = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {/* Leader Card 1 */}
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-white rounded shadow-sm overflow-hidden">
             {/* Image with overlay */}
             <div className="relative h-64 w-full overflow-hidden">
               <img
@@ -46,7 +46,7 @@ const LeadershipTeam = () => {
           </div>
 
           {/* Leader Card 2 */}
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-white rounded shadow-sm overflow-hidden">
             <div className="relative h-64 w-full overflow-hidden">
               <img
                 src="https://images.pexels.com/photos/5452293/pexels-photo-5452293.jpeg"
@@ -73,7 +73,7 @@ const LeadershipTeam = () => {
           </div>
 
           {/* Leader Card 3 */}
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-white rounded shadow-sm overflow-hidden">
             <div className="relative h-64 w-full overflow-hidden">
               <img
                 src="https://images.pexels.com/photos/5452293/pexels-photo-5452293.jpeg"
@@ -101,7 +101,7 @@ const LeadershipTeam = () => {
           </div>
 
           {/* Leader Card 4 */}
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-white rounded shadow-sm overflow-hidden">
             <div className="relative h-64 w-full overflow-hidden">
               <img
                 src="https://images.pexels.com/photos/4021775/pexels-photo-4021775.jpeg"
@@ -128,7 +128,7 @@ const LeadershipTeam = () => {
           </div>
 
           {/* Leader Card 5 */}
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-white rounded shadow-sm overflow-hidden">
             <div className="relative h-64 w-full overflow-hidden">
               <img
                 src="https://images.pexels.com/photos/3825583/pexels-photo-3825583.jpeg"
@@ -155,7 +155,7 @@ const LeadershipTeam = () => {
           </div>
 
           {/* Leader Card 6 */}
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-white rounded shadow-sm overflow-hidden">
             <div className="relative h-64 w-full overflow-hidden">
               <img
                 src="https://images.pexels.com/photos/4173239/pexels-photo-4173239.jpeg"

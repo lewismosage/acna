@@ -36,15 +36,16 @@ const About = () => {
               </p>
             </div>
           </div>
-          {/* Center: Main Image with overlay */}
-          <div className="flex-1 flex flex-col justify-center relative min-h-[400px]">
-            <div className="relative h-full min-h-[400px] flex items-end">
+          
+          {/* Center: Full-height Main Image with overlay */}
+          <div className="flex-1 relative min-h-[400px] lg:min-h-full">
+            <div className="absolute inset-0 h-full">
               <img
                 src={Pediatrics}
                 alt="Pediatric neurologist with child patient"
-                className="w-full h-[400px] object-cover object-center rounded-none"
+                className="w-full h-full object-cover object-center"
               />
-              <div className="absolute inset-0 bg-black/30 rounded-none" />
+              <div className="absolute inset-0 bg-black/30" />
               <div className="absolute bottom-0 left-0 p-8">
                 <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-white mb-6 max-w-xs">
                   Join a network dedicated to every child's neurological health
@@ -58,11 +59,12 @@ const About = () => {
               </div>
             </div>
           </div>
-          {/* Right: Two stacked cards */}
-          <div className="flex flex-col gap-4 flex-1 min-w-[260px] max-w-xs justify-center py-8">
+          
+          {/* Right: Full-height stacked cards */}
+          <div className="flex flex-col gap-4 w-full lg:w-auto lg:min-h-full lg:justify-between py-8 lg:py-0">
             {/* Card 1 */}
-            <div className="relative h-48 rounded-lg overflow-hidden flex items-end">
-            <img
+            <div className="relative h-48 lg:h-[calc(50%-8px)] rounded overflow-hidden flex items-end">
+              <img
                 src={MedicalTeam}
                 alt="Training"
                 className="absolute inset-0 w-full h-full object-cover object-center"
@@ -80,8 +82,9 @@ const About = () => {
                 </Link>
               </div>
             </div>
+            
             {/* Card 2 */}
-            <div className="relative h-48 rounded-lg overflow-hidden flex items-end">
+            <div className="relative h-48 lg:h-[calc(50%-8px)] rounded overflow-hidden flex items-end">
               <img
                 src={HappyDoctor}
                 alt="Get Involved"

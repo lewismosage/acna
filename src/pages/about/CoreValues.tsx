@@ -47,11 +47,11 @@ const CoreValues = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
           {coreValues.map((value) => (
             <div key={value.title} className="flex flex-col h-full">
-              <div className="w-full h-72 bg-gray-200 rounded-xl overflow-hidden mb-6">
+              <div className="w-full h-72 bg-gray-200 rounded overflow-hidden mb-6">
                 <img
                   src={value.image}
                   alt={value.title}
-                  className="w-full h-full object-cover rounded-xl"
+                  className="w-full h-full object-cover rounded"
                 />
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-3 text-left">

@@ -3,8 +3,11 @@ import { Link } from "react-router-dom";
 import { ChevronDown, ChevronUp, Linkedin } from "lucide-react";
 import CareersHeroImg from "../../assets/happy-female-doctor.jpg";
 import CareersCultureImg from "../../assets/medical-team-training.webp";
-import CareersBenefitsImg from "../../assets/pediatric-checkup.jpg";
 import CareersProgramsImg from "../../assets/how-we-work.jpg";
+import NairobiHQ from "../../assets/Nairobi-HQ.webp"
+import Abuja from "../../assets/Nigeria.jpg"
+
+import Testimonials from "./Testimonials"
 
 const Careers = () => {
   const [whyOpen, setWhyOpen] = useState(false);
@@ -45,7 +48,7 @@ const Careers = () => {
             <img
               src={CareersHeroImg}
               alt="ACNA Team"
-              className="rounded-xl shadow-lg w-full max-w-md object-cover"
+              className="rounded shadow-lg w-full max-w-4xl object-cover"
             />
           </div>
         </div>
@@ -153,10 +156,10 @@ const Careers = () => {
               <div className="flex flex-wrap gap-8 md:gap-16">
                 <div>
                   <div className="text-3xl font-extrabold">1,250+</div>
-                  <div className="text-sm">Staff & volunteers globally</div>
+                  <div className="text-sm">Staff & volunteers across Africa</div>
                 </div>
                 <div>
-                  <div className="text-3xl font-extrabold">65+</div>
+                  <div className="text-3xl font-extrabold">25+</div>
                   <div className="text-sm">Countries we operate in</div>
                 </div>
                 <div>
@@ -188,7 +191,7 @@ const Careers = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl font-bold mb-6">What we look for</h2>
           <p className="text-gray-700 mb-8 max-w-2xl">
-            Our employees come to us from many professional backgrounds—from
+            Our employees come to us from many professional backgrounds from
             business and tech to academia, medicine, government, and nonprofits.
             They are drawn to our foundation by the opportunity to fund and
             shape pathbreaking approaches to alleviating poverty, disease, and
@@ -244,7 +247,7 @@ const Careers = () => {
       </section>
 
       {/* View Job Opportunities CTA */}
-      <section className="py-12 bg-[#f9f9f6] text-center">
+      <section className="py-12 bg-blue-50 text-center">
         <h2 className="text-2xl md:text-3xl font-extrabold mb-4">
           VIEW JOB OPPORTUNITIES
         </h2>
@@ -260,61 +263,7 @@ const Careers = () => {
       </section>
 
       {/* Testimonials Section */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl font-bold mb-6">
-            What our employees are saying
-          </h2>
-          <p className="text-gray-700 mb-8">
-            Learn what inspired some of our employees to join the foundation and
-            how they've applied their past professional experience to working in
-            philanthropy.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="bg-white rounded-xl shadow border border-gray-200 overflow-hidden">
-              <div className="relative">
-                <img
-                  src={CareersHeroImg}
-                  alt="Employee 1"
-                  className="w-full h-56 object-cover"
-                />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="bg-white/80 rounded-full px-4 py-2 font-bold text-lg">
-                    "I sensed something really big in global health."
-                  </span>
-                </div>
-              </div>
-              <div className="p-6">
-                <div className="font-bold">Amy Carter</div>
-                <div className="text-gray-600 text-sm">
-                  Director, Community Engagement (Seattle Office)
-                </div>
-              </div>
-            </div>
-            <div className="bg-white rounded-xl shadow border border-gray-200 overflow-hidden">
-              <div className="relative">
-                <img
-                  src={CareersProgramsImg}
-                  alt="Employee 2"
-                  className="w-full h-56 object-cover"
-                />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="bg-white/80 rounded-full px-4 py-2 font-bold text-lg">
-                    "I get to leverage my experience."
-                  </span>
-                </div>
-              </div>
-              <div className="p-6">
-                <div className="font-bold">Eric Momanyi</div>
-                <div className="text-gray-600 text-sm">
-                  Senior Program Officer, Water, Sanitation, & Hygiene (Seattle
-                  Office)
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <Testimonials />
 
       {/* Offices Section */}
       <section className="py-16 bg-gray-800 text-white">
@@ -324,9 +273,9 @@ const Careers = () => {
             We are proud to have a strong presence across Africa. Our teams collaborate with governments, local organizations, and communities to drive progress in health, education, agriculture, innovation, and inclusive economic growth.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white/10 rounded-xl p-6">
+            <div className="bg-white/10 rounded p-6">
               <img
-                src={CareersCultureImg}
+                src={NairobiHQ}
                 alt="Nairobi Office"
                 className="w-full h-32 object-cover rounded mb-4"
               />
@@ -338,9 +287,9 @@ const Careers = () => {
                 Learn more about our Kenya office
               </Link>
             </div>
-            <div className="bg-white/10 rounded-xl p-6">
+            <div className="bg-white/10 rounded p-6">
               <img
-                src={CareersBenefitsImg}
+                src={Abuja}
                 alt="Abuja Office"
                 className="w-full h-32 object-cover rounded mb-4"
               />
@@ -352,7 +301,7 @@ const Careers = () => {
                 Learn more about our Nigeria office
               </Link>
             </div>
-            <div className="bg-white/10 rounded-xl p-6">
+            <div className="bg-white/10 rounded p-6">
               <img
                 src={CareersProgramsImg}
                 alt="Addis Ababa Office"
@@ -366,7 +315,7 @@ const Careers = () => {
                 Learn more about our Ethiopia office
               </Link>
             </div>
-            <div className="bg-white/10 rounded-xl p-6">
+            <div className="bg-white/10 rounded p-6">
               <img
                 src={CareersHeroImg}
                 alt="Dakar Office"
@@ -380,7 +329,7 @@ const Careers = () => {
                 Learn more about our Senegal office
               </Link>
             </div>
-            <div className="bg-white/10 rounded-xl p-6">
+            <div className="bg-white/10 rounded p-6">
               <img
                 src={CareersCultureImg}
                 alt="Johannesburg Office"
@@ -399,7 +348,7 @@ const Careers = () => {
       </section>
 
       {/* FAQ Section */}
-      <section className="py-16 bg-[#f9f9f6] text-center">
+      <section className="py-16 bg-white text-center">
         <h2 className="text-2xl md:text-3xl font-extrabold mb-4">
           FREQUENTLY ASKED QUESTIONS
         </h2>
