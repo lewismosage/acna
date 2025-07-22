@@ -99,7 +99,7 @@ const About = () => {
                   to="/get-involved"
                   className="inline-block border-2 border-white text-white px-4 py-2 rounded font-semibold text-sm hover:bg-white hover:text-black transition-colors duration-200"
                 >
-                  EXPLORE WHAT WE DO
+                  EXPLORE TRAINING PROGRAMS
                 </Link>
               </div>
             </div>
