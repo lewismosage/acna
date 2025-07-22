@@ -13,6 +13,9 @@ import {
   ArrowRight,
   Handshake,
 } from "lucide-react";
+import MembershipCounter from './MembershipCounter';
+import VolunteerSection from './VolunteerSection';
+import AdvocacyCards from "./AdvocacyCards";
 
 const heroMainImg =
   "https://images.pexels.com/photos/3952234/pexels-photo-3952234.jpeg?auto=compress&w=600";
@@ -113,11 +116,11 @@ const GetInvolved = () => {
         </div>
       </section>
 
-      {/* Ways to Get Involved */}
-      <section className="py-20 bg-white">
+     {/* Ways to Get Involved */}
+     <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
+            <h2 className="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
               Ways to Get Involved
             </h2>
             <div className="h-2 w-16 bg-red-600 mb-6 mx-auto" />
@@ -126,148 +129,30 @@ const GetInvolved = () => {
               partnering with ACNA.
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* Become a Member */}
-            <div className="bg-blue-50 rounded-xl p-8 border border-blue-100 hover:shadow-lg transition-shadow duration-200 flex flex-col">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <UserPlus className="w-8 h-8 text-blue-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4 text-center">
-                Become a Member
-              </h3>
-              <p className="text-gray-600 mb-6 text-center flex-1">
-                Join our network of child neurology professionals across Africa
-                and access exclusive resources.
-              </p>
-              <div className="text-center">
-                <Link
-                  to="/membership"
-                  className="inline-flex items-center justify-center bg-blue-600 text-white px-6 py-3 rounded-lg text-md font-medium hover:bg-blue-700 transition-colors duration-200"
-                >
-                  Join ACNA
-                  <HeartHandshake className="ml-2 w-5 h-5" />
-                </Link>
-              </div>
-            </div>
-            {/* Volunteer */}
-            <div className="bg-green-50 rounded-xl p-8 border border-green-100 hover:shadow-lg transition-shadow duration-200 flex flex-col">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <HeartHandshake className="w-8 h-8 text-green-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4 text-center">
-                Volunteer
-              </h3>
-              <p className="text-gray-600 mb-6 text-center flex-1">
-                Offer your skills and time to support our programs, research,
-                and advocacy efforts.
-              </p>
-              <div className="text-center">
-                <Link
-                  to="/volunteer"
-                  className="inline-flex items-center justify-center bg-green-600 text-white px-6 py-3 rounded-lg text-md font-medium hover:bg-green-700 transition-colors duration-200"
-                >
-                  Volunteer Opportunities
-                  <Users className="ml-2 w-5 h-5" />
-                </Link>
-              </div>
-            </div>
-            {/* Donate */}
-            <div className="bg-purple-50 rounded-xl p-8 border border-purple-100 hover:shadow-lg transition-shadow duration-200 flex flex-col">
-              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <HandCoins className="w-8 h-8 text-purple-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4 text-center">
-                Donate
-              </h3>
-              <p className="text-gray-600 mb-6 text-center flex-1">
-                Support our mission to improve child neurology care through
-                financial contributions.
-              </p>
-              <div className="text-center">
-                <Link
-                  to="/donate"
-                  className="inline-flex items-center justify-center bg-purple-600 text-white px-6 py-3 rounded-lg text-md font-medium hover:bg-purple-700 transition-colors duration-200"
-                >
-                  Make a Donation
-                  <HandCoins className="ml-2 w-5 h-5" />
-                </Link>
-              </div>
-            </div>
-            {/* Partner */}
-            <div className="bg-yellow-50 rounded-xl p-8 border border-yellow-100 hover:shadow-lg transition-shadow duration-200 flex flex-col">
-              <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Globe className="w-8 h-8 text-yellow-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4 text-center">
-                Partner With Us
-              </h3>
-              <p className="text-gray-600 mb-6 text-center flex-1">
-                Collaborate with ACNA through institutional partnerships and
-                corporate sponsorships.
-              </p>
-              <div className="text-center">
-                <Link
-                  to="/partnerships"
-                  className="inline-flex items-center justify-center bg-yellow-600 text-white px-6 py-3 rounded-lg text-md font-medium hover:bg-yellow-700 transition-colors duration-200"
-                >
-                  Partnership Info
-                  <Handshake className="ml-2 w-5 h-5" />
-                </Link>
-              </div>
-            </div>
-            {/* Advocate */}
-            <div className="bg-red-50 rounded-xl p-8 border border-red-100 hover:shadow-lg transition-shadow duration-200 flex flex-col">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Megaphone className="w-8 h-8 text-red-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4 text-center">
-                Become an Advocate
-              </h3>
-              <p className="text-gray-600 mb-6 text-center flex-1">
-                Help raise awareness about childhood neurological disorders in
-                your community.
-              </p>
-              <div className="text-center">
-                <Link
-                  to="/advocacy"
-                  className="inline-flex items-center justify-center bg-red-600 text-white px-6 py-3 rounded-lg text-md font-medium hover:bg-red-700 transition-colors duration-200"
-                >
-                  Advocacy Resources
-                  <Megaphone className="ml-2 w-5 h-5" />
-                </Link>
-              </div>
-            </div>
-            {/* Train */}
-            <div className="bg-indigo-50 rounded-xl p-8 border border-indigo-100 hover:shadow-lg transition-shadow duration-200 flex flex-col">
-              <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <GraduationCap className="w-8 h-8 text-indigo-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4 text-center">
-                Training Programs
-              </h3>
-              <p className="text-gray-600 mb-6 text-center flex-1">
-                Participate in our educational programs to enhance your skills
-                in pediatric neurology.
-              </p>
-              <div className="text-center">
-                <Link
-                  to="/training"
-                  className="inline-flex items-center justify-center bg-indigo-600 text-white px-6 py-3 rounded-lg text-md font-medium hover:bg-indigo-700 transition-colors duration-200"
-                >
-                  View Programs
-                  <GraduationCap className="ml-2 w-5 h-5" />
-                </Link>
-              </div>
-            </div>
-          </div>
+          
         </div>
       </section>
 
+      <MembershipCounter />
+      <VolunteerSection />
+
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
+              Other Ways to Get Involved
+            </h2>
+            <div className="h-2 w-16 bg-red-600 mb-6 mx-auto" />
+          </div>
+          <AdvocacyCards />
+        </div>
+      </section>
+    
       {/* Current Initiatives */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
+            <h2 className="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
               Urgent Initiatives Needing Support
             </h2>
             <div className="h-2 w-16 bg-red-600 mb-6 mx-auto" />
@@ -347,7 +232,7 @@ const GetInvolved = () => {
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
+            <h2 className="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
               Stories of Changed Lives
             </h2>
             <div className="h-2 w-16 bg-red-600 mb-6 mx-auto" />

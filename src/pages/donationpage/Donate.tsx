@@ -304,6 +304,23 @@ const Donate = () => {
                   </li>
                 </ul>
               </div>
+
+              <div className="mt-12 pt-8 border-t border-gray-200">
+                <h3 className="font-medium text-gray-900 text-lg mb-4">WHERE YOUR MONEY GOES</h3>
+                <ul className="space-y-3 text-gray-600">
+                  <li className="flex items-start">
+                    <p>Every donation to ACNA supports our mission across Africa — from empowering local communities to speak out against injustice, to funding critical advocacy, grassroots mobilization, and policy change efforts that hold leaders accountable and protect human rights.</p>
+                  </li>
+                  <li className="flex items-start">
+                    <div className="w-2 h-1.5 bg-blue-600 rounded-full mt-1.5 mr-3"></div>
+                    <span>We couldn’t do any of this work without your support.</span>
+                  </li>
+                  <li className="flex items-start">
+                    <div className="w-3 h-1.5 bg-blue-600 rounded-full mt-1.5 mr-3"></div>
+                    <span>You can visit our Finance Report pages for more information about where your money goes.</span>
+                  </li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>
