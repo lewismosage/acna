@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 const MembershipCounter = () => {
   const [count, setCount] = useState(0);
@@ -53,6 +54,13 @@ const MembershipCounter = () => {
               Sam Gwer - ACNA Chairperson
             </div>
             <div className="w-40 h-1 bg-black mt-2 mx-auto lg:mx-0"></div>
+            <div className="mt-6">
+              <Link
+                to="/#"
+                className="bg-orange-700 hover:bg-orange-600 text-white font-semibold py-2 px-6 rounded shadow-lg transition duration-300">
+                Join Us
+              </Link>
+            </div>
           </div>
 
         </div>

@@ -37,18 +37,11 @@ const Home = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 mb-8 justify-center">
             <Link
-              to="#"
-              className="inline-flex items-center justify-center bg-blue-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-all duration-200 transform hover:scale-105"
-            >
-              Join ACNA Today
-              <ArrowRight className="ml-2 w-5 h-5" />
-            </Link>
-            <Link
               to="/about"
               className="inline-flex items-center justify-center border-2 border-yellow-300 text-yellow-300 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-yellow-300 hover:text-blue-900 transition-all duration-200"
             >
               Explore Our Work
-              <Play className="ml-2 w-5 h-5" />
+              
             </Link>
           </div>
         </div>

@@ -49,33 +49,32 @@ const Donate = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      {/* Hero Section */}
-<div className="relative w-full h-auto lg:h-[440px]"> {/* Changed to h-auto for mobile */}
-  <div className="flex flex-col lg:flex-row w-full h-full">
-    {/* Left: Blue background with content - now comes first in DOM for mobile */}
-    <div className="relative z-10 w-full lg:w-1/2 flex flex-col justify-center bg-gradient-to-r from-blue-900 to-blue-700 px-4 sm:px-6 lg:px-12 py-12 min-h-[300px] lg:min-h-full">
-      <div className="w-20 h-20 bg-blue-100 bg-opacity-20 rounded-full flex items-center justify-center mb-6 mx-auto lg:mx-0">
-        <HeartHandshake className="w-10 h-10 text-white" />
+      <div className="relative w-full h-auto lg:h-[440px]">
+        <div className="flex flex-col lg:flex-row w-full h-full">
+          {/* Left: Blue background with content - now comes first in DOM for mobile */}
+          <div className="relative z-10 w-full lg:w-1/2 flex flex-col justify-center bg-gradient-to-r from-orange-700 to-blue-600 px-4 sm:px-6 lg:px-12 py-12 min-h-[300px] lg:min-h-full">
+            <div className="w-20 h-20 bg-blue-100 bg-opacity-20 rounded-full flex items-center justify-center mb-6 mx-auto lg:mx-0">
+              <HeartHandshake className="w-10 h-10 text-white" />
+            </div>
+            <h1 className="text-3xl lg:text-4xl font-bold text-white mb-4 text-center lg:text-left">
+              Support Child Neurology in Africa
+            </h1>
+            <p className="text-lg lg:text-xl text-blue-100 max-w-3xl mx-auto lg:mx-0 text-center lg:text-left">
+              Your donation helps train specialists, fund research, and provide care to children with neurological conditions across the continent.
+            </p>
+          </div>
+          
+          {/* Right: Image - now stacks below on mobile */}
+          <div className="relative w-full lg:w-1/2 h-[300px] lg:h-full">
+            <img
+              src={donationImg}
+              alt="Donation"
+              className="absolute inset-0 w-full h-full object-cover lg:rounded-none shadow-lg"
+              style={{ objectPosition: 'center' }}
+            />
+          </div>
+        </div>
       </div>
-      <h1 className="text-3xl lg:text-4xl font-bold text-white mb-4 text-center lg:text-left">
-        Support Child Neurology in Africa
-      </h1>
-      <p className="text-lg lg:text-xl text-blue-100 max-w-3xl mx-auto lg:mx-0 text-center lg:text-left">
-        Your donation helps train specialists, fund research, and provide care to children with neurological conditions across the continent.
-      </p>
-    </div>
-    
-    {/* Right: Image - now stacks below on mobile */}
-    <div className="relative w-full lg:w-1/2 h-[300px] lg:h-full">
-      <img
-        src={donationImg}
-        alt="Donation"
-        className="absolute inset-0 w-full h-full object-cover lg:rounded-none shadow-lg"
-        style={{ objectPosition: 'center' }}
-      />
-    </div>
-  </div>
-</div>
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16"> {/* Increased max-width */}

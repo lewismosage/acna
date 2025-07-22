@@ -14,6 +14,7 @@ import Gallery from './pages/eventsandnews/Gallery';
 import Contact from './pages/support/ContactUs';
 import GetInvolved from './pages/support/GetInvolved';
 import Careers from './pages/careers/Careers';
+import VolunteerInfoSection from './pages/support/VolunteerInfoSection';
 
 
 function App() {
@@ -34,6 +35,7 @@ function App() {
             <Route path="/get-involved" element={<GetInvolved />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/careers" element={<Careers />} />
+            <Route path="/volunteer" element={<VolunteerInfoSection />} />
             {/*Education Pages*/}
             <Route path="/news" element={<News />} />
             <Route path="/e-resources" element={<Membership />} />

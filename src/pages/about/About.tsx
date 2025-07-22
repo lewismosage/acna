@@ -52,7 +52,7 @@ const About = () => {
                 </h2>
                 <Link
                   to="/membership"
-                  className="inline-block bg-blue-600 text-white px-8 py-3 rounded font-bold text-lg shadow hover:bg-blue-700 transition-colors duration-200"
+                  className="inline-block bg-orange-600 text-white px-8 py-3 rounded font-bold text-lg shadow hover:bg-orange-700 transition-colors duration-200"
                 >
                   JOIN ACNA
                 </Link>

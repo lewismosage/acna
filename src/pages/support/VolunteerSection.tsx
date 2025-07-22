@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import Volunteer from "../../assets/Volunteer.jpg"
 
 const VolunteerSection = () => {
@@ -13,9 +14,11 @@ const VolunteerSection = () => {
           <p className="text-lg leading-relaxed text-white mb-10 max-w-md">
             Explore our many volunteer opportunities and become part of our mission.
           </p>
-          <button className="border-2 border-white text-white px-8 py-3 text-sm font-bold tracking-wider hover:bg-white hover:text-[#B45525] transition-all duration-300">
+          <Link
+            to="/volunteer"
+           className="border-2 border-white text-white px-8 py-3 text-sm font-bold tracking-wider hover:bg-white hover:text-[#B45525] transition-all duration-300">
             VOLUNTEER NOW
-          </button>
+          </Link>
         </div>
         
         {/* Right Image with yellow border */}

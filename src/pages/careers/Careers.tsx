@@ -29,7 +29,7 @@ const Careers = () => {
             <div className="flex items-center gap-4 mb-6">
               <Link
                 to="#jobs"
-                className="bg-gray-900 text-white px-6 py-2 rounded font-semibold hover:bg-gray-700 transition"
+                className="bg-orange-600 text-white px-6 py-2 rounded font-semibold hover:bg-orange-700 transition"
               >
                 Search for jobs
               </Link>
@@ -256,7 +256,7 @@ const Careers = () => {
         </p>
         <Link
           to="#jobs"
-          className="bg-gray-900 text-white px-6 py-2 rounded font-semibold hover:bg-gray-700 transition"
+          className="bg-orange-600 text-white px-6 py-2 rounded font-semibold hover:bg-gray-700 transition"
         >
           Search jobs
         </Link>
@@ -357,7 +357,7 @@ const Careers = () => {
           questions about the application and interview process and more.
         </p>
         <button
-          className="bg-gray-900 text-white px-6 py-2 rounded font-semibold hover:bg-gray-700 transition"
+          className="bg-orange-600 text-white px-6 py-2 rounded font-semibold hover:bg-orange-700 transition"
           onClick={() => setFaqOpen((v) => !v)}
         >
           View FAQ
