@@ -18,6 +18,7 @@ import VolunteerInfoSection from './pages/support/VolunteerInfoSection';
 import WhatWeDo from './pages/about/Whatwedo';
 import HowWeWork from './pages/about/HowWeWork'
 import OurStory from './pages/about/OurStory';
+import LeadershipTeam from './pages/about/LeadershipTeam';
 
 
 function App() {
@@ -38,6 +39,7 @@ function App() {
             <Route path="/about/what-we-do" element={<WhatWeDo />} />
             <Route path="/about/how-we-work" element={<HowWeWork/>} />
             <Route path="/about/our-story" element={<OurStory />} />
+            <Route path="/about/leadership" element={<LeadershipTeam />} />
             {/*Support Pages*/}
             <Route path="/get-involved" element={<GetInvolved />} />
             <Route path="/contact" element={<Contact />} />

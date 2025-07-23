@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import SAMGWER from "../../assets/sam-gwer.jpg"
+import { Link } from 'react-router';
 import JoWilmshurst from "../../assets/Jo Wilmshurst.jpg"
 
 
@@ -49,9 +50,11 @@ const OurStory = () => {
               <p className="text-gray-600 text-lg mb-6">
                 Our leaders' deep expertise in pediatric neurology and public health guides our work with communities across Africa to achieve better neurological outcomes for children.
               </p>
-              <button className="border-2 border-orange-600 text-gray-800 px-6 py-3 text-sm font-bold tracking-wider hover:bg-orange-600 hover:text-white transition-all duration-300 rounded-lg">
+              <Link
+              to="/about/leadership"
+              className="border-2 border-orange-600 text-gray-800 px-6 py-3 text-sm font-bold tracking-wider hover:bg-orange-600 hover:text-white transition-all duration-300 rounded-lg">
                MEET ACNA'S LEADERS
-              </button>
+              </Link>
             </div>
             <div className="md:w-1/2">
               <img

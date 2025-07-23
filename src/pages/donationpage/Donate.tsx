@@ -52,7 +52,7 @@ const Donate = () => {
       <div className="relative w-full h-auto lg:h-[440px]">
         <div className="flex flex-col lg:flex-row w-full h-full">
           {/* Left: Blue background with content - now comes first in DOM for mobile */}
-          <div className="relative z-10 w-full lg:w-1/2 flex flex-col justify-center bg-gradient-to-r from-orange-700 to-blue-600 px-4 sm:px-6 lg:px-12 py-12 min-h-[300px] lg:min-h-full">
+          <div className="relative z-10 w-full lg:w-1/2 flex flex-col justify-center bg-gradient-to-r from-orange-700 to-orange-700 px-4 sm:px-6 lg:px-12 py-12 min-h-[300px] lg:min-h-full">
             <div className="w-20 h-20 bg-blue-100 bg-opacity-20 rounded-full flex items-center justify-center mb-6 mx-auto lg:mx-0">
               <HeartHandshake className="w-10 h-10 text-white" />
             </div>

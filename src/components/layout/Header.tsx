@@ -4,7 +4,7 @@ import { Menu, X, ChevronDown, Search, Home } from "lucide-react";
 import ACNALogo from "../../assets/ACNA.jpg";
 
 const topNav = [
-  { name: "About Us", href: "/About" },
+  { name: "About Us", href: "/about" },
   { name: "Get Involved", href: "/get-involved" },
   { name: "Work With Us", href: "/careers" },
   { name: "Contact us", href: "/contact" },

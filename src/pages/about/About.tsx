@@ -111,12 +111,13 @@ const About = () => {
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="lg:text-center mb-16">
-            <h2 className="text-base font-semibold tracking-wide text-blue-600 uppercase">
+            <h2 className="text-base font-semibold tracking-wide text-orange-600 uppercase">
               Who We Are
             </h2>
-            <p className="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
+            <p className="text-3xl md:text-4xl font-extrabold tracking-tight text-gray-900 mb-4">
               Our Purpose and Aspiration
             </p>
+            <div className="w-20 h-1 bg-red-600 mx-auto mb-6"></div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
@@ -222,9 +223,6 @@ const About = () => {
 
       {/* Governance */}
       <Governance />
-
-      {/* Leadership Team */}
-      <LeadershipTeam />
 
       {/* Member Countries */}
       <ContinentalReach />

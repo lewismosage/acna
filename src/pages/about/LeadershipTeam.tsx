@@ -1,192 +1,114 @@
-// components/LeadershipTeam.tsx
-import React from "react";
-import SAMGWER from "../../assets/sam-gwer.jpg"
-import JoWilmshurst from "../../assets/Jo Wilmshurst.jpg"
+import React from 'react';
+import { useEffect } from 'react';
+import SAMGWER from "../../assets/sam-gwer.jpg";
+import JOWILMSHURST from "../../assets/Jo Wilmshurst.jpg";
+import SAHAR from "../../assets/Sahar.png";
+import ILHEM from "../../assets/Dr. Ilhem Ben Youssef Turki.jpg";
+//import GAIL from "../../assets/";
+import CHAHNEZ from "../../assets/Chahnez Triki.png";
+import UDUAK from "../../assets/Uduak Offiong.png";
+//import AHMED from "../../assets/ahmed-raouf.jpg";
 
-const LeadershipTeam = () => {
+
+
+const Leadership = () => {
+  const leaders = [
+    {
+      name: "Sam Gwer",
+      position: "Chairperson",
+      image: SAMGWER,
+      bio: "Sam is a Paediatric Neurologist, serving at Ubuntu Neurology and Gertrude’s Children’s Hospital in Nairobi, Kenya. He is also a senior lecturer at the School of Health Sciences at Kenyatta University. His research focuses on childhood epilepsy, stroke, encephalopathies, and health systems strengthening. He has authored several peer-reviewed publications, contributed to international neurology training guidelines, and co-developed STONE-HMIS®, an award-winning digital health platform. He has been instrumental in initiating neurology training in Kenya, promoting awareness and capacity development in the management of epilepsy and other neurological diseases, and in the founding of a number of professional associations and social health enterprises serving underserved communities. He has a PhD from the University of Amsterdam."
+    },
+    {
+      name: "Sahar Hassanein",
+      position: "Secretary",
+      image: SAHAR,
+      bio: "Professor of Pediatrics at the Faculty of Medicine, Ain Shams University, Cairo, Egypt. Dr. Sahar M. A. Hassanein has practices as a paediatric neurologist for almost 25 years. She has experience in various fields of Pediatrics and child neurology, in education, and in conducting clinical research and publications. She serves as director of the Children’s hospital, Faculty of Medicine, Ain Shams University. Dr Hassanein has been on International Pediatric Stroke Study executive committee board since 2020. She is the editor in chief of the International Pediatric Stroke organization."
+    },
+    {
+      name: "Gail Scher",
+      position: "Board Member",
+      //image: GAIL,
+      bio: "Bio coming soon."
+    },
+    {
+      name: "Chahnez Triki",
+      position: "Board Member",
+      image: CHAHNEZ,
+      bio: "Bio coming soon."
+    },
+    {
+      name: "Uduak Offiong",
+      position: "Board Member",
+      image: UDUAK,
+      bio: "Bio coming soon."
+    },
+    {
+      name: "Ilhem Ben Youssef",
+      position: "Board Member",
+      image: ILHEM,
+      bio: "Dr. Ilhem Ben Youssef Turki is professor of Neurology at the faculty of Medicine, Tunis El Manar University, Tunisia. She has worked for many years (1989-2025) at the Mongi Ben Hmida National Institute of Neurology (NINT) hospital in Tunis. She was the head of the pediatric neurology department (2013-2023) and director of the pediatric neurology research laboratory (LR18SP04) from 2018 to 2025. Her research interests include neuromuscular diseases, epilepsy, cerebral palsy, mitochondrial diseases, and neurodevelopmental disorders."
+    },
+    {
+      name: "Jo Wilmshurst",
+      position: "Board Member",
+      image: JOWILMSHURST,
+      bio: "Professor Jo Wilmshurst is Head of Paediatric Neurology at the Red Cross War Memorial Children’s Hospital, University of Cape Town. She is past-President of the International Child Neurology Association (2018-2022) and has held various leadership roles in the International League Against Epilepsy and other associations. She is director of the African Paediatric Fellowship Program and an editorial board member for several neurology journals. She has over 200 peer-reviewed publications and is interested in rare neurological disorders, epilepsy, and neuroinfections."
+    },
+    {
+      name: "Ahmed Raouf Ibrahim",
+      position: "Board Member",
+      //image: AHMED,
+      bio: "Bio coming soon."
+    }
+  ];
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   return (
-    <section className="py-20 bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <h2 className="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
-            Leadership Team
-          </h2>
-          <p className="mt-4 max-w-2xl text-xl text-gray-500 lg:mx-auto">
-            Meet the dedicated professionals leading ACNA's mission across
-            Africa
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {/* Leader Card 1 */}
-          <div className="bg-white rounded shadow-sm overflow-hidden">
-            {/* Image with overlay */}
-            <div className="relative h-64 w-full overflow-hidden">
-              <img
-                src={SAMGWER}
-                alt="Sam Gwer"
-                className="w-full h-full object-cover"
-              />
-              {/* Overlay text */}
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6">
-                <div className="relative">
-                  <h3 className="text-2xl font-bold text-white">Sam Gwer</h3>
-                  <p className="text-blue-300 font-medium">Chairperson</p>
-                  <p className="text-blue-100 text-sm">Kenya</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Description with blue background */}
-            <div className="bg-blue-50 p-6">
-              <p className="text-gray-600">
-                Paediatric Neurologist at Ubuntu Neurology and Gertrude's
-                Children's Hospital, Nairobi. Senior lecturer at Kenyatta
-                University with PhD from University of Amsterdam.
-              </p>
-            </div>
-          </div>
-
-          {/* Leader Card 2 */}
-          <div className="bg-white rounded shadow-sm overflow-hidden">
-            <div className="relative h-64 w-full overflow-hidden">
-              <img
-                src="https://images.pexels.com/photos/5452293/pexels-photo-5452293.jpeg"
-                alt="Jo Wilmshurst"
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6">
-                <div className="relative">
-                  <h3 className="text-2xl font-bold text-white">
-                    Sahar Hassanein
-                  </h3>
-                  <p className="text-blue-300 font-medium">Secretary</p>
-                  <p className="text-blue-100 text-sm">Egypt</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-blue-50 p-6">
-              <p className="text-gray-600">
-                Professor of Pediatrics at Ain Shams University, Cairo. Director
-                of Children's hospital with 25+ years in paediatric neurology
-              </p>
-            </div>
-          </div>
-
-          {/* Leader Card 3 */}
-          <div className="bg-white rounded shadow-sm overflow-hidden">
-            <div className="relative h-64 w-full overflow-hidden">
-              <img
-                src={JoWilmshurst}
-                alt="Jo Wilmshurst"
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6">
-                <div className="relative">
-                  <h3 className="text-2xl font-bold text-white">
-                    Jo Wilmshurst
-                  </h3>
-                  <p className="text-blue-300 font-medium">Board Member</p>
-                  <p className="text-blue-100 text-sm">South Africa</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-blue-50 p-6">
-              <p className="text-gray-600">
-                Head of Paediatric Neurology at Red Cross War Memorial
-                Children's Hospital, University of Cape Town. Past-President of
-                ICNA (2018-2022).
-              </p>
-            </div>
-          </div>
-
-          {/* Leader Card 4 */}
-          <div className="bg-white rounded shadow-sm overflow-hidden">
-            <div className="relative h-64 w-full overflow-hidden">
-              <img
-                src="https://images.pexels.com/photos/4021775/pexels-photo-4021775.jpeg"
-                alt="Ilhem Ben Youssef"
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6">
-                <div className="relative">
-                  <h3 className="text-2xl font-bold text-white">
-                    Ilhem Ben Youssef
-                  </h3>
-                  <p className="text-blue-300 font-medium">Board Member</p>
-                  <p className="text-blue-100 text-sm">Tunisia</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-blue-50 p-6">
-              <p className="text-gray-600">
-                Professor of Neurology at Tunis El Manar University. Former head
-                of pediatric neurology department at NINT hospital, Tunisia.
-              </p>
-            </div>
-          </div>
-
-          {/* Leader Card 5 */}
-          <div className="bg-white rounded shadow-sm overflow-hidden">
-            <div className="relative h-64 w-full overflow-hidden">
-              <img
-                src="https://images.pexels.com/photos/3825583/pexels-photo-3825583.jpeg"
-                alt="Chahnez Triki"
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6">
-                <div className="relative">
-                  <h3 className="text-2xl font-bold text-white">
-                    Chahnez Triki
-                  </h3>
-                  <p className="text-blue-300 font-medium">Board Member</p>
-                  <p className="text-blue-100 text-sm">Tunisia</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-blue-50 p-6">
-              <p className="text-gray-600">
-                Distinguished member of the ACNA leadership team contributing to
-                advancing child neurology across Africa.
-              </p>
-            </div>
-          </div>
-
-          {/* Leader Card 6 */}
-          <div className="bg-white rounded shadow-sm overflow-hidden">
-            <div className="relative h-64 w-full overflow-hidden">
-              <img
-                src="https://images.pexels.com/photos/4173239/pexels-photo-4173239.jpeg"
-                alt="Uduak Offiong"
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6">
-                <div className="relative">
-                  <h3 className="text-2xl font-bold text-white">
-                    Uduak Offiong
-                  </h3>
-                  <p className="text-blue-300 font-medium">Board Member</p>
-                  <p className="text-blue-100 text-sm">Nigeria</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-blue-50 p-6">
-              <p className="text-gray-600">
-                Dedicated professional contributing to ACNA's mission of
-                improving neurological care for children across the African
-                continent.
-              </p>
-            </div>
-          </div>
-        </div>
+    <div className="max-w-6xl mx-auto px-6 py-12">
+      <div className="text-center mb-16">
+        <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-gray-900 mb-4">
+          Leadership Team
+        </h2>
+        <div className="w-20 h-1 bg-red-600 mx-auto mb-6"></div>
+        <p className="mt-4 max-w-2xl text-xl text-gray-500 lg:mx-auto">
+          Meet the dedicated professionals leading ACNA's mission across Africa
+        </p>
       </div>
-    </section>
+
+      <div className="space-y-16">
+        {leaders.map((leader, index) => (
+          <div key={index} className="bg-white">
+            <div className="flex flex-col lg:flex-row gap-8">
+              <div className="lg:w-64 flex-shrink-0">
+                <img
+                  src={leader.image}
+                  alt={leader.name}
+                  className="w-full h-64 lg:h-80 object-cover rounded shadow-lg"
+                />
+              </div>
+
+              <div className="flex-1">
+                <div className="mb-6">
+                  <h2 className="text-3xl font-bold text-gray-900 mb-2">{leader.name}</h2>
+                  <p className="text-lg text-gray-600 font-medium">{leader.position}</p>
+                </div>
+
+                <div className="prose prose-gray max-w-none">
+                  <p className="text-gray-700 leading-relaxed text-base">
+                    {leader.bio}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 };
 
-export default LeadershipTeam;
+export default Leadership;

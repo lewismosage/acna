@@ -9,12 +9,13 @@ const ContactUs = () => {
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="lg:text-center mb-16">
-            <h2 className="text-base font-semibold tracking-wide text-blue-600 uppercase">
+            <h2 className="text-base font-semibold tracking-wide text-orange-600 uppercase">
               Reach Out
             </h2>
-            <p className="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
+            <p className="text-3xl md:text-4xl font-extrabold tracking-tight text-gray-900 mb-4">
               Our Contact Information
             </p>
+            <div className="w-20 h-1 bg-red-600 mx-auto mb-6"></div>
             <p className="mt-4 max-w-2xl text-xl text-gray-700 lg:mx-auto">
               Get in touch with the African Child Neurology Association. We're
               here to answer your questions and connect you with resources.
@@ -174,7 +175,7 @@ const ContactUs = () => {
                 <div>
                   <button
                     type="submit"
-                    className="w-full bg-blue-600 text-white py-3 px-6 rounded-md hover:bg-blue-700 transition duration-300"
+                    className="w-full bg-orange-600 text-white py-3 px-6 rounded-md hover:bg-orange-700 transition duration-300"
                   >
                     Send Message
                   </button>
@@ -207,7 +208,7 @@ const ContactUs = () => {
                         "_blank"
                       )
                     }
-                    className="px-8 py-2 border-2 border-blue-500 text-blue-600 rounded-lg text-xl font-semibold hover:bg-blue-50 transition-colors duration-200"
+                    className="px-8 py-2 border-2 border-orange-500 text-orange-600 rounded-lg text-xl font-semibold hover:bg-orange-50 transition-colors duration-200"
                   >
                     Get Directions
                   </button>
@@ -222,12 +223,13 @@ const ContactUs = () => {
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="lg:text-center mb-16">
-            <h2 className="text-base font-semibold tracking-wide text-blue-600 uppercase">
+            <h2 className="text-base font-semibold tracking-wide text-orange-600 uppercase">
               Regional Support
             </h2>
-            <p className="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
+            <p className="text-3xl md:text-4xl font-extrabold tracking-tight text-gray-900 mb-4">
               Regional Contact Points
             </p>
+            <div className="w-20 h-1 bg-red-600 mx-auto mb-6"></div>
             <p className="mt-4 max-w-2xl text-xl text-gray-700 lg:mx-auto">
               Connect with our representatives across Africa
             </p>
