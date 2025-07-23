@@ -4,11 +4,11 @@ import { Link } from "react-router-dom";
 import { Users, BookOpen, Calendar, Award, ChevronRight } from "lucide-react";
 
 const featureImages = [
-  // Placeholder images, replace with real ones as needed
-  "https://images.pexels.com/photos/3184396/pexels-photo-3184396.jpeg?auto=compress&w=600",
-  "https://images.pexels.com/photos/256369/pexels-photo-256369.jpeg?auto=compress&w=600",
-  "https://images.pexels.com/photos/1139743/pexels-photo-1139743.jpeg?auto=compress&w=600",
-  "https://images.pexels.com/photos/3259629/pexels-photo-3259629.jpeg?auto=compress&w=600",
+  // Placeholder images
+  "https://images.stockcake.com/public/c/6/2/c624f1e3-3794-467c-b5aa-c73e2e3101ab_large/global-health-collaboration-stockcake.jpg",
+  "https://images.pexels.com/photos/7723396/pexels-photo-7723396.jpeg?auto=compress&w=600",
+  "https://images.pexels.com/photos/7648221/pexels-photo-7648221.jpeg?auto=compress&w=600",
+  "https://images.stockcake.com/public/0/4/4/044c2114-d49c-4356-be9f-d8d47d23f9ab_large/excellence-in-medicine-stockcake.jpg",
 ];
 
 const KeyFeatures = () => {

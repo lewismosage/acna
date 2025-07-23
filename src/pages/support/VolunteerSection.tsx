@@ -4,12 +4,12 @@ import Volunteer from "../../assets/Volunteer.jpg"
 
 const VolunteerSection = () => {
   return (
-    <section className="py-20" style={{ backgroundColor: '#B45525' }}>
+    <section className="py-20 bg-orange-600">
       <div className="max-w-7xl mx-auto px-4 flex flex-col lg:flex-row items-center">
         
         {/* Left Content */}
         <div className="lg:w-1/2 text-left text-white px-6 lg:px-20">
-          <div className="h-0.5 w-16 bg-gray-600 mb-8"></div>
+          <div className="h-0.5 w-16 bg-white mb-8"></div>
           <h2 className="text-5xl font-serif font-light mb-6">Volunteer</h2>
           <p className="text-lg leading-relaxed text-white mb-10 max-w-md">
             Explore our many volunteer opportunities and become part of our mission.

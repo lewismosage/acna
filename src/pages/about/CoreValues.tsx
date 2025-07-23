@@ -7,24 +7,24 @@ import ourStory from "../../assets/our-story.webp";
 const coreValues = [
   {
     image: pediatricCheckup,
-    title: "Our role",
+    title: "What we do",
     description:
       "For over 15 years, ACNA has been dedicated to advancing child neurological care and equity across Africa.",
-    link: "#",
+    link: "about/what-we-do",
   },
   {
     image: howWeWork,
     title: "How we work",
     description:
       "We are focused on results. Those that can be measured. And those measured in ways beyond numbers.",
-    link: "#",
+    link: "about/how-we-work",
   },
   {
     image: ourStory,
     title: "Our story",
     description:
       "Learn about the origins of the foundation and the values that drive our work.",
-    link: "#",
+    link: "/about/our-story",
   },
 ];
 
@@ -62,7 +62,7 @@ const CoreValues = () => {
               </p>
               <a
                 href={value.link}
-                className="text-gray-900 font-semibold underline underline-offset-4 hover:text-gray-700 text-left mt-auto inline-block"
+                className="text-orange-600 font-semibold underline underline-offset-4 hover:text-orange-700 text-left mt-auto inline-block"
               >
                 Learn more
               </a>

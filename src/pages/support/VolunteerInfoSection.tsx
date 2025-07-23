@@ -8,7 +8,7 @@ const VolunteerInfoSection = () => {
         {/* Header Section */}
         <div className="flex flex-col lg:flex-row mb-12">
           {/* Left Header */}
-          <div className="lg:w-1/2 bg-orange-700 text-white p-12">
+          <div className="lg:w-1/2 bg-orange-600 text-white p-12">
             <div className="h-0.5 w-16 bg-white mb-6"></div>
             <h2 className="text-4xl font-light mb-4">VOLUNTEER</h2>
             <p className="text-lg">Get involved in your community</p>
@@ -17,9 +17,9 @@ const VolunteerInfoSection = () => {
           {/* Right Image */}
           <div className="lg:w-1/2">
             <img
-              src="https://images.pexels.com/photos/6646715/pexels-photo-6646715.jpeg?auto=compress&cs=tinysrgb&w=800"
+              src="https://images.pexels.com/photos/8042458/pexels-photo-8042458.jpeg?auto=compress&w=600."
               alt="Community volunteers working together"
-              className="w-full h-64 lg:h-full object-cover"
+              className="w-full h-60 object-cover"
             />
           </div>
         </div>
@@ -104,7 +104,7 @@ const VolunteerInfoSection = () => {
             </div>
 
             {/* CTA Button */}
-            <button className="border-2 border-orange-700 text-orange-700 px-8 py-3 text-sm font-bold tracking-wider hover:bg-orange-700 hover:text-white transition-all duration-300">
+            <button className="border-2 border-orange-600 text-orange-600 px-8 py-3 text-sm font-bold tracking-wider hover:bg-orange-600 hover:text-white transition-all duration-300">
               VOLUNTEER WITH ACNA
             </button>
           </div>

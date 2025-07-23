@@ -15,6 +15,9 @@ import Contact from './pages/support/ContactUs';
 import GetInvolved from './pages/support/GetInvolved';
 import Careers from './pages/careers/Careers';
 import VolunteerInfoSection from './pages/support/VolunteerInfoSection';
+import WhatWeDo from './pages/about/Whatwedo';
+import HowWeWork from './pages/about/HowWeWork'
+import OurStory from './pages/about/OurStory';
 
 
 function App() {
@@ -25,12 +28,16 @@ function App() {
         <main className="flex-1">
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/about" element={<About />} />
             <Route path="/membership" element={<Membership />} />
             <Route path="/events" element={<Events />} />
             <Route path="/news" element={<News />} />
             <Route path="/awards" element={<Awards />} />
             <Route path="/donate" element={<Donate />} />
+            {/*About Pages */}
+            <Route path="/about" element={<About />} />
+            <Route path="/about/what-we-do" element={<WhatWeDo />} />
+            <Route path="/about/how-we-work" element={<HowWeWork/>} />
+            <Route path="/about/our-story" element={<OurStory />} />
             {/*Support Pages*/}
             <Route path="/get-involved" element={<GetInvolved />} />
             <Route path="/contact" element={<Contact />} />

@@ -1,5 +1,7 @@
 // components/LeadershipTeam.tsx
 import React from "react";
+import SAMGWER from "../../assets/sam-gwer.jpg"
+import JoWilmshurst from "../../assets/Jo Wilmshurst.jpg"
 
 const LeadershipTeam = () => {
   return (
@@ -21,7 +23,7 @@ const LeadershipTeam = () => {
             {/* Image with overlay */}
             <div className="relative h-64 w-full overflow-hidden">
               <img
-                src="https://images.pexels.com/photos/4173239/pexels-photo-4173239.jpeg"
+                src={SAMGWER}
                 alt="Sam Gwer"
                 className="w-full h-full object-cover"
               />
@@ -76,7 +78,7 @@ const LeadershipTeam = () => {
           <div className="bg-white rounded shadow-sm overflow-hidden">
             <div className="relative h-64 w-full overflow-hidden">
               <img
-                src="https://images.pexels.com/photos/5452293/pexels-photo-5452293.jpeg"
+                src={JoWilmshurst}
                 alt="Jo Wilmshurst"
                 className="w-full h-full object-cover"
               />
