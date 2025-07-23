@@ -15,7 +15,7 @@ import Contact from './pages/support/ContactUs';
 import GetInvolved from './pages/support/GetInvolved';
 import Careers from './pages/careers/Careers';
 import VolunteerInfoSection from './pages/support/VolunteerInfoSection';
-import WhatWeDo from './pages/about/Whatwedo';
+import WhatWeDo from './pages/about/WhatWeDo';
 import HowWeWork from './pages/about/HowWeWork'
 import OurStory from './pages/about/OurStory';
 import LeadershipTeam from './pages/about/LeadershipTeam';
