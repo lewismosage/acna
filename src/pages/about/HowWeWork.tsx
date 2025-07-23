@@ -1,5 +1,5 @@
 import React from 'react';
-import WhereWeWork from './Wherewework';
+import WhereWeWork from './WhereWeWork';
 
 const HowWeWork = () => {
   return (
