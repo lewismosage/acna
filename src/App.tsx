@@ -21,7 +21,6 @@ import OurStory from './pages/about/OurStory';
 import LeadershipTeam from './pages/about/LeadershipTeam';
 import Register from './pages/membershippages/Register';
 
-
 function App() {
   return (
     <Router>
