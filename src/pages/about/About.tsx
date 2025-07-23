@@ -51,7 +51,7 @@ const About = () => {
                   Join a network dedicated to every child's neurological health
                 </h2>
                 <Link
-                  to="/membership"
+                  to="/register"
                   className="inline-block bg-orange-600 text-white px-8 py-3 rounded font-bold text-lg shadow hover:bg-orange-700 transition-colors duration-200"
                 >
                   JOIN ACNA

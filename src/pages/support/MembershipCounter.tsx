@@ -56,7 +56,7 @@ const MembershipCounter = () => {
             <div className="w-40 h-1 bg-black mt-2 mx-auto lg:mx-0"></div>
             <div className="mt-6">
               <Link
-                to="/#"
+                to="/register"
                 className="bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2 px-6 rounded shadow-lg transition duration-300">
                 Join Us
               </Link>

@@ -130,7 +130,7 @@ const Home = () => {
               work together to protect every child's health and future.
             </p>
             <Link
-              to="/join"
+              to="/register"
               className="inline-block bg-white text-orange-700 px-6 py-2 rounded font-semibold shadow hover:bg-orange-50 transition-colors duration-200"
             >
               Join us

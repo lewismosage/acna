@@ -1,6 +1,12 @@
 import React from 'react';
+import { useEffect } from 'react';
 
 const VolunteerInfoSection = () => {
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   return (
     <section className="py-16 bg-gray-50">
       <div className="max-w-7xl mx-auto">

@@ -19,6 +19,7 @@ import WhatWeDo from './pages/about/Whatwedo';
 import HowWeWork from './pages/about/HowWeWork'
 import OurStory from './pages/about/OurStory';
 import LeadershipTeam from './pages/about/LeadershipTeam';
+import Register from './pages/membershippages/Register';
 
 
 function App() {
@@ -29,7 +30,6 @@ function App() {
         <main className="flex-1">
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/membership" element={<Membership />} />
             <Route path="/events" element={<Events />} />
             <Route path="/news" element={<News />} />
             <Route path="/awards" element={<Awards />} />
@@ -51,6 +51,7 @@ function App() {
             <Route path="/neurology-resources" element={<Membership />} />
             <Route path="/acna-portal" element={<Membership />} />    
             {/*Membership Pages*/}
+            <Route path="/register" element={<Register />} />
             <Route path="/login" element={<Login />} />
             <Route path="/membership-benefits" element={<Membership />} />
             <Route path="/membership-categories" element={<Membership />} />
