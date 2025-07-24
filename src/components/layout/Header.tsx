@@ -56,7 +56,7 @@ const mainNav = [
       { name: "Annual Conference & Meetings", href: "/annual-conference" },
       { name: "Call for Abstracts", href: "/call-for-abstracts" },
       { name: "Awards & Recognition", href: "/awards" },
-      { name: "Gallery", href: "/gallery" },
+      { name: "Our Work in Pictures", href: "/gallery" },
     ],
   },
   {
@@ -76,8 +76,8 @@ const mainNav = [
 
 const Header = () => {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
-  const [isTopMenuOpen, setIsTopMenuOpen] = useState(false);
-  const [isMainMenuOpen, setIsMainMenuOpen] = useState(false);
+  const [isQuickLinksOpen, setIsQuickLinksOpen] = useState(false);
+  const [isMainNavOpen, setIsMainNavOpen] = useState(false);
   const location = useLocation();
 
   const isActive = (path: string) => location.pathname === path;
@@ -106,12 +106,64 @@ const Header = () => {
           </nav>
           <button
             className="md:hidden text-white"
-            onClick={() => setIsTopMenuOpen((v) => !v)}
+            onClick={() => setIsQuickLinksOpen((v) => !v)}
           >
-            {isTopMenuOpen ? <X /> : <Menu />}
+            {isQuickLinksOpen ? <X /> : <Menu />}
           </button>
         </div>
       </div>
+
+      {/* Mobile Sidebar - Quick Links Only */}
+      <div
+        className={`fixed inset-y-0 left-0 w-64 bg-[#142544] text-white transform ${
+          isQuickLinksOpen ? "translate-x-0" : "-translate-x-full"
+        } md:hidden z-50 transition-transform duration-300 ease-in-out shadow-xl`}
+      >
+        <div className="flex items-center justify-between p-4 border-b border-blue-800">
+          <div className="flex items-center space-x-3">
+            <img
+              src={ACNALogo}
+              alt="ACNA Logo"
+              className="w-12 h-12 cursor-pointer"
+            />
+            <div className="text-xl font-bold text-white">ACNA</div>
+          </div>
+          <button
+            onClick={() => setIsQuickLinksOpen(false)}
+            className="text-white"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        <div className="overflow-y-auto h-full pb-20">
+          <div className="p-4">
+            <h3 className="text-sm uppercase font-bold text-gray-400 mb-2">
+              Quick Links
+            </h3>
+            <nav className="space-y-2">
+              {topNav.map((item) => (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  className="block py-2 px-2 hover:bg-blue-800 rounded transition"
+                  onClick={() => setIsQuickLinksOpen(false)}
+                >
+                  {item.name}
+                </Link>
+              ))}
+            </nav>
+          </div>
+        </div>
+      </div>
+
+      {/* Overlay when quick links sidebar is open */}
+      {isQuickLinksOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
+          onClick={() => setIsQuickLinksOpen(false)}
+        />
+      )}
 
       {/* Main Navigation */}
       <div className="bg-[#142544]">
@@ -138,18 +190,14 @@ const Header = () => {
               </div>
               <button
                 className="md:hidden text-white"
-                onClick={() => setIsMainMenuOpen((v) => !v)}
+                onClick={() => setIsMainNavOpen((v) => !v)}
               >
-                {isMainMenuOpen ? <X /> : <Menu />}
+                {isMainNavOpen ? <X /> : <Menu />}
               </button>
             </div>
 
-            {/* Main Nav */}
-            <nav
-              className={`${
-                isMainMenuOpen ? "block" : "hidden"
-              } md:block flex-1 md:flex md:justify-center`}
-            >
+            {/* Main Nav - Desktop */}
+            <nav className="hidden md:block flex-1 md:flex md:justify-center">
               <div className="flex flex-col md:flex-row md:space-x-0">
                 {mainNav.map((item) =>
                   item.items ? (
@@ -184,10 +232,7 @@ const Header = () => {
                               key={sub.name}
                               to={sub.href}
                               className="block px-2 py-1 text-gray-200 hover:text-yellow-300 hover:underline transition text-base"
-                              onClick={() => {
-                                setOpenDropdown(null);
-                                setIsMainMenuOpen(false);
-                              }}
+                              onClick={() => setOpenDropdown(null)}
                             >
                               {sub.name}
                             </Link>
@@ -204,16 +249,75 @@ const Header = () => {
                           ? "bg-black text-white"
                           : "bg-orange-700 text-white hover:bg-orange-800"
                       } transition rounded-none border-0`}
-                      onClick={() => setIsMainMenuOpen(false)}
                     >
                       {item.name}
                     </Link>
                   )
                 )}
               </div>
+            </nav>
 
-              {/* Mobile Search - Now inside the dropdown */}
-              <div className="md:hidden mt-4">
+            {/* Mobile Main Nav Dropdown */}
+            <div
+              className={`md:hidden absolute top-full left-0 right-0 bg-[#142544] shadow-lg ${
+                isMainNavOpen ? "block" : "hidden"
+              }`}
+            >
+              <div className="flex flex-col">
+                {mainNav.map((item) =>
+                  item.items ? (
+                    <div key={item.name} className="border-t border-blue-800">
+                      <button
+                        className={`w-full text-left px-4 py-3 font-bold text-white bg-orange-700 hover:bg-orange-800 transition flex items-center justify-between`}
+                        onClick={() =>
+                          setOpenDropdown(
+                            openDropdown === item.name ? null : item.name
+                          )
+                        }
+                      >
+                        {item.name}
+                        <ChevronDown
+                          className={`w-4 h-4 ml-1 transition-transform ${
+                            openDropdown === item.name ? "rotate-180" : ""
+                          }`}
+                        />
+                      </button>
+                      {openDropdown === item.name && (
+                        <div className="bg-black px-4 py-2 space-y-2">
+                          {item.items.map((sub) => (
+                            <Link
+                              key={sub.name}
+                              to={sub.href}
+                              className="block px-2 py-2 text-gray-200 hover:text-yellow-300 hover:underline transition text-sm"
+                              onClick={() => {
+                                setOpenDropdown(null);
+                                setIsMainNavOpen(false);
+                              }}
+                            >
+                              {sub.name}
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <Link
+                      key={item.name}
+                      to={item.href}
+                      className={`w-full text-left px-4 py-3 font-bold ${
+                        isActive(item.href)
+                          ? "bg-black text-white"
+                          : "bg-orange-700 text-white hover:bg-orange-800"
+                      } transition border-t border-blue-800`}
+                      onClick={() => setIsMainNavOpen(false)}
+                    >
+                      {item.name}
+                    </Link>
+                  )
+                )}
+              </div>
+              {/* Mobile Search inside main nav dropdown */}
+              <div className="p-4 bg-[#142544] border-t border-blue-800">
                 <form className="flex items-center bg-white rounded-lg overflow-hidden shadow w-full">
                   <input
                     type="text"
@@ -229,9 +333,9 @@ const Header = () => {
                   </button>
                 </form>
               </div>
-            </nav>
+            </div>
 
-            {/* Search Bar - Desktop (unchanged) */}
+            {/* Search Bar - Desktop */}
             <form className="hidden md:flex items-center bg-white rounded-lg overflow-hidden shadow max-w-xs w-full ml-4">
               <input
                 type="text"
@@ -249,22 +353,6 @@ const Header = () => {
           </div>
         </div>
       </div>
-
-      {/* Mobile Dropdown for top nav */}
-      {isTopMenuOpen && (
-        <div className="md:hidden bg-blue-700 text-white px-4 py-2 space-y-2">
-          {topNav.map((item) => (
-            <Link
-              key={item.name}
-              to={item.href}
-              className="block py-1"
-              onClick={() => setIsTopMenuOpen(false)}
-            >
-              {item.name}
-            </Link>
-          ))}
-        </div>
-      )}
     </header>
   );
 };

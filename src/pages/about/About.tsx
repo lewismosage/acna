@@ -72,13 +72,13 @@ const About = () => {
               <div className="absolute inset-0 bg-black/40" />
               <div className="relative z-10 p-6 w-full">
                 <h3 className="text-lg font-bold text-white mb-4">
-                  See our latest events and news
+                  See our latest news and updates
                 </h3>
                 <Link
-                  to="/events"
+                  to="/news"
                   className="inline-block border-2 border-white text-white px-4 py-2 rounded font-semibold text-sm hover:bg-white hover:text-black transition-colors duration-200"
                 >
-                  VIEW EVENTS
+                  VIEW NEWS UPDATES
                 </Link>
               </div>
             </div>
@@ -96,7 +96,7 @@ const About = () => {
                   Get involved with ACNA
                 </h3>
                 <Link
-                  to="/get-involved"
+                  to="/programs"
                   className="inline-block border-2 border-white text-white px-4 py-2 rounded font-semibold text-sm hover:bg-white hover:text-black transition-colors duration-200"
                 >
                   EXPLORE TRAINING PROGRAMS
