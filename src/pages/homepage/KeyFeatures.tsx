@@ -81,7 +81,7 @@ const KeyFeatures = () => {
               </p>
               <a
                 href={feature.link}
-                className="text-black font-semibold hover:underline text-left mt-auto inline-block"
+                className="text-orange-600 font-semibold hover:underline text-left mt-auto inline-block"
               >
                 Read more<span className="ml-1">&rsaquo;</span>
               </a>
@@ -108,7 +108,7 @@ const KeyFeatures = () => {
                 </p>
                 <a
                   href={feature.link}
-                  className="text-black font-semibold hover:underline text-left mt-auto inline-block"
+                  className="text-orange-600 font-semibold hover:underline text-left mt-auto inline-block"
                 >
                   Read more<span className="ml-1">&rsaquo;</span>
                 </a>

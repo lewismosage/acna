@@ -1,320 +1,261 @@
 import React, { useState } from 'react';
-import { Calendar, MapPin, Clock, Users, ArrowRight, Filter } from 'lucide-react';
+import { Calendar, MapPin, Clock, Users } from 'lucide-react';
 
-const Events = () => {
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedRegion, setSelectedRegion] = useState('all');
+interface Event {
+  id: number;
+  title: string;
+  date: string;
+  time: string;
+  location: string;
+  type: 'upcoming' | 'past';
+  category: string;
+  description: string;
+  imageUrl: string;
+  isOnline?: boolean;
+}
 
-  const events = [
+const EventsPage = () => {
+  const [selectedFilter, setSelectedFilter] = useState<'all' | 'upcoming' | 'past'>('all');
+
+  const events: Event[] = [
     {
       id: 1,
-      title: "ACNA 2024 Annual Conference",
-      date: "March 15-17, 2024",
-      location: "Cape Town, South Africa",
-      time: "9:00 AM - 5:00 PM",
-      category: "conference",
-      region: "southern",
-      attendees: 500,
-      image: "https://images.pexels.com/photos/1181406/pexels-photo-1181406.jpeg?auto=compress&cs=tinysrgb&w=600",
-      description: "Join us for three days of cutting-edge research presentations, workshops, and networking opportunities.",
-      status: "upcoming"
+      title: "ACNA Live from Nairobi: Advancing Pediatric Neurology Care Across East Africa",
+      date: "August 15, 2025",
+      time: "2:00PM-4:00PM EAT",
+      location: "Live online",
+      type: "upcoming",
+      category: "CONFERENCE",
+      description: "Join us for an interactive session discussing the latest advances in pediatric neurology care and treatment protocols across East African healthcare systems.",
+      imageUrl: "https://images.pexels.com/photos/5215024/pexels-photo-5215024.jpeg?auto=compress&cs=tinysrgb&w=600",
+      isOnline: true
     },
     {
       id: 2,
-      title: "Pediatric Epilepsy Workshop",
-      date: "February 28, 2024",
-      location: "Lagos, Nigeria",
-      time: "10:00 AM - 4:00 PM",
-      category: "workshop",
-      region: "western",
-      attendees: 120,
-      image: "https://images.pexels.com/photos/4021775/pexels-photo-4021775.jpeg?auto=compress&cs=tinysrgb&w=600",
-      description: "Hands-on workshop focusing on latest developments in pediatric epilepsy management.",
-      status: "upcoming"
+      title: "Epilepsy Awareness Workshop in Community Settings",
+      date: "August 22, 2025",
+      time: "9:00AM-5:00PM CAT",
+      location: "In-person in Cape Town, SA",
+      type: "upcoming",
+      category: "WORKSHOP",
+      description: "A comprehensive workshop focused on epilepsy awareness, community education, and reducing stigma around neurological conditions in African communities.",
+      imageUrl: "https://images.pexels.com/photos/3184638/pexels-photo-3184638.jpeg?auto=compress&cs=tinysrgb&w=600"
     },
     {
       id: 3,
-      title: "Virtual Research Symposium",
-      date: "January 20, 2024",
-      location: "Online",
-      time: "2:00 PM - 6:00 PM",
-      category: "webinar",
-      region: "all",
-      attendees: 800,
-      image: "https://images.pexels.com/photos/3825583/pexels-photo-3825583.jpeg?auto=compress&cs=tinysrgb&w=600",
-      description: "Presenting the latest research findings from across Africa in child neurology.",
-      status: "completed"
+      title: "Child Neurology Training Program for Healthcare Workers",
+      date: "September 5, 2025",
+      time: "10:00AM-3:00PM WAT",
+      location: "In-person in Lagos, Nigeria",
+      type: "upcoming",
+      category: "TRAINING",
+      description: "Intensive training program designed to equip primary healthcare workers with essential skills in identifying and managing pediatric neurological conditions.",
+      imageUrl: "https://images.pexels.com/photos/5452293/pexels-photo-5452293.jpeg?auto=compress&cs=tinysrgb&w=600"
+    },
+    {
+      id: 4,
+      title: "ACNA Annual Conference: Building Stronger Neurological Care Networks",
+      date: "July 10, 2025",
+      time: "8:00AM-6:00PM EAT",
+      location: "In-person in Kampala, Uganda",
+      type: "past",
+      category: "CONFERENCE",
+      description: "Our flagship annual conference brought together neurologists, healthcare professionals, and advocates from across Africa to discuss collaborative care approaches.",
+      imageUrl: "https://images.pexels.com/photos/1181438/pexels-photo-1181438.jpeg?auto=compress&cs=tinysrgb&w=600"
+    },
+    {
+      id: 5,
+      title: "Cerebral Palsy Support Groups: Strengthening Family Networks",
+      date: "June 28, 2025",
+      time: "2:00PM-5:00PM CAT",
+      location: "In-person in Johannesburg, SA",
+      type: "past",
+      category: "SUPPORT GROUP",
+      description: "A gathering of families, caregivers, and professionals focused on building support networks and sharing resources for children with cerebral palsy.",
+      imageUrl: "https://images.pexels.com/photos/4260323/pexels-photo-4260323.jpeg?auto=compress&cs=tinysrgb&w=600"
+    },
+    {
+      id: 6,
+      title: "Telemedicine in Child Neurology: Expanding Access to Care",
+      date: "June 15, 2025",
+      time: "11:00AM-1:00PM GMT",
+      location: "Live online",
+      type: "past",
+      category: "WEBINAR",
+      description: "An exploration of telemedicine technologies and their role in expanding access to specialized neurological care for children in remote areas.",
+      imageUrl: "https://images.pexels.com/photos/3952048/pexels-photo-3952048.jpeg?auto=compress&cs=tinysrgb&w=600",
+      isOnline: true
     }
   ];
 
   const filteredEvents = events.filter(event => {
-    const categoryMatch = selectedCategory === 'all' || event.category === selectedCategory;
-    const regionMatch = selectedRegion === 'all' || event.region === selectedRegion;
-    return categoryMatch && regionMatch;
+    if (selectedFilter === 'all') return true;
+    return event.type === selectedFilter;
   });
 
+  const upcomingCount = events.filter(e => e.type === 'upcoming').length;
+  const pastCount = events.filter(e => e.type === 'past').length;
+
   return (
-    <div>
+    <div className="bg-white min-h-screen">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-r from-purple-900 to-purple-700 py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-4xl lg:text-5xl font-bold text-white mb-6">
-              Events & Conferences
-            </h1>
-            <p className="text-xl text-purple-100 max-w-3xl mx-auto">
-              Join our community at world-class conferences, workshops, and educational events 
-              designed to advance child neurology practice across Africa.
-            </p>
+      <section className="py-20 bg-gradient-to-r from-blue-50 to-indigo-50">
+        <div className="max-w-6xl mx-auto px-4 text-center">
+          <h1 className="text-5xl md:text-6xl font-light text-gray-900 mb-6">Events</h1>
+          <p className="text-xl md:text-2xl text-gray-700 font-light max-w-3xl mx-auto">
+            Join us in advancing child neurology care across Africa through conferences, training programs, and community outreach initiatives.
+          </p>
+        </div>
+      </section>
+
+      {/* Main Content */}
+      <section className="py-16">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex gap-8">
+            
+            {/* Sidebar Filters */}
+            <div className="w-64 flex-shrink-0">
+              <div className="bg-white border border-gray-200 rounded p-6 sticky top-6">
+                <div className="mb-6">
+                  <h3 className="text-lg font-bold text-gray-900 mb-4">
+                    {filteredEvents.length} results
+                  </h3>
+                  <button 
+                    onClick={() => setSelectedFilter('all')}
+                    className="text-red-600 text-sm font-medium hover:underline"
+                  >
+                    Clear all
+                  </button>
+                </div>
+
+                <div>
+                  <h4 className="font-bold text-gray-900 mb-4">Filters</h4>
+                  
+                  <div className="mb-6">
+                    <h5 className="font-medium text-gray-700 mb-3">Date</h5>
+                    <div className="space-y-2">
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          name="dateFilter"
+                          checked={selectedFilter === 'upcoming'}
+                          onChange={() => setSelectedFilter('upcoming')}
+                          className="mr-2 text-red-600"
+                        />
+                        <span className="text-sm text-gray-700">Upcoming ({upcomingCount})</span>
+                      </label>
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          name="dateFilter"
+                          checked={selectedFilter === 'past'}
+                          onChange={() => setSelectedFilter('past')}
+                          className="mr-2 text-red-600"
+                        />
+                        <span className="text-sm text-gray-700">Past ({pastCount})</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Events List */}
+            <div className="flex-1">
+              <div className="space-y-6">
+                {filteredEvents.map((event) => (
+                  <div key={event.id} className="bg-white border border-gray-200 rounded overflow-hidden hover:shadow-lg transition-shadow duration-200">
+                    <div className="flex">
+                      {/* Event Image */}
+                      <div className="relative w-64 h-48 flex-shrink-0">
+                        <img
+                          src={event.imageUrl}
+                          alt={event.title}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute top-3 left-3">
+                          <span className="bg-red-600 text-white px-3 py-1 text-xs font-bold uppercase tracking-wide rounded">
+                            {event.type} EVENT
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Event Details */}
+                      <div className="flex-1 p-6">
+                        <div className="mb-2">
+                          <span className="text-red-600 font-medium text-sm uppercase tracking-wide">
+                            {event.category}
+                          </span>
+                        </div>
+                        
+                        <h3 className="text-xl font-bold text-gray-900 mb-3 leading-tight hover:text-red-600 transition-colors cursor-pointer">
+                          {event.title}
+                        </h3>
+
+                        <div className="space-y-2 mb-4">
+                          <div className="flex items-center text-gray-600 text-sm">
+                            <Calendar className="w-4 h-4 mr-2 text-red-600" />
+                            {event.date}, {event.time}
+                          </div>
+                          <div className="flex items-center text-gray-600 text-sm">
+                            <MapPin className="w-4 h-4 mr-2 text-red-600" />
+                            {event.isOnline && (
+                              <span className="inline-flex items-center mr-2">
+                                <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
+                              </span>
+                            )}
+                            {event.location}
+                          </div>
+                        </div>
+
+                        <p className="text-gray-700 text-sm leading-relaxed mb-4">
+                          {event.description}
+                        </p>
+
+                        <button className="text-red-600 text-sm font-medium hover:text-red-700 hover:underline">
+                          Read more»
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Load More Button */}
+              <div className="text-center mt-12">
+                <button className="border-2 border-red-600 text-red-600 px-8 py-3 font-medium hover:bg-red-600 hover:text-white transition-all duration-300 uppercase tracking-wide rounded">
+                  Load More Events
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Upcoming Highlights */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-              Featured Events
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Don't miss these exceptional opportunities for learning, networking, and professional growth
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-16">
-            <div>
-              <img
-                src="https://images.pexels.com/photos/1181406/pexels-photo-1181406.jpeg?auto=compress&cs=tinysrgb&w=800"
-                alt="ACNA 2024 Conference"
-                className="rounded-2xl shadow-2xl w-full"
+      {/* Newsletter Section */}
+      <section className="py-16 bg-orange-600">
+        <div className="max-w-4xl mx-auto px-4 text-center text-white">
+          <h2 className="text-3xl md:text-4xl font-bold mb-6">STAY UPDATED ON UPCOMING EVENTS</h2>
+          <p className="text-xl mb-8 max-w-2xl mx-auto">
+            Subscribe to receive notifications about upcoming conferences, workshops, and training programs focused on advancing child neurology care across Africa.
+          </p>
+          
+          <div className="max-w-md mx-auto">
+            <div className="relative mb-4">
+              <input
+                type="email"
+                placeholder="Email address"
+                className="w-full px-6 py-4 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-white"
               />
-            </div>
-            <div>
-              <div className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-medium mb-4 inline-block">
-                Annual Conference
-              </div>
-              <h3 className="text-3xl font-bold text-gray-900 mb-4">
-                ACNA 2024 Annual Conference
-              </h3>
-              <p className="text-lg text-gray-600 mb-6">
-                Our flagship event brings together over 500 professionals from across Africa for 
-                three days of groundbreaking research presentations, hands-on workshops, and 
-                invaluable networking opportunities.
-              </p>
-              <div className="space-y-3 mb-8">
-                <div className="flex items-center text-gray-600">
-                  <Calendar className="w-5 h-5 mr-3" />
-                  <span>March 15-17, 2024</span>
-                </div>
-                <div className="flex items-center text-gray-600">
-                  <MapPin className="w-5 h-5 mr-3" />
-                  <span>Cape Town, South Africa</span>
-                </div>
-                <div className="flex items-center text-gray-600">
-                  <Users className="w-5 h-5 mr-3" />
-                  <span>500+ Expected Attendees</span>
-                </div>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <button className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center">
-                  Register Now
-                  <ArrowRight className="ml-2 w-4 h-4" />
-                </button>
-                <button className="border-2 border-yellow-500 text-yellow-600 px-6 py-3 rounded-lg font-semibold hover:bg-yellow-500 hover:text-white transition-colors">
-                  View Program
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Event Filters */}
-      <section className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-center mb-12">
-            <div>
-              <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">All Events</h2>
-              <p className="text-xl text-gray-600">Discover all upcoming and past events</p>
+              <button className="absolute right-2 top-2 bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 transition-colors flex items-center">
+                <Users className="mr-2 h-4 w-4" />
+                Subscribe
+              </button>
             </div>
             
-            <div className="flex flex-col sm:flex-row gap-4 mt-6 md:mt-0">
-              <div className="flex items-center space-x-2">
-                <Filter className="w-5 h-5 text-gray-400" />
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="all">All Categories</option>
-                  <option value="conference">Conferences</option>
-                  <option value="workshop">Workshops</option>
-                  <option value="webinar">Webinars</option>
-                  <option value="training">Training</option>
-                </select>
-              </div>
-              
-              <select
-                value={selectedRegion}
-                onChange={(e) => setSelectedRegion(e.target.value)}
-                className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="all">All Regions</option>
-                <option value="northern">Northern Africa</option>
-                <option value="western">Western Africa</option>
-                <option value="eastern">Eastern Africa</option>
-                <option value="southern">Southern Africa</option>
-                <option value="central">Central Africa</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredEvents.map((event) => (
-              <div key={event.id} className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition-shadow duration-200">
-                <img
-                  src={event.image}
-                  alt={event.title}
-                  className="w-full h-48 object-cover"
-                />
-                <div className="p-6">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      event.category === 'conference' ? 'bg-purple-100 text-purple-800' :
-                      event.category === 'workshop' ? 'bg-blue-100 text-blue-800' :
-                      event.category === 'webinar' ? 'bg-green-100 text-green-800' :
-                      'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {event.category.charAt(0).toUpperCase() + event.category.slice(1)}
-                    </span>
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${
-                      event.status === 'upcoming' ? 'bg-green-100 text-green-800' :
-                      'bg-gray-100 text-gray-600'
-                    }`}>
-                      {event.status === 'upcoming' ? 'Upcoming' : 'Completed'}
-                    </span>
-                  </div>
-                  
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3">{event.title}</h3>
-                  <p className="text-gray-600 mb-4 text-sm leading-relaxed">{event.description}</p>
-                  
-                  <div className="space-y-2 mb-4">
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Calendar className="w-4 h-4 mr-2" />
-                      <span>{event.date}</span>
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <MapPin className="w-4 h-4 mr-2" />
-                      <span>{event.location}</span>
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Clock className="w-4 h-4 mr-2" />
-                      <span>{event.time}</span>
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Users className="w-4 h-4 mr-2" />
-                      <span>{event.attendees} attendees</span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    {event.status === 'upcoming' ? (
-                      <>
-                        <button className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
-                          Register
-                        </button>
-                        <button className="flex-1 border border-gray-300 text-gray-700 py-2 px-4 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
-                          Learn More
-                        </button>
-                      </>
-                    ) : (
-                      <button className="w-full border border-gray-300 text-gray-700 py-2 px-4 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
-                        View Recordings
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Event Types */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-              Types of Events
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              We offer diverse learning and networking opportunities to meet your professional development needs
+            <p className="text-sm text-orange-100 opacity-90">
+              By subscribing, you agree to receive event notifications and updates from ACNA. You can unsubscribe at any time.
             </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Calendar className="w-8 h-8 text-purple-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Annual Conferences</h3>
-              <p className="text-gray-600">
-                Our flagship events featuring the latest research, clinical updates, and networking opportunities.
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Users className="w-8 h-8 text-blue-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Workshops</h3>
-              <p className="text-gray-600">
-                Hands-on training sessions focused on specific techniques, technologies, and clinical skills.
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Clock className="w-8 h-8 text-green-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Webinars</h3>
-              <p className="text-gray-600">
-                Virtual sessions covering emerging topics, research findings, and expert discussions.
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <MapPin className="w-8 h-8 text-yellow-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Regional Meetings</h3>
-              <p className="text-gray-600">
-                Local gatherings that address region-specific challenges and opportunities in child neurology.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20 bg-purple-600">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl lg:text-4xl font-bold text-white mb-6">
-            Don't Miss Our Next Event
-          </h2>
-          <p className="text-xl text-purple-100 mb-8 max-w-3xl mx-auto">
-            Stay updated on all upcoming events and be the first to register for our exclusive 
-            conferences and workshops.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="bg-white text-purple-600 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-50 transition-colors flex items-center justify-center">
-              Subscribe to Updates
-              <ArrowRight className="ml-2 w-5 h-5" />
-            </button>
-            <button className="border-2 border-white text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-white hover:text-purple-600 transition-colors">
-              View Event Calendar
-            </button>
           </div>
         </div>
       </section>
@@ -322,4 +263,4 @@ const Events = () => {
   );
 };
 
-export default Events;
+export default EventsPage;

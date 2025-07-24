@@ -135,7 +135,7 @@ const LatestNews = () => {
             <div className="flex justify-end mt-4">
               <a
                 href="#"
-                className="text-black-600 font-medium hover:text-black-700 inline-flex items-center"
+                className="text-orange-600 font-medium hover:text-black-700 inline-flex items-center"
               >
                 View All News <ArrowRight className="ml-2 w-4 h-4" />
               </a>

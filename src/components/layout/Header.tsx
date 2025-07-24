@@ -17,7 +17,7 @@ const mainNav = [
   {
     name: "Education",
     items: [
-      { name: "Research Papers", href: "/research-papers" },
+      { name: "Research Papers/Publications", href: "/research-papers" },
       { name: "Ongoing research projects", href: "/ongoing-research-projects" },
       { name: "Case Studies", href: "/case-studies" },
       { name: "Policy Briefs and Recommendations", href: "/policy-briefs" },
@@ -41,7 +41,7 @@ const mainNav = [
         href: "/fellowships-training-resources",
       },
       {
-        name: "Opportunities for collaboration",
+        name: "Workshops/Symposiums",
         href: "/collaboration-opportunities",
       },
       { name: "Journal Watch", href: "/journal-watch" },
@@ -51,15 +51,9 @@ const mainNav = [
   {
     name: "Events and News",
     items: [
-      { name: "News & Publications", href: "/news" },
-      { name: "Upcoming Events", href: "/upcoming-events" },
-      { name: "Past Events", href: "/past-events" },
-      { name: "Annual Conference", href: "/annual-conference" },
-      { name: "Workshops", href: "/workshops" },
-      { name: "Webinars", href: "/webinars" },
-      { name: "Symposiums", href: "/symposiums" },
-      { name: "Conferences", href: "/conferences" },
-      { name: "Meetings", href: "/meetings" },
+      { name: "Latest News & Updates ", href: "/news" },
+      { name: "Events", href: "/upcoming-events" },
+      { name: "Annual Conference & Meetings", href: "/annual-conference" },
       { name: "Call for Abstracts", href: "/call-for-abstracts" },
       { name: "Awards & Recognition", href: "/awards" },
       { name: "Gallery", href: "/gallery" },
