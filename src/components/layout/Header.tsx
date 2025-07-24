@@ -52,7 +52,7 @@ const mainNav = [
     name: "Events and News",
     items: [
       { name: "Latest News & Updates ", href: "/news" },
-      { name: "Events", href: "/upcoming-events" },
+      { name: "Events", href: "/events" },
       { name: "Annual Conference & Meetings", href: "/annual-conference" },
       { name: "Call for Abstracts", href: "/call-for-abstracts" },
       { name: "Awards & Recognition", href: "/awards" },
@@ -62,10 +62,8 @@ const mainNav = [
   {
     name: "Membership",
     items: [
-      { name: "Membership Benefits", href: "/membership-benefits" },
-      { name: "Membership Categories", href: "/membership-categories" },
-      { name: "Membership Fees", href: "/membership-fees" },
-      { name: "Membership Application", href: "/membership-application" },
+      { name: "Membership Application", href: "/register" },
+      { name: "Membership Categories", href: "/membership-categories" },       
       { name: "Membership Renewal", href: "/membership-renewal" },
       { name: "Membership Upgrade", href: "/membership-upgrade" },
       { name: "Membership Directory", href: "/membership-directory" },
@@ -208,7 +206,7 @@ const Header = () => {
                       onMouseLeave={() => setOpenDropdown(null)}
                     >
                       <button
-                        className={`w-full md:w-auto text-left px-4 py-2 font-bold text-white bg-orange-700 hover:bg-orange-800 transition rounded-none border-0 flex items-center justify-between md:justify-center ${
+                        className={`w-full md:w-auto text-left px-4 py-2 font-bold text-white bg-orange-600 hover:bg-orange-700 transition rounded-none border-0 flex items-center justify-between md:justify-center ${
                           openDropdown === item.name ? "bg-orange-800" : ""
                         }`}
                         onClick={() =>
@@ -223,9 +221,11 @@ const Header = () => {
                       {openDropdown === item.name && (
                         <div
                           className={`
-                            md:absolute left-0 mt-0 md:mt-1 w-full md:w-[600px] bg-black shadow-lg rounded z-50
+                            absolute left-0 mt-0 w-full md:w-[600px] bg-black shadow-lg rounded z-50
                             grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-6 p-2 md:p-6
+                            border-t-2 border-orange-600
                           `}
+                          style={{ top: 'calc(100% + 2px)' }} // Brings dropdown closer
                         >
                           {item.items.map((sub) => (
                             <Link

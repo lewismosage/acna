@@ -20,6 +20,8 @@ import HowWeWork from './pages/about/HowWeWork'
 import OurStory from './pages/about/OurStory';
 import LeadershipTeam from './pages/about/LeadershipTeam';
 import Register from './pages/membershippages/Register';
+import Categories from './pages/membershippages/CategoriesPage'
+import MembershipFAQs from './pages/membershippages/MembershipFAQs';
 
 function App() {
   return (
@@ -52,16 +54,15 @@ function App() {
             {/*Membership Pages*/}
             <Route path="/register" element={<Register />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/membership-benefits" element={<Membership />} />
-            <Route path="/membership-categories" element={<Membership />} />
-            <Route path="/membership-fees" element={<Membership />} />
+           
+            <Route path="/membership-categories" element={<Categories />} /> 
             <Route path="/membership-application" element={<Membership />} />
             <Route path="/membership-renewal" element={<Membership />} />
             <Route path="/membership-upgrade" element={<Membership />} />
             <Route path="/membership-directory" element={<Membership />} />
-            <Route path="/membership-faqs" element={<Membership />} />
+            <Route path="/membership-faqs" element={<MembershipFAQs />} />
             {/*Events Pages*/}
-            <Route path="/upcoming-events" element={<Events />} />
+            <Route path="/events" element={<Events />} />
             <Route path="/past-events" element={<Events />} /> 
             <Route path="/gallery" element={<Gallery />} />
           </Routes>
