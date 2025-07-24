@@ -4,7 +4,6 @@ import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
 import Home from './pages/homepage/Home';
 import About from './pages/about/About';
-import Membership from './pages/membershippages/Membership';
 import Events from './pages/eventsandnews/Events';
 import News from './pages/eventsandnews/News';
 import Awards from './pages/eventsandnews/AwardsAndRecognition';
@@ -22,6 +21,9 @@ import LeadershipTeam from './pages/about/LeadershipTeam';
 import Register from './pages/membershippages/Register';
 import Categories from './pages/membershippages/CategoriesPage'
 import MembershipFAQs from './pages/membershippages/MembershipFAQs';
+import MembershipRenew from './pages/membershippages/MembershipRenewal';
+import MembershipUpgrade from './pages/membershippages/MembershipUpgrade';
+import MembershipDirectory from './pages/membershippages/MembershipDirectory';
 
 function App() {
   return (
@@ -48,18 +50,17 @@ function App() {
             <Route path="/volunteer" element={<VolunteerInfoSection />} />
             {/*Education Pages*/}
             <Route path="/news" element={<News />} />
-            <Route path="/e-resources" element={<Membership />} />
-            <Route path="/neurology-resources" element={<Membership />} />
-            <Route path="/acna-portal" element={<Membership />} />    
+            <Route path="/e-resources" element={<Register />} />
+            <Route path="/neurology-resources" element={<Register />} />
+            <Route path="/acna-portal" element={<Register />} />    
             {/*Membership Pages*/}
             <Route path="/register" element={<Register />} />
             <Route path="/login" element={<Login />} />
-           
             <Route path="/membership-categories" element={<Categories />} /> 
-            <Route path="/membership-application" element={<Membership />} />
-            <Route path="/membership-renewal" element={<Membership />} />
-            <Route path="/membership-upgrade" element={<Membership />} />
-            <Route path="/membership-directory" element={<Membership />} />
+            <Route path="/membership-application" element={<Register />} />
+            <Route path="/membership-renewal" element={<MembershipRenew />} />
+            <Route path="/membership-upgrade" element={<MembershipUpgrade />} />
+            <Route path="/membership-directory" element={<MembershipDirectory />} />
             <Route path="/membership-faqs" element={<MembershipFAQs />} />
             {/*Events Pages*/}
             <Route path="/events" element={<Events />} />
