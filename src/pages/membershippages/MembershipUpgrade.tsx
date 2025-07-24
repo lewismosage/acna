@@ -517,11 +517,11 @@ const MembershipUpgrade = () => {
       </section>
 
       {/* Benefits of Upgrading Section */}
-      <section className="py-12 sm:py-16 bg-white">
+      <section className="py-12 sm:py-16 bg-orange-600">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-8 sm:mb-12">
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3 sm:mb-4">Why Upgrade Your Membership?</h2>
-            <p className="text-gray-600 text-sm sm:text-base max-w-2xl mx-auto">
+            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3 sm:mb-4">Why Upgrade Your Membership?</h2>
+            <p className="text-white text-sm sm:text-base max-w-2xl mx-auto">
               Upgrading your ACNA membership opens doors to enhanced opportunities and greater impact in child neurology.
             </p>
           </div>
@@ -531,28 +531,28 @@ const MembershipUpgrade = () => {
               <div className="bg-blue-100 rounded-full w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center mx-auto mb-2 sm:mb-4">
                 <span className="text-xl sm:text-2xl">🌟</span>
               </div>
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-1 sm:mb-2">Enhanced Access</h3>
-              <p className="text-gray-600 text-xs sm:text-sm">
+              <h3 className="text-lg sm:text-xl font-bold text-white mb-1 sm:mb-2">Enhanced Access</h3>
+              <p className="text-white text-xs sm:text-sm">
                 Get access to premium resources, exclusive events, and advanced learning materials.
               </p>
             </div>
             
             <div className="text-center">
-              <div className="bg-green-100 rounded-full w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center mx-auto mb-2 sm:mb-4">
+              <div className="bg-blue-100 rounded-full w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center mx-auto mb-2 sm:mb-4">
                 <span className="text-xl sm:text-2xl">🤝</span>
               </div>
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-1 sm:mb-2">Greater Influence</h3>
-              <p className="text-gray-600 text-xs sm:text-sm">
+              <h3 className="text-lg sm:text-xl font-bold text-white mb-1 sm:mb-2">Greater Influence</h3>
+              <p className="text-white text-xs sm:text-sm">
                 Gain voting rights, committee participation, and leadership opportunities within ACNA.
               </p>
             </div>
             
             <div className="text-center">
-              <div className="bg-orange-100 rounded-full w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center mx-auto mb-2 sm:mb-4">
+              <div className="bg-blue-100 rounded-full w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center mx-auto mb-2 sm:mb-4">
                 <span className="text-xl sm:text-2xl">💰</span>
               </div>
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-1 sm:mb-2">Smart Pricing</h3>
-              <p className="text-gray-600 text-xs sm:text-sm">
+              <h3 className="text-lg sm:text-xl font-bold text-white mb-1 sm:mb-2">Smart Pricing</h3>
+              <p className="text-white text-xs sm:text-sm">
                 Only pay the difference between tiers - your previous payment is fully credited.
               </p>
             </div>

@@ -229,7 +229,6 @@ const MembershipFAQs = () => {
           <h2 className="text-3xl font-bold text-white mb-8">Need More Help?</h2>
           <div className="grid md:grid-cols-3 gap-8">
             <div className="bg-blue-50 rounded p-6">
-              <div className="text-4xl mb-4">📋</div>
               <h3 className="text-xl font-bold text-gray-900 mb-2">View Membership Categories</h3>
               <p className="text-gray-600 mb-4">Explore all membership types and their benefits</p>
               <a href="/membership-categories" className="text-orange-600 font-medium hover:underline">
@@ -238,7 +237,6 @@ const MembershipFAQs = () => {
             </div>
             
             <div className="bg-blue-50 rounded p-6">
-              <div className="text-4xl mb-4">✍️</div>
               <h3 className="text-xl font-bold text-gray-900 mb-2">Apply for Membership</h3>
               <p className="text-gray-600 mb-4">Ready to join? Start your application today</p>
               <a href="/register" className="text-orange-600 font-medium hover:underline">
@@ -247,7 +245,6 @@ const MembershipFAQs = () => {
             </div>
             
             <div className="bg-blue-50 rounded p-6">
-              <div className="text-4xl mb-4">💬</div>
               <h3 className="text-xl font-bold text-gray-900 mb-2">Contact Support</h3>
               <p className="text-gray-600 mb-4">Get personalized help from our team</p>
               <a href="/contact" className="text-orange-600 font-medium hover:underline">

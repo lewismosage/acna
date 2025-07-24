@@ -371,30 +371,27 @@ const MembershipRenew = () => {
       </section>
 
       {/* Alternative Options Section */}
-      <section className="py-16 bg-white">
+      <section className="py-16 bg-orange-600">
         <div className="max-w-4xl mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-8">Can't Find Your Record?</h2>
+          <h2 className="text-3xl font-bold text-white mb-8">Can't Find Your Record?</h2>
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
-              <div className="text-4xl mb-4">📞</div>
+            <div className="bg-blue-50 rounded p-6 border border-blue-200">
               <h3 className="text-xl font-bold text-gray-900 mb-2">Contact Support</h3>
               <p className="text-gray-600 mb-4">Our team can help locate your membership record</p>
-              <a href="/contact" className="text-blue-600 font-medium hover:underline">
+              <a href="/contact" className="text-orange-600 font-medium hover:underline">
                 Get Help →
               </a>
             </div>
             
-            <div className="bg-green-50 rounded-lg p-6 border border-green-200">
-              <div className="text-4xl mb-4">✍️</div>
+            <div className="bg-blue-50 rounded p-6 border border-blue-200">
               <h3 className="text-xl font-bold text-gray-900 mb-2">New Member?</h3>
               <p className="text-gray-600 mb-4">Join ACNA and start your membership journey</p>
-              <a href="/register" className="text-green-600 font-medium hover:underline">
+              <a href="/register" className="text-orange-600 font-medium hover:underline">
                 Join Now →
               </a>
             </div>
             
-            <div className="bg-orange-50 rounded-lg p-6 border border-orange-200">
-              <div className="text-4xl mb-4">📋</div>
+            <div className="bg-blue-50 rounded p-6 border border-blue-200">
               <h3 className="text-xl font-bold text-gray-900 mb-2">View Benefits</h3>
               <p className="text-gray-600 mb-4">Learn about membership types and benefits</p>
               <a href="/membership-categories" className="text-orange-600 font-medium hover:underline">
