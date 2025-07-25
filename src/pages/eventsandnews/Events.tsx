@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Calendar, MapPin, Clock, Users } from 'lucide-react';
+import { Calendar, MapPin, Users } from 'lucide-react';
+import ScrollToTop from '../../components/common/ScrollToTop';
 
 interface Event {
   id: number;
@@ -98,24 +99,68 @@ const EventsPage = () => {
 
   return (
     <div className="bg-white min-h-screen">
+      <ScrollToTop />
       {/* Hero Section */}
-      <section className="py-20 bg-gradient-to-r from-blue-50 to-indigo-50">
-        <div className="max-w-6xl mx-auto px-4 text-center">
-          <h1 className="text-5xl md:text-6xl font-light text-gray-900 mb-6">Events</h1>
-          <p className="text-xl md:text-2xl text-gray-700 font-light max-w-3xl mx-auto">
+      <section className="py-12 md:py-20 bg-gradient-to-r from-blue-50 to-indigo-50">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 text-center">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light text-gray-900 mb-4 md:mb-6">
+            Events
+          </h1>
+          <p className="text-lg sm:text-xl md:text-2xl text-gray-700 font-light max-w-3xl mx-auto">
             Join us in advancing child neurology care across Africa through conferences, training programs, and community outreach initiatives.
           </p>
         </div>
       </section>
 
       {/* Main Content */}
-      <section className="py-16">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex gap-8">
+      <section className="py-8 md:py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="flex flex-col lg:flex-row gap-6">
             
-            {/* Sidebar Filters */}
-            <div className="w-64 flex-shrink-0">
-              <div className="bg-white border border-gray-200 rounded p-6 sticky top-6">
+            {/* Mobile Filters */}
+            <div className="lg:hidden bg-white border border-gray-200 rounded p-4">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-bold text-gray-900">
+                  {filteredEvents.length} results
+                </h3>
+                <button 
+                  onClick={() => setSelectedFilter('all')}
+                  className="text-red-600 text-sm font-medium hover:underline"
+                >
+                  Clear all
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <h5 className="font-medium text-gray-700 mb-2">Filter by Date</h5>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      onClick={() => setSelectedFilter('all')}
+                      className={`py-2 px-3 rounded-md text-sm ${selectedFilter === 'all' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+                    >
+                      All
+                    </button>
+                    <button
+                      onClick={() => setSelectedFilter('upcoming')}
+                      className={`py-2 px-3 rounded-md text-sm ${selectedFilter === 'upcoming' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+                    >
+                      Upcoming ({upcomingCount})
+                    </button>
+                    <button
+                      onClick={() => setSelectedFilter('past')}
+                      className={`py-2 px-3 rounded-md text-sm ${selectedFilter === 'past' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+                    >
+                      Past ({pastCount})
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Desktop Sidebar Filters */}
+            <div className="hidden lg:block w-64 flex-shrink-0">
+              <div className="bg-white border border-gray-200 rounded p-4 md:p-6 sticky top-6">
                 <div className="mb-6">
                   <h3 className="text-lg font-bold text-gray-900 mb-4">
                     {filteredEvents.length} results
@@ -162,45 +207,45 @@ const EventsPage = () => {
 
             {/* Events List */}
             <div className="flex-1">
-              <div className="space-y-6">
+              <div className="space-y-4 md:space-y-6">
                 {filteredEvents.map((event) => (
                   <div key={event.id} className="bg-white border border-gray-200 rounded overflow-hidden hover:shadow-lg transition-shadow duration-200">
-                    <div className="flex">
+                    <div className="flex flex-col sm:flex-row">
                       {/* Event Image */}
-                      <div className="relative w-64 h-48 flex-shrink-0">
+                      <div className="relative w-full sm:w-48 lg:w-64 h-48 flex-shrink-0">
                         <img
                           src={event.imageUrl}
                           alt={event.title}
                           className="w-full h-full object-cover"
                         />
                         <div className="absolute top-3 left-3">
-                          <span className="bg-red-600 text-white px-3 py-1 text-xs font-bold uppercase tracking-wide rounded">
+                          <span className="bg-red-600 text-white px-2 py-1 text-xs font-bold uppercase tracking-wide rounded">
                             {event.type} EVENT
                           </span>
                         </div>
                       </div>
 
                       {/* Event Details */}
-                      <div className="flex-1 p-6">
+                      <div className="flex-1 p-4 sm:p-6">
                         <div className="mb-2">
-                          <span className="text-red-600 font-medium text-sm uppercase tracking-wide">
+                          <span className="text-red-600 font-medium text-xs sm:text-sm uppercase tracking-wide">
                             {event.category}
                           </span>
                         </div>
                         
-                        <h3 className="text-xl font-bold text-gray-900 mb-3 leading-tight hover:text-red-600 transition-colors cursor-pointer">
+                        <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 sm:mb-3 leading-tight hover:text-red-600 transition-colors cursor-pointer">
                           {event.title}
                         </h3>
 
-                        <div className="space-y-2 mb-4">
-                          <div className="flex items-center text-gray-600 text-sm">
-                            <Calendar className="w-4 h-4 mr-2 text-red-600" />
+                        <div className="space-y-1 sm:space-y-2 mb-3 sm:mb-4">
+                          <div className="flex items-center text-gray-600 text-xs sm:text-sm">
+                            <Calendar className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 text-red-600" />
                             {event.date}, {event.time}
                           </div>
-                          <div className="flex items-center text-gray-600 text-sm">
-                            <MapPin className="w-4 h-4 mr-2 text-red-600" />
+                          <div className="flex items-center text-gray-600 text-xs sm:text-sm">
+                            <MapPin className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 text-red-600" />
                             {event.isOnline && (
-                              <span className="inline-flex items-center mr-2">
+                              <span className="inline-flex items-center mr-1 sm:mr-2">
                                 <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
                               </span>
                             )}
@@ -208,11 +253,11 @@ const EventsPage = () => {
                           </div>
                         </div>
 
-                        <p className="text-gray-700 text-sm leading-relaxed mb-4">
+                        <p className="text-gray-700 text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4 line-clamp-2">
                           {event.description}
                         </p>
 
-                        <button className="text-red-600 text-sm font-medium hover:text-red-700 hover:underline">
+                        <button className="text-red-600 text-xs sm:text-sm font-medium hover:text-red-700 hover:underline">
                           Read more»
                         </button>
                       </div>
@@ -221,39 +266,57 @@ const EventsPage = () => {
                 ))}
               </div>
 
+              {/* No Events Found */}
+              {filteredEvents.length === 0 && (
+                <div className="bg-white border border-gray-200 rounded p-8 text-center">
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No events found</h3>
+                  <p className="text-gray-600 mb-4">Try adjusting your filters to find what you're looking for.</p>
+                  <button
+                    onClick={() => setSelectedFilter('all')}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                  >
+                    Reset Filters
+                  </button>
+                </div>
+              )}
+
               {/* Load More Button */}
-              <div className="text-center mt-12">
-                <button className="border-2 border-red-600 text-red-600 px-8 py-3 font-medium hover:bg-red-600 hover:text-white transition-all duration-300 uppercase tracking-wide rounded">
-                  Load More Events
-                </button>
-              </div>
+              {filteredEvents.length > 0 && (
+                <div className="text-center mt-8 sm:mt-12">
+                  <button className="border-2 border-red-600 text-red-600 px-6 py-2 sm:px-8 sm:py-3 font-medium hover:bg-red-600 hover:text-white transition-all duration-300 uppercase tracking-wide rounded text-sm sm:text-base">
+                    Load More Events
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </section>
 
       {/* Newsletter Section */}
-      <section className="py-16 bg-orange-600">
-        <div className="max-w-4xl mx-auto px-4 text-center text-white">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6">STAY UPDATED ON UPCOMING EVENTS</h2>
-          <p className="text-xl mb-8 max-w-2xl mx-auto">
+      <section className="py-12 sm:py-16 bg-orange-600">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center text-white">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 sm:mb-6">
+            STAY UPDATED ON UPCOMING EVENTS
+          </h2>
+          <p className="text-base sm:text-lg md:text-xl mb-6 sm:mb-8 max-w-2xl mx-auto">
             Subscribe to receive notifications about upcoming conferences, workshops, and training programs focused on advancing child neurology care across Africa.
           </p>
           
           <div className="max-w-md mx-auto">
-            <div className="relative mb-4">
+            <div className="relative mb-3 sm:mb-4">
               <input
                 type="email"
                 placeholder="Email address"
-                className="w-full px-6 py-4 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-white"
+                className="w-full px-4 sm:px-6 py-3 sm:py-4 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-white"
               />
-              <button className="absolute right-2 top-2 bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 transition-colors flex items-center">
-                <Users className="mr-2 h-4 w-4" />
+              <button className="absolute right-2 top-2 bg-orange-600 text-white px-3 py-1 sm:px-4 sm:py-2 rounded-md hover:bg-orange-700 transition-colors flex items-center text-sm sm:text-base">
+                <Users className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                 Subscribe
               </button>
             </div>
             
-            <p className="text-sm text-orange-100 opacity-90">
+            <p className="text-xs sm:text-sm text-orange-100 opacity-90">
               By subscribing, you agree to receive event notifications and updates from ACNA. You can unsubscribe at any time.
             </p>
           </div>

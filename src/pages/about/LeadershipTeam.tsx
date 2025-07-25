@@ -1,5 +1,5 @@
 import React from 'react';
-import { useEffect } from 'react';
+import ScrollToTop from '../../components/common/ScrollToTop';
 import SAMGWER from "../../assets/sam-gwer.jpg";
 import JOWILMSHURST from "../../assets/Jo Wilmshurst.jpg";
 import SAHAR from "../../assets/Sahar.png";
@@ -63,12 +63,10 @@ const Leadership = () => {
     }
   ];
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-12">
+      <ScrollToTop />
       <div className="text-center mb-16">
         <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-gray-900 mb-4">
           Leadership Team

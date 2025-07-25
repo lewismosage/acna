@@ -1,15 +1,14 @@
 import React from 'react';
-import { useEffect } from 'react';
+import ScrollToTop from '../../components/common/ScrollToTop';
 
 const VolunteerInfoSection = () => {
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
+  
 
   return (
     <section className="py-16 bg-gray-50">
       <div className="max-w-7xl mx-auto">
+      <ScrollToTop />
 
         {/* Header Section */}
         <div className="flex flex-col lg:flex-row mb-12">

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Award, Trophy, Star, Calendar, User, ArrowRight, Medal } from 'lucide-react';
+import { Award, Trophy, Star, Calendar, ArrowRight, Medal } from 'lucide-react';
 
 const Awards = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');

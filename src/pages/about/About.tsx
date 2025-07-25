@@ -1,9 +1,8 @@
 // pages/About.tsx
 import React from "react";
-import { Users, Target, Eye, Map, BookOpen, BarChart2 } from "lucide-react";
+import {Target, Eye, } from "lucide-react";
 import ContinentalReach from "./ContinentalReach";
 import Governance from "./Governance";
-import LeadershipTeam from "./LeadershipTeam";
 import CoreValues from "./CoreValues";
 import Pediatrics from "../../assets/Pediatric-Doc.jpg";
 import HappyDoctor from "../../assets/happy-female-doctor.jpg";

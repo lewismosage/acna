@@ -1,6 +1,7 @@
 
-import { useState, ChangeEvent, FormEvent, useEffect } from 'react';
+import { useState, ChangeEvent, FormEvent } from 'react';
 import { Link } from 'react-router-dom';
+import ScrollToTop from '../../components/common/ScrollToTop';
 
 const Register = () => {
   const [activeTab, setActiveTab] = useState<'individual' | 'organization'>('individual');
@@ -85,12 +86,10 @@ const Register = () => {
     'Trans Nzoia', 'Turkana', 'Uasin Gishu', 'Vihiga', 'Wajir', 'West Pokot'
   ];
   
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
-
+ 
   return (
     <div className="bg-white min-h-screen">
+    <ScrollToTop />
       {/* Hero Section */}
       <section className="py-20 bg-gradient-to-r from-blue-50 to-indigo-50">
         <div className="max-w-6xl mx-auto px-4 text-center">
@@ -102,13 +101,13 @@ const Register = () => {
       </section>
 
       {/* Tab Navigation */}
-      <section className="py-8 bg-gray-50">
+      <section className="py-4 sm:py-8 bg-gray-50">
         <div className="max-w-4xl mx-auto px-4">
-          <div className="flex justify-center mb-8">
-            <div className="bg-white rounded-lg p-1 shadow-md">
+          <div className="flex justify-center mb-6 sm:mb-8">
+            <div className="bg-white rounded-lg p-1 shadow-md inline-flex">
               <button
                 onClick={() => setActiveTab('individual')}
-                className={`px-8 py-3 rounded-md font-medium transition-all duration-300 ${
+                className={`px-4 py-2 sm:px-6 sm:py-3 rounded-md font-medium text-sm sm:text-base transition-all duration-300 ${
                   activeTab === 'individual'
                     ? 'bg-orange-600 text-white shadow-md'
                     : 'text-gray-600 hover:text-orange-600'
@@ -118,7 +117,7 @@ const Register = () => {
               </button>
               <button
                 onClick={() => setActiveTab('organization')}
-                className={`px-8 py-3 rounded-md font-medium transition-all duration-300 ${
+                className={`px-4 py-2 sm:px-6 sm:py-3 rounded-md font-medium text-sm sm:text-base transition-all duration-300 ${
                   activeTab === 'organization'
                     ? 'bg-orange-600 text-white shadow-md'
                     : 'text-gray-600 hover:text-orange-600'
@@ -169,7 +168,11 @@ const Register = () => {
                 </h2>
                 <p className="text-gray-600">
                   Thank you for your interest in becoming an ACNA Member. For more information about 
-                  membership, including <span className="text-blue-600">benefits, types of membership and rates</span> please visit the <span className="text-blue-600">membership section</span> of our website.
+                  membership, including <span className="text-blue-600">benefits, types of membership and rates</span> please visit the{' '}
+                  <Link to="/membership-categories" className="text-blue-600 hover:underline">
+                    membership category section
+                  </Link>{' '}
+                  of our website.
                 </p>
               </div>
 

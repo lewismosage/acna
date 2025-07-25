@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, MapPin, Mail, Phone, Filter, Users, Award, Building } from 'lucide-react';
+import { Search, MapPin, Mail, Phone, Filter, Users, Building } from 'lucide-react';
 
 interface Member {
   id: string;

@@ -24,6 +24,9 @@ import MembershipFAQs from './pages/membershippages/MembershipFAQs';
 import MembershipRenew from './pages/membershippages/MembershipRenewal';
 import MembershipUpgrade from './pages/membershippages/MembershipUpgrade';
 import MembershipDirectory from './pages/membershippages/MembershipDirectory';
+import ProfessionalNetwork from './pages/homepage/keyfeaturespages/ProfessionalNetwork';
+import ResearchPublications from './pages/homepage/keyfeaturespages/ResearchPublications';
+import EventsTraining from './pages/homepage/keyfeaturespages/EventsTraining';
 
 function App() {
   return (
@@ -43,6 +46,10 @@ function App() {
             <Route path="/about/how-we-work" element={<HowWeWork/>} />
             <Route path="/about/our-story" element={<OurStory />} />
             <Route path="/about/leadership" element={<LeadershipTeam />} />
+            {/*Key Features Pages */}
+            <Route path="/professional-network" element={<ProfessionalNetwork />} />
+            <Route path="/research-publications" element={<ResearchPublications />} />
+            <Route path="/events-training" element={<EventsTraining />} />
             {/*Support Pages*/}
             <Route path="/get-involved" element={<GetInvolved />} />
             <Route path="/contact" element={<Contact />} />

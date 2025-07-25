@@ -1,7 +1,6 @@
 // components/KeyFeatures.tsx
 import React from "react";
 import { Link } from "react-router-dom";
-import { Users, BookOpen, Calendar, Award, ChevronRight } from "lucide-react";
 
 const featureImages = [
   // Placeholder images
@@ -17,7 +16,7 @@ const KeyFeatures = () => {
       title: "Professional Network",
       description:
         "Connect with leading child neurologists and researchers across the African continent.",
-      link: "#",
+      link: "/professional-network",
       linkText: "Join Network",
       image: featureImages[0],
     },
@@ -25,7 +24,7 @@ const KeyFeatures = () => {
       title: "Research & Publications",
       description:
         "Access cutting-edge research, clinical guidelines, and educational resources.",
-      link: "#",
+      link: "/research-publications",
       linkText: "Explore Research",
       image: featureImages[1],
     },
@@ -33,7 +32,7 @@ const KeyFeatures = () => {
       title: "Events & Training",
       description:
         "Participate in conferences, workshops, and professional development programs.",
-      link: "#",
+      link: "/events-training",
       linkText: "View Events",
       image: featureImages[2],
     },
@@ -79,12 +78,12 @@ const KeyFeatures = () => {
               <p className="text-gray-700 mb-4 text-left flex-1">
                 {feature.description}
               </p>
-              <a
-                href={feature.link}
-                className="text-orange-600 font-semibold hover:underline text-left mt-auto inline-block"
-              >
-                Read more<span className="ml-1">&rsaquo;</span>
-              </a>
+              <Link
+              to={feature.link}
+              className="text-orange-600 font-semibold hover:underline text-left mt-auto inline-block"
+            >
+              Read more<span className="ml-1">&rsaquo;</span>
+            </Link>
             </div>
           ))}
         </div>
@@ -106,12 +105,12 @@ const KeyFeatures = () => {
                 <p className="text-gray-700 mb-4 text-left flex-1">
                   {feature.description}
                 </p>
-                <a
-                  href={feature.link}
-                  className="text-orange-600 font-semibold hover:underline text-left mt-auto inline-block"
-                >
-                  Read more<span className="ml-1">&rsaquo;</span>
-                </a>
+                <Link
+                to={feature.link}
+                className="text-orange-600 font-semibold hover:underline text-left mt-auto inline-block"
+              >
+                Read more<span className="ml-1">&rsaquo;</span>
+              </Link>
               </div>
             ))}
           </div>

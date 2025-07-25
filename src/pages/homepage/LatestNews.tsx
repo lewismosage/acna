@@ -1,6 +1,6 @@
 // components/LatestNews.tsx
 import React from "react";
-import { Link, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 const news = [
   {

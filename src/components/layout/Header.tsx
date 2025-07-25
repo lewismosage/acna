@@ -18,7 +18,7 @@ const mainNav = [
     name: "Education",
     items: [
       { name: "Research Papers/Publications", href: "/research-papers" },
-      { name: "Ongoing research projects", href: "/ongoing-research-projects" },
+      { name: "Training Programs", href: "/training-programs" },
       { name: "Case Studies", href: "/case-studies" },
       { name: "Policy Briefs and Recommendations", href: "/policy-briefs" },
       { name: "Workshops and Conferences", href: "/workshops-and-conferences" },
