@@ -283,7 +283,7 @@ const EventsPage = () => {
               {/* Load More Button */}
               {filteredEvents.length > 0 && (
                 <div className="text-center mt-8 sm:mt-12">
-                  <button className="border-2 border-red-600 text-red-600 px-6 py-2 sm:px-8 sm:py-3 font-medium hover:bg-red-600 hover:text-white transition-all duration-300 uppercase tracking-wide rounded text-sm sm:text-base">
+                  <button className="border-2 border-orange-600 text-orange-600 px-6 py-2 sm:px-8 sm:py-3 font-medium hover:bg-orange-600 hover:text-white transition-all duration-300 uppercase tracking-wide rounded text-sm sm:text-base">
                     Load More Events
                   </button>
                 </div>

@@ -40,7 +40,7 @@ const KeyFeatures = () => {
       title: "Recognition & Awards",
       description:
         "Celebrate excellence in child neurology research, clinical care, and advocacy.",
-      link: "#",
+      link: "/recogination-awards",
       linkText: "Learn More",
       image: featureImages[3],
     },

@@ -122,7 +122,7 @@ const LatestNewsPage = () => {
             </div>
 
             <div className="text-center">
-              <button className="border-2 border-red-600 text-red-600 px-8 py-3 font-medium hover:bg-red-600 hover:text-white transition-all duration-300 uppercase tracking-wide">
+              <button className="border-2 border-orange-600 text-orange-600 px-6 py-2 sm:px-8 sm:py-3 font-medium hover:bg-orange-600 hover:text-white transition-all duration-300 uppercase tracking-wide rounded text-sm sm:text-base">
                 View All News About ACNA
               </button>
             </div>
@@ -153,7 +153,7 @@ const LatestNewsPage = () => {
             </div>
 
             <div className="text-center">
-              <button className="border-2 border-red-600 text-red-600 px-8 py-3 font-medium hover:bg-red-600 hover:text-white transition-all duration-300 uppercase tracking-wide">
+              <button className="border-2 border-orange-600 text-orange-600 px-6 py-2 sm:px-8 sm:py-3 font-medium hover:bg-orange-600 hover:text-white transition-all duration-300 uppercase tracking-wide rounded text-sm sm:text-base">
                 View All Press Releases
               </button>
             </div>
