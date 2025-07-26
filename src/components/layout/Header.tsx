@@ -6,7 +6,7 @@ import ACNALogo from "../../assets/ACNA.jpg";
 const topNav = [
   { name: "About Us", href: "/about" },
   { name: "Get Involved", href: "/get-involved" },
-  { name: "Work With Us", href: "/careers" },
+  { name: "Careers", href: "/careers" },
   { name: "Contact us", href: "/contact" },
   { name: "Login", href: "/login" },
   { name: "Donate", href: "/donate" },

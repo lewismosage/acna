@@ -266,81 +266,121 @@ const Careers = () => {
       <Testimonials />
 
       {/* Offices Section */}
-      <section className="py-16 bg-[#181617] text-white">
+      <section className="py-16 bg-gray-900  text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl font-bold mb-6">Our Presence Across Africa</h2>
-          <p className="mb-8 max-w-2xl">
+          <h2 className="text-2xl text-yellow-400 font-bold mb-6">Our Presence Across Africa</h2>
+          <p className="mb-12 max-w-2xl">
             We are proud to have a strong presence across Africa. Our teams collaborate with governments, local organizations, and communities to drive progress in health, education, agriculture, innovation, and inclusive economic growth.
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white/10 rounded p-6">
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
+            {/* Nairobi Office */}
+            <div className="group">
               <img
                 src={NairobiHQ}
                 alt="Nairobi Office"
-                className="w-full h-32 object-cover rounded mb-4"
+                className="w-full h-48 object-cover rounded-lg mb-6 group-hover:opacity-90 transition-opacity"
               />
-              <div className="font-bold">Nairobi, Kenya</div>
-              <div className="text-gray-200 text-sm mb-2">
+              <div className="font-bold text-yellow-400 text-xl mb-3">Nairobi, Kenya</div>
+              <div className="text-gray-300 mb-4">
                 Our Kenya office serves as a hub for East Africa, working with partners to enhance public health systems, improve agricultural outcomes, and promote youth employment and education initiatives.
               </div>
-              <Link to="#" className="text-blue-200 underline">
+              <Link 
+                to="#" 
+                className="text-blue-300 hover:text-blue-200 transition-colors inline-flex items-center"
+              >
                 Learn more about our Kenya office
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
               </Link>
             </div>
-            <div className="bg-white/10 rounded p-6">
+
+            {/* Abuja Office */}
+            <div className="group">
               <img
                 src={Abuja}
                 alt="Abuja Office"
-                className="w-full h-32 object-cover rounded mb-4"
+                className="w-full h-48 object-cover rounded-lg mb-6 group-hover:opacity-90 transition-opacity"
               />
-              <div className="font-bold">Abuja, Nigeria</div>
-              <div className="text-gray-200 text-sm mb-2">
-                Our Nigerian team works across sectors including maternal health, sanitation, digital innovation, and gender equality—partnering with communities and institutions to create sustainable impact.
+              <div className="font-bold text-yellow-400 text-xl mb-3">Abuja, Nigeria</div>
+              <div className="text-gray-300 mb-4">
+                Our Nigerian team works across sectors including maternal health, sanitation, digital innovation, and gender equality, partnering with communities and institutions to create sustainable impact.
               </div>
-              <Link to="#" className="text-blue-200 underline">
+              <Link 
+                to="#" 
+                className="text-blue-300 hover:text-blue-200 transition-colors inline-flex items-center"
+              >
                 Learn more about our Nigeria office
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
               </Link>
             </div>
-            <div className="bg-white/10 rounded p-6">
+
+            {/* Addis Ababa Office */}
+            <div className="group">
               <img
                 src={CareersProgramsImg}
                 alt="Addis Ababa Office"
-                className="w-full h-32 object-cover rounded mb-4"
+                className="w-full h-48 object-cover rounded-lg mb-6 group-hover:opacity-90 transition-opacity"
               />
-              <div className="font-bold">Addis Ababa, Ethiopia</div>
-              <div className="text-gray-200 text-sm mb-2">
+              <div className="font-bold text-yellow-400 text-xl mb-3">Addis Ababa, Ethiopia</div>
+              <div className="text-gray-300 mb-4">
                 Located near the African Union, our Ethiopia office helps foster regional collaboration and implements programs focused on nutrition, climate resilience, and economic development.
               </div>
-              <Link to="#" className="text-blue-200 underline">
+              <Link 
+                to="#" 
+                className="text-blue-300 hover:text-blue-200 transition-colors inline-flex items-center"
+              >
                 Learn more about our Ethiopia office
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
               </Link>
             </div>
-            <div className="bg-white/10 rounded p-6">
+
+            {/* Dakar Office */}
+            <div className="group">
               <img
                 src={CareersHeroImg}
                 alt="Dakar Office"
-                className="w-full h-32 object-cover rounded mb-4"
+                className="w-full h-48 object-cover rounded-lg mb-6 group-hover:opacity-90 transition-opacity"
               />
-              <div className="font-bold">Dakar, Senegal</div>
-              <div className="text-gray-200 text-sm mb-2">
+              <div className="font-bold text-yellow-400 text-xl mb-3">Dakar, Senegal</div>
+              <div className="text-gray-300 mb-4">
                 Our Dakar team leads initiatives across Francophone West Africa, focusing on equitable education, early childhood development, and regional health systems strengthening.
               </div>
-              <Link to="#" className="text-blue-200 underline">
+              <Link 
+                to="#" 
+                className="text-blue-300 hover:text-blue-200 transition-colors inline-flex items-center"
+              >
                 Learn more about our Senegal office
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
               </Link>
             </div>
-            <div className="bg-white/10 rounded p-6">
+
+            {/* Johannesburg Office */}
+            <div className="group">
               <img
                 src={CareersCultureImg}
                 alt="Johannesburg Office"
-                className="w-full h-32 object-cover rounded mb-4"
+                className="w-full h-48 object-cover rounded-lg mb-6 group-hover:opacity-90 transition-opacity"
               />
-              <div className="font-bold">Johannesburg, South Africa</div>
-              <div className="text-gray-200 text-sm mb-2">
-                Our South Africa office focuses on inclusive economic growth, education, and innovation—working with national partners to drive policy reform and youth empowerment programs.
+              <div className="font-bold text-yellow-400 text-xl mb-3">Johannesburg, South Africa</div>
+              <div className="text-gray-300 mb-4">
+                Our South Africa office focuses on inclusive economic growth, education, and innovation, working with national partners to drive policy reform and youth empowerment programs.
               </div>
-              <Link to="#" className="text-blue-200 underline">
+              <Link 
+                to="#" 
+                className="text-blue-300 hover:text-blue-200 transition-colors inline-flex items-center"
+              >
                 Learn more about our South Africa office
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
               </Link>
             </div>
           </div>
