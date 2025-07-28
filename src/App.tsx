@@ -32,6 +32,7 @@ import AnnualConferenceAndMeetings from "./pages/eventsandnews/AnnualConferenceA
 import CallForAbstracts from "./pages/eventsandnews/CallforAbstracts";
 import ResearchPapersPage from "./pages/education/ResearchPapersPublications";
 import TrainingPrograms from "./pages/education/TrainingPrograms";
+import ACNAMemberDashboard from "./pages/membershippages/ACNAMemberDashboard";
 
 function App() {
   return (
@@ -83,6 +84,7 @@ function App() {
             <Route path="/membership-application" element={<Register />} />
             <Route path="/membership-renewal" element={<MembershipRenew />} />
             <Route path="/membership-upgrade" element={<MembershipUpgrade />} />
+            <Route path="/memberportal" element={< ACNAMemberDashboard/>} />
             <Route
               path="/membership-directory"
               element={<MembershipDirectory />}
