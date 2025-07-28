@@ -250,7 +250,7 @@ const CallForAbstracts = () => {
     },
   ];
 
-  const getStatusColor = (status) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case "deadline":
         return "bg-red-600";

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import ScrollToTop from '../../../components/common/ScrollToTop';
+import { Link } from 'react-router-dom';
 
 interface AccordionItem {
   title: string;
@@ -176,9 +177,12 @@ const ResearchPublications = () => {
               </div>
             </div>
             <div className="mt-12 flex">
-              <button className="border-2 border-orange-600 text-gray-800 px-6 py-3 text-sm font-bold tracking-wider hover:bg-orange-600 hover:text-white transition-all duration-300 rounded-lg">
+              <Link 
+                to="/research-papers-and-publications#active-research" 
+                className="border-2 border-orange-600 text-gray-800 px-6 py-3 text-sm font-bold tracking-wider hover:bg-orange-600 hover:text-white transition-all duration-300 rounded-lg"
+              >
                 VIEW ALL PROJECTS
-              </button>
+              </Link>
             </div>
           </div>
 
@@ -234,9 +238,12 @@ const ResearchPublications = () => {
 
             {/* Button */}
             <div className="mt-12 flex">
-              <button className="border-2 border-orange-600 text-gray-800 px-6 py-3 text-sm font-bold tracking-wider hover:bg-orange-600 hover:text-white transition-all duration-300 rounded-lg">
+              <Link 
+                to="/research-papers-and-publications#publications-resources" 
+                className="border-2 border-orange-600 text-gray-800 px-6 py-3 text-sm font-bold tracking-wider hover:bg-orange-600 hover:text-white transition-all duration-300 rounded-lg"
+              >
                 ACCESS LIBRARY
-              </button>
+              </Link>
             </div>
           </div>
         </div>

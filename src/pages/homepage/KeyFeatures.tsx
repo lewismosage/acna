@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 const featureImages = [
   // Placeholder images
   "https://images.stockcake.com/public/c/6/2/c624f1e3-3794-467c-b5aa-c73e2e3101ab_large/global-health-collaboration-stockcake.jpg",
-  "https://images.pexels.com/photos/7723396/pexels-photo-7723396.jpeg?auto=compress&w=600",
+  "https://images.stockcake.com/public/3/f/e/3fefad8d-7e1d-4a64-a669-5467b8c6b63c_large/doctor-taking-notes-stockcake.jpg",
   "https://images.pexels.com/photos/7648221/pexels-photo-7648221.jpeg?auto=compress&w=600",
   "https://images.stockcake.com/public/0/4/4/044c2114-d49c-4356-be9f-d8d47d23f9ab_large/excellence-in-medicine-stockcake.jpg",
 ];

@@ -17,28 +17,18 @@ const mainNav = [
   {
     name: "Education",
     items: [
-      { name: "Research Papers/Publications", href: "/research-papers" },
+      { name: "Research Papers/Publications", href: "/research-papers-and-publications" },
       { name: "Training Programs", href: "/training-programs" },
-      { name: "Case Studies", href: "/case-studies" },
-      { name: "Policy Briefs and Recommendations", href: "/policy-briefs" },
-      { name: "Workshops and Conferences", href: "/workshops-and-conferences" },
       {
         name: "Position statements on child neurology issues in Africa",
         href: "/position-statements",
       },
-      { name: "Fact Sheets", href: "/fact-sheets" },
-      {
-        name: "Conference Presentations and Reports",
-        href: "/conference-presentations",
-      },
+      { name: "Policy Briefs and Recommendations", href: "/policy-briefs" },
+      { name: "Case Studies/Fact Sheets", href: "/case-studies" },
       { name: "E-Booklets", href: "/e-booklets" },
       {
         name: "Patient and caregiver resources",
         href: "/patient-caregiver-resources",
-      },
-      {
-        name: "Fellowships and training resources",
-        href: "/fellowships-training-resources",
       },
       {
         name: "Workshops/Symposiums",
@@ -46,6 +36,7 @@ const mainNav = [
       },
       { name: "Journal Watch", href: "/journal-watch" },
       { name: "Webinars", href: "/webinars" },
+      { name: "ACNA Portal", href: "/login" },
     ],
   },
   {

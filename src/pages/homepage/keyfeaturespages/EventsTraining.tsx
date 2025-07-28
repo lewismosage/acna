@@ -152,9 +152,11 @@ const EventsTraining = () => {
           </div>
 
           <div className="text-center">
-            <button className="border-2 border-orange-600 text-gray-800 px-6 py-3 text-sm font-bold tracking-wider hover:bg-orange-600 hover:text-white transition-all duration-300 rounded-lg">
-              VIEW ALL PROGRAMS
-            </button>
+            <Link
+             to="/training-programs"
+              className="border-2 border-orange-600 text-gray-800 px-6 py-3 text-sm font-bold tracking-wider hover:bg-orange-600 hover:text-white transition-all duration-300 rounded-lg">
+             BROWSE PROGRAMS
+            </Link>
           </div>
         </div>
       </section>

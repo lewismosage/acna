@@ -30,6 +30,8 @@ import EventsTraining from "./pages/homepage/keyfeaturespages/EventsTraining";
 import RecognitionAwards from "./pages/homepage/keyfeaturespages/RecognitionAwards";
 import AnnualConferenceAndMeetings from "./pages/eventsandnews/AnnualConferenceAndMeetings";
 import CallForAbstracts from "./pages/eventsandnews/CallforAbstracts";
+import ResearchPapersPage from "./pages/education/ResearchPapersPublications";
+import TrainingPrograms from "./pages/education/TrainingPrograms";
 
 function App() {
   return (
@@ -66,6 +68,11 @@ function App() {
             <Route path="/careers" element={<Careers />} />
             <Route path="/volunteer" element={<VolunteerInfoSection />} />
             {/*Education Pages*/}
+            <Route
+              path="/research-papers-and-publications"
+              element={<ResearchPapersPage />}
+            />
+            <Route path="/training-programs" element={<TrainingPrograms />} />
             <Route path="/e-resources" element={<Register />} />
             <Route path="/neurology-resources" element={<Register />} />
             <Route path="/acna-portal" element={<Register />} />

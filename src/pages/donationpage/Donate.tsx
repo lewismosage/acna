@@ -23,7 +23,7 @@ const Donate = () => {
       <div className="min-h-screen bg-gray-50 py-20">
         <div className="max-w-2xl mx-auto bg-white p-8 rounded-xl shadow-sm text-center">
           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Check className="w-10 h-10 text-green-600" />
+          <Check className="w-10 h-10 text-green-600" />
           </div>
           <h2 className="text-3xl font-bold text-gray-900 mb-4">Thank You for Your Support!</h2>
           <p className="text-lg text-gray-600 mb-8">
@@ -77,7 +77,7 @@ const Donate = () => {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16"> {/* Increased max-width */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16"> 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Donation Form - Now wider */}
           <div className="lg:col-span-2">

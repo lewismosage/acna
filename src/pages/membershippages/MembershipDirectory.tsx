@@ -449,20 +449,17 @@ const MembershipDirectory = () => {
             Connect with healthcare professionals across Africa and be part of the movement to improve pediatric neurological care.
           </p>
           <div className="grid md:grid-cols-3 gap-8 mb-12">
-            <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
-              <div className="text-4xl mb-4">🤝</div>
+          <div className="bg-orange-50 rounded-lg p-6 border border-orange-200">
               <h3 className="text-xl font-bold text-gray-900 mb-2">Network & Collaborate</h3>
               <p className="text-gray-600">Connect with peers and build professional relationships across the continent.</p>
             </div>
             
-            <div className="bg-green-50 rounded-lg p-6 border border-green-200">
-              <div className="text-4xl mb-4">📚</div>
+            <div className="bg-orange-50 rounded-lg p-6 border border-orange-200">
               <h3 className="text-xl font-bold text-gray-900 mb-2">Share Knowledge</h3>
               <p className="text-gray-600">Exchange expertise and learn from fellow healthcare professionals.</p>
             </div>
             
             <div className="bg-orange-50 rounded-lg p-6 border border-orange-200">
-              <div className="text-4xl mb-4">🌍</div>
               <h3 className="text-xl font-bold text-gray-900 mb-2">Make Impact</h3>
               <p className="text-gray-600">Work together to improve healthcare outcomes for children across Africa.</p>
             </div>
