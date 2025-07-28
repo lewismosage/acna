@@ -36,7 +36,7 @@ const mainNav = [
       },
       { name: "Journal Watch", href: "/journal-watch" },
       { name: "Webinars", href: "/webinars" },
-      { name: "ACNA Portal", href: "/login" },
+      { name: "ACNA Portal", href: "/memberportal" },
     ],
   },
   {

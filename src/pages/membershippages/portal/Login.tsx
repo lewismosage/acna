@@ -1,17 +1,17 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, AlertCircle, Mail, Lock } from 'lucide-react';
-import Card, { CardContent } from "../../components/common/Card";
-import ACNALogo from '../../assets/ACNA.jpg';
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Eye, EyeOff, AlertCircle, Mail, Lock } from "lucide-react";
+import Card, { CardContent } from "../../../components/common/Card";
+import ACNALogo from "../../../assets/ACNA.jpg";
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
+    email: "",
+    password: "",
   });
 
   const navigate = useNavigate();
@@ -19,24 +19,24 @@ const Login = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
-    
+    setError("");
+
     // Basic validation
-    if (!formData.email.includes('@')) {
-      setError('Please enter a valid email address');
+    if (!formData.email.includes("@")) {
+      setError("Please enter a valid email address");
       setIsLoading(false);
       return;
     }
 
     if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
+      setError("Password must be at least 6 characters");
       setIsLoading(false);
       return;
     }
@@ -44,7 +44,7 @@ const Login = () => {
     // Simulate API call
     setTimeout(() => {
       setIsLoading(false);
-      navigate('/memberportal');
+      navigate("/memberportal");
     }, 1500);
   };
 
@@ -55,7 +55,11 @@ const Login = () => {
           <div className="text-center mb-8">
             <div className="flex justify-center mb-4">
               <div className="w-16 h-16 rounded-lg ">
-                <img src={ACNALogo} alt="ACNA Logo" className="w-full h-full object-cover" />
+                <img
+                  src={ACNALogo}
+                  alt="ACNA Logo"
+                  className="w-full h-full object-cover"
+                />
               </div>
             </div>
             <h1 className="text-2xl font-bold text-gray-900">
@@ -65,7 +69,7 @@ const Login = () => {
               Access member resources and benefits
             </p>
             <p className="mt-2 text-sm text-gray-600">
-              Don't have an account?{' '}
+              Don't have an account?{" "}
               <Link
                 to="/register"
                 className="font-medium text-orange-600 hover:text-orange-500"
@@ -84,7 +88,10 @@ const Login = () => {
 
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Email address
               </label>
               <div className="relative rounded-md shadow-sm">
@@ -106,7 +113,10 @@ const Login = () => {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Password
               </label>
               <div className="relative rounded-md shadow-sm">
@@ -116,7 +126,7 @@ const Login = () => {
                 <input
                   id="password"
                   name="password"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
                   required
                   value={formData.password}
@@ -139,7 +149,7 @@ const Login = () => {
             </div>
 
             <div className="flex items-center justify-between">
-            <div className="flex items-center">
+              <div className="flex items-center">
                 <input
                   id="remember-me"
                   name="remember-me"
@@ -148,7 +158,10 @@ const Login = () => {
                   onChange={(e) => setRememberMe(e.target.checked)}
                   className="h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded"
                 />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
+                <label
+                  htmlFor="remember-me"
+                  className="ml-2 block text-sm text-gray-900"
+                >
                   Remember me
                 </label>
               </div>

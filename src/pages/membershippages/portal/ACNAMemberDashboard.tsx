@@ -1,0 +1,506 @@
+import { useState } from 'react';
+import { 
+  User, BookOpen, Award, MessageSquare, FileText, Calendar, LogOut,
+  Home, Edit3, Upload, Users, Clock, CheckCircle, AlertCircle,
+  ChevronRight, ChevronLeft, Search
+} from 'lucide-react';
+import CoursesTabContent from './CoursesTabContent';
+import DirectoryTabContent from './DirectoryTabContent';
+
+// Define types for member data
+interface MemberData {
+  name: string;
+  membershipStatus: string;
+  tier: string;
+  institution: string;
+  memberSince: string;
+  profilePhoto: string;
+  cpdProgress: {
+    enrolledCourses: number;
+    completedHours: number;
+    requiredHours: number;
+    certificationsEarned: number;
+  };
+}
+
+const ACNAMemberDashboard = () => {
+  const [activeTab, setActiveTab] = useState('home');
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+
+  // Mock user data
+  const memberData: MemberData = {
+    name: "Dr. Sarah Mwangi",
+    membershipStatus: "Active",
+    tier: "Professional Member",
+    institution: "Kenyatta National Hospital",
+    memberSince: "January 2020",
+    profilePhoto: "https://images.pexels.com/photos/5327580/pexels-photo-5327580.jpeg?auto=compress&cs=tinysrgb&w=150",
+    cpdProgress: {
+      enrolledCourses: 3,
+      completedHours: 45,
+      requiredHours: 60,
+      certificationsEarned: 2
+    }
+  };
+
+  // Tab content components
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'home':
+        return <HomeTabContent />;
+      case 'profile':
+        return <ProfileTabContent />;
+      case 'courses':
+          return <CoursesTabContent />;
+      case 'training':
+        return <TrainingTabContent />;
+      case 'certification':
+        return <CertificationTabContent />;
+      case 'forum':
+        return <ForumTabContent />;
+      case 'submit':
+        return <SubmitTabContent />;
+      case 'directory':
+        return <DirectoryTabContent />;
+      case 'signout':
+        return <SignoutTabContent />;
+      default:
+        return <HomeTabContent />;
+    }
+  };
+
+  // Tab navigation items
+  const tabs = [
+    { id: 'home', label: 'HOME', icon: Home },
+    { id: 'profile', label: 'PROFILE', icon: User },
+    { id: 'courses', label: 'COURSES', icon: BookOpen },
+    { id: 'training', label: 'E-LEARNING', icon: BookOpen },
+    { id: 'certification', label: 'CERTIFICATION', icon: Award },
+    { id: 'forum', label: 'FORUM', icon: MessageSquare },
+    { id: 'submit', label: 'SUBMIT CASE/RESEARCH', icon: FileText },
+    { id: 'directory', label: 'MEMBERS DIRECTORY', icon: Calendar },
+    { id: 'signout', label: 'SIGN OUT', icon: LogOut }
+  ];
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      {/* Mobile Sidebar Toggle Button - Only show on non-home tabs */}
+      {activeTab !== 'home' && (
+        <button 
+          className="md:hidden fixed bottom-4 right-4 bg-blue-700 text-white p-3 rounded-full z-50 shadow-lg"
+          onClick={() => setShowMobileSidebar(!showMobileSidebar)}
+        >
+          {showMobileSidebar ? <ChevronRight /> : <ChevronLeft />}
+        </button>
+      )}
+
+      {/* Mobile Sidebar - Only show on home tab or when toggled */}
+      {(activeTab === 'home' || showMobileSidebar) && (
+        <div className={`md:hidden fixed inset-y-0 left-0 w-64 bg-blue-800 text-white transform ${
+          activeTab === 'home' || showMobileSidebar ? 'translate-x-0' : '-translate-x-full'
+        } transition-transform duration-300 ease-in-out z-40`}>
+          <div className="p-4 border-b border-blue-700">
+            <div className="flex items-center">
+              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center mr-3">
+                <span className="text-blue-800 font-bold text-sm">ACNA</span>
+              </div>
+              <h1 className="text-lg font-semibold">Member Portal</h1>
+            </div>
+          </div>
+          <nav className="overflow-y-auto h-full pb-20">
+            {tabs.map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                onClick={() => {
+                  setActiveTab(id);
+                  setShowMobileSidebar(false);
+                }}
+                className={`w-full text-left px-4 py-3 flex items-center ${activeTab === id ? 'bg-blue-700' : 'hover:bg-blue-700'}`}
+              >
+                <Icon className="w-5 h-5 mr-3" />
+                <span>{label}</span>
+              </button>
+            ))}
+          </nav>
+        </div>
+      )}
+
+      {/* Overlay when mobile sidebar is open */}
+      {showMobileSidebar && (
+        <div 
+          className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
+          onClick={() => setShowMobileSidebar(false)}
+        />
+      )}
+
+      {/* Main Content */}
+      <div className="md:ml-0 transition-all duration-300">
+        {/* Header Section */}
+        <div className="bg-white border-b-2 border-gray-200">
+          <div className="bg-blue-800 text-white px-4 py-3 md:px-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-white rounded-full flex items-center justify-center mr-3 md:mr-4">
+                  <span className="text-blue-800 font-bold text-sm md:text-lg">ACNA</span>
+                </div>
+                <h1 className="text-lg md:text-xl font-semibold">African Child Neurology Association - Member Portal</h1>
+              </div>
+              <div className="hidden md:flex items-center bg-white rounded-lg overflow-hidden shadow max-w-xs">
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  className="px-3 py-1 w-full text-sm text-gray-700 focus:outline-none"
+                />
+                <button
+                  type="submit"
+                  className="bg-yellow-400 hover:bg-yellow-500 text-white px-3 py-1 flex items-center"
+                >
+                  <Search className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop Navigation Bar - Scrollable on mobile */}
+          <div className="bg-blue-700 overflow-x-auto">
+            <nav className="px-4 md:px-6">
+              <div className="flex space-x-0 min-w-max">
+                {tabs.map(({ id, label, icon: Icon }) => (
+                  <button
+                    key={id}
+                    onClick={() => setActiveTab(id)}
+                    className={`px-3 py-2 md:px-4 md:py-3 text-xs md:text-sm font-medium border-r border-blue-600 last:border-r-0 hover:bg-blue-600 transition-colors whitespace-nowrap ${
+                      activeTab === id ? 'bg-blue-600 text-white' : 'text-blue-100'
+                    }`}
+                  >
+                    <span className="hidden md:inline">{label}</span>
+                    <span className="md:hidden">
+                      <Icon className="w-4 h-4 mx-auto" />
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </nav>
+          </div>
+        </div>
+
+        {/* Dashboard Content */}
+        <div className="max-w-7xl mx-auto px-4 py-4 md:px-6 md:py-6">
+          {activeTab === 'home' ? (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+              {/* Left Column - Member Info & Quick Actions */}
+              <div className="lg:col-span-1 space-y-4 md:space-y-6">
+                <MemberInfoPanel memberData={memberData} />
+                <CpdProgressPanel memberData={memberData} />
+                <QuickActionsPanel />
+              </div>
+
+              {/* Right Column - Dynamic Content Based on Active Tab */}
+              <div className="lg:col-span-2 space-y-4 md:space-y-6">
+                {renderTabContent()}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4 md:space-y-6">
+              {renderTabContent()}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Component for Member Info Panel
+const MemberInfoPanel = ({ memberData }: { memberData: MemberData }) => (
+  <div className="bg-white border border-gray-300 rounded-lg">
+    <div className="bg-gray-100 px-4 py-2 border-b border-gray-300">
+      <h2 className="font-semibold text-gray-800">Member Information</h2>
+    </div>
+    <div className="p-4">
+      <div className="flex items-center mb-4">
+        <img
+          src={memberData.profilePhoto}
+          alt="Profile"
+          className="w-12 h-12 md:w-16 md:h-16 rounded-full border-2 border-gray-300 mr-3 md:mr-4"
+        />
+        <div>
+          <h3 className="font-semibold text-base md:text-lg">{memberData.name}</h3>
+          <p className="text-xs md:text-sm text-gray-600">{memberData.institution}</p>
+        </div>
+      </div>
+      <table className="w-full text-xs md:text-sm">
+        <tbody>
+          <tr className="border-b">
+            <td className="py-2 text-gray-600">Status:</td>
+            <td className="py-2">
+              <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium">
+                {memberData.membershipStatus}
+              </span>
+            </td>
+          </tr>
+          <tr className="border-b">
+            <td className="py-2 text-gray-600">Tier:</td>
+            <td className="py-2 font-medium">{memberData.tier}</td>
+          </tr>
+          <tr>
+            <td className="py-2 text-gray-600">Member Since:</td>
+            <td className="py-2">{memberData.memberSince}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+);
+
+// Component for CPD Progress Panel
+const CpdProgressPanel = ({ memberData }: { memberData: MemberData }) => (
+  <div className="bg-white border border-gray-300 rounded-lg">
+    <div className="bg-gray-100 px-4 py-2 border-b border-gray-300">
+      <h2 className="font-semibold text-gray-800">CPD Progress</h2>
+    </div>
+    <div className="p-4">
+      <div className="grid grid-cols-2 gap-3 md:gap-4 mb-3 md:mb-4">
+        <div className="text-center">
+          <div className="text-xl md:text-2xl font-bold text-blue-600">{memberData.cpdProgress.completedHours}</div>
+          <div className="text-xs text-gray-600">Hours Completed</div>
+        </div>
+        <div className="text-center">
+          <div className="text-xl md:text-2xl font-bold text-orange-600">{memberData.cpdProgress.requiredHours}</div>
+          <div className="text-xs text-gray-600">Required Hours</div>
+        </div>
+      </div>
+      <div className="w-full bg-gray-200 rounded-full h-2 mb-3 md:mb-4">
+        <div 
+          className="bg-blue-600 h-2 rounded-full" 
+          style={{ width: `${(memberData.cpdProgress.completedHours / memberData.cpdProgress.requiredHours) * 100}%` }}
+        />
+      </div>
+      <table className="w-full text-xs md:text-sm">
+        <tbody>
+          <tr className="border-b">
+            <td className="py-2 text-gray-600">Enrolled Courses:</td>
+            <td className="py-2 font-medium">{memberData.cpdProgress.enrolledCourses}</td>
+          </tr>
+          <tr>
+            <td className="py-2 text-gray-600">Certifications:</td>
+            <td className="py-2 font-medium">{memberData.cpdProgress.certificationsEarned}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+);
+
+// Component for Quick Actions Panel
+const QuickActionsPanel = () => (
+  <div className="bg-white border border-gray-300 rounded-lg">
+    <div className="bg-gray-100 px-4 py-2 border-b border-gray-300">
+      <h2 className="font-semibold text-gray-800">Quick Actions</h2>
+    </div>
+    <div className="p-3 md:p-4 space-y-2 md:space-y-3">
+      {[
+        { icon: Edit3, label: 'Edit Profile', color: 'blue' },
+        { icon: FileText, label: 'Submit Article', color: 'green' },
+        { icon: MessageSquare, label: 'Join Discussion Forum', color: 'purple' },
+        { icon: Users, label: 'View Member Directory', color: 'orange' }
+      ].map(({ icon: Icon, label, color }, index) => (
+        <button
+          key={index}
+          className={`w-full flex items-center px-3 py-2 text-xs md:text-sm bg-${color}-50 hover:bg-${color}-100 border border-${color}-200 rounded transition-colors text-left`}
+        >
+          <Icon className={`w-3 h-3 md:w-4 md:h-4 mr-2 md:mr-3 text-${color}-600`} />
+          <span className={`text-${color}-700 font-medium`}>{label}</span>
+        </button>
+      ))}
+    </div>
+  </div>
+);
+
+// Tab Content Components
+const HomeTabContent = () => {
+  const upcomingCourses = [
+    {
+      title: "Advanced Epilepsy Management",
+      date: "August 15, 2025",
+      duration: "4 hours",
+      status: "enrolled"
+    },
+    {
+      title: "Pediatric Stroke Recognition",
+      date: "September 2, 2025",
+      duration: "3 hours",
+      status: "available"
+    }
+  ];
+
+  const recentActivity = [
+    { action: "Completed", item: "Cerebral Palsy Workshop", date: "July 20, 2025" },
+    { action: "Downloaded", item: "CPD Certificate", date: "July 18, 2025" }
+  ];
+
+  return (
+    <>
+      <div className="bg-white border border-gray-300 rounded-lg">
+        <div className="bg-gray-100 px-4 py-2 border-b border-gray-300">
+          <h2 className="font-semibold text-gray-800">Training Highlights</h2>
+        </div>
+        <div className="p-4">
+          <div className="space-y-3">
+            {upcomingCourses.map((course, index) => (
+              <div key={index} className="flex items-center justify-between p-3 border border-gray-200 rounded">
+                <div className="flex-1">
+                  <h4 className="font-medium text-sm md:text-base text-gray-900">{course.title}</h4>
+                  <div className="flex items-center text-xs md:text-sm text-gray-600 mt-1">
+                    <Calendar className="w-3 h-3 md:w-4 md:h-4 mr-1" />
+                    {course.date}
+                    <Clock className="w-3 h-3 md:w-4 md:h-4 ml-2 md:ml-3 mr-1" />
+                    {course.duration}
+                  </div>
+                </div>
+                <div className="ml-2">
+                  {course.status === 'enrolled' ? (
+                    <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">
+                      Enrolled
+                    </span>
+                  ) : (
+                    <button className="bg-orange-600 text-white px-2 py-1 rounded text-xs font-medium hover:bg-orange-700">
+                      Enroll
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 text-center">
+            <button className="bg-blue-600 text-white px-4 py-2 text-sm md:text-base rounded font-medium hover:bg-blue-700">
+              View All Training Programs
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white border border-gray-300 rounded-lg">
+        <div className="bg-gray-100 px-4 py-2 border-b border-gray-300">
+          <h2 className="font-semibold text-gray-800">Research & Case Submission</h2>
+        </div>
+        <div className="p-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 md:p-6 text-center hover:border-blue-400 transition-colors cursor-pointer">
+              <Upload className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-2 text-gray-400" />
+              <h4 className="font-medium text-sm md:text-base text-gray-900 mb-1">Upload Research Paper</h4>
+              <p className="text-xs md:text-sm text-gray-600">Submit your research for peer review</p>
+            </div>
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 md:p-6 text-center hover:border-green-400 transition-colors cursor-pointer">
+              <FileText className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-2 text-gray-400" />
+              <h4 className="font-medium text-sm md:text-base text-gray-900 mb-1">Submit Case Report</h4>
+              <p className="text-xs md:text-sm text-gray-600">Share interesting clinical cases</p>
+            </div>
+          </div>
+          <div className="mt-3 md:mt-4 p-2 md:p-3 bg-blue-50 border border-blue-200 rounded">
+            <p className="text-xs md:text-sm text-blue-800">
+              <AlertCircle className="w-3 h-3 md:w-4 md:h-4 inline mr-1" />
+              Submissions are reviewed within 2-3 weeks. Check your email for updates.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white border border-gray-300 rounded-lg">
+        <div className="bg-gray-100 px-4 py-2 border-b border-gray-300">
+          <h2 className="font-semibold text-gray-800">Recent Activity</h2>
+        </div>
+        <div className="p-4">
+          <div className="space-y-2 md:space-y-3">
+            {recentActivity.map((activity, index) => (
+              <div key={index} className="flex items-center p-2 md:p-3 border-l-4 border-blue-400 bg-blue-50">
+                <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-green-600 mr-2 md:mr-3" />
+                <div className="flex-1">
+                  <p className="text-xs md:text-sm">
+                    <span className="font-medium">{activity.action}</span> {activity.item}
+                  </p>
+                  <p className="text-xs text-gray-600">{activity.date}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 md:mt-4 text-center">
+            <button className="text-blue-600 hover:text-blue-800 font-medium text-xs md:text-sm">
+              View All Activity →
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
+const ProfileTabContent = () => (
+  <div className="bg-white border border-gray-300 rounded-lg p-4 md:p-6">
+    <h2 className="text-lg md:text-xl font-bold mb-3 md:mb-4">Profile Settings</h2>
+    <form className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+          <input type="text" className="w-full px-3 py-2 border border-gray-300 rounded-md" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+          <input type="text" className="w-full px-3 py-2 border border-gray-300 rounded-md" />
+        </div>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+        <input type="email" className="w-full px-3 py-2 border border-gray-300 rounded-md" />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Institution</label>
+        <input type="text" className="w-full px-3 py-2 border border-gray-300 rounded-md" />
+      </div>
+      <button
+        type="submit"
+        className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+      >
+        Save Changes
+      </button>
+    </form>
+  </div>
+);
+
+const TrainingTabContent = () => (
+  <div className="bg-white border border-gray-300 rounded-lg p-4 md:p-6">
+    <h2 className="text-lg md:text-xl font-bold mb-3 md:mb-4">E-Learning Portal</h2>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+        <h3 className="font-medium text-blue-600 mb-2">Neurology Fundamentals</h3>
+        <p className="text-sm text-gray-600 mb-3">Core concepts in pediatric neurology</p>
+        <div className="flex items-center text-xs text-gray-500">
+          <Clock className="w-3 h-3 mr-1" /> 8 hours
+        </div>
+      </div>
+      <div className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+        <h3 className="font-medium text-blue-600 mb-2">Epilepsy Management</h3>
+        <p className="text-sm text-gray-600 mb-3">Advanced treatment approaches</p>
+        <div className="flex items-center text-xs text-gray-500">
+          <Clock className="w-3 h-3 mr-1" /> 6 hours
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+// Other tab content components would follow the same pattern
+const CertificationTabContent = () => <div className="bg-white border border-gray-300 rounded-lg p-4 md:p-6">Certification content</div>;
+const ForumTabContent = () => <div className="bg-white border border-gray-300 rounded-lg p-4 md:p-6">Forum content</div>;
+const SubmitTabContent = () => <div className="bg-white border border-gray-300 rounded-lg p-4 md:p-6">Submit content</div>;
+const SignoutTabContent = () => (
+  <div className="bg-white border border-gray-300 rounded-lg p-4 md:p-6">
+    <h2 className="text-lg md:text-xl font-bold mb-4">Sign Out</h2>
+    <p className="mb-4">Are you sure you want to sign out?</p>
+    <button className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+      Confirm Sign Out
+    </button>
+  </div>
+);
+
+export default ACNAMemberDashboard;
