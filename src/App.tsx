@@ -41,6 +41,12 @@ import ACNAMemberDashboard from "./pages/membershippages/portal/ACNAMemberDashbo
 import NoLayout from "./components/layout/NoLayout";
 import CultureAndValues from "./pages/careers/CultureValues";
 import Benefits from "./pages/careers/Benefits";
+import FactSheetsAndCaseStudies from "./pages/education/FactSheetsandCaseStudies";
+import PositionStatements from "./pages/education/PositionStatements";
+import PatientCaregiverResources from "./pages/education/PatientandCaregiverResources";
+import PolicyBriefs from "./pages/education/PolicyBriefs";
+import JournalWatch from "./pages/education/JournalWatch";
+import EBooklets from "./pages/education/EBooklets";
 
 //Layout component that includes header and footer
 const Layout = ({ children }: { children: React.ReactNode }) => (
@@ -98,6 +104,12 @@ function App() {
           <Route path="/e-resources" element={<Register />} />
           <Route path="/neurology-resources" element={<Register />} />
           <Route path="/acna-portal" element={<Register />} />
+          <Route path="/case-studies-and-fact-sheets" element={<FactSheetsAndCaseStudies />}/>
+          <Route path="/position-statement" element={<PositionStatements />} /> 
+          <Route path="/patient-caregiver-resources" element={<PatientCaregiverResources />} />
+          <Route path="/policy-briefs" element={<PolicyBriefs />} />
+          <Route path="/journal-watch" element={<JournalWatch />} />
+          <Route path="e-booklets" element={<EBooklets />} />
           {/* Membership Pages */}
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />

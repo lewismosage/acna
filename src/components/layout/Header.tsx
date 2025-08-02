@@ -21,10 +21,10 @@ const mainNav = [
       { name: "Training Programs", href: "/training-programs" },
       {
         name: "Position statements on child neurology issues in Africa",
-        href: "/position-statements",
+        href: "/position-statement",
       },
       { name: "Policy Briefs and Recommendations", href: "/policy-briefs" },
-      { name: "Case Studies/Fact Sheets", href: "/case-studies" },
+      { name: "Case Studies/Fact Sheets", href: "/case-studies-and-fact-sheets" },
       { name: "E-Booklets", href: "/e-booklets" },
       {
         name: "Patient and caregiver resources",
