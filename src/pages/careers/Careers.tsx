@@ -7,8 +7,6 @@ import CareersProgramsImg from "../../assets/how-we-work.jpg";
 import NairobiHQ from "../../assets/Nairobi-HQ.webp"
 import Abuja from "../../assets/Nigeria.jpg"
 
-import Testimonials from "./Testimonials"
-
 const Careers = () => {
   const [whyOpen, setWhyOpen] = useState(false);
   const [faqOpen, setFaqOpen] = useState(false);
@@ -103,24 +101,19 @@ const Careers = () => {
             </div>
             <ul className="space-y-3">
               <li>
-                <Link to="#culture" className="hover:underline">
+                <Link to="/careers/culture" className="hover:underline">
                   Culture and values
                 </Link>
               </li>
               <li>
-                <Link to="#benefits" className="hover:underline">
+                <Link to="/careers/benefits" className="hover:underline">
                   Benefits
                 </Link>
               </li>
               <li>
-                <Link to="#programs" className="hover:underline">
-                  Employee programs
-                </Link>
-              </li>
-              <li>
-                <Link to="#faq" className="hover:underline">
-                  Careers FAQ
-                </Link>
+              <a href="#faq" className="hover:underline">
+                Careers FAQ
+              </a>
               </li>
             </ul>
           </div>
@@ -262,9 +255,6 @@ const Careers = () => {
         </Link>
       </section>
 
-      {/* Testimonials Section */}
-      <Testimonials />
-
       {/* Offices Section */}
       <section className="py-16 bg-gray-900  text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -388,7 +378,7 @@ const Careers = () => {
       </section>
 
       {/* FAQ Section */}
-      <section className="py-16 bg-white text-center">
+      <section id="faq" className="py-16 bg-white text-center">
         <h2 className="text-2xl md:text-3xl font-extrabold mb-4">
           FREQUENTLY ASKED QUESTIONS
         </h2>

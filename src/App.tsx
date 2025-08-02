@@ -39,6 +39,8 @@ import ResearchPapersPage from "./pages/education/ResearchPapersPublications";
 import TrainingPrograms from "./pages/education/TrainingPrograms";
 import ACNAMemberDashboard from "./pages/membershippages/portal/ACNAMemberDashboard";
 import NoLayout from "./components/layout/NoLayout";
+import CultureAndValues from "./pages/careers/CultureValues";
+import Benefits from "./pages/careers/Benefits";
 
 //Layout component that includes header and footer
 const Layout = ({ children }: { children: React.ReactNode }) => (
@@ -84,6 +86,8 @@ function App() {
           <Route path="/get-involved" element={<GetInvolved />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/careers" element={<Careers />} />
+          <Route path="/careers/culture" element={<CultureAndValues />} />
+          <Route path="/careers/benefits" element={<Benefits />} />
           <Route path="/volunteer" element={<VolunteerInfoSection />} />
           {/* Education Pages */}
           <Route
