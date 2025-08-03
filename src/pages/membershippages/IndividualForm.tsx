@@ -7,7 +7,7 @@ import {
   ageBrackets, 
   counties,
   countryOptions
-} from "./types";
+} from "../membershippages/types";
 
 interface IndividualFormProps {
   formData: RegistrationFormData;

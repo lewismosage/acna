@@ -6,7 +6,7 @@ import {
   organizationTypes, 
   counties,
   countryOptions
-} from "./types";
+} from "../membershippages/types";
 
 interface OrganizationFormProps {
   formData: RegistrationFormData;

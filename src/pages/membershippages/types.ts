@@ -1,7 +1,16 @@
+import { getNames } from 'country-list'; 
+
 export interface CountryOption {
   value: string;
   label: string;
 }
+
+export const countryOptions: CountryOption[] = getNames()
+  .sort()
+  .map((country: string) => ({
+    value: country,
+    label: country
+  }));
 
 export interface RegistrationFormData {
   // Individual fields
