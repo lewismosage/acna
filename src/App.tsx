@@ -47,6 +47,8 @@ import PatientCaregiverResources from "./pages/education/PatientandCaregiverReso
 import PolicyBriefs from "./pages/education/PolicyBriefs";
 import JournalWatch from "./pages/education/JournalWatch";
 import EBooklets from "./pages/education/EBooklets";
+import Webinars from "./pages/education/Webinars";
+import WorkshopsSymposiums from "./pages/education/WorkshopsandSymposiums";
 
 //Layout component that includes header and footer
 const Layout = ({ children }: { children: React.ReactNode }) => (
@@ -109,7 +111,9 @@ function App() {
           <Route path="/patient-caregiver-resources" element={<PatientCaregiverResources />} />
           <Route path="/policy-briefs" element={<PolicyBriefs />} />
           <Route path="/journal-watch" element={<JournalWatch />} />
-          <Route path="e-booklets" element={<EBooklets />} />
+          <Route path="/e-booklets" element={<EBooklets />} />
+          <Route path="/webinars" element={<Webinars />}/>
+          <Route path="/collaboration-opportunities" element={<WorkshopsSymposiums />} />
           {/* Membership Pages */}
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
