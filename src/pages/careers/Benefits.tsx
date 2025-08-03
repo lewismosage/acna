@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { ChevronDown, ChevronUp, Shield, Globe, GraduationCap, Users, Clock, MapPin, Gift, ChevronLeft, ChevronRight } from "lucide-react";
 import ScrollToTop from "../../components/common/ScrollToTop";
+import SAMGWER from "../../assets/sam-gwer.jpg"
+import FATIMA from "../../assets/Sahar.png"
+import BEN from "../../assets/Dr. Ilhem Ben Youssef Turki.jpg"
+import WIL from "../../assets/Jo Wilmshurst.jpg"
 
 const Benefits = () => {
   const [expandedCategory, setExpandedCategory] = useState<number | null>(null);
@@ -12,8 +16,8 @@ const Benefits = () => {
       icon: <Shield className="w-8 h-8" />,
       title: "Health & Wellness",
       subtitle: "Comprehensive care for you and your family",
-      color: "bg-blue-50 text-blue-600",
-      borderColor: "border-blue-200",
+      color: "bg-orange-50 text-orange-600",
+      borderColor: "border-orange-200",
       benefits: [
         {
           name: "Medical Insurance",
@@ -42,8 +46,8 @@ const Benefits = () => {
       icon: <GraduationCap className="w-8 h-8" />,
       title: "Learning & Development",
       subtitle: "Invest in your professional growth",
-      color: "bg-green-50 text-green-600",
-      borderColor: "border-green-200",
+      color: "bg-orange-50 text-orange-600",
+      borderColor: "border-orange-200",
       benefits: [
         {
           name: "Professional Development Fund",
@@ -72,8 +76,8 @@ const Benefits = () => {
       icon: <Clock className="w-8 h-8" />,
       title: "Time Off & Flexibility",
       subtitle: "Balance work with life's important moments",
-      color: "bg-purple-50 text-purple-600",
-      borderColor: "border-purple-200",
+      color: "bg-orange-50 text-orange-600",
+      borderColor: "border-orange-200",
       benefits: [
         {
           name: "Generous Vacation",
@@ -132,8 +136,8 @@ const Benefits = () => {
       icon: <Gift className="w-8 h-8" />,
       title: "Financial Benefits",
       subtitle: "Security and rewards for your contributions",
-      color: "bg-indigo-50 text-indigo-600",
-      borderColor: "border-indigo-200",
+      color: "bg-orange-50 text-orange-600",
+      borderColor: "border-orange-200",
       benefits: [
         {
           name: "Competitive Salary",
@@ -162,8 +166,8 @@ const Benefits = () => {
       icon: <Users className="w-8 h-8" />,
       title: "Community & Support",
       subtitle: "Connect and grow with your colleagues",
-      color: "bg-red-50 text-red-600",
-      borderColor: "border-red-200",
+      color: "bg-orange-50 text-orange-600",
+      borderColor: "border-orange-200",
       benefits: [
         {
           name: "Employee Resource Groups",
@@ -194,36 +198,36 @@ const Benefits = () => {
       quote: "The benefits at ACNA go beyond the traditional package. From the professional development opportunities to the supportive work environment, everything is designed to help you thrive while making a real difference in children's lives.",
       name: "Dr. Amara Kone",
       role: "Senior Research Coordinator",
-      location: "Dakar Office",
-      avatar: "A.K."
+      location: "Nairobi Office", 
+      avatar: SAMGWER
     },
     {
       quote: "Working at ACNA means being part of something bigger than yourself. The comprehensive health coverage and mental wellness support have been invaluable for my family, especially during challenging times.",
       name: "Sarah Ochieng",
       role: "Program Manager",
-      location: "Nairobi Office", 
-      avatar: "S.O."
+      location: "Dakar Office",
+      avatar: BEN
     },
     {
       quote: "The learning and development opportunities here are exceptional. I've been able to attend three international conferences this year, and the leadership training has transformed how I approach my work.",
       name: "Dr. Ibrahim Hassan",
       role: "Clinical Director",
       location: "Abuja Office",
-      avatar: "I.H."
+      avatar: WIL
     },
     {
       quote: "ACNA's commitment to work-life balance is genuine. The flexible arrangements allow me to excel in my role while being present for my family. It's rare to find an organization that truly walks the talk.",
       name: "Fatima Al-Rashid",
       role: "Data Scientist",
       location: "Remote",
-      avatar: "F.R."
+      avatar: FATIMA
     }
   ];
 
   const quickBenefits = [
     "25-30 days annual leave",
     "Comprehensive health coverage",
-    "$3,000 professional development fund",
+    "Professional development fund",
     "16 weeks paid maternity leave",
     "Retirement matching up to 6%",
     "Flexible work arrangements",
@@ -303,7 +307,7 @@ const Benefits = () => {
             {benefitCategories.map((category) => (
               <div key={category.id} className={`border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow ${category.borderColor}`}>
                 <button
-                  className="w-full p-6 text-left bg-white hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset"
+                  className="w-full p-6 text-left bg-white hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-orange-600 focus:ring-inset"
                   onClick={() => setExpandedCategory(expandedCategory === category.id ? null : category.id)}
                 >
                   <div className="flex items-center justify-between">
@@ -434,8 +438,12 @@ const Benefits = () => {
                           {testimonial.quote}
                         </p>
                         <div className="flex items-center">
-                          <div className="w-12 h-12 bg-orange-600 rounded-full flex items-center justify-center text-white font-bold mr-4">
-                            {testimonial.avatar}
+                          <div className="w-12 h-12 rounded-full overflow-hidden mr-4">
+                            <img 
+                              src={testimonial.avatar} 
+                              alt={testimonial.name}
+                              className="w-full h-full object-cover"
+                            />
                           </div>
                           <div>
                             <p className="font-semibold text-white">{testimonial.name}</p>

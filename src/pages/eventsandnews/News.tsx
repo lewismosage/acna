@@ -71,7 +71,7 @@ const LatestNewsPage = () => {
       {/* Hero Section */}
       <section className="py-20 bg-gradient-to-r from-blue-50 to-indigo-50">
         <div className="max-w-6xl mx-auto px-4 text-center">
-          <h1 className="text-5xl md:text-6xl font-light text-gray-900 mb-6">Latest News & Updates</h1>
+          <h1 className="text-5xl md:text-6xl font-light text-gray-900 mb-6">Latest News & Press Releases</h1>
           <p className="text-xl md:text-2xl text-gray-700 font-light max-w-3xl mx-auto">
             Stay informed about the latest developments in child neurology across Africa and our ongoing efforts to improve neurological care for children.
           </p>

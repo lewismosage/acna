@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { HeartHandshake, ShieldCheck, Banknote, ArrowRight, Check } from 'lucide-react';
 import donationImg from '../../assets/donation.jpg';
+import ScrollToTop from '../../components/common/ScrollToTop';
 
 const Donate = () => {
   const [donationAmount, setDonationAmount] = useState<number | null>(50);
@@ -48,6 +49,7 @@ const Donate = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <ScrollToTop/>
       {/* Hero Section */}
       <div className="relative w-full h-auto lg:h-[440px]">
         <div className="flex flex-col lg:flex-row w-full h-full">
