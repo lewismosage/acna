@@ -20,7 +20,6 @@ const Register = () => {
     emailAddress: "",
     physicalAddress: "",
     country: "Kenya",
-    county: "Baringo",
     ageBracket: "",
     password: "",
     confirmPassword: "",
@@ -35,7 +34,6 @@ const Register = () => {
     organizationPhone: "",
     organizationAddress: "",
     organizationCountry: "Kenya",
-    organizationCounty: "Baringo",
     website: "",
     termsAccepted: false,
   });
@@ -198,9 +196,12 @@ const Register = () => {
                   />
                   <label htmlFor="terms" className="text-sm text-gray-700">
                     I have read and agree to the ACNA{" "}
-                    <span className="text-blue-600 hover:underline cursor-pointer">
+                    <Link 
+                      to="/terms-and-conditions" 
+                      className="text-blue-600 hover:underline cursor-pointer"
+                    >
                       Terms and Conditions
-                    </span>
+                    </Link>
                   </label>
                 </div>
 

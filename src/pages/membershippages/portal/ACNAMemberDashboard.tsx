@@ -4,6 +4,8 @@ import {
   Home, Edit3, Upload, Users, Clock, CheckCircle, AlertCircle,
   ChevronRight, ChevronLeft, Search
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import CoursesTabContent from './CoursesTabContent';
 import DirectoryTabContent from './DirectoryTabContent';
 
@@ -139,10 +141,14 @@ const ACNAMemberDashboard = () => {
         <div className="bg-white border-b-2 border-gray-200">
           <div className="bg-blue-800 text-white px-4 py-3 md:px-6">
             <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <div className="w-10 h-10 md:w-12 md:h-12 bg-white rounded-full flex items-center justify-center mr-3 md:mr-4">
-                  <span className="text-blue-800 font-bold text-sm md:text-lg">ACNA</span>
-                </div>
+            <div className="flex items-center">
+                <Link 
+                  to="/" 
+                  className="w-10 h-10 md:w-12 md:h-12 bg-white rounded-full flex items-center justify-center mr-3 md:mr-4 hover:bg-gray-100 transition-colors duration-200"
+                  title="Back to Home"
+                >
+                  <ArrowLeftIcon className="w-5 h-5 text-blue-800" />
+                </Link>
                 <h1 className="text-lg md:text-xl font-semibold">African Child Neurology Association - Member Portal</h1>
               </div>
               <div className="hidden md:flex items-center bg-white rounded-lg overflow-hidden shadow max-w-xs">

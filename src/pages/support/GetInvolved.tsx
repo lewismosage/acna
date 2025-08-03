@@ -145,11 +145,11 @@ const GetInvolved = () => {
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             {/* Telemedicine Program */}
-            <div className="bg-white rounded-xl shadow-md overflow-hidden border border-blue-100">
+            <div className="bg-white rounded-xl shadow-md overflow-hidden border border-orange-100">
               <div className="p-8">
                 <div className="flex items-center mb-4">
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
-                    <Monitor className="w-6 h-6 text-blue-600" />
+                  <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mr-4">
+                    <Monitor className="w-6 h-6 text-orange-600" />
                   </div>
                   <h3 className="text-2xl font-bold text-gray-900">
                     Telemedicine Network Expansion
@@ -162,13 +162,13 @@ const GetInvolved = () => {
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Link
                     to="/telemedicine"
-                    className="flex-1 text-center bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors duration-200"
+                    className="flex-1 text-center bg-orange-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-orange-700 transition-colors duration-200"
                   >
                     Learn More
                   </Link>
                   <Link
                     to="/donate?cause=telemedicine"
-                    className="flex-1 text-center border-2 border-blue-600 text-blue-600 px-6 py-3 rounded-lg font-medium hover:bg-blue-50 transition-colors duration-200"
+                    className="flex-1 text-center border-2 border-orange-600 text-orange-600 px-6 py-3 rounded-lg font-medium hover:bg-orange-50 transition-colors duration-200"
                   >
                     Donate
                   </Link>
@@ -176,11 +176,11 @@ const GetInvolved = () => {
               </div>
             </div>
             {/* Training Center */}
-            <div className="bg-white rounded-xl shadow-md overflow-hidden border border-green-100">
+            <div className="bg-white rounded-xl shadow-md overflow-hidden border border-orange-100">
               <div className="p-8">
                 <div className="flex items-center mb-4">
-                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mr-4">
-                    <GraduationCap className="w-6 h-6 text-green-600" />
+                  <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mr-4">
+                    <GraduationCap className="w-6 h-6 text-orange-600" />
                   </div>
                   <h3 className="text-2xl font-bold text-gray-900">
                     Regional Training Centers
@@ -193,13 +193,13 @@ const GetInvolved = () => {
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Link
                     to="/training-centers"
-                    className="flex-1 text-center bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors duration-200"
+                    className="flex-1 text-center bg-orange-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-orange-700 transition-colors duration-200"
                   >
                     Learn More
                   </Link>
                   <Link
                     to="/donate?cause=training"
-                    className="flex-1 text-center border-2 border-green-600 text-green-600 px-6 py-3 rounded-lg font-medium hover:bg-green-50 transition-colors duration-200"
+                    className="flex-1 text-center border-2 border-orange-600 text-orange-600 px-6 py-3 rounded-lg font-medium hover:bg-orange-50 transition-colors duration-200"
                   >
                     Donate
                   </Link>
@@ -241,7 +241,7 @@ const GetInvolved = () => {
                 </p>
                 <Link
                   to="/stories/training-impact"
-                  className="text-blue-600 font-medium hover:text-blue-700 inline-flex items-center"
+                  className="text-orange-600 font-medium hover:text-orange-700 inline-flex items-center"
                 >
                   Read Full Story
                   <ArrowRight className="ml-1 w-4 h-4" />
@@ -265,7 +265,7 @@ const GetInvolved = () => {
                 </p>
                 <Link
                   to="/stories/patient-story"
-                  className="text-blue-600 font-medium hover:text-blue-700 inline-flex items-center"
+                  className="text-orange-600 font-medium hover:text-orange-700 inline-flex items-center"
                 >
                   Read Full Story
                   <ArrowRight className="ml-1 w-4 h-4" />
@@ -289,7 +289,7 @@ const GetInvolved = () => {
                 </p>
                 <Link
                   to="/stories/research-collaboration"
-                  className="text-blue-600 font-medium hover:text-blue-700 inline-flex items-center"
+                  className="text-orange-600 font-medium hover:text-orange-700 inline-flex items-center"
                 >
                   Read Full Story
                   <ArrowRight className="ml-1 w-4 h-4" />

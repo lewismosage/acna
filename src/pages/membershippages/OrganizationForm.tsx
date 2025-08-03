@@ -3,8 +3,7 @@ import Select from 'react-select';
 import { 
   CountryOption, 
   RegistrationFormData, 
-  organizationTypes, 
-  counties,
+  organizationTypes,
   countryOptions
 } from "../membershippages/types";
 
@@ -175,23 +174,7 @@ const OrganizationForm = ({ formData, handleInputChange, handleCountryChange }: 
             required
           />
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            County
-          </label>
-          <select
-            name="organizationCounty"
-            value={formData.organizationCounty}
-            onChange={handleInputChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-          >
-            {counties.map((county) => (
-              <option key={county} value={county}>
-                {county}
-              </option>
-            ))}
-          </select>
-        </div>
+        
       </div>
     </>
   );

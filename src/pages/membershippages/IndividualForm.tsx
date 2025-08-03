@@ -5,7 +5,7 @@ import {
   RegistrationFormData, 
   membershipClasses, 
   ageBrackets, 
-  counties,
+  
   countryOptions
 } from "../membershippages/types";
 
@@ -149,23 +149,6 @@ const IndividualForm = ({ formData, handleInputChange, handleCountryChange }: In
             classNamePrefix="select"
             required
           />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            County
-          </label>
-          <select
-            name="county"
-            value={formData.county}
-            onChange={handleInputChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-          >
-            {counties.map((county) => (
-              <option key={county} value={county}>
-                {county}
-              </option>
-            ))}
-          </select>
         </div>
       </div>
 

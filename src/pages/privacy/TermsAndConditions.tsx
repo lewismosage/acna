@@ -1,8 +1,10 @@
 import React from 'react';
+import ScrollToTop from '../../components/common/ScrollToTop';
 
 const TermsAndConditions = () => {
   return (
     <div className="bg-white">
+      <ScrollToTop />
       {/* Hero Section */}
       <section className="py-20 bg-gradient-to-r from-blue-50 to-indigo-50">
         <div className="max-w-6xl mx-auto px-4 text-center">

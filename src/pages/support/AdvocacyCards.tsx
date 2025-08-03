@@ -9,8 +9,8 @@ const AdvocacyCards = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
           {/* Become an Advocate */}
           <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 hover:shadow-xl transition-shadow duration-300">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-6">
-              <Megaphone className="w-8 h-8 text-red-600" />
+            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mb-6">
+              <Megaphone className="w-8 h-8 text-orange-600" />
             </div>
             <h3 className="text-2xl font-bold text-gray-900 mb-4">
               Become an Advocate
@@ -20,7 +20,7 @@ const AdvocacyCards = () => {
             </p>
             <Link
               to="/advocacy"
-              className="inline-flex items-center text-red-600 font-medium hover:text-red-700"
+              className="inline-flex items-center text-orange-600 font-medium hover:text-orange-700"
             >
               Advocacy Resources
               <BookOpen className="ml-2 w-5 h-5" />
@@ -29,8 +29,8 @@ const AdvocacyCards = () => {
           
           {/* Training Programs */}
           <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 hover:shadow-xl transition-shadow duration-300">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-6">
-              <BookOpen className="w-8 h-8 text-blue-600" />
+            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mb-6">
+              <BookOpen className="w-8 h-8 text-orange-600" />
             </div>
             <h3 className="text-2xl font-bold text-gray-900 mb-4">
               Training Programs
@@ -39,8 +39,8 @@ const AdvocacyCards = () => {
               Participate in our educational programs to enhance your skills in pediatric neurology.
             </p>
             <Link
-              to="/training"
-              className="inline-flex items-center text-blue-600 font-medium hover:text-blue-700"
+              to="/training-programs"
+              className="inline-flex items-center text-orange-600 font-medium hover:text-orange-700"
             >
               View Programs
               <Megaphone className="ml-2 w-5 h-5" />
