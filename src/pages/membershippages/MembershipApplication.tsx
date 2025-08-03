@@ -1,6 +1,21 @@
 import { useState, ChangeEvent, FormEvent } from "react";
 import { Link } from "react-router-dom";
 import ScrollToTop from "../../components/common/ScrollToTop";
+import Select from 'react-select';
+import { getNames } from 'country-list';
+
+interface CountryOption {
+  value: string;
+  label: string;
+}
+
+const countryOptions: CountryOption[] = getNames()
+  .sort()
+  .map((country: string) => ({
+    value: country,
+    label: country
+  }));
+
 
 const Register = () => {
   const [activeTab, setActiveTab] = useState<"individual" | "organization">(
@@ -352,18 +367,17 @@ const Register = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Country
                         </label>
-                        <select
-                          name="country"
-                          value={formData.country}
-                          onChange={handleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                        >
-                          <option value="Kenya">Kenya</option>
-                          <option value="Uganda">Uganda</option>
-                          <option value="Tanzania">Tanzania</option>
-                          <option value="Rwanda">Rwanda</option>
-                          <option value="Other">Other</option>
-                        </select>
+                        <Select<CountryOption>
+                          options={countryOptions}
+                          value={countryOptions.find((opt: CountryOption) => opt.value === formData.country)}
+                          onChange={(selected: CountryOption | null) => 
+                            setFormData({...formData, country: selected?.value || ''})
+                          }
+                          placeholder="Select Country"
+                          className="text-left basic-multi-select"
+                          classNamePrefix="select"
+                          required
+                        />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -583,18 +597,17 @@ const Register = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Country
                         </label>
-                        <select
-                          name="organizationCountry"
-                          value={formData.organizationCountry}
-                          onChange={handleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                        >
-                          <option value="Kenya">Kenya</option>
-                          <option value="Uganda">Uganda</option>
-                          <option value="Tanzania">Tanzania</option>
-                          <option value="Rwanda">Rwanda</option>
-                          <option value="Other">Other</option>
-                        </select>
+                        <Select<CountryOption>
+                          options={countryOptions}
+                          value={countryOptions.find((opt: CountryOption) => opt.value === formData.organizationCountry)}
+                          onChange={(selected: CountryOption | null) => 
+                            setFormData({...formData, organizationCountry: selected?.value || ''})
+                          }
+                          placeholder="Select Country"
+                          className="text-left basic-multi-select"
+                          classNamePrefix="select"
+                          required
+                        />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">

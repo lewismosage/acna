@@ -7,3 +7,17 @@ html, body {
   max-width: 100%;
   overflow-x: hidden;
 }
+
+.select__control {
+  min-height: 42px;
+  border-color: #d1d5db !important;
+}
+
+.select__control--is-focused {
+  border-color: #f97316 !important;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.5) !important;
+}
+
+.select__menu {
+  z-index: 10;
+}
