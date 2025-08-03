@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, AlertCircle, Mail, Lock } from "lucide-react";
 import Card, { CardContent } from "../../../components/common/Card";
 import ACNALogo from "../../../assets/ACNA.jpg";
+import ScrollToTop from "../../../components/common/ScrollToTop";
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -50,6 +51,7 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
+      <ScrollToTop />
       <Card className="w-full max-w-md">
         <CardContent>
           <div className="text-center mb-8">

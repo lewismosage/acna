@@ -1,38 +1,36 @@
-import React, { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Calendar,
-  MapPin,
-  Users,
-  Clock,
-  Search,
-  Filter,
-  ChevronDown,
-  ChevronUp,
-  Bookmark,
-  ExternalLink,
   UserPlus,
   AlertCircle,
-  Link as LinkIcon,
+  Target,
+  Globe,
+  Users2,
+  Mail,
+  Twitter,
+  Linkedin,
+  MessageCircle,
+  ArrowRight,
+  Users
 } from "lucide-react";
 import { Link } from "react-router-dom";
+
+interface AccordionItem {
+  title: string;
+  content: string;
+}
 
 interface Event {
   id: number;
   title: string;
-  description: string;
   date: string;
   time: string;
   location: string;
-  type: "Workshop" | "Symposium" | "Conference";
+  type: 'upcoming' | 'past';
   category: string;
-  speakers: string[];
-  registrationLink: string;
-  isVirtual: boolean;
-  isFree: boolean;
-  audience: string[];
+  description: string;
   imageUrl: string;
-  isFeatured?: boolean;
-  isNew?: boolean;
+  isOnline?: boolean;
 }
 
 interface CollaborationOpportunity {
@@ -50,94 +48,66 @@ interface CollaborationOpportunity {
 }
 
 const WorkshopsSymposiums = () => {
-  const [activeTab, setActiveTab] = useState<"events" | "collaborations">("events");
-  const [selectedType, setSelectedType] = useState<string>("all");
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [searchTerm, setSearchTerm] = useState<string>("");
-  const [expandedEvent, setExpandedEvent] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<"highlights" | "collaborations">("highlights");
+  const [openAccordion, setOpenAccordion] = useState<number | null>(null);
 
-  const events: Event[] = [
+  const toggleAccordion = (index: number) => {
+    setOpenAccordion(openAccordion === index ? null : index);
+  };
+
+  const accordionItems: AccordionItem[] = [
+    {
+      title: "Clinical Skills Development",
+      content: "Hands-on training in diagnosis and management of pediatric neurological disorders."
+    },
+    {
+      title: "Research Methodologies",
+      content: "Building capacity for conducting high-quality neurological research in African contexts."
+    },
+    {
+      title: "Community Engagement",
+      content: "Strategies for improving awareness and care for neurological conditions at community level."
+    },
+    {
+      title: "Policy & Advocacy",
+      content: "Developing skills to influence health policies affecting children with neurological conditions."
+    }
+  ];
+
+  const upcomingEvents: Event[] = [
     {
       id: 1,
-      title: "3rd Annual East African Pediatric Neurology Symposium",
-      description: "Bringing together experts to discuss latest advances in pediatric neurology care and research in East Africa.",
-      date: "15-17 November 2025",
-      time: "9:00 AM - 5:00 PM EAT",
-      location: "Nairobi, Kenya",
-      type: "Symposium",
-      category: "Clinical Practice",
-      speakers: ["Prof. Wanjiru Mwangi", "Dr. Hassan Abdi", "Prof. Kwame Mensah"],
-      registrationLink: "https://acna.org/events/east-africa-2025",
-      isVirtual: false,
-      isFree: false,
-      audience: ["Neurologists", "Pediatricians", "Researchers"],
-      imageUrl: "https://images.pexels.com/photos/3184306/pexels-photo-3184306.jpeg",
-      isFeatured: true
+      title: "ACNA Live from Nairobi: Advancing Pediatric Neurology Care Across East Africa",
+      date: "August 15, 2025",
+      time: "2:00PM-4:00PM EAT",
+      location: "Live online",
+      type: "upcoming",
+      category: "CONFERENCE",
+      description: "Join us for an interactive session discussing the latest advances in pediatric neurology care and treatment protocols across East African healthcare systems.",
+      imageUrl: "https://images.pexels.com/photos/5215024/pexels-photo-5215024.jpeg?auto=compress&cs=tinysrgb&w=600",
+      isOnline: true
     },
     {
       id: 2,
-      title: "Community Epilepsy Management Workshop",
-      description: "Training for community health workers on identification and basic management of childhood epilepsy.",
-      date: "5-7 March 2025",
-      time: "8:30 AM - 3:00 PM WAT",
-      location: "Lagos, Nigeria",
-      type: "Workshop",
-      category: "Community Health",
-      speakers: ["Dr. Amina Bello", "Dr. Chukwuma Okafor"],
-      registrationLink: "https://acna.org/events/lagos-2025",
-      isVirtual: false,
-      isFree: true,
-      audience: ["Community Health Workers", "Nurses"],
-      imageUrl: "https://images.pexels.com/photos/4260325/pexels-photo-4260325.jpeg"
+      title: "Epilepsy Awareness Workshop in Community Settings",
+      date: "August 22, 2025",
+      time: "9:00AM-5:00PM CAT",
+      location: "In-person in Cape Town, SA",
+      type: "upcoming",
+      category: "WORKSHOP",
+      description: "A comprehensive workshop focused on epilepsy awareness, community education, and reducing stigma around neurological conditions in African communities.",
+      imageUrl: "https://images.pexels.com/photos/3184638/pexels-photo-3184638.jpeg?auto=compress&cs=tinysrgb&w=600"
     },
     {
       id: 3,
-      title: "Virtual Symposium on Autism in Africa",
-      description: "Exploring culturally appropriate diagnostic and intervention approaches for autism spectrum disorders.",
-      date: "22 April 2025",
-      time: "1:00 PM - 6:00 PM GMT",
-      location: "Online",
-      type: "Symposium",
-      category: "Neurodevelopment",
-      speakers: ["Dr. Ngozi Eze", "Prof. Tendai Moyo", "Dr. Fatoumata Diallo"],
-      registrationLink: "https://acna.org/events/autism-2025",
-      isVirtual: true,
-      isFree: true,
-      audience: ["Clinicians", "Educators", "Parents"],
-      imageUrl: "https://images.pexels.com/photos/5212359/pexels-photo-5212359.jpeg",
-      isNew: true
-    },
-    {
-      id: 4,
-      title: "Advanced EEG Interpretation Workshop",
-      description: "Hands-on training in pediatric EEG interpretation for neurologists and trainees.",
-      date: "10-12 September 2025",
-      time: "8:00 AM - 4:00 PM SAST",
-      location: "Cape Town, South Africa",
-      type: "Workshop",
-      category: "Diagnostics",
-      speakers: ["Prof. Sarah Johnson", "Dr. Ibrahim Hassan"],
-      registrationLink: "https://acna.org/events/eeg-2025",
-      isVirtual: false,
-      isFree: false,
-      audience: ["Neurologists", "Fellows", "Technicians"],
-      imageUrl: "https://images.pexels.com/photos/8386365/pexels-photo-8386365.jpeg"
-    },
-    {
-      id: 5,
-      title: "Cerebral Palsy: From Diagnosis to Rehabilitation",
-      description: "Multidisciplinary approaches to cerebral palsy management in resource-limited settings.",
-      date: "30 May 2025",
-      time: "10:00 AM - 3:00 PM EAT",
-      location: "Kampala, Uganda",
-      type: "Workshop",
-      category: "Rehabilitation",
-      speakers: ["Dr. Nakato Kintu", "Dr. Wanjiku Mwangi"],
-      registrationLink: "https://acna.org/events/cp-2025",
-      isVirtual: false,
-      isFree: true,
-      audience: ["Therapists", "Pediatricians", "Caregivers"],
-      imageUrl: "https://images.pexels.com/photos/4260323/pexels-photo-4260323.jpeg"
+      title: "Child Neurology Training Program for Healthcare Workers",
+      date: "September 5, 2025",
+      time: "10:00AM-3:00PM WAT",
+      location: "In-person in Lagos, Nigeria",
+      type: "upcoming",
+      category: "TRAINING",
+      description: "Intensive training program designed to equip primary healthcare workers with essential skills in identifying and managing pediatric neurological conditions.",
+      imageUrl: "https://images.pexels.com/photos/5452293/pexels-photo-5452293.jpeg?auto=compress&cs=tinysrgb&w=600"
     }
   ];
 
@@ -183,31 +153,17 @@ const WorkshopsSymposiums = () => {
     }
   ];
 
-  const eventTypes = ["all", "Workshop", "Symposium", "Conference"];
-  const categories = ["all", "Clinical Practice", "Community Health", "Neurodevelopment", "Diagnostics", "Rehabilitation", "Research"];
-  const audiences = ["all", "Neurologists", "Pediatricians", "Researchers", "Community Health Workers", "Nurses", "Therapists", "Educators", "Parents", "Caregivers"];
-
-  const filteredEvents = events.filter((event) => {
-    const matchesType = selectedType === "all" || event.type === selectedType;
-    const matchesCategory = selectedCategory === "all" || event.category === selectedCategory;
-    const matchesSearch =
-      event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      event.description.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesType && matchesCategory && matchesSearch;
-  });
-
-  const getEventTypeColor = (type: string) => {
-    switch (type) {
-      case "Workshop":
-        return "bg-blue-100 text-blue-800";
-      case "Symposium":
-        return "bg-purple-100 text-purple-800";
-      case "Conference":
-        return "bg-green-100 text-green-800";
-      default:
-        return "bg-gray-100 text-gray-800";
+  useEffect(() => {
+    if (location.hash === '#opportunities') {
+      setActiveTab("collaborations");
+      setTimeout(() => {
+        const element = document.getElementById("opportunities");
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
     }
-  };
+  }, [location]);
 
   return (
     <div className="bg-white min-h-screen">
@@ -218,20 +174,20 @@ const WorkshopsSymposiums = () => {
             Workshops & Symposiums
           </h1>
           <p className="text-xl md:text-2xl text-gray-700 font-light max-w-3xl mx-auto mb-8">
-            Educational events and collaboration opportunities to advance pediatric neurology in Africa
+            Deepening knowledge, growing collaboration, and shaping the future of child neurology in Africa
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center text-gray-600">
             <div className="flex items-center">
               <Calendar className="w-5 h-5 mr-2 text-red-600" />
-              <span>{events.length} Upcoming Events</span>
+              <span>42+ Past Events</span>
             </div>
             <div className="flex items-center">
               <UserPlus className="w-5 h-5 mr-2 text-red-600" />
               <span>{collaborationOpportunities.length} Active Collaborations</span>
             </div>
             <div className="flex items-center">
-              <MapPin className="w-5 h-5 mr-2 text-red-600" />
-              <span>Across {new Set(events.map(e => e.location.split(",")[0])).size} African Countries</span>
+              <Globe className="w-5 h-5 mr-2 text-red-600" />
+              <span>18 African Countries Reached</span>
             </div>
           </div>
         </div>
@@ -243,14 +199,14 @@ const WorkshopsSymposiums = () => {
           <div className="flex justify-center">
             <div className="flex bg-gray-100 rounded-lg p-1">
               <button
-                onClick={() => setActiveTab("events")}
+                onClick={() => setActiveTab("highlights")}
                 className={`px-6 py-3 rounded-md font-medium transition-all duration-200 ${
-                  activeTab === "events"
+                  activeTab === "highlights"
                     ? "bg-white text-red-600 shadow-sm"
                     : "text-gray-600 hover:text-gray-900"
                 }`}
               >
-                Events Calendar
+                Highlights
               </button>
               <button
                 onClick={() => setActiveTab("collaborations")}
@@ -269,265 +225,210 @@ const WorkshopsSymposiums = () => {
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 py-16">
-        {activeTab === "events" && (
-          <>
-            {/* Search and Filter */}
-            <div className="mb-12 bg-gray-50 p-6 rounded-lg">
-              <div className="flex flex-col lg:flex-row gap-4 items-center">
-                <div className="relative flex-1 max-w-md">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Search events..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent"
-                  />
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <div className="flex items-center gap-2">
-                    <Filter className="w-4 h-4 text-gray-600" />
-                    <select
-                      value={selectedType}
-                      onChange={(e) => setSelectedType(e.target.value)}
-                      className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600"
-                    >
-                      {eventTypes.map((type) => (
-                        <option key={type} value={type}>
-                          {type === "all" ? "All Types" : type}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <select
-                    value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600"
-                  >
-                    {categories.map((category) => (
-                      <option key={category} value={category}>
-                        {category === "all" ? "All Categories" : category}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+        {activeTab === "highlights" && (
+          <div className="space-y-16">
+            {/* What Are Workshops & Symposiums */}
+            <section>
+              <h2 className="text-3xl font-bold text-gray-900 mb-6 flex items-center">
+                What Are Workshops & Symposiums at ACNA?
+              </h2>
+              <div className="bg-blue-50 rounded-xl p-8 space-y-4">
+                <p className="text-gray-700">
+                  <strong>Workshops</strong> at ACNA are intensive, hands-on training sessions focused on developing practical skills in pediatric neurology. These sessions typically last 1-3 days and emphasize interactive learning through case studies, demonstrations, and small group exercises.
+                </p>
+                <p className="text-gray-700">
+                  <strong>Symposiums</strong> are academic gatherings where experts present and discuss the latest research, clinical practices, and policy developments in child neurology. These events foster knowledge exchange and often feature panel discussions and networking opportunities.
+                </p>
+                <p className="text-gray-700">
+                  Together, these educational formats play a crucial role in ACNA's mission to build capacity, advance professional development, and promote cutting-edge research across Africa's pediatric neurology community.
+                </p>
               </div>
-            </div>
+            </section>
 
-            {/* Featured Events */}
-            {filteredEvents.filter(e => e.isFeatured || e.isNew).length > 0 && (
-              <div className="mb-12">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-                  <Bookmark className="w-6 h-6 text-red-600 mr-2" />
-                  Featured Events
-                </h2>
-                <div className="grid md:grid-cols-2 gap-8">
-                  {filteredEvents.filter(e => e.isFeatured || e.isNew).map((event) => (
-                    <div key={event.id} className="bg-white rounded-xl shadow-lg overflow-hidden border-2 border-red-200 hover:border-red-300 transition-colors">
-                      <div className="flex flex-col md:flex-row">
-                        <div className="md:w-1/3">
-                          <img 
-                            src={event.imageUrl} 
-                            alt={event.title}
-                            className="w-full h-48 md:h-full object-cover"
-                          />
+            {/* Focus Areas */}
+            <section>
+              <h2 className="text-3xl font-bold text-gray-900 mb-6 flex items-center">
+                Our Focus Areas
+              </h2>
+                <div className="max-w-4xl mx-auto">
+                  {accordionItems.map((item, index) => (
+                    <div key={index} className="border-b border-gray-200 mb-2 last:mb-0">
+                      <button
+                        onClick={() => toggleAccordion(index)}
+                        className="w-full py-5 px-4 text-left flex justify-between items-center hover:bg-gray-100 transition-colors rounded-lg"
+                      >
+                        <span className="font-medium text-gray-900 text-lg">{item.title}</span>
+                        <span className="text-2xl text-gray-600">
+                          {openAccordion === index ? '−' : '+'}
+                        </span>
+                      </button>
+                      {openAccordion === index && (
+                        <div className="pb-6 px-4 text-gray-600">
+                          {item.content}
                         </div>
-                        <div className="md:w-2/3 p-6">
-                          <div className="flex justify-between items-start mb-2">
-                            <span className={`px-2 py-1 text-xs font-medium rounded ${getEventTypeColor(event.type)}`}>
-                              {event.type}
-                            </span>
-                            {event.isNew && (
-                              <span className="bg-green-100 text-green-800 px-2 py-1 text-xs font-bold rounded">
-                                NEW
-                              </span>
-                            )}
-                          </div>
-                          
-                          <h3 className="text-xl font-bold text-gray-900 mb-2">{event.title}</h3>
-                          <p className="text-gray-600 mb-4 line-clamp-2">{event.description}</p>
-                          
-                          <div className="flex flex-wrap gap-2 mb-4">
-                            <span className="bg-blue-100 text-blue-800 px-2 py-1 text-xs rounded">
-                              {event.category}
-                            </span>
-                            {event.audience.slice(0, 2).map((aud, index) => (
-                              <span key={index} className="bg-purple-100 text-purple-800 px-2 py-1 text-xs rounded">
-                                {aud}
-                              </span>
-                            ))}
-                            {event.audience.length > 2 && (
-                              <span className="bg-gray-100 text-gray-800 px-2 py-1 text-xs rounded">
-                                +{event.audience.length - 2}
-                              </span>
-                            )}
-                          </div>
-                          
-                          <div className="space-y-2 text-sm text-gray-600 mb-4">
-                            <div className="flex items-center">
-                              <Calendar className="w-4 h-4 mr-2" />
-                              {event.date} • {event.time}
-                            </div>
-                            <div className="flex items-center">
-                              <MapPin className="w-4 h-4 mr-2" />
-                              {event.location} {event.isVirtual && "(Virtual)"}
-                            </div>
-                            {event.speakers.length > 0 && (
-                              <div className="flex items-center">
-                                <Users className="w-4 h-4 mr-2" />
-                                Speakers: {event.speakers.slice(0, 2).join(", ")}
-                                {event.speakers.length > 2 && " + more"}
-                              </div>
-                            )}
-                          </div>
-                          
-                          <a
-                            href={event.registrationLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-block bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors font-medium"
-                          >
-                            Register Now
-                          </a>
-                        </div>
-                      </div>
+                      )}
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
+            </section>
 
-            {/* All Events */}
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">
-              All Upcoming Events
-            </h2>
-            <div className="space-y-6">
-              {filteredEvents.map((event) => (
-                <div 
-                  key={event.id} 
-                  className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden border border-gray-200"
-                >
-                  <div className="flex flex-col md:flex-row">
-                    <div className="md:w-1/4">
-                      <img 
-                        src={event.imageUrl} 
+            {/* Upcoming Events Section*/}
+            <section>
+              <h2 className="text-3xl font-bold text-gray-900 mb-6 flex items-center">
+                <Calendar className="w-8 h-8 text-red-600 mr-3" />
+                Upcoming Events
+              </h2>
+              <div className="grid md:grid-cols-2 gap-8 mb-12">
+                {upcomingEvents.map((event) => (
+                  <div key={event.id} className="group cursor-pointer flex gap-4 hover:bg-gray-50 transition-colors duration-200 p-4 rounded-lg">
+                    <div className="relative flex-shrink-0 w-24 h-24 overflow-hidden rounded">
+                      <img
+                        src={event.imageUrl}
                         alt={event.title}
-                        className="w-full h-48 md:h-full object-cover"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
-                    </div>
-                    <div className="md:w-3/4 p-6">
-                      <div className="flex justify-between items-start mb-2">
-                        <span className={`px-2 py-1 text-xs font-medium rounded ${getEventTypeColor(event.type)}`}>
-                          {event.type}
-                        </span>
-                        {event.isFree && (
-                          <span className="bg-green-100 text-green-800 px-2 py-1 text-xs font-bold rounded">
-                            FREE
-                          </span>
-                        )}
-                      </div>
-                      
-                      <h3 className="text-lg font-bold text-gray-900 mb-2">{event.title}</h3>
-                      
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        <span className="bg-blue-100 text-blue-800 px-2 py-1 text-xs rounded">
+                      <div className="absolute top-1 left-1">
+                        <span className="bg-red-600 text-white px-2 py-0.5 text-xs font-bold uppercase tracking-wide">
                           {event.category}
                         </span>
-                        {event.isVirtual && (
-                          <span className="bg-purple-100 text-purple-800 px-2 py-1 text-xs rounded">
-                            Virtual
-                          </span>
-                        )}
                       </div>
-                      
-                      <p className="text-gray-600 text-sm mb-4">{event.description}</p>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div>
-                          <h4 className="font-semibold text-gray-900 text-sm mb-1">Date & Time:</h4>
-                          <p className="text-gray-600 text-sm flex items-center">
-                            <Calendar className="w-4 h-4 mr-2" />
-                            {event.date} • {event.time}
-                          </p>
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-gray-900 text-sm mb-1">Location:</h4>
-                          <p className="text-gray-600 text-sm flex items-center">
-                            <MapPin className="w-4 h-4 mr-2" />
-                            {event.location}
-                          </p>
-                        </div>
-                        {expandedEvent === event.id && (
-                          <>
-                            <div>
-                              <h4 className="font-semibold text-gray-900 text-sm mb-1">Audience:</h4>
-                              <div className="flex flex-wrap gap-1">
-                                {event.audience.map((aud, index) => (
-                                  <span key={index} className="bg-gray-100 text-gray-700 px-2 py-1 text-xs rounded">
-                                    {aud}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                            <div>
-                              <h4 className="font-semibold text-gray-900 text-sm mb-1">Speakers:</h4>
-                              <ul className="text-gray-600 text-sm">
-                                {event.speakers.map((speaker, index) => (
-                                  <li key={index} className="flex items-center">
-                                    <Users className="w-4 h-4 mr-2 opacity-50" />
-                                    {speaker}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                      
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-                        <button
-                          onClick={() => setExpandedEvent(expandedEvent === event.id ? null : event.id)}
-                          className="text-red-600 font-medium hover:text-red-700 text-sm self-start"
-                        >
-                          {expandedEvent === event.id ? "Show Less" : "More Details"}{" "}
-                          {expandedEvent === event.id ? <ChevronUp className="inline ml-1 w-4 h-4" /> : <ChevronDown className="inline ml-1 w-4 h-4" />}
-                        </button>
-                        
-                        <a
-                          href={event.registrationLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors font-medium flex items-center justify-center gap-2"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                          Register Now
-                        </a>
-                      </div>
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <p className="text-orange-600 font-medium text-xs uppercase">
+                        {event.date}, {event.time}
+                      </p>
+                      <h3 className="text-base font-bold text-gray-900 leading-tight group-hover:text-red-600 transition-colors">
+                        {event.title}
+                      </h3>
+                      <p className="text-gray-600 text-sm">
+                        {event.isOnline ? 'Online Event' : event.location}
+                      </p>
+                      <a href="#" className="text-red-600 text-sm font-medium inline-flex items-center hover:text-red-700">
+                        READ MORE <ArrowRight className="ml-1 w-3 h-3" />
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="text-center">
+                <Link
+                  to="/events"
+                  className="border-2 border-orange-600 text-gray-800 px-6 py-3 text-sm font-bold tracking-wider hover:bg-orange-600 hover:text-white transition-all duration-300 rounded-lg"
+                >
+                  VIEW ALL EVENTS
+                </Link>
+              </div>
+            </section>
+
+            {/* Collaborate or Host */}
+            <section>
+              <h2 className="text-3xl font-bold text-gray-900 mb-6 flex items-center">
+                <Users2 className="w-8 h-8 text-red-600 mr-3" />
+                Collaborate or Host
+              </h2>
+              <div className="bg-white border border-gray-200 rounded-xl p-8">
+                <div className="grid md:grid-cols-2 gap-8">
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-4">How to Get Involved</h3>
+                    <ul className="space-y-4 text-gray-700">
+                      <li className="flex items-start">
+                        <span className="text-red-600 mr-2">•</span>
+                        <span><strong>Propose a topic:</strong> Suggest workshop themes addressing critical needs in African pediatric neurology</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="text-red-600 mr-2">•</span>
+                        <span><strong>Host regionally:</strong> Partner with ACNA to organize symposiums in your institution or country</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="text-red-600 mr-2">•</span>
+                        <span><strong>Share expertise:</strong> Volunteer as a facilitator, moderator, or speaker</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="text-red-600 mr-2">•</span>
+                        <span><strong>Support financially:</strong> Sponsor events or provide resources for participant scholarships</span>
+                      </li>
+                    </ul>
+                  </div>
+                  <div className="bg-blue-50 rounded-lg p-6">
+                    <h3 className="text-xl font-bold text-gray-900 mb-4">Submit Your Proposal</h3>
+                    <p className="text-gray-700 mb-6">
+                      Interested in organizing an ACNA-endorsed workshop or symposium? Download our hosting guidelines and submit a proposal form.
+                    </p>
+                    <div className="space-y-3">
+                      <a
+                        href="/proposal-guidelines.pdf"
+                        className="block bg-white border border-red-600 text-red-600 px-4 py-3 rounded-lg font-medium text-center hover:bg-red-50 transition"
+                      >
+                        Download Guidelines
+                      </a>
+                      <a
+                        href="/submit-proposal"
+                        className="block bg-red-600 text-white px-4 py-3 rounded-lg font-medium text-center hover:bg-red-700 transition"
+                      >
+                        Submit Proposal Form
+                      </a>
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
-            
-            {filteredEvents.length === 0 && (
-              <div className="text-center py-12">
-                <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  No upcoming events found
-                </h3>
-                <p className="text-gray-600">
-                  Try adjusting your search or check back later for new events.
-                </p>
               </div>
-            )}
-          </>
+            </section>
+
+            {/* Stay Engaged */}
+            <section>
+              <h2 className="text-3xl font-bold text-gray-900 mb-6 flex items-center">
+                <Mail className="w-8 h-8 text-red-600 mr-3" />
+                Stay Engaged
+              </h2>
+              <div className="grid md:grid-cols-2 gap-8">
+                <div className="bg-blue-50 rounded-xl p-8">
+                  <h3 className="text-xl font-bold text-gray-900 mb-4">Join Our Community</h3>
+                  <p className="text-gray-700 mb-6">
+                    Never miss an announcement about upcoming workshops and symposiums. Connect with fellow professionals and access event materials.
+                  </p>
+                  <div className="relative mb-3 sm:mb-4">
+                    <input
+                      type="email"
+                      placeholder="Email address"
+                      className="w-full px-4 sm:px-6 py-3 sm:py-4 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-white"
+                    />
+                    <button className="absolute right-2 top-2 bg-orange-600 text-white px-3 py-1 sm:px-4 sm:py-2 rounded-md hover:bg-orange-700 transition-colors flex items-center text-sm sm:text-base">
+                      <Users className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                      Subscribe
+                    </button>
+                  </div>
+                  <p className="text-xs sm:text-sm text-grey-100 opacity-90">
+                    By subscribing, you agree to receive event notifications and updates from ACNA. You can unsubscribe at any time.
+                  </p>
+                </div>
+                <div className="bg-white border border-gray-200 rounded-xl p-8">
+                  <h3 className="text-xl font-bold text-gray-900 mb-4">Access Resources</h3>
+                  <p className="text-gray-700 mb-6">
+                    Materials from past ACNA workshops and symposiums are available to members. Log in to access presentations, recordings, and training manuals.
+                  </p>
+                  <div className="space-y-3">
+                    <Link
+                      to="/login"
+                      className="block bg-white border border-red-600 text-red-600 px-4 py-3 rounded-lg font-medium text-center hover:bg-red-50 transition"
+                    >
+                      Member Login
+                    </Link>
+                    <Link
+                      to="/register"
+                      className="block bg-gray-900 text-white px-4 py-3 rounded-lg font-medium text-center hover:bg-gray-800 transition"
+                    >
+                      Become a Member
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
         )}
 
         {activeTab === "collaborations" && (
           <div>
-            <div className="text-center mb-12">
+            <div id="opportunities" className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-gray-900 mb-4">
                 Collaboration Opportunities
               </h2>
@@ -626,7 +527,7 @@ const WorkshopsSymposiums = () => {
                       Log In to Your Account
                     </Link>
                     <Link
-                      to="/membership"
+                      to="/register"
                       className="flex-1 border border-red-600 text-red-600 px-6 py-3 rounded-lg font-semibold hover:bg-red-50 transition text-center"
                     >
                       Become a Member

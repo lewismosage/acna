@@ -189,9 +189,12 @@ const ProfessionalNetwork = () => {
 
             {/* Button */}
             <div className="mt-12 flex">
-              <button className="border-2 border-orange-600 text-gray-800 px-6 py-3 text-sm font-bold tracking-wider hover:bg-orange-600 hover:text-white transition-all duration-300 rounded-lg">
+              <Link
+                to="/collaboration-opportunities#opportunities"
+                className="border-2 border-orange-600 text-gray-800 px-6 py-3 text-sm font-bold tracking-wider hover:bg-orange-600 hover:text-white transition-all duration-300 rounded-lg"
+              >
                 EXPLORE OPPORTUNITIES
-              </button>
+              </Link>
             </div>
           </div>
         </div>
