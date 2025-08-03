@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { HeartHandshake, ShieldCheck, Banknote, ArrowRight, Check } from 'lucide-react';
+import { HeartHandshake, ShieldCheck, Banknote, ArrowRight, Check, CheckCircle } from 'lucide-react';
 import donationImg from '../../assets/donation.jpg';
 import ScrollToTop from '../../components/common/ScrollToTop';
 
@@ -94,14 +94,14 @@ const Donate = () => {
                     <button
                       type="button"
                       onClick={() => setDonationType('one-time')}
-                      className={`py-3 px-6 rounded-lg border ${donationType === 'one-time' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-300 text-gray-700'} font-medium transition-colors`}
+                      className={`py-3 px-6 rounded-lg border ${donationType === 'one-time' ? 'border-orange-600 bg-orange-50 text-orange-700' : 'border-gray-300 text-gray-700'} font-medium transition-colors`}
                     >
                       One-time
                     </button>
                     <button
                       type="button"
                       onClick={() => setDonationType('monthly')}
-                      className={`py-3 px-6 rounded-lg border ${donationType === 'monthly' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-300 text-gray-700'} font-medium transition-colors`}
+                      className={`py-3 px-6 rounded-lg border ${donationType === 'monthly' ? 'border-orange-600 bg-orange-50 text-orange-700' : 'border-gray-300 text-gray-700'} font-medium transition-colors`}
                     >
                       Monthly
                     </button>
@@ -117,7 +117,7 @@ const Donate = () => {
                         key={amount}
                         type="button"
                         onClick={() => setDonationAmount(amount)}
-                        className={`py-4 px-6 rounded-lg border ${donationAmount === amount ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-300 text-gray-700'} font-medium transition-colors`}
+                        className={`py-4 px-6 rounded-lg border ${donationAmount === amount ? 'border-orange-600 bg-orange-50 text-orange-700' : 'border-gray-300 text-gray-700'} font-medium transition-colors`}
                       >
                         ${amount}
                       </button>
@@ -125,7 +125,7 @@ const Donate = () => {
                     <button
                       type="button"
                       onClick={() => setDonationAmount(null)}
-                      className={`py-4 px-6 rounded-lg border col-span-3 ${donationAmount === null ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-300 text-gray-700'} font-medium transition-colors`}
+                      className={`py-4 px-6 rounded-lg border col-span-3 ${donationAmount === null ? 'border-orange-600 bg-orange-50 text-orange-700' : 'border-gray-300 text-gray-700'} font-medium transition-colors`}
                     >
                       Other amount
                     </button>
@@ -135,7 +135,7 @@ const Donate = () => {
                       <input
                         type="number"
                         placeholder="Enter amount"
-                        className="w-full px-6 py-4 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-6 py-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                         min="1"
                         onChange={(e) => setDonationAmount(Number(e.target.value))}
                       />
@@ -150,25 +150,25 @@ const Donate = () => {
                     <button
                       type="button"
                       onClick={() => setPaymentMethod('card')}
-                      className={`w-full py-4 px-6 rounded-lg border ${paymentMethod === 'card' ? 'border-blue-600 bg-blue-50' : 'border-gray-300'} flex items-center transition-colors`}
+                      className={`w-full py-4 px-6 rounded-lg border ${paymentMethod === 'card' ? 'border-orange-600 bg-orange-50' : 'border-gray-300'} flex items-center transition-colors`}
                     >
-                      <div className={`w-5 h-5 rounded-full border mr-4 ${paymentMethod === 'card' ? 'border-blue-600 bg-blue-600' : 'border-gray-300'}`}></div>
+                      <div className={`w-5 h-5 rounded-full border mr-4 ${paymentMethod === 'card' ? 'border-orange-600 bg-orange-600' : 'border-gray-300'}`}></div>
                       <span className="font-medium">Credit/Debit Card</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setPaymentMethod('bank')}
-                      className={`w-full py-4 px-6 rounded-lg border ${paymentMethod === 'bank' ? 'border-blue-600 bg-blue-50' : 'border-gray-300'} flex items-center transition-colors`}
+                      className={`w-full py-4 px-6 rounded-lg border ${paymentMethod === 'bank' ? 'border-orange-600 bg-orange-50' : 'border-gray-300'} flex items-center transition-colors`}
                     >
-                      <div className={`w-5 h-5 rounded-full border mr-4 ${paymentMethod === 'bank' ? 'border-blue-600 bg-blue-600' : 'border-gray-300'}`}></div>
+                      <div className={`w-5 h-5 rounded-full border mr-4 ${paymentMethod === 'bank' ? 'border-orange-600 bg-orange-600' : 'border-gray-300'}`}></div>
                       <span className="font-medium">Bank Transfer</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setPaymentMethod('mobile')}
-                      className={`w-full py-4 px-6 rounded-lg border ${paymentMethod === 'mobile' ? 'border-blue-600 bg-blue-50' : 'border-gray-300'} flex items-center transition-colors`}
+                      className={`w-full py-4 px-6 rounded-lg border ${paymentMethod === 'mobile' ? 'border-orange-600 bg-orange-50' : 'border-gray-300'} flex items-center transition-colors`}
                     >
-                      <div className={`w-5 h-5 rounded-full border mr-4 ${paymentMethod === 'mobile' ? 'border-blue-600 bg-blue-600' : 'border-gray-300'}`}></div>
+                      <div className={`w-5 h-5 rounded-full border mr-4 ${paymentMethod === 'mobile' ? 'border-orange-600 bg-orange-600' : 'border-gray-300'}`}></div>
                       <span className="font-medium">Mobile Money</span>
                     </button>
                   </div>
@@ -183,7 +183,7 @@ const Donate = () => {
                       <input
                         type="text"
                         id="firstName"
-                        className="w-full px-6 py-4 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-6 py-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                         required
                       />
                     </div>
@@ -192,7 +192,7 @@ const Donate = () => {
                       <input
                         type="text"
                         id="lastName"
-                        className="w-full px-6 py-4 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-6 py-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                         required
                       />
                     </div>
@@ -202,7 +202,7 @@ const Donate = () => {
                     <input
                       type="email"
                       id="email"
-                      className="w-full px-6 py-4 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-6 py-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                       required
                     />
                   </div>
@@ -210,7 +210,7 @@ const Donate = () => {
                     <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-2">Country</label>
                     <select
                       id="country"
-                      className="w-full px-6 py-4 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-6 py-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                     >
                       <option value="">Select country</option>
                       <option value="US">United States</option>
@@ -225,7 +225,7 @@ const Donate = () => {
                 {/* Submit Button */}
                 <button
                   type="submit"
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-5 px-6 rounded-lg flex items-center justify-center transition-colors text-lg"
+                  className="w-full bg-orange-600 hover:bg-orange-700 text-white font-medium py-5 px-6 rounded-lg flex items-center justify-center transition-colors text-lg"
                   disabled={!donationAmount}
                 >
                   Donate ${donationAmount || ''}
@@ -248,8 +248,8 @@ const Donate = () => {
               
               <div className="space-y-8"> {/* Increased spacing */}
                 <div className="flex items-start">
-                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mr-5 flex-shrink-0">
-                    <Banknote className="w-6 h-6 text-blue-600" />
+                  <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mr-5 flex-shrink-0">
+                    <Banknote className="w-6 h-6 text-orange-600" />
                   </div>
                   <div>
                     <h3 className="font-medium text-gray-900 text-lg mb-1">$50</h3>
@@ -258,8 +258,8 @@ const Donate = () => {
                 </div>
 
                 <div className="flex items-start">
-                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mr-5 flex-shrink-0">
-                    <Banknote className="w-6 h-6 text-blue-600" />
+                  <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mr-5 flex-shrink-0">
+                     <Banknote className="w-6 h-6 text-orange-600" />
                   </div>
                   <div>
                     <h3 className="font-medium text-gray-900 text-lg mb-1">$100</h3>
@@ -268,8 +268,8 @@ const Donate = () => {
                 </div>
 
                 <div className="flex items-start">
-                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mr-5 flex-shrink-0">
-                    <Banknote className="w-6 h-6 text-blue-600" />
+                  <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mr-5 flex-shrink-0">
+                    <Banknote className="w-6 h-6 text-orange-600" />
                   </div>
                   <div>
                     <h3 className="font-medium text-gray-900 text-lg mb-1">$250</h3>
@@ -278,8 +278,8 @@ const Donate = () => {
                 </div>
 
                 <div className="flex items-start">
-                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mr-5 flex-shrink-0">
-                    <Banknote className="w-6 h-6 text-blue-600" />
+                  <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mr-5 flex-shrink-0">
+                     <Banknote className="w-6 h-6 text-orange-600" />
                   </div>
                   <div>
                     <h3 className="font-medium text-gray-900 text-lg mb-1">$500+</h3>
@@ -292,15 +292,15 @@ const Donate = () => {
                 <h3 className="font-medium text-gray-900 text-lg mb-4">Why donate to ACNA?</h3>
                 <ul className="space-y-3 text-gray-600">
                   <li className="flex items-start">
-                    <div className="w-3 h-3 bg-blue-600 rounded-full mt-1.5 mr-3"></div>
+                    <CheckCircle className="w-4 h-4 text-orange-600 mr-2 mt-0.5 flex-shrink-0" />
                     <span>90% of donations go directly to programs</span>
                   </li>
                   <li className="flex items-start">
-                    <div className="w-3 h-3 bg-blue-600 rounded-full mt-1.5 mr-3"></div>
+                    <CheckCircle className="w-4 h-4 text-orange-600 mr-2 mt-0.5 flex-shrink-0" />
                     <span>Transparent financial reporting</span>
                   </li>
                   <li className="flex items-start">
-                    <div className="w-3 h-3 bg-blue-600 rounded-full mt-1.5 mr-3"></div>
+                    <CheckCircle className="w-4 h-4 text-orange-600 mr-2 mt-0.5 flex-shrink-0" />
                     <span>Tax-deductible in many countries</span>
                   </li>
                 </ul>
@@ -310,14 +310,14 @@ const Donate = () => {
                 <h3 className="font-medium text-gray-900 text-lg mb-4">WHERE YOUR MONEY GOES</h3>
                 <ul className="space-y-3 text-gray-600">
                   <li className="flex items-start">
-                    <p>Every donation to ACNA supports our mission across Africa — from empowering local communities to speak out against injustice, to funding critical advocacy, grassroots mobilization, and policy change efforts that hold leaders accountable and protect human rights.</p>
+                    <p>Every donation to ACNA supports our mission across Africa, from empowering local communities to speak out against injustice, to funding critical advocacy, grassroots mobilization, and policy change efforts that hold leaders accountable and protect human rights.</p>
                   </li>
                   <li className="flex items-start">
-                    <div className="w-2 h-1.5 bg-blue-600 rounded-full mt-1.5 mr-3"></div>
+                    <CheckCircle className="w-4 h-4 text-orange-600 mr-2 mt-0.5 flex-shrink-0" />
                     <span>We couldn’t do any of this work without your support.</span>
                   </li>
                   <li className="flex items-start">
-                    <div className="w-3 h-1.5 bg-blue-600 rounded-full mt-1.5 mr-3"></div>
+                    <CheckCircle className="w-4 h-4 text-orange-600 mr-2 mt-0.5 flex-shrink-0" />
                     <span>You can visit our Finance Report pages for more information about where your money goes.</span>
                   </li>
                 </ul>

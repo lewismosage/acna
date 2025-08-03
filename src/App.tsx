@@ -49,6 +49,11 @@ import JournalWatch from "./pages/education/JournalWatch";
 import EBooklets from "./pages/education/EBooklets";
 import Webinars from "./pages/education/Webinars";
 import WorkshopsSymposiums from "./pages/education/WorkshopsandSymposiums";
+import GeneralACNAFAQs from "./pages/about/ACNAFAQs";
+import TermsAndConditions from "./pages/privacy/TermsAndConditions";
+import PrivacyPolicy from "./pages/privacy/PrivacyPolicy";
+import CookiePolicy from "./pages/privacy/CookiePolicy";
+import DonorPrivacyPolicy from "./pages/privacy/DonorPrivacyPolicy";
 
 //Layout component that includes header and footer
 const Layout = ({ children }: { children: React.ReactNode }) => (
@@ -79,6 +84,7 @@ function App() {
           <Route path="/about/how-we-work" element={<HowWeWork />} />
           <Route path="/about/our-story" element={<OurStory />} />
           <Route path="/about/leadership" element={<LeadershipTeam />} />
+          <Route path="faqs" element={<GeneralACNAFAQs />}/>
           {/* Key Features Pages */}
           <Route
             path="/professional-network"
@@ -126,6 +132,11 @@ function App() {
             element={<MembershipDirectory />}
           />
           <Route path="/membership-faqs" element={<MembershipFAQs />} />
+          {/* Privacy Pages */}
+          <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/cookie-policy" element={<CookiePolicy />} />
+          <Route path="/donor-privacy-policy" element={<DonorPrivacyPolicy />} />
           {/* Events Pages */}
           <Route
             path="/annual-conference"

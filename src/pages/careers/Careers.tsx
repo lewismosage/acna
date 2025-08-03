@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronDown, ChevronUp, Linkedin } from "lucide-react";
 import CareersHeroImg from "../../assets/happy-female-doctor.jpg";
@@ -11,6 +11,16 @@ const Careers = () => {
   const [whyOpen, setWhyOpen] = useState(false);
   const [faqOpen, setFaqOpen] = useState(false);
   const [lookForOpen, setLookForOpen] = useState([false, false]);
+
+  useEffect(() => {
+    if (location.hash === '#faq') {
+      const faqElement = document.getElementById('faq');
+      if (faqElement) {
+        faqElement.scrollIntoView({ behavior: 'smooth' });
+        setFaqOpen(true);
+      }
+    }
+  }, [location]);
 
   return (
     <div className="bg-white">

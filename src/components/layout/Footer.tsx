@@ -10,7 +10,7 @@ const Footer = () => {
         {/* Donation Section */}
         <div className="text-center mb-12">
           <h3 className="text-lg font-semibold mb-4 text-white-700 uppercase">
-            Join the Movement to Make Health Care Accessible for Everyone
+            Join the Movement to Protect Every Child’s Health
           </h3>
           <Link
             to="/donate"
@@ -61,7 +61,7 @@ const Footer = () => {
             <h3 className="text-sm font-bold mb-4 text-orange-600 uppercase tracking-wide">Privacy</h3>
             <ul className="space-y-2">
               <li><a href="/donor-privacy-policy" className="text-white-500 transition-colors text-sm uppercase">Donor Privacy Policy</a></li>
-              <li><a href="/privacy-policy" className="text-white-500 transition-colors text-sm uppercase">Terms and Conditions</a></li>
+              <li><a href="/terms-and-conditions" className="text-white-500 transition-colors text-sm uppercase">Terms and Conditions</a></li>
               <li><a href="/privacy-policy" className="text-white-500 transition-colors text-sm uppercase">Privacy Policy</a></li>
               <li><a href="/cookie-policy" className="text-white-500 transition-colors text-sm uppercase">Cookie Policy</a></li>
             </ul>
