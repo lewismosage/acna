@@ -220,7 +220,7 @@ const DirectoryTabContent = () => {
 
                 <div className="mt-4 flex gap-2">
                   <button className="flex-1 bg-blue-600 text-white py-2 rounded text-sm font-medium hover:bg-blue-700">
-                    Connect
+                    View Profile
                   </button>
                   <button className="flex-1 border border-gray-300 text-gray-700 py-2 rounded text-sm font-medium hover:bg-gray-50">
                     Message

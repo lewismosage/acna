@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { 
-  User, Briefcase, Globe, Mail, Lock, 
-  MessageSquare, Search, Bell, Settings 
+  User, Search, Bell,
 } from 'lucide-react';
 
 interface MemberData {
@@ -29,6 +28,7 @@ interface Message {
 
 const ProfileTabContent = ({ memberData }: { memberData: MemberData }) => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('about');
   const [aboutText, setAboutText] = useState(
     "Hello, I'm a passionate Full Stack Software Engineer, with over 4 years of hands-on experience building scalable, user-centric applications. I specialize in full-stack development with a focus on backend development, cloud infrastructure, and developing end-to-end digital solutions that solve real-world problems, especially in health tech, education, and social impact sectors."
@@ -253,19 +253,62 @@ const ProfileTabContent = ({ memberData }: { memberData: MemberData }) => {
 
         {/* About Section */}
         {activeSection === 'about' && (
-          <div className="mt-6">
-            <div className="mb-8">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">About</h2>
-              <textarea
-                value={aboutText}
-                onChange={(e) => setAboutText(e.target.value)}
-                rows={5}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <button className="mt-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
-                Save
-              </button>
-            </div>
+        <div className="mt-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold text-gray-900">About</h2>
+            <button 
+              onClick={() => setIsAboutModalOpen(true)}
+              className="text-gray-500 hover:text-gray-700 p-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+              </svg>
+            </button>
+          </div>
+          <div className="bg-white p-4 rounded-md border border-gray-200">
+            <p className="text-gray-700 whitespace-pre-line">{aboutText}</p>
+          </div>
+
+            {/* About Edit Modal */}
+            {isAboutModalOpen && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-bold">Edit about</h3>
+                    <button 
+                      onClick={() => setIsAboutModalOpen(false)}
+                      className="text-gray-500 hover:text-gray-700"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  <div className="space-y-4">
+                    <p className="text-sm text-gray-600 mb-4">
+                      You can write about your years of experience, industry, or skills. People also talk about their achievements or previous job experiences.
+                    </p>
+                    
+                    <textarea
+                      value={aboutText}
+                      onChange={(e) => setAboutText(e.target.value)}
+                      rows={10}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+
+                    <div className="flex justify-end pt-4">
+                      <button 
+                        onClick={() => setIsAboutModalOpen(false)}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -333,7 +376,7 @@ const ProfileTabContent = ({ memberData }: { memberData: MemberData }) => {
               <Search className="w-5 h-5" />
             </button>
             <button className="p-1 text-gray-500 hover:text-gray-700">
-              <Settings className="w-5 h-5" />
+              <Bell className="w-5 h-5" />
             </button>
           </div>
         </div>
