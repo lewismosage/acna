@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import CoursesTabContent from './CoursesTabContent';
+import WorkshopTapContent from './WorkshopTabContent'
 
 // Define types for member data
 interface MemberData {
@@ -115,7 +117,8 @@ const QuickActionsPanel = () => (
         { icon: Edit3, label: 'Edit Profile', color: 'blue' },
         { icon: FileText, label: 'Submit Article', color: 'green' },
         { icon: MessageSquare, label: 'Join Discussion Forum', color: 'purple' },
-        { icon: Users, label: 'View Member Directory', color: 'orange' }
+        { icon: Users, label: 'View Member Directory', color: 'orange' },
+        { icon: FileText, label: 'Request Collaboration Support', color: 'green' },
       ].map(({ icon: Icon, label, color }, index) => (
         <button
           key={index}
@@ -370,8 +373,8 @@ const ACNAMemberDashboard = () => {
         return <CoursesTabContent />;
       case 'training':
         return <TrainingTabContent />;
-      case 'certification':
-        return <CertificationTabContent />;
+      case 'workshop':
+        return <WorkshopTapContent />;
       case 'forum':
         return <ForumTabContent />;
       case 'submit':
@@ -391,7 +394,7 @@ const ACNAMemberDashboard = () => {
     { id: 'profile', label: 'PROFILE', icon: User },
     { id: 'courses', label: 'COURSES', icon: BookOpen },
     { id: 'training', label: 'E-LEARNING', icon: BookOpen },
-    { id: 'certification', label: 'CERTIFICATION', icon: Award },
+    { id: 'workshop', label: 'WORKSHOP', icon: Award },
     { id: 'forum', label: 'FORUM', icon: MessageSquare },
     { id: 'submit', label: 'SUBMIT CASE/RESEARCH', icon: FileText },
     { id: 'directory', label: 'MEMBERS DIRECTORY', icon: Users },
