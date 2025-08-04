@@ -8,6 +8,8 @@ import { Link } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import CoursesTabContent from './CoursesTabContent';
 import WorkshopTapContent from './WorkshopTabContent'
+import DirectoryTabContent from './DirectoryTabContent';
+import ProfileTabContent from './ProfileTabContent'
 
 // Define types for member data
 interface MemberData {
@@ -250,37 +252,7 @@ const HomeTabContent = () => {
   );
 };
 
-const ProfileTabContent = () => (
-  <div className="bg-white border border-gray-300 rounded-lg p-4 md:p-6">
-    <h2 className="text-lg md:text-xl font-bold mb-3 md:mb-4">Profile Settings</h2>
-    <form className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
-          <input type="text" className="w-full px-3 py-2 border border-gray-300 rounded-md" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-          <input type="text" className="w-full px-3 py-2 border border-gray-300 rounded-md" />
-        </div>
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-        <input type="email" className="w-full px-3 py-2 border border-gray-300 rounded-md" />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Institution</label>
-        <input type="text" className="w-full px-3 py-2 border border-gray-300 rounded-md" />
-      </div>
-      <button
-        type="submit"
-        className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-      >
-        Save Changes
-      </button>
-    </form>
-  </div>
-);
+
 
 const TrainingTabContent = () => (
   <div className="bg-white border border-gray-300 rounded-lg p-4 md:p-6">
@@ -304,12 +276,6 @@ const TrainingTabContent = () => (
   </div>
 );
 
-const CertificationTabContent = () => (
-  <div className="bg-white border border-gray-300 rounded-lg p-4 md:p-6">
-    <h2 className="text-lg md:text-xl font-bold mb-4">Certifications</h2>
-    <p className="text-gray-600">Certification content will be displayed here.</p>
-  </div>
-);
 
 const ForumTabContent = () => (
   <div className="bg-white border border-gray-300 rounded-lg p-4 md:p-6">
@@ -325,12 +291,6 @@ const SubmitTabContent = () => (
   </div>
 );
 
-const DirectoryTabContent = () => (
-  <div className="bg-white border border-gray-300 rounded-lg p-4 md:p-6">
-    <h2 className="text-lg md:text-xl font-bold mb-4">Member Directory</h2>
-    <p className="text-gray-600">Directory content will be displayed here.</p>
-  </div>
-);
 
 const SignoutTabContent = () => (
   <div className="bg-white border border-gray-300 rounded-lg p-4 md:p-6">
@@ -368,7 +328,7 @@ const ACNAMemberDashboard = () => {
       case 'home':
         return <HomeTabContent />;
       case 'profile':
-        return <ProfileTabContent />;
+        return <ProfileTabContent memberData={memberData} />;
       case 'courses':
         return <CoursesTabContent />;
       case 'training':
