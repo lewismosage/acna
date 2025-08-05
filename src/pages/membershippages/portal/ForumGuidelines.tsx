@@ -1,22 +1,35 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import ScrollToTop from '../../../components/common/ScrollToTop';
 
 const ForumGuidelines = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  const handleBackClick = () => {
+    
+    if (location.state?.fromForum) {
+      navigate('/memberportal', { state: { activeTab: 'forum' } });
+    } else {
+      navigate(-1);
+    }
+  };
+
   return (
     <div className="bg-white">
+      <ScrollToTop />
       {/* Hero Section */}
       <section className="py-20 bg-gradient-to-r from-blue-50 to-indigo-50 relative">
         <div className="max-w-6xl mx-auto px-4 text-center">
           <button 
-            onClick={() => navigate(-1)}
-            className="absolute left-4 top-6 md:left-10 md:top-10 flex items-center text-blue-700 hover:text-blue-900 transition-colors"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            Back
-          </button>
+              onClick={handleBackClick}
+              className="absolute left-4 top-6 md:left-10 md:top-10 flex items-center text-blue-700 hover:text-blue-900 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Back
+            </button>
           <h1 className="text-5xl md:text-6xl font-light text-gray-900 mb-6">Forum Guidelines</h1>
           <p className="text-xl md:text-2xl text-gray-700 font-light max-w-3xl mx-auto">
             Creating a welcoming, respectful community for child neurology professionals across Africa

@@ -3,7 +3,7 @@ import {
   User, BookOpen, Award, MessageSquare, FileText, Calendar, LogOut,
   Home, Edit3, Upload, Users, Clock, CheckCircle, AlertCircle, Search, Menu, X
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import CoursesTabContent from './CoursesTabContent';
 import WorkshopTapContent from './WorkshopTabContent'
@@ -11,6 +11,11 @@ import DirectoryTabContent from './DirectoryTabContent';
 import ProfileTabContent from './ProfileTabContent'
 import ELearningDashboard from './ELearningDashboard';
 import ForumComponent from './ForumComponent'
+import ScrollToTop from '../../../components/common/ScrollToTop';
+
+interface LocationState {
+  activeTab?: string;
+}
 
 // Define types for member data
 interface MemberData {
@@ -254,14 +259,6 @@ const HomeTabContent = () => {
 };
 
 
-const SubmitTabContent = () => (
-  <div className="bg-white border border-gray-300 rounded-lg p-4 md:p-6">
-    <h2 className="text-lg md:text-xl font-bold mb-4">Submit Case/Research</h2>
-    <p className="text-gray-600">Submission forms will be displayed here.</p>
-  </div>
-);
-
-
 const SignoutTabContent = () => (
   <div className="bg-white border border-gray-300 rounded-lg p-4 md:p-6">
     <h2 className="text-lg md:text-xl font-bold mb-4">Sign Out</h2>
@@ -273,7 +270,8 @@ const SignoutTabContent = () => (
 );
 
 const ACNAMemberDashboard = () => {
-  const [activeTab, setActiveTab] = useState('home');
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState((location.state as LocationState)?.activeTab || 'home');
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
 
   // Mock user data
@@ -307,8 +305,6 @@ const ACNAMemberDashboard = () => {
         return <WorkshopTapContent />;
       case 'forum':
         return <ForumComponent />;
-      case 'submit':
-        return <SubmitTabContent />;
       case 'directory':
         return <DirectoryTabContent />;
       case 'signout':
@@ -326,13 +322,13 @@ const ACNAMemberDashboard = () => {
     { id: 'training', label: 'E-LEARNING', icon: BookOpen },
     { id: 'workshop', label: 'WORKSHOP', icon: Award },
     { id: 'forum', label: 'FORUM', icon: MessageSquare },
-    { id: 'submit', label: 'SUBMIT CASE/RESEARCH', icon: FileText },
     { id: 'directory', label: 'MEMBERS DIRECTORY', icon: Users },
     { id: 'signout', label: 'SIGN OUT', icon: LogOut }
   ];
 
   return (
     <div className="min-h-screen bg-gray-100">
+      <ScrollToTop />
       {/* Mobile Header - Always visible on mobile */}
       <div className="md:hidden bg-blue-800 text-white p-3 flex items-center justify-between">
         <button 
