@@ -54,6 +54,7 @@ import TermsAndConditions from "./pages/privacy/TermsAndConditions";
 import PrivacyPolicy from "./pages/privacy/PrivacyPolicy";
 import CookiePolicy from "./pages/privacy/CookiePolicy";
 import DonorPrivacyPolicy from "./pages/privacy/DonorPrivacyPolicy";
+import ForumGuidelines from "./pages/membershippages/portal/ForumGuidelines";
 
 //Layout component that includes header and footer
 const Layout = ({ children }: { children: React.ReactNode }) => (
@@ -158,6 +159,7 @@ function App() {
           }
         >
           <Route path="/memberportal" element={<ACNAMemberDashboard />} />
+          <Route path="forum-guidelines" element={<ForumGuidelines />} />
         </Route>
       </Routes>
     </Router>

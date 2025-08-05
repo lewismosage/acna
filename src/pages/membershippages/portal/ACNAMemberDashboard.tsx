@@ -10,6 +10,7 @@ import WorkshopTapContent from './WorkshopTabContent'
 import DirectoryTabContent from './DirectoryTabContent';
 import ProfileTabContent from './ProfileTabContent'
 import ELearningDashboard from './ELearningDashboard';
+import ForumComponent from './ForumComponent'
 
 // Define types for member data
 interface MemberData {
@@ -253,13 +254,6 @@ const HomeTabContent = () => {
 };
 
 
-const ForumTabContent = () => (
-  <div className="bg-white border border-gray-300 rounded-lg p-4 md:p-6">
-    <h2 className="text-lg md:text-xl font-bold mb-4">Discussion Forum</h2>
-    <p className="text-gray-600">Forum content will be displayed here.</p>
-  </div>
-);
-
 const SubmitTabContent = () => (
   <div className="bg-white border border-gray-300 rounded-lg p-4 md:p-6">
     <h2 className="text-lg md:text-xl font-bold mb-4">Submit Case/Research</h2>
@@ -312,7 +306,7 @@ const ACNAMemberDashboard = () => {
       case 'workshop':
         return <WorkshopTapContent />;
       case 'forum':
-        return <ForumTabContent />;
+        return <ForumComponent />;
       case 'submit':
         return <SubmitTabContent />;
       case 'directory':
