@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Search, MapPin, Mail, Filter, Users, Building, X, Send } from 'lucide-react';
+import ViewProfile from '../portal/communications/ViewProfile'; 
 
 interface Member {
   id: string;
@@ -143,6 +144,7 @@ const MessagingModal = ({ member, onClose }: { member: Member; onClose: () => vo
 };
 
 const DirectoryTabContent = () => {
+  const [viewedProfile, setViewedProfile] = useState<Member | null>(null);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCountry, setSelectedCountry] = useState('');
@@ -350,9 +352,12 @@ const DirectoryTabContent = () => {
                 </div>
 
                 <div className="mt-4 flex gap-2">
-                  <button className="flex-1 bg-blue-600 text-white py-2 rounded text-sm font-medium hover:bg-blue-700">
-                    View Profile
-                  </button>
+                <button 
+                  onClick={() => setViewedProfile(member)}
+                  className="flex-1 bg-blue-600 text-white py-2 rounded text-sm font-medium hover:bg-blue-700"
+                >
+                  View Profile
+                </button>
                   <button 
                     onClick={() => setSelectedMember(member)}
                     className="flex-1 border border-gray-300 text-gray-700 py-2 rounded text-sm font-medium hover:bg-gray-50"
@@ -364,6 +369,17 @@ const DirectoryTabContent = () => {
             </div>
           ))}
         </div>
+      )}
+
+      {viewedProfile && (
+        <ViewProfile
+          member={viewedProfile}
+          onClose={() => setViewedProfile(null)}
+          onMessage={() => {
+            setViewedProfile(null);
+            setSelectedMember(viewedProfile);
+          }}
+        />
       )}
 
       {/* Messaging Modal */}

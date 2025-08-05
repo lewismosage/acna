@@ -26,6 +26,7 @@ interface Message {
   preview: string;
   time: string;
   unread: boolean;
+  profilePhoto?: string; 
 }
 
 const ProfileTabContent = ({ memberData }: { memberData: MemberData }) => {
@@ -38,10 +39,13 @@ const ProfileTabContent = ({ memberData }: { memberData: MemberData }) => {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [selectedChat, setSelectedChat] = useState<string | null>(null);
+  const [selectedChat, setSelectedChat] = useState<{name: string, profilePhoto?: string} | null>(null);
 
-  const handleSelectChat = (sender: string) => {
-    setSelectedChat(sender);
+  const handleSelectChat = (message: Message) => {
+    setSelectedChat({
+      name: message.sender,
+      profilePhoto: message.profilePhoto
+    });
   };
 
   const handleCloseModal = () => {
@@ -385,10 +389,10 @@ const ProfileTabContent = ({ memberData }: { memberData: MemberData }) => {
       {selectedChat && (
         <MessagingModal 
           member={{
-            firstName: selectedChat.split(' ')[0],
-            lastName: selectedChat.split(' ').slice(1).join(' '),
-            profession: "Member", 
-            profileImage: ''
+            firstName: selectedChat.name.split(' ')[0],
+            lastName: selectedChat.name.split(' ').slice(1).join(' '),
+            profession: "Member",
+            profileImage: selectedChat.profilePhoto 
           }} 
           onClose={handleCloseModal}
         />

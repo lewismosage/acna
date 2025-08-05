@@ -11,7 +11,7 @@ interface Message {
 }
 
 interface ChatsProps {
-  onSelectChat: (sender: string) => void;
+  onSelectChat: (message: Message) => void;
 }
 
 const Chats = ({ onSelectChat }: ChatsProps) => {
@@ -77,7 +77,7 @@ const Chats = ({ onSelectChat }: ChatsProps) => {
           <div 
             key={message.id} 
             className={`p-3 rounded-lg cursor-pointer flex items-start gap-3 ${message.unread ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
-            onClick={() => onSelectChat(message.sender)}
+            onClick={() => onSelectChat(message)}
           >
             <div className="flex-shrink-0">
               <img 
