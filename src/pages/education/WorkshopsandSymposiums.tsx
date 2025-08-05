@@ -515,7 +515,7 @@ const WorkshopsSymposiums = () => {
                   </h3>
                   <p className="text-gray-600 mb-6">
                     To request collaboration assistance for your project, please log in to your ACNA Members Account
-                    and submit a Collaboration Request form. Our team will help connect you with potential partners
+                    and submit a Collaboration Request form in the Workshop & Collaboration Hub. Our team will help connect you with potential partners
                     and resources.
                   </p>
                   

@@ -17,6 +17,8 @@ const mainNav = [
   {
     name: "Education",
     items: [
+      { name: "ACNA Portal", href: "/memberportal" },
+      { name: "E-Booklets", href: "/e-booklets" },
       { name: "Research Papers/Publications", href: "/research-papers-and-publications" },
       { name: "Training Programs", href: "/training-programs" },
       {
@@ -24,8 +26,7 @@ const mainNav = [
         href: "/position-statement",
       },
       { name: "Policy Briefs and Recommendations", href: "/policy-briefs" },
-      { name: "Case Studies/Fact Sheets", href: "/case-studies-and-fact-sheets" },
-      { name: "E-Booklets", href: "/e-booklets" },
+      { name: "Case Studies/Fact Sheets", href: "/case-studies-and-fact-sheets" },    
       {
         name: "Patient and caregiver resources",
         href: "/patient-caregiver-resources",
@@ -36,7 +37,7 @@ const mainNav = [
       },
       { name: "Journal Watch", href: "/journal-watch" },
       { name: "Webinars", href: "/webinars" },
-      { name: "ACNA Portal", href: "/memberportal" },
+      
     ],
   },
   {

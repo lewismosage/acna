@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { 
   User, BookOpen, Award, MessageSquare, FileText, Calendar, LogOut,
-  Home, Edit3, Upload, Users, Clock, CheckCircle, AlertCircle,
-  ChevronRight, ChevronLeft, Search, Menu, X
+  Home, Edit3, Upload, Users, Clock, CheckCircle, AlertCircle, Search, Menu, X
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
@@ -10,6 +9,7 @@ import CoursesTabContent from './CoursesTabContent';
 import WorkshopTapContent from './WorkshopTabContent'
 import DirectoryTabContent from './DirectoryTabContent';
 import ProfileTabContent from './ProfileTabContent'
+import ELearningDashboard from './ELearningDashboard';
 
 // Define types for member data
 interface MemberData {
@@ -253,30 +253,6 @@ const HomeTabContent = () => {
 };
 
 
-
-const TrainingTabContent = () => (
-  <div className="bg-white border border-gray-300 rounded-lg p-4 md:p-6">
-    <h2 className="text-lg md:text-xl font-bold mb-3 md:mb-4">E-Learning Portal</h2>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-        <h3 className="font-medium text-blue-600 mb-2">Neurology Fundamentals</h3>
-        <p className="text-sm text-gray-600 mb-3">Core concepts in pediatric neurology</p>
-        <div className="flex items-center text-xs text-gray-500">
-          <Clock className="w-3 h-3 mr-1" /> 8 hours
-        </div>
-      </div>
-      <div className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-        <h3 className="font-medium text-blue-600 mb-2">Epilepsy Management</h3>
-        <p className="text-sm text-gray-600 mb-3">Advanced treatment approaches</p>
-        <div className="flex items-center text-xs text-gray-500">
-          <Clock className="w-3 h-3 mr-1" /> 6 hours
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
-
 const ForumTabContent = () => (
   <div className="bg-white border border-gray-300 rounded-lg p-4 md:p-6">
     <h2 className="text-lg md:text-xl font-bold mb-4">Discussion Forum</h2>
@@ -332,7 +308,7 @@ const ACNAMemberDashboard = () => {
       case 'courses':
         return <CoursesTabContent />;
       case 'training':
-        return <TrainingTabContent />;
+        return <ELearningDashboard />;
       case 'workshop':
         return <WorkshopTapContent />;
       case 'forum':
@@ -352,7 +328,7 @@ const ACNAMemberDashboard = () => {
   const tabs = [
     { id: 'home', label: 'HOME', icon: Home },
     { id: 'profile', label: 'PROFILE', icon: User },
-    { id: 'courses', label: 'COURSES', icon: BookOpen },
+    { id: 'courses', label: 'TRAINING PROGRAMS', icon: BookOpen },
     { id: 'training', label: 'E-LEARNING', icon: BookOpen },
     { id: 'workshop', label: 'WORKSHOP', icon: Award },
     { id: 'forum', label: 'FORUM', icon: MessageSquare },
