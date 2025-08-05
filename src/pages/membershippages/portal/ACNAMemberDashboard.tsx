@@ -123,7 +123,7 @@ const QuickActionsPanel = () => (
     <div className="p-3 md:p-4 space-y-2 md:space-y-3">
       {[
         { icon: Edit3, label: 'Edit Profile', color: 'blue' },
-        { icon: FileText, label: 'Submit Article', color: 'green' },
+        { icon: FileText, label: 'Training Programs', color: 'green' },
         { icon: MessageSquare, label: 'Join Discussion Forum', color: 'purple' },
         { icon: Users, label: 'View Member Directory', color: 'orange' },
         { icon: FileText, label: 'Request Collaboration Support', color: 'green' },
@@ -375,16 +375,17 @@ const ACNAMemberDashboard = () => {
           
           {/* Return to Home link at bottom */}
           <div className="p-4 border-t border-blue-700">
-            <button 
+            <Link
+              to='/'
               className="flex items-center text-sm hover:text-blue-200"
               onClick={() => {
                 setActiveTab('home');
                 setShowMobileSidebar(false);
               }}
             >
-              <Home className="w-4 h-4 mr-2" />
+              <Home className="w-4 h-4 mr-2" / >
               Return to Home
-            </button>
+            </Link>
           </div>
         </div>
       </div>

@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { 
   User, Search, Bell,
 } from 'lucide-react';
+import Chats from '../../membershippages/portal/communications/Chats'; 
+import MessagingModal from '../../membershippages/portal/communications/MessagingModal'
 
 interface MemberData {
   name: string;
@@ -36,6 +38,15 @@ const ProfileTabContent = ({ memberData }: { memberData: MemberData }) => {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [selectedChat, setSelectedChat] = useState<string | null>(null);
+
+  const handleSelectChat = (sender: string) => {
+    setSelectedChat(sender);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedChat(null);
+  };
 
   const messages: Message[] = [
     {
@@ -367,43 +378,21 @@ const ProfileTabContent = ({ memberData }: { memberData: MemberData }) => {
         )}
       </div>
 
-      {/* Right Sidebar - Messages */}
-      <div className="w-full md:w-80 bg-white rounded-lg shadow-sm p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-bold text-gray-900">Messages</h3>
-          <div className="flex space-x-2">
-            <button className="p-1 text-gray-500 hover:text-gray-700">
-              <Search className="w-5 h-5" />
-            </button>
-            <button className="p-1 text-gray-500 hover:text-gray-700">
-              <Bell className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
+      {/* Right Sidebar - Now using the Chats component */}
+      <Chats onSelectChat={handleSelectChat} />
 
-        <div className="space-y-4">
-          {messages.map((message) => (
-            <div 
-              key={message.id} 
-              className={`p-3 rounded-lg cursor-pointer ${message.unread ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
-            >
-              <div className="flex justify-between">
-                <span className={`font-medium ${message.unread ? 'text-gray-900' : 'text-gray-700'}`}>
-                  {message.sender}
-                </span>
-                <span className="text-xs text-gray-500">{message.time}</span>
-              </div>
-              <p className={`text-sm mt-1 truncate ${message.unread ? 'text-gray-900 font-medium' : 'text-gray-600'}`}>
-                {message.preview}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        <button className="w-full mt-4 text-blue-600 font-medium text-center py-2 hover:bg-blue-50 rounded-lg">
-          See all messages
-        </button>
-      </div>
+      {/* Messaging Modal */}
+      {selectedChat && (
+        <MessagingModal 
+          member={{
+            firstName: selectedChat.split(' ')[0],
+            lastName: selectedChat.split(' ').slice(1).join(' '),
+            profession: "Member", 
+            profileImage: ''
+          }} 
+          onClose={handleCloseModal}
+        />
+      )}
     </div>
   );
 };

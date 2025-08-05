@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, MapPin, Mail, Phone, Filter, Users, Building } from 'lucide-react';
+import { Link } from 'react-router';
 
 interface Member {
   id: string;
@@ -17,7 +18,6 @@ interface Member {
   joinDate: string;
   status: 'Active' | 'Expired' | 'Expiring Soon';
   profileImage?: string;
-  bio?: string;
 }
 
 const MembershipDirectory = () => {
@@ -46,7 +46,7 @@ const MembershipDirectory = () => {
       yearsOfExperience: '8-12 years',
       joinDate: '2020-03-15',
       status: 'Active',
-      bio: 'Specialized in pediatric epilepsy with focus on early intervention and family support programs.'
+      profileImage: 'https://randomuser.me/api/portraits/women/44.jpg'
     },
     {
       id: 'ACNA-2024-002',
@@ -63,7 +63,7 @@ const MembershipDirectory = () => {
       yearsOfExperience: '5-7 years',
       joinDate: '2021-07-22',
       status: 'Active',
-      bio: 'Research focus on autism spectrum disorders and developmental interventions in East Africa.'
+      profileImage: 'https://randomuser.me/api/portraits/men/32.jpg'
     },
     {
       id: 'ACNA-2024-003',
@@ -80,7 +80,7 @@ const MembershipDirectory = () => {
       yearsOfExperience: '15+ years',
       joinDate: '2018-01-10',
       status: 'Active',
-      bio: 'Leading researcher in cerebral palsy rehabilitation and community-based therapy programs.'
+      profileImage: 'https://randomuser.me/api/portraits/women/63.jpg'
     },
     {
       id: 'ACNA-2024-004',
@@ -97,7 +97,7 @@ const MembershipDirectory = () => {
       yearsOfExperience: '1-2 years',
       joinDate: '2023-09-05',
       status: 'Active',
-      bio: 'Final year medical student with interest in pediatric neurology and rural healthcare delivery.'
+      profileImage: 'https://randomuser.me/api/portraits/men/75.jpg'
     },
     {
       id: 'ACNA-2024-005',
@@ -114,7 +114,7 @@ const MembershipDirectory = () => {
       yearsOfExperience: '3-5 years',
       joinDate: '2022-05-18',
       status: 'Expiring Soon',
-      bio: 'Specialized in pediatric rehabilitation with focus on neurological conditions and mobility support.'
+      profileImage: 'https://randomuser.me/api/portraits/women/25.jpg'
     },
     {
       id: 'ACNA-2024-006',
@@ -131,7 +131,7 @@ const MembershipDirectory = () => {
       yearsOfExperience: '12-15 years',
       joinDate: '2019-11-30',
       status: 'Active',
-      bio: 'Leading pediatric neurology department with focus on infectious neurological conditions.'
+      profileImage: 'https://randomuser.me/api/portraits/men/55.jpg'
     }
   ];
 
@@ -206,6 +206,16 @@ const MembershipDirectory = () => {
     setSelectedCountry('');
     setSelectedMembership('');
     setSelectedSpecialization('');
+  };
+
+  const obfuscateEmail = (email: string) => {
+    const [name, domain] = email.split('@');
+    return `${name.substring(0, 3)}****@${domain}`;
+  };
+
+  const obfuscatePhone = (phone: string) => {
+    const parts = phone.split(' ');
+    return `${parts[0]} ${parts[1].substring(0, 3)}****${parts[1].substring(7)}`;
   };
 
   return (
@@ -354,16 +364,25 @@ const MembershipDirectory = () => {
                 <div key={member.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
                   {/* Header */}
                   <div className="bg-gradient-to-r from-orange-600 to-red-600 text-white p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <h3 className="text-lg font-bold">
-                          {member.firstName} {member.lastName}
-                        </h3>
-                        <p className="text-orange-100 text-sm">{member.profession}</p>
+                    <div className="flex items-start gap-4">
+                      <img 
+                        src={member.profileImage || 'https://via.placeholder.com/80'} 
+                        alt={`${member.firstName} ${member.lastName}`}
+                        className="w-16 h-16 rounded-full object-cover border-2 border-white"
+                      />
+                      <div className="flex-1">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className="text-lg font-bold">
+                              {member.firstName} {member.lastName}
+                            </h3>
+                            <p className="text-orange-100 text-sm">{member.profession}</p>
+                          </div>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(member.status)}`}>
+                            {member.status}
+                          </span>
+                        </div>
                       </div>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(member.status)}`}>
-                        {member.status}
-                      </span>
                     </div>
                   </div>
 
@@ -385,31 +404,18 @@ const MembershipDirectory = () => {
                       {/* Contact Info */}
                       <div className="flex items-center text-sm text-gray-600">
                         <Mail className="w-4 h-4 mr-2 flex-shrink-0" />
-                        <span className="truncate">{member.email}</span>
+                        <span className="truncate">{obfuscateEmail(member.email)}</span>
                       </div>
 
                       <div className="flex items-center text-sm text-gray-600">
                         <Phone className="w-4 h-4 mr-2 flex-shrink-0" />
-                        <span>{member.phone}</span>
+                        <span>{obfuscatePhone(member.phone)}</span>
                       </div>
-
-                      {/* Bio */}
-                      {member.bio && (
-                        <div className="mt-3 pt-3 border-t border-gray-100">
-                          <p className="text-sm text-gray-700 line-clamp-3">{member.bio}</p>
-                        </div>
-                      )}
 
                       {/* Badges */}
                       <div className="flex flex-wrap gap-2 mt-3">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${getMembershipColor(member.membershipType)}`}>
                           {member.membershipType}
-                        </span>
-                        <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs font-medium">
-                          {member.specialization}
-                        </span>
-                        <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs font-medium">
-                          {member.yearsOfExperience}
                         </span>
                       </div>
 
@@ -420,16 +426,6 @@ const MembershipDirectory = () => {
                           month: 'long' 
                         })}
                       </div>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="mt-4 pt-4 border-t border-gray-100 flex space-x-2">
-                      <button className="flex-1 bg-orange-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-orange-700 transition-colors duration-300">
-                        Connect
-                      </button>
-                      <button className="flex-1 border border-gray-300 text-gray-700 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors duration-300">
-                        View Profile
-                      </button>
                     </div>
                   </div>
                 </div>
@@ -443,36 +439,16 @@ const MembershipDirectory = () => {
       <section className="py-16 bg-white">
         <div className="max-w-4xl mx-auto px-4 text-center">
           <h2 className="text-3xl font-bold text-gray-900 mb-4">
-            Join Our Growing Community
+            Join Our Professional Network
           </h2>
           <p className="text-gray-600 mb-8 text-lg">
-            Connect with healthcare professionals across Africa and be part of the movement to improve pediatric neurological care.
+            Become part of Africa's leading pediatric neurology community
           </p>
-          <div className="grid md:grid-cols-3 gap-8 mb-12">
-          <div className="bg-orange-50 rounded-lg p-6 border border-orange-200">
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Network & Collaborate</h3>
-              <p className="text-gray-600">Connect with peers and build professional relationships across the continent.</p>
-            </div>
-            
-            <div className="bg-orange-50 rounded-lg p-6 border border-orange-200">
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Share Knowledge</h3>
-              <p className="text-gray-600">Exchange expertise and learn from fellow healthcare professionals.</p>
-            </div>
-            
-            <div className="bg-orange-50 rounded-lg p-6 border border-orange-200">
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Make Impact</h3>
-              <p className="text-gray-600">Work together to improve healthcare outcomes for children across Africa.</p>
-            </div>
-          </div>
-          
-          <div className="space-x-4">
-            <button className="bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-8 rounded-lg transition-colors duration-300">
-              Join ACNA Today
-            </button>
-            <button className="border-2 border-orange-600 text-orange-600 font-bold py-3 px-8 rounded-lg hover:bg-orange-50 transition-colors duration-300">
-              Learn More
-            </button>
-          </div>
+          <Link
+            to="/membership-categories"
+            className="bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-8 rounded-lg transition-colors duration-300">
+            Learn About Membership
+          </Link>
         </div>
       </section>
     </div>
