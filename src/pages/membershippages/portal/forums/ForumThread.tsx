@@ -62,35 +62,40 @@ const ForumThread = () => {
       author: "Dr. Sarah Mwangi",
       content: "Hello everyone! I wanted to discuss some recent developments in pediatric neurology treatments. Has anyone tried the new protocol for refractory epilepsy cases?",
       timestamp: "17 hours ago",
-      isPinned: false
+      isPinned: false,
+      replies: 3
     },
     {
       id: 2,
       author: "Dr. James Kiprotich",
       content: "Welcome to all new members! Feel free to introduce yourselves and share your experiences in the field.",
       timestamp: "21 hours ago",
-      isPinned: true
+      isPinned: true,
+      replies: 0
     },
     {
       id: 3,
       author: "Prof. Michael Johnson",
       content: "I'm organizing a research collaboration on EEG analysis in pediatric patients. If anyone is interested, please reach out!",
       timestamp: "a day ago",
-      isPinned: false
+      isPinned: false,
+      replies: 7
     },
     {
       id: 4,
       author: "Dr. Emma Williams",
       content: "Does anyone have experience with non-pharmacological interventions for ADHD in young children? Looking for practical advice.",
       timestamp: "2 days ago",
-      isPinned: false
+      isPinned: false,
+      replies: 12
     },
     {
       id: 5,
       author: "Dr. Fatima Al-Rashid",
       content: "I'll be presenting at the upcoming conference on neonatal neurology. Would love to connect with others attending!",
       timestamp: "3 days ago",
-      isPinned: false
+      isPinned: false,
+      replies: 5
     }
   ];
 
@@ -99,7 +104,7 @@ const ForumThread = () => {
     post.content.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handlePostSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handlePostSubmit = (e: React.FormEvent | React.MouseEvent) => {
     e.preventDefault();
     if (!newPostContent.trim()) return;
     
@@ -109,7 +114,8 @@ const ForumThread = () => {
       author: "Current User",
       content: newPostContent,
       timestamp: "just now",
-      isPinned: false
+      isPinned: false,
+      replies: 0
     };
     
     // Add the new post to the beginning of the array
@@ -119,6 +125,10 @@ const ForumThread = () => {
 
   const handleBackClick = () => {
     navigate("/memberportal", { state: { activeTab: "forum" } });
+  };
+
+  const handleReplyClick = (postId: number) => {
+    navigate(`/forum/${forumId}/post/${postId}`);
   };
 
   return (
@@ -169,7 +179,6 @@ const ForumThread = () => {
         </div>
       </div>
 
-      {/* Rest of the component remains the same */}
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-8 md:px-6">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -181,7 +190,7 @@ const ForumThread = () => {
                 <h2 className="font-semibold text-gray-800">Create Post</h2>
               </div>
               <div className="p-4">
-                <form onSubmit={handlePostSubmit}>
+                <div>
                   <textarea
                     rows={4}
                     value={newPostContent}
@@ -191,13 +200,13 @@ const ForumThread = () => {
                   />
                   <div className="flex justify-end">
                     <button 
-                      type="submit"
+                      onClick={handlePostSubmit}
                       className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                     >
                       Post
                     </button>
                   </div>
-                </form>
+                </div>
               </div>
             </div>
 
@@ -249,9 +258,12 @@ const ForumThread = () => {
                           </p>
                           
                           <div className="mt-3 flex items-center space-x-4">
-                            <button className="text-xs text-gray-500 hover:text-gray-700 flex items-center">
+                            <button 
+                              onClick={() => handleReplyClick(post.id)}
+                              className="text-xs text-gray-500 hover:text-gray-700 flex items-center"
+                            >
                               <MessageCircle className="w-4 h-4 mr-1" />
-                              Reply
+                              Reply {post.replies > 0 && `(${post.replies})`}
                             </button>
                           </div>
                         </div>

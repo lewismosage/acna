@@ -57,6 +57,7 @@ import DonorPrivacyPolicy from "./pages/privacy/DonorPrivacyPolicy";
 import ForumGuidelines from "./pages/membershippages/portal/forums/ForumGuidelines";
 import ForumComponent from "./pages/membershippages/portal/forums/ForumThread";
 import ForumThread from "./pages/membershippages/portal/forums/ForumThread";
+import PostReply from "./pages/membershippages/portal/forums/PostReply";
 
 //Layout component that includes header and footer
 const Layout = ({ children }: { children: React.ReactNode }) => (
@@ -177,8 +178,9 @@ function App() {
         >
           <Route path="/memberportal" element={<ACNAMemberDashboard />} />
           {/* Forum Pages */}
-          <Route path="/forum" element={<ForumComponent />} />
+          <Route path="/forum" element={<ForumComponent />} />        
           <Route path="/forum/:forumId" element={<ForumThread />} />
+          <Route path="/forum/:forumId/post/:postId" element={<PostReply />} />
           <Route path="forum-guidelines" element={<ForumGuidelines />} />
         </Route>
       </Routes>
