@@ -60,25 +60,33 @@ const EventsTraining = () => {
       title: "Annual Continental Conference",
       description: "Our flagship event bringing together professionals from across Africa",
       imageUrl: "https://images.pexels.com/photos/1181406/pexels-photo-1181406.jpeg?auto=compress&cs=tinysrgb&w=600",
-      details: "Three days of cutting-edge presentations, hands-on workshops, and networking opportunities focusing on advances in pediatric neurology."
+      details: "Three days of cutting-edge presentations, hands-on workshops, and networking opportunities focusing on advances in pediatric neurology.",
+      link: "/annual-conference",
+      buttonText: "View Conferences"
     },
     {
-      title: "Specialized Workshops & Masterclasses",
-      description: "Intensive hands-on training sessions",
+      title: "Specialized Webinars",
+      description: "Interactive online learning sessions",
       imageUrl: "https://images.pexels.com/photos/3184306/pexels-photo-3184306.jpeg?auto=compress&cs=tinysrgb&w=600",
-      details: "Practical training covering specific neurological conditions, diagnostic techniques, and treatment protocols tailored for African healthcare settings."
-    },
+      details: "Live and recorded webinars focusing on neurological care, emerging treatments, and best practices, accessible to professionals across Africa.",
+      link: "/webinars",
+      buttonText: "View Webinars"
+    },   
     {
       title: "Fellowship & Certification Programs",
       description: "Comprehensive training with certification",
       imageUrl: "https://images.pexels.com/photos/5726794/pexels-photo-5726794.jpeg?auto=compress&cs=tinysrgb&w=600",
-      details: "Specialized certification in pediatric neurology, including mentorship opportunities and clinical rotations at leading institutions."
+      details: "Specialized certification in pediatric neurology, including mentorship opportunities and clinical rotations at leading institutions.",
+      link: "/training-programs",
+      buttonText: "Browse Programs"
     },
     {
-      title: "Virtual Learning Platform",
-      description: "Online courses and webinars",
+      title: "E-Learning Platform",
+      description: "Comprehensive online courses for continuous learning",
       imageUrl: "https://images.pexels.com/photos/8386440/pexels-photo-8386440.jpeg?auto=compress&cs=tinysrgb&w=600",
-      details: "Flexible professional development through online courses, webinars, and interactive modules accessible across the continent."
+      details: "A wide range of self-paced, expert-led courses covering pediatric neurology, epilepsy, and neurodevelopmental disorders—tailored for African healthcare professionals with certification opportunities.",
+      link: "/memberportal",
+      buttonText: "Access E-Learning Portal"
     }
   ];
 
@@ -143,20 +151,15 @@ const EventsTraining = () => {
                   <h3 className="text-xl font-bold text-gray-900 mb-2">{program.title}</h3>
                   <p className="text-orange-600 text-sm font-medium mb-3">{program.description}</p>
                   <p className="text-gray-700 text-sm mb-4">{program.details}</p>
-                  <button className="text-orange-600 text-sm font-semibold hover:underline">
-                    Learn more →
-                  </button>
+                  <Link
+                    to={program.link}
+                    className="inline-block bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 text-sm font-medium rounded transition-colors"
+                  >
+                    {program.buttonText}
+                  </Link>
                 </div>
               </div>
             ))}
-          </div>
-
-          <div className="text-center">
-            <Link
-             to="/training-programs"
-              className="border-2 border-orange-600 text-gray-800 px-6 py-3 text-sm font-bold tracking-wider hover:bg-orange-600 hover:text-white transition-all duration-300 rounded-lg">
-             BROWSE PROGRAMS
-            </Link>
           </div>
         </div>
       </section>

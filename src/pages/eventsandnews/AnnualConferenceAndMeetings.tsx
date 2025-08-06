@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Calendar, MapPin, Users, Clock, Globe, Download, ExternalLink, CheckCircle, Star, Mic, UserCheck } from 'lucide-react';
+import ScrollToTop from '../../components/common/ScrollToTop';
 
 type ConferenceStatus = 'Registration Open' | 'Coming Soon' | 'Completed';
 type SessionType = 'keynote' | 'workshop' | 'panel' | 'break' | 'social' | 'registration' | 'session';
@@ -235,6 +236,7 @@ const ConferencePage = () => {
 
   return (
     <div className="bg-white min-h-screen">
+      <ScrollToTop />
       {/* Hero Section */}
       <section className="py-8 md:py-12 lg:py-20 bg-gradient-to-r from-blue-50 to-indigo-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 text-center">
