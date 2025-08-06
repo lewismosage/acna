@@ -12,68 +12,69 @@ const ForumComponent = () => {
   const [showCreatePost, setShowCreatePost] = useState(false);
 
   // Mock forum data
-  const forumCategories = [
-    {
-      id: 1,
-      title: "General Discussion",
-      description: "Use this forum to discuss things related to pediatric neurology that don't belong in any of the other forums.",
-      threadCount: 1245,
-      lastPost: "a day ago",
-      lastPostBy: "Dr. Sarah Mwangi",
-      icon: MessageSquare,
-      color: "blue"
-    },
-    {
-      id: 2,
-      title: "Meet and Greet",
-      description: "Introduce yourself and say hello to your fellow colleagues!",
-      threadCount: 2338,
-      lastPost: "2 hours ago",
-      lastPostBy: "Dr. James Kiprotich",
-      icon: Users,
-      color: "green"
-    },
-    {
-      id: 3,
-      title: "Case Studies & Clinical Discussion",
-      description: "Share interesting cases, discuss diagnostic challenges, and seek clinical advice from peers.",
-      threadCount: 892,
-      lastPost: "5 hours ago",
-      lastPostBy: "Prof. Michael Johnson",
-      icon: Star,
-      color: "purple"
-    },
-    {
-      id: 4,
-      title: "Research & Publications",
-      description: "Discuss ongoing research, share publications, and collaborate on research projects.",
-      threadCount: 567,
-      lastPost: "1 day ago",
-      lastPostBy: "Dr. Emma Williams",
-      icon: TrendingUp,
-      color: "orange"
-    },
-    {
-      id: 5,
-      title: "Training & Education",
-      description: "Questions about courses, workshops, and continuing medical education opportunities.",
-      threadCount: 423,
-      lastPost: "3 hours ago",
-      lastPostBy: "Dr. Fatima Al-Rashid",
-      icon: Calendar,
-      color: "teal"
-    },
-    {
-      id: 6,
-      title: "Technical Support",
-      description: "Get help with platform issues, course access problems, and technical questions.",
-      threadCount: 156,
-      lastPost: "6 hours ago",
-      lastPostBy: "ACNA Support",
-      icon: MessageCircle,
-      color: "red"
-    }
-  ];
+  // In ForumComponent.tsx
+const forumCategories = [
+  {
+    id: 'general',
+    title: "General Discussion",
+    description: "Use this forum to discuss things related to pediatric neurology that don't belong in any of the other forums.",
+    threadCount: 1245,
+    lastPost: "a day ago",
+    lastPostBy: "Dr. Sarah Mwangi",
+    icon: MessageSquare,
+    color: "blue"
+  },
+  {
+    id: 'meet-and-greet',
+    title: "Meet and Greet",
+    description: "Introduce yourself and say hello to your fellow colleagues!",
+    threadCount: 2338,
+    lastPost: "2 hours ago",
+    lastPostBy: "Dr. James Kiprotich",
+    icon: Users,
+    color: "green"
+  },
+  {
+    id: 'case-studies',
+    title: "Case Studies & Clinical Discussion",
+    description: "Share interesting cases, discuss diagnostic challenges, and seek clinical advice from peers.",
+    threadCount: 892,
+    lastPost: "5 hours ago",
+    lastPostBy: "Prof. Michael Johnson",
+    icon: Star,
+    color: "purple"
+  },
+  {
+    id: 'research',
+    title: "Research & Publications",
+    description: "Discuss ongoing research, share publications, and collaborate on research projects.",
+    threadCount: 567,
+    lastPost: "1 day ago",
+    lastPostBy: "Dr. Emma Williams",
+    icon: TrendingUp,
+    color: "orange"
+  },
+  {
+    id: 'training',
+    title: "Training & Education",
+    description: "Questions about courses, workshops, and continuing medical education opportunities.",
+    threadCount: 423,
+    lastPost: "3 hours ago",
+    lastPostBy: "Dr. Fatima Al-Rashid",
+    icon: Calendar,
+    color: "teal"
+  },
+  {
+    id: 'technical-support',
+    title: "Technical Support",
+    description: "Get help with platform issues, course access problems, and technical questions.",
+    threadCount: 156,
+    lastPost: "6 hours ago",
+    lastPostBy: "ACNA Support",
+    icon: MessageCircle,
+    color: "red"
+  }
+];
 
   const recentThreads = [
     {
@@ -295,10 +296,13 @@ const ForumComponent = () => {
               </div>
               
               <div className="mt-4 flex justify-end">
-                <button className="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center">
-                  Go to discussion
-                  <ChevronRight className="w-4 h-4 ml-1" />
-                </button>
+              <Link 
+                to={`/forum/${category.id}`}
+                className="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center"
+              >
+                Go to discussion
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </Link>
               </div>
             </div>
           </div>

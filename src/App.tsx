@@ -54,7 +54,9 @@ import TermsAndConditions from "./pages/privacy/TermsAndConditions";
 import PrivacyPolicy from "./pages/privacy/PrivacyPolicy";
 import CookiePolicy from "./pages/privacy/CookiePolicy";
 import DonorPrivacyPolicy from "./pages/privacy/DonorPrivacyPolicy";
-import ForumGuidelines from "./pages/membershippages/portal/ForumGuidelines";
+import ForumGuidelines from "./pages/membershippages/portal/forums/ForumGuidelines";
+import ForumComponent from "./pages/membershippages/portal/forums/ForumThread";
+import ForumThread from "./pages/membershippages/portal/forums/ForumThread";
 
 //Layout component that includes header and footer
 const Layout = ({ children }: { children: React.ReactNode }) => (
@@ -85,7 +87,7 @@ function App() {
           <Route path="/about/how-we-work" element={<HowWeWork />} />
           <Route path="/about/our-story" element={<OurStory />} />
           <Route path="/about/leadership" element={<LeadershipTeam />} />
-          <Route path="faqs" element={<GeneralACNAFAQs />}/>
+          <Route path="faqs" element={<GeneralACNAFAQs />} />
           {/* Key Features Pages */}
           <Route
             path="/professional-network"
@@ -113,14 +115,23 @@ function App() {
           <Route path="/e-resources" element={<Register />} />
           <Route path="/neurology-resources" element={<Register />} />
           <Route path="/acna-portal" element={<Register />} />
-          <Route path="/case-studies-and-fact-sheets" element={<FactSheetsAndCaseStudies />}/>
-          <Route path="/position-statement" element={<PositionStatements />} /> 
-          <Route path="/patient-caregiver-resources" element={<PatientCaregiverResources />} />
+          <Route
+            path="/case-studies-and-fact-sheets"
+            element={<FactSheetsAndCaseStudies />}
+          />
+          <Route path="/position-statement" element={<PositionStatements />} />
+          <Route
+            path="/patient-caregiver-resources"
+            element={<PatientCaregiverResources />}
+          />
           <Route path="/policy-briefs" element={<PolicyBriefs />} />
           <Route path="/journal-watch" element={<JournalWatch />} />
           <Route path="/e-booklets" element={<EBooklets />} />
-          <Route path="/webinars" element={<Webinars />}/>
-          <Route path="/collaboration-opportunities" element={<WorkshopsSymposiums />} />
+          <Route path="/webinars" element={<Webinars />} />
+          <Route
+            path="/collaboration-opportunities"
+            element={<WorkshopsSymposiums />}
+          />
           {/* Membership Pages */}
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
@@ -134,10 +145,16 @@ function App() {
           />
           <Route path="/membership-faqs" element={<MembershipFAQs />} />
           {/* Privacy Pages */}
-          <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+          <Route
+            path="/terms-and-conditions"
+            element={<TermsAndConditions />}
+          />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/cookie-policy" element={<CookiePolicy />} />
-          <Route path="/donor-privacy-policy" element={<DonorPrivacyPolicy />} />
+          <Route
+            path="/donor-privacy-policy"
+            element={<DonorPrivacyPolicy />}
+          />
           {/* Events Pages */}
           <Route
             path="/annual-conference"
@@ -159,6 +176,9 @@ function App() {
           }
         >
           <Route path="/memberportal" element={<ACNAMemberDashboard />} />
+          {/* Forum Pages */}
+          <Route path="/forum" element={<ForumComponent />} />
+          <Route path="/forum/:forumId" element={<ForumThread />} />
           <Route path="forum-guidelines" element={<ForumGuidelines />} />
         </Route>
       </Routes>

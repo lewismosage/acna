@@ -3,14 +3,15 @@ import {
   User, BookOpen, Award, MessageSquare, FileText, Calendar, LogOut,
   Home, Edit3, Upload, Users, Clock, CheckCircle, AlertCircle, Search, Menu, X
 } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import CoursesTabContent from './CoursesTabContent';
-import WorkshopTapContent from './WorkshopTabContent'
+import WorkshopTapContent from './WorkshopTabContent';
 import DirectoryTabContent from './DirectoryTabContent';
-import ProfileTabContent from './ProfileTabContent'
+import ProfileTabContent from './ProfileTabContent';
 import ELearningDashboard from './ELearningDashboard';
-import ForumComponent from './ForumComponent'
+import ForumComponent from './forums/ForumComponent';
+import { SignOutModal } from './SignOutModal'
 import ScrollToTop from '../../../components/common/ScrollToTop';
 
 interface LocationState {
@@ -258,21 +259,11 @@ const HomeTabContent = () => {
   );
 };
 
-
-const SignoutTabContent = () => (
-  <div className="bg-white border border-gray-300 rounded-lg p-4 md:p-6">
-    <h2 className="text-lg md:text-xl font-bold mb-4">Sign Out</h2>
-    <p className="mb-4">Are you sure you want to sign out?</p>
-    <button className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
-      Confirm Sign Out
-    </button>
-  </div>
-);
-
 const ACNAMemberDashboard = () => {
   const location = useLocation();
   const [activeTab, setActiveTab] = useState((location.state as LocationState)?.activeTab || 'home');
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
 
   // Mock user data
   const memberData: MemberData = {
@@ -289,6 +280,17 @@ const ACNAMemberDashboard = () => {
       certificationsEarned: 2
     }
   };
+
+  // Tab navigation items (excluding signout since we're using a modal now)
+  const tabs = [
+    { id: 'home', label: 'HOME', icon: Home },
+    { id: 'profile', label: 'PROFILE', icon: User },
+    { id: 'courses', label: 'TRAINING PROGRAMS', icon: BookOpen },
+    { id: 'training', label: 'E-LEARNING', icon: BookOpen },
+    { id: 'workshop', label: 'WORKSHOP', icon: Award },
+    { id: 'forum', label: 'FORUM', icon: MessageSquare },
+    { id: 'directory', label: 'MEMBERS DIRECTORY', icon: Users }
+  ];
 
   // Tab content components
   const renderTabContent = () => {
@@ -307,28 +309,24 @@ const ACNAMemberDashboard = () => {
         return <ForumComponent />;
       case 'directory':
         return <DirectoryTabContent />;
-      case 'signout':
-        return <SignoutTabContent />;
       default:
         return <HomeTabContent />;
     }
   };
 
-  // Tab navigation items
-  const tabs = [
-    { id: 'home', label: 'HOME', icon: Home },
-    { id: 'profile', label: 'PROFILE', icon: User },
-    { id: 'courses', label: 'TRAINING PROGRAMS', icon: BookOpen },
-    { id: 'training', label: 'E-LEARNING', icon: BookOpen },
-    { id: 'workshop', label: 'WORKSHOP', icon: Award },
-    { id: 'forum', label: 'FORUM', icon: MessageSquare },
-    { id: 'directory', label: 'MEMBERS DIRECTORY', icon: Users },
-    { id: 'signout', label: 'SIGN OUT', icon: LogOut }
-  ];
+  const handleTabClick = (id: string) => {
+    setActiveTab(id);
+  };
 
   return (
     <div className="min-h-screen bg-gray-100">
       <ScrollToTop />
+      {/* Sign Out Modal */}
+      <SignOutModal 
+        isOpen={showSignOutModal} 
+        onClose={() => setShowSignOutModal(false)} 
+      />
+
       {/* Mobile Header - Always visible on mobile */}
       <div className="md:hidden bg-blue-800 text-white p-3 flex items-center justify-between">
         <button 
@@ -360,7 +358,7 @@ const ACNAMemberDashboard = () => {
               <button
                 key={id}
                 onClick={() => {
-                  setActiveTab(id);
+                  handleTabClick(id);
                   setShowMobileSidebar(false);
                 }}
                 className={`w-full text-left px-4 py-3 flex items-center ${
@@ -371,6 +369,17 @@ const ACNAMemberDashboard = () => {
                 <span>{label}</span>
               </button>
             ))}
+            {/* Sign Out Button */}
+            <button
+              onClick={() => {
+                setShowSignOutModal(true);
+                setShowMobileSidebar(false);
+              }}
+              className="w-full text-left px-4 py-3 flex items-center hover:bg-blue-700"
+            >
+              <LogOut className="w-5 h-5 mr-3" />
+              <span>SIGN OUT</span>
+            </button>
           </nav>
           
           {/* Return to Home link at bottom */}
@@ -437,7 +446,7 @@ const ACNAMemberDashboard = () => {
                 {tabs.map(({ id, label, icon: Icon }) => (
                   <button
                     key={id}
-                    onClick={() => setActiveTab(id)}
+                    onClick={() => handleTabClick(id)}
                     className={`px-3 py-2 md:px-4 md:py-3 text-xs md:text-sm font-medium border-r border-blue-600 last:border-r-0 hover:bg-blue-600 transition-colors whitespace-nowrap ${
                       activeTab === id ? 'bg-blue-600 text-white' : 'text-blue-100'
                     }`}
@@ -448,6 +457,16 @@ const ACNAMemberDashboard = () => {
                     </span>
                   </button>
                 ))}
+                {/* Sign Out Button */}
+                <button
+                  onClick={() => setShowSignOutModal(true)}
+                  className="px-3 py-2 md:px-4 md:py-3 text-xs md:text-sm font-medium border-r border-blue-600 last:border-r-0 hover:bg-blue-600 transition-colors whitespace-nowrap text-blue-100"
+                >
+                  <span className="hidden md:inline">SIGN OUT</span>
+                  <span className="md:hidden">
+                    <LogOut className="w-4 h-4 mx-auto" />
+                  </span>
+                </button>
               </div>
             </nav>
           </div>
