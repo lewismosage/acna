@@ -43,12 +43,12 @@ const ResearchPublications = () => {
     {
       title: "Epilepsy prevalence and treatment gaps in sub-Saharan Africa: A systematic review",
       date: "January 12, 2025",
-      imageUrl: "https://images.pexels.com/photos/3985163/pexels-photo-3985163.jpeg?auto=compress&cs=tinysrgb&w=600"
+      imageUrl: "https://images.stockcake.com/public/a/0/f/a0f2cec1-26fe-44ca-861a-672bc72763fe_large/scientific-discovery-moment-stockcake.jpg"
     },
     {
       title: "Novel biomarkers for early detection of cerebral palsy in African infants",
       date: "December 3, 2024",
-      imageUrl: "https://images.pexels.com/photos/4173239/pexels-photo-4173239.jpeg?auto=compress&cs=tinysrgb&w=600"
+      imageUrl: "https://images.stockcake.com/public/9/3/5/935d2294-7b86-4659-a14d-2ef2873937ba_large/researchers-in-lab-stockcake.jpg"
     },
     {
       title: "Impact of malnutrition on neurodevelopment: 10-year longitudinal study",
@@ -140,7 +140,7 @@ const ResearchPublications = () => {
               {/* Epidemiological Studies */}
               <div>
                 <img
-                  src="https://images.pexels.com/photos/3985163/pexels-photo-3985163.jpeg?auto=compress&cs=tinysrgb&w=600"
+                  src="https://images.stockcake.com/public/a/3/5/a35bc029-cabc-4720-9359-1a316e5291fe_large/doctor-reviews-x-ray-stockcake.jpg"
                   alt="Epidemiological Studies"
                   className="w-full h-56 object-cover mb-4 rounded-lg"
                 />
@@ -153,7 +153,7 @@ const ResearchPublications = () => {
               {/* Treatment Efficacy Trials */}
               <div>
                 <img
-                  src="https://images.pexels.com/photos/4386466/pexels-photo-4386466.jpeg?auto=compress&cs=tinysrgb&w=600"
+                  src="https://images.stockcake.com/public/1/7/d/17de25fd-33c8-4dc7-9492-fddf1a96372c_large/microbial-growth-observation-stockcake.jpg"
                   alt="Treatment Efficacy Trials"
                   className="w-full h-56 object-cover mb-4 rounded-lg"
                 />
@@ -212,7 +212,7 @@ const ResearchPublications = () => {
               {/* Clinical Guidelines */}
               <div>
                 <img
-                  src="https://images.pexels.com/photos/4386339/pexels-photo-4386339.jpeg?auto=compress&cs=tinysrgb&w=600"
+                  src="https://images.stockcake.com/public/7/9/2/79289ace-33b7-4d4b-ba72-a31b9cc2f9d5_large/surgical-tools-display-stockcake.jpg"
                   alt="Clinical Guidelines"
                   className="w-full h-56 object-cover mb-4 rounded-lg"
                 />
@@ -225,7 +225,7 @@ const ResearchPublications = () => {
               {/* Educational Materials */}
               <div>
                 <img
-                  src="https://images.pexels.com/photos/4386431/pexels-photo-4386431.jpeg?auto=compress&cs=tinysrgb&w=600"
+                  src="https://images.stockcake.com/public/2/1/6/216f3fd8-b0b0-418b-b527-5027af255963_large/interactive-human-anatomy-stockcake.jpg"
                   alt="Educational Materials"
                   className="w-full h-56 object-cover mb-4 rounded-lg"
                 />

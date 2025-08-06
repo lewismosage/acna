@@ -43,17 +43,17 @@ const RecognitionAwards = () => {
     {
       title: "Dr. Amina Hassan receives ACNA's highest honor for pioneering epilepsy research in East Africa",
       date: "November 20, 2024",
-      imageUrl: "https://images.pexels.com/photos/4386466/pexels-photo-4386466.jpeg?auto=compress&cs=tinysrgb&w=600"
+      imageUrl: "https://images.stockcake.com/public/d/8/7/d87d2269-b9e5-4648-9c3b-8ec14b8fce4f_large/joyful-healthcare-professional-stockcake.jpg"
     },
     {
       title: "Young Investigator Award winners present breakthrough findings at annual conference",
       date: "September 15, 2024",
-      imageUrl: "https://images.pexels.com/photos/5726794/pexels-photo-5726794.jpeg?auto=compress&cs=tinysrgb&w=600"
+      imageUrl: "https://images.stockcake.com/public/c/3/c/c3c3702c-1852-41e6-a207-4edcb09cb96c_large/healthcare-team-collaborating-stockcake.jpg"
     },
     {
       title: "Community champions: Five professionals honored for expanding rural neurology services",
       date: "August 3, 2024",
-      imageUrl: "https://images.pexels.com/photos/4386431/pexels-photo-4386431.jpeg?auto=compress&cs=tinysrgb&w=600"
+      imageUrl: "https://images.stockcake.com/public/e/6/f/e6fd97ca-178e-42fd-85ec-092734c684c9_large/healthcare-team-smiling-stockcake.jpg"
     }
   ];
 

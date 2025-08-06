@@ -16,7 +16,7 @@ const news = [
     date: "JUL 17, 2025",
     title: "Bringing neurological care to remote clinics in rural Uganda",
     image:
-      "https://images.pexels.com/photos/5215024/pexels-photo-5215024.jpeg?auto=compress&cs=tinysrgb&w=600",
+      "https://images.stockcake.com/public/9/9/6/996de5db-feb7-40dc-a3a9-ff56a28bc5d7_large/healthcare-workers-outdoors-stockcake.jpg",
     description: "",
   },
   {
@@ -24,7 +24,7 @@ const news = [
     date: "JUL 17, 2025",
     title: "ACNA launches child brain health initiative across West Africa",
     image:
-      "https://images.pexels.com/photos/3825583/pexels-photo-3825583.jpeg?auto=compress&cs=tinysrgb&w=600",
+      "https://images.stockcake.com/public/7/f/1/7f17e2b8-f899-439e-b0bb-9be35fb20c6b_large/luminous-brain-scans-stockcake.jpg",
     description: "",
   },
   {
@@ -32,7 +32,7 @@ const news = [
     date: "JUL 10, 2025",
     title: "A mother’s fight for neurological treatment in northern Kenya",
     image:
-      "https://images.pexels.com/photos/5452293/pexels-photo-5452293.jpeg?auto=compress&cs=tinysrgb&w=600",
+      "https://images.stockcake.com/public/2/e/e/2ee04b27-8bea-4055-a3cb-8cb85d6b4453/patient-seeking-hope-stockcake.jpg",
     description: "",
   },
   {
@@ -41,7 +41,7 @@ const news = [
     title:
       "New ACNA research highlights gaps in epilepsy treatment access in Nigeria",
     image:
-      "https://images.pexels.com/photos/4173239/pexels-photo-4173239.jpeg?auto=compress&cs=tinysrgb&w=600",
+      "https://images.stockcake.com/public/1/d/8/1d8d429c-920e-4654-bf24-a01f0516e200_large/science-in-action-stockcake.jpg",
     description: "",
   },
 ];

@@ -92,7 +92,7 @@ const ProfessionalNetwork = () => {
               {/* Specialist Members */}
               <div>
                 <img
-                  src="https://images.pexels.com/photos/4173239/pexels-photo-4173239.jpeg?auto=compress&cs=tinysrgb&w=600"
+                  src="https://images.stockcake.com/public/c/0/d/c0dbf447-02db-4db0-a968-fcee1a5390db_large/digital-medical-care-stockcake.jpg"
                   alt="Specialist Members"
                   className="w-full h-56 object-cover mb-4 rounded-lg"
                 />
@@ -105,7 +105,7 @@ const ProfessionalNetwork = () => {
               {/* General Healthcare Providers */}
               <div>
                 <img
-                  src="https://images.pexels.com/photos/4386467/pexels-photo-4386467.jpeg?auto=compress&cs=tinysrgb&w=600"
+                  src="https://images.stockcake.com/public/9/9/6/996de5db-feb7-40dc-a3a9-ff56a28bc5d7_large/healthcare-workers-outdoors-stockcake.jpg"
                   alt="General Healthcare Providers"
                   className="w-full h-56 object-cover mb-4 rounded-lg"
                 />
@@ -118,7 +118,7 @@ const ProfessionalNetwork = () => {
               {/* Allied Health Professionals */}
               <div>
                 <img
-                  src="https://images.pexels.com/photos/4386431/pexels-photo-4386431.jpeg?auto=compress&cs=tinysrgb&w=600"
+                  src="https://images.stockcake.com/public/f/5/2/f523d11e-9945-4c73-8189-911a0023b7fe_large/digital-healthcare-excellence-stockcake.jpg"
                   alt="Allied Health Professionals"
                   className="w-full h-56 object-cover mb-4 rounded-lg"
                 />
@@ -150,7 +150,7 @@ const ProfessionalNetwork = () => {
               {/* Telemedicine Consultations */}
               <div>
                 <img
-                  src="https://images.pexels.com/photos/4386339/pexels-photo-4386339.jpeg?auto=compress&cs=tinysrgb&w=600"
+                  src="https://images.stockcake.com/public/0/9/a/09a94ae3-50ec-48aa-81af-516a01187671_large/pediatric-checkup-interaction-stockcake.jpg"
                   alt="Telemedicine Consultations"
                   className="w-full h-56 object-cover mb-4 rounded-lg"
                 />
@@ -163,7 +163,7 @@ const ProfessionalNetwork = () => {
               {/* Research Partnerships */}
               <div>
                 <img
-                  src="https://images.pexels.com/photos/3985163/pexels-photo-3985163.jpeg?auto=compress&cs=tinysrgb&w=600"
+                  src="https://images.stockcake.com/public/9/0/2/9029e5c1-ff07-4e8e-8c21-c23b253029c6_large/focused-laboratory-team-stockcake.jpg"
                   alt="Research Partnerships"
                   className="w-full h-56 object-cover mb-4 rounded-lg"
                 />

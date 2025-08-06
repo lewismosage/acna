@@ -57,6 +57,14 @@ const EventsTraining = () => {
 
   const trainingPrograms = [
     {
+      title: "E-Learning Platform",
+      description: "Comprehensive online courses for continuous learning",
+      imageUrl: "https://images.stockcake.com/public/8/6/b/86baedea-f70c-418d-9b87-590d2f1a998a_large/joyful-teaching-moment-stockcake.jpg",
+      details: "A wide range of self-paced, expert-led courses covering pediatric neurology, epilepsy, and neurodevelopmental disorders—tailored for African healthcare professionals with certification opportunities.",
+      link: "/memberportal",
+      buttonText: "Access E-Learning Portal"
+    },
+    {
       title: "Annual Continental Conference",
       description: "Our flagship event bringing together professionals from across Africa",
       imageUrl: "https://images.pexels.com/photos/1181406/pexels-photo-1181406.jpeg?auto=compress&cs=tinysrgb&w=600",
@@ -64,14 +72,6 @@ const EventsTraining = () => {
       link: "/annual-conference",
       buttonText: "View Conferences"
     },
-    {
-      title: "Specialized Webinars",
-      description: "Interactive online learning sessions",
-      imageUrl: "https://images.pexels.com/photos/3184306/pexels-photo-3184306.jpeg?auto=compress&cs=tinysrgb&w=600",
-      details: "Live and recorded webinars focusing on neurological care, emerging treatments, and best practices, accessible to professionals across Africa.",
-      link: "/webinars",
-      buttonText: "View Webinars"
-    },   
     {
       title: "Fellowship & Certification Programs",
       description: "Comprehensive training with certification",
@@ -81,13 +81,13 @@ const EventsTraining = () => {
       buttonText: "Browse Programs"
     },
     {
-      title: "E-Learning Platform",
-      description: "Comprehensive online courses for continuous learning",
-      imageUrl: "https://images.pexels.com/photos/8386440/pexels-photo-8386440.jpeg?auto=compress&cs=tinysrgb&w=600",
-      details: "A wide range of self-paced, expert-led courses covering pediatric neurology, epilepsy, and neurodevelopmental disorders—tailored for African healthcare professionals with certification opportunities.",
-      link: "/memberportal",
-      buttonText: "Access E-Learning Portal"
-    }
+      title: "Specialized Webinars",
+      description: "Interactive online learning sessions",
+      imageUrl: "https://images.pexels.com/photos/3184306/pexels-photo-3184306.jpeg?auto=compress&cs=tinysrgb&w=600",
+      details: "Live and recorded webinars focusing on neurological care, emerging treatments, and best practices, accessible to professionals across Africa.",
+      link: "/webinars",
+      buttonText: "View Webinars"
+    },   
   ];
 
   return (
