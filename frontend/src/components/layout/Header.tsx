@@ -1,7 +1,8 @@
-import React, { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, X, ChevronDown, Search, Home } from "lucide-react";
 import ACNALogo from "../../assets/ACNA.jpg";
+import { searchSite, SearchItem } from "../../components/utils/searchIndex";
 
 const topNav = [
   { name: "About Us", href: "/about" },
@@ -37,7 +38,6 @@ const mainNav = [
       },
       { name: "Journal Watch", href: "/journal-watch" },
       { name: "Webinars", href: "/webinars" },
-      
     ],
   },
   {
@@ -68,9 +68,50 @@ const Header = () => {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [isQuickLinksOpen, setIsQuickLinksOpen] = useState(false);
   const [isMainNavOpen, setIsMainNavOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<SearchItem[]>([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   const isActive = (path: string) => location.pathname === path;
+
+  // Handle search input changes
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    
+    if (query.length > 0) {
+      const results = searchSite(query);
+      setSearchResults(results);
+      setShowSearchResults(true);
+    } else {
+      setSearchResults([]);
+      setShowSearchResults(false);
+    }
+  };
+
+  // Handle search submission
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim() && searchResults.length > 0) {
+      navigate(searchResults[0].url);
+      setSearchQuery("");
+      setShowSearchResults(false);
+    }
+  };
+
+  // Close search results when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setShowSearchResults(false);
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, []);
 
   return (
     <header className="w-full z-50 relative">
@@ -217,7 +258,7 @@ const Header = () => {
                             grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-6 p-2 md:p-6
                             border-t-2 border-orange-600
                           `}
-                          style={{ top: 'calc(100% + 2px)' }} // Brings dropdown closer
+                          style={{ top: 'calc(100% + 2px)' }}
                         >
                           {item.items.map((sub) => (
                             <Link
@@ -310,11 +351,17 @@ const Header = () => {
               </div>
               {/* Mobile Search inside main nav dropdown */}
               <div className="p-4 bg-[#142544] border-t border-blue-800">
-                <form className="flex items-center bg-white rounded-lg overflow-hidden shadow w-full">
+                <form 
+                  className="flex items-center bg-white rounded-lg overflow-hidden shadow w-full"
+                  onSubmit={handleSearchSubmit}
+                >
                   <input
                     type="text"
                     placeholder="Search ..."
                     className="px-4 py-2 w-full text-gray-700 focus:outline-none"
+                    value={searchQuery}
+                    onChange={handleSearchChange}
+                    onClick={(e) => e.stopPropagation()}
                   />
                   <button
                     type="submit"
@@ -324,24 +371,80 @@ const Header = () => {
                     Search
                   </button>
                 </form>
+                {showSearchResults && searchResults.length > 0 && (
+                  <div 
+                    className="absolute left-4 right-4 mt-1 bg-white rounded-md shadow-lg z-50 max-h-96 overflow-y-auto"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {searchResults.slice(0, 5).map((result) => (
+                      <Link
+                        key={result.url}
+                        to={result.url}
+                        className="block px-4 py-2 text-gray-800 hover:bg-blue-50 border-b border-gray-100"
+                        onClick={() => {
+                          setSearchQuery("");
+                          setShowSearchResults(false);
+                          setIsMainNavOpen(false);
+                        }}
+                      >
+                        <div className="font-medium">{result.title}</div>
+                        <div className="text-sm text-gray-600">{result.description}</div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Search Bar - Desktop */}
-            <form className="hidden md:flex items-center bg-white rounded-lg overflow-hidden shadow max-w-xs w-full ml-4">
-              <input
-                type="text"
-                placeholder="Search ..."
-                className="px-4 py-2 w-full text-gray-700 focus:outline-none"
-              />
-              <button
-                type="submit"
-                className="bg-yellow-400 hover:bg-yellow-500 text-white px-4 py-2 flex items-center font-semibold"
+            <div className="hidden md:flex items-center ml-4 relative">
+              <form 
+                className="flex items-center bg-white rounded-lg overflow-hidden shadow max-w-xs w-full"
+                onSubmit={handleSearchSubmit}
               >
-                <Search className="w-5 h-5 mr-1" />
-                Search
-              </button>
-            </form>
+                <input
+                  type="text"
+                  placeholder="Search ..."
+                  className="px-4 py-2 w-full text-gray-700 focus:outline-none"
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (searchQuery.length > 0) {
+                      setShowSearchResults(true);
+                    }
+                  }}
+                />
+                <button
+                  type="submit"
+                  className="bg-yellow-400 hover:bg-yellow-500 text-white px-4 py-2 flex items-center font-semibold"
+                >
+                  <Search className="w-5 h-5 mr-1" />
+                  Search
+                </button>
+              </form>
+              {showSearchResults && searchResults.length > 0 && (
+                <div 
+                  className="absolute top-full left-0 right-0 mt-1 bg-white rounded-md shadow-lg z-50 max-h-96 overflow-y-auto"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {searchResults.slice(0, 5).map((result) => (
+                    <Link
+                      key={result.url}
+                      to={result.url}
+                      className="block px-4 py-2 text-gray-800 hover:bg-blue-50 border-b border-gray-100"
+                      onClick={() => {
+                        setSearchQuery("");
+                        setShowSearchResults(false);
+                      }}
+                    >
+                      <div className="font-medium">{result.title}</div>
+                      <div className="text-sm text-gray-600">{result.description}</div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
