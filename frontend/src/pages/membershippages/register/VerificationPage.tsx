@@ -1,31 +1,40 @@
+// verificationpage.tsx
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { verifyEmail, resendVerification } from '../../../services/api';
-import { useNavigate } from 'react-router-dom';
+import AlertModal from '../../../components/common/AlertModal';
 
-interface VerificationPageProps {
-  email?: string;
-  onNavigateHome?: () => void;
-}
-
-const VerificationPage = ({ email: propEmail, onNavigateHome }: VerificationPageProps = {}) => {
-  const [email, setEmail] = useState(propEmail || 'user@example.com');
-  const [verificationCode, setVerificationCode] = useState<string[]>(['', '', '', '', '', '']);
-  const [isChangingEmail, setIsChangingEmail] = useState(false);
-  const [newEmail, setNewEmail] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+const VerificationPage = () => {
+  const location = useLocation();
   const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [verificationCode, setVerificationCode] = useState<string[]>(['', '', '', '', '', '']);
+  const [isLoading, setIsLoading] = useState(false);
+  const [alertModal, setAlertModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'error' as 'info' | 'success' | 'warning' | 'error'
+  });
+
+  // Get email from location state
+  useEffect(() => {
+    if (location.state?.email) {
+      setEmail(location.state.email);
+    } else {
+      // Redirect back if no email provided
+      navigate('/register');
+    }
+  }, [location.state, navigate]);
 
   // Auto-focus first input on mount
   useEffect(() => {
     const firstInput = document.querySelector('input[name="code-0"]') as HTMLInputElement;
-    if (firstInput) {
-      firstInput.focus();
-    }
+    if (firstInput) firstInput.focus();
   }, []);
 
   const handleCodeChange = (index: number, value: string) => {
-    if (value.length <= 1) {
+    if (/^\d*$/.test(value) && value.length <= 1) { // Only allow digits
       const newCode = [...verificationCode];
       newCode[index] = value;
       setVerificationCode(newCode);
@@ -33,90 +42,87 @@ const VerificationPage = ({ email: propEmail, onNavigateHome }: VerificationPage
       // Auto-focus next input if value is entered
       if (value && index < 5) {
         const nextInput = document.querySelector(`input[name="code-${index + 1}"]`) as HTMLInputElement;
-        if (nextInput) {
-          nextInput.focus();
-        }
+        if (nextInput) nextInput.focus();
       }
     }
   };
 
   const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    // Handle backspace to focus previous input
     if (e.key === 'Backspace' && !verificationCode[index] && index > 0) {
       const prevInput = document.querySelector(`input[name="code-${index - 1}"]`) as HTMLInputElement;
-      if (prevInput) {
-        prevInput.focus();
-      }
+      if (prevInput) prevInput.focus();
     }
   };
 
-  const handleChangeEmail = () => {
-    if (isChangingEmail) {
-      if (newEmail) {
-        setEmail(newEmail);
-        setNewEmail('');
-        setIsChangingEmail(false);
-        // Here you would typically send a new verification code to the new email
-        console.log('Sending verification code to new email:', newEmail);
-      }
-    } else {
-      setIsChangingEmail(true);
-      setNewEmail(email);
-    }
-  };
-
-  const handleCancelChangeEmail = () => {
-    setIsChangingEmail(false);
-    setNewEmail('');
-  };
-
-  const handleConfirm = async () => {
+  const handleVerify = async () => {
     const code = verificationCode.join('');
-    if (code.length === 6) {
-      setIsLoading(true);
-      
-      try {
-        const response = await verifyEmail(email, code);
-        if (response.success) {
-          navigate('/payment');
-        }
-      } catch (error) {
-        console.error('Verification failed:', error);
-      } finally {
-        setIsLoading(false);
+    if (code.length !== 6) {
+      setAlertModal({
+        isOpen: true,
+        title: 'Invalid Code',
+        message: 'Please enter the complete 6-digit verification code',
+        type: 'error'
+      });
+      return;
+    }
+  
+    setIsLoading(true);
+    try {
+      const response = await verifyEmail({ email, code });
+      if (response.success) {
+        setAlertModal({
+          isOpen: true,
+          title: 'Verification Successful',
+          message: 'Your email has been verified successfully!',
+          type: 'success'
+        });
+        setTimeout(() => navigate('/payment'), 2000);
       }
-    } else {
-      alert('Please enter the complete 6-digit verification code');
+    } catch (error: any) {
+      console.error('Verification failed:', error);
+      setAlertModal({
+        isOpen: true,
+        title: 'Verification Failed',
+        message: error.message || 'Invalid verification code. Please try again.',
+        type: 'error'
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleResendOTP = async () => {
+  const handleResendCode = async () => {
     try {
-      const response = await resendVerification(email);
+      const response = await resendVerification({ email }); 
       if (response.success) {
+        setAlertModal({
+          isOpen: true,
+          title: 'Code Resent',
+          message: 'A new verification code has been sent to your email.',
+          type: 'success'
+        });
         setVerificationCode(['', '', '', '', '', '']);
-        alert('New verification code sent to ' + email);
         setTimeout(() => {
           const firstInput = document.querySelector('input[name="code-0"]') as HTMLInputElement;
           if (firstInput) firstInput.focus();
         }, 100);
       }
-    } catch (error) {
-      console.error('Failed to resend verification:', error);
+    } catch (error: any) {
+      console.error('Failed to resend code:', error);
+      setAlertModal({
+        isOpen: true,
+        title: 'Resend Failed',
+        message: error.message || 'Failed to resend verification code. Please try again.',
+        type: 'error'
+      });
     }
   };
-
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-6 py-4">
-        <Link 
-          to="/"
-          className="text-2xl font-bold text-gray-900 hover:text-gray-700 transition-colors"
-        >
-          ACNA
-        </Link>
+        <div className="text-2xl font-bold text-gray-900">ACNA</div>
       </header>
 
       {/* Main Content */}
@@ -126,93 +132,58 @@ const VerificationPage = ({ email: propEmail, onNavigateHome }: VerificationPage
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">
               Enter verification code
             </h2>
-            
-            <div className="text-gray-600 mb-2">
-              Enter the verification code sent to your email
-            </div>
-            
-            <div className="flex items-center justify-center gap-1 text-sm">
-              {!isChangingEmail ? (
-                <>
-                  <span className="text-gray-600">'{email}'</span>
-                  <button
-                    onClick={handleChangeEmail}
-                    className="text-blue-600 hover:text-blue-700 font-medium ml-1"
-                  >
-                    Change email
-                  </button>
-                </>
-              ) : (
-                <div className="w-full">
-                  <div className="flex gap-2 items-center">
-                    <input
-                      type="email"
-                      value={newEmail}
-                      onChange={(e) => setNewEmail(e.target.value)}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                      placeholder="Enter new email"
-                    />
-                    <button
-                      onClick={handleChangeEmail}
-                      className="text-green-600 hover:text-green-700 font-medium text-sm px-2"
-                    >
-                      Save
-                    </button>
-                    <button
-                      onClick={handleCancelChangeEmail}
-                      className="text-gray-500 hover:text-gray-600 font-medium text-sm px-2"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+            <p className="text-gray-600 mb-2">
+              Enter the 6-digit code sent to:
+            </p>
+            <p className="font-medium text-gray-800">{email}</p>
           </div>
 
           {/* Verification Code Inputs */}
           <div className="flex justify-center gap-3 mb-8">
-            {verificationCode.map((digit, index) => (
+            {[0, 1, 2, 3, 4, 5].map((index) => (
               <input
                 key={index}
                 name={`code-${index}`}
                 type="text"
-                value={digit}
+                value={verificationCode[index]}
                 onChange={(e) => handleCodeChange(index, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(index, e)}
-                className="w-14 h-14 text-center text-xl font-semibold border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-12 h-12 text-center text-xl font-semibold border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 maxLength={1}
+                inputMode="numeric"
               />
             ))}
           </div>
 
-          {/* Confirm Button */}
+          {/* Verify Button */}
           <button
-            onClick={handleConfirm}
+            onClick={handleVerify}
             disabled={isLoading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold py-4 px-6 rounded-xl transition-colors duration-200 mb-6"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors mb-4"
           >
-            {isLoading ? (
-              <div className="flex items-center justify-center">
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                Verifying...
-              </div>
-            ) : (
-              'Confirm'
-            )}
+            {isLoading ? 'Verifying...' : 'Verify Email'}
           </button>
 
-          {/* Resend OTP */}
+          {/* Resend Code */}
           <div className="text-center">
             <button
-              onClick={handleResendOTP}
+              onClick={handleResendCode}
               className="text-blue-600 hover:text-blue-700 font-medium"
             >
-              Resend OTP
+              Resend Verification Code
             </button>
           </div>
         </div>
       </div>
+
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        onClose={() => setAlertModal(prev => ({ ...prev, isOpen: false }))}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+      />
     </div>
   );
 };

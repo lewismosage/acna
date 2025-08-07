@@ -17,18 +17,19 @@ export const registerUser = async (userData: any) => {
   }
 };
 
-export const verifyEmail = async (email: string, code: string) => {
+// Update these functions to match how you're calling them in VerificationPage
+export const verifyEmail = async (data: { email: string; code: string }) => {
   try {
-    const response = await api.post('/users/verify-email/', { email, code });
+    const response = await api.post('/users/verify-email/', data);
     return response.data;
   } catch (error: any) {
     throw error.response?.data || error.message;
   }
 };
 
-export const resendVerification = async (email: string) => {
+export const resendVerification = async (data: { email: string }) => {
   try {
-    const response = await api.post('/users/resend-verification/', { email });
+    const response = await api.post('/users/resend-verification/', data);
     return response.data;
   } catch (error: any) {
     throw error.response?.data || error.message;
