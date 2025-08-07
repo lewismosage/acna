@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
+import { verifyEmail, resendVerification } from '../../../services/api';
+import { useNavigate } from 'react-router-dom';
 
 interface VerificationPageProps {
   email?: string;
@@ -7,12 +9,12 @@ interface VerificationPageProps {
 }
 
 const VerificationPage = ({ email: propEmail, onNavigateHome }: VerificationPageProps = {}) => {
-  // Get email from props or use default (in real app, this would come from navigation state)
   const [email, setEmail] = useState(propEmail || 'user@example.com');
   const [verificationCode, setVerificationCode] = useState<string[]>(['', '', '', '', '', '']);
   const [isChangingEmail, setIsChangingEmail] = useState(false);
   const [newEmail, setNewEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
   // Auto-focus first input on mount
   useEffect(() => {
@@ -73,29 +75,35 @@ const VerificationPage = ({ email: propEmail, onNavigateHome }: VerificationPage
     if (code.length === 6) {
       setIsLoading(true);
       
-      // Simulate API call
-      setTimeout(() => {
-        console.log('Verifying code:', code, 'for email:', email);
+      try {
+        const response = await verifyEmail(email, code);
+        if (response.success) {
+          navigate('/payment');
+        }
+      } catch (error) {
+        console.error('Verification failed:', error);
+      } finally {
         setIsLoading(false);
-        // In real app: navigate('/dashboard') or redirect to success page
-        alert('Email verified successfully!');
-      }, 2000);
+      }
     } else {
       alert('Please enter the complete 6-digit verification code');
     }
   };
 
-  const handleResendOTP = () => {
-    console.log('Resending OTP to:', email);
-    setVerificationCode(['', '', '', '', '', '']);
-    alert('New verification code sent to ' + email);
-    // Focus first input after resend
-    setTimeout(() => {
-      const firstInput = document.querySelector('input[name="code-0"]') as HTMLInputElement;
-      if (firstInput) {
-        firstInput.focus();
+  const handleResendOTP = async () => {
+    try {
+      const response = await resendVerification(email);
+      if (response.success) {
+        setVerificationCode(['', '', '', '', '', '']);
+        alert('New verification code sent to ' + email);
+        setTimeout(() => {
+          const firstInput = document.querySelector('input[name="code-0"]') as HTMLInputElement;
+          if (firstInput) firstInput.focus();
+        }, 100);
       }
-    }, 100);
+    } catch (error) {
+      console.error('Failed to resend verification:', error);
+    }
   };
 
 

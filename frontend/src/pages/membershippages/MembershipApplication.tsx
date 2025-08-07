@@ -5,12 +5,20 @@ import ScrollToTop from "../../components/common/ScrollToTop";
 import IndividualForm from "./register/IndividualForm";
 import OrganizationForm from "./register/OrganizationForm";
 import { CountryOption, RegistrationFormData } from "../membershippages/types";
+import AlertModal from '../../components/common/AlertModal';
+import { registerUser } from '../../services/api';
 
 const Register = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"individual" | "organization">(
     "individual"
   );
+  const [alertModal, setAlertModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'error' as 'info' | 'success' | 'warning' | 'error'
+  });
 
   const [formData, setFormData] = useState<RegistrationFormData>({
     // Individual fields
@@ -59,20 +67,161 @@ const Register = () => {
     }
   };
 
-
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    console.log("Form submitted:", formData);
     
-    // In a real app, you would first submit the form data to your backend
-    // Then if successful, navigate to verification page
-    navigate('/verification', { 
-      state: { 
-        email: formData.emailAddress || formData.organizationEmail,
-        formData 
-      } 
+    try {
+      // Prepare data for API - different structure for individuals vs organizations
+      const userData = activeTab === "organization" ? {
+        // Organization registration data
+        username: formData.organizationEmail,
+        email: formData.organizationEmail,
+        password: formData.password,
+        confirm_password: formData.confirmPassword,
+        first_name: formData.contactPersonName, 
+        last_name: '', 
+        mobile_number: formData.organizationPhone,
+        physical_address: formData.organizationAddress,
+        country: formData.organizationCountry,
+        gender: '', 
+        age_bracket: '', 
+        membership_class: formData.membershipClass || 'corporate',
+        is_organization: true,
+        organization_name: formData.organizationName,
+        organization_type: formData.organizationType,
+        registration_number: formData.registrationNumber,
+        contact_person_title: formData.contactPersonTitle,
+        organization_phone: formData.organizationPhone,
+        organization_address: formData.organizationAddress,
+        website: formData.website,
+      } : {
+        // Individual registration data
+        username: formData.emailAddress,
+        email: formData.emailAddress,
+        password: formData.password,
+        confirm_password: formData.confirmPassword,
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        mobile_number: formData.mobileNumber,
+        physical_address: formData.physicalAddress,
+        country: formData.country,
+        gender: formData.gender,
+        age_bracket: formData.ageBracket,
+        membership_class: formData.membershipClass,
+        is_organization: false,
+        organization_name: '',
+        organization_type: '',
+        registration_number: '',
+        contact_person_title: '',
+        organization_phone: '',
+        organization_address: '',
+        website: '',
+      };
+  
+      // Email validation check
+      const validateEmail = (email: string) => {
+        return String(email)
+          .toLowerCase()
+          .match(
+            /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+          );
+      };
+
+      if (!validateEmail(userData.email)) {
+        setAlertModal({
+          isOpen: true,
+          title: 'Invalid Email',
+          message: 'Please enter a valid email address',
+          type: 'error'
+        });
+        return;
+      }
+
+      const response = await registerUser(userData);
+      
+      if (response.success) {
+        navigate('/verification', { 
+          state: { 
+            email: activeTab === "organization" 
+              ? formData.organizationEmail 
+              : formData.emailAddress,
+          } 
+        });
+      }
+    } catch (error: any) {
+      console.error('Registration failed:', error.response?.data || error);
+    
+    // First check if we have error data in the response
+    if (error.response?.data) {
+      const responseData = error.response.data;
+      
+      // Check if we have errors object with email/username conflicts
+      if (responseData.errors) {
+        const { errors } = responseData;
+        
+        // Check for email conflict specifically
+        if (errors.email) {
+          setAlertModal({
+            isOpen: true,
+            title: 'Email Already Registered',
+            message: 'The email address you entered is already registered. Please use a different email or login if you already have an account.',
+            type: 'error'
+          });
+          return;
+        }
+        
+        // Check for username conflict (which is also email in your case)
+        if (errors.username) {
+          setAlertModal({
+            isOpen: true,
+            title: 'Account Exists',
+            message: 'This email is already registered as a username. Please use a different email or login if you already have an account.',
+            type: 'error'
+          });
+          return;
+        }
+        
+        // Handle other validation errors if any
+        if (Object.keys(errors).length > 0) {
+          let errorMessage = 'Please correct the following issues:\n\n';
+          for (const [field, message] of Object.entries(errors)) {
+            const friendlyFieldName = field
+              .replace(/_/g, ' ')
+              .replace(/\b\w/g, l => l.toUpperCase());
+            errorMessage += `• ${friendlyFieldName}: ${message}\n\n`;
+          }
+          
+          setAlertModal({
+            isOpen: true,
+            title: 'Registration Issues',
+            message: errorMessage.trim(),
+            type: 'error'
+          });
+          return;
+        }
+      }
+      
+      // Handle case where we have a message but no errors object
+      if (responseData.message) {
+        setAlertModal({
+          isOpen: true,
+          title: 'Registration Error',
+          message: responseData.message,
+          type: 'error'
+        });
+        return;
+      }
+    }
+    
+    // Fallback for any other errors
+    setAlertModal({
+      isOpen: true,
+      title: 'Registration Error',
+      message: 'The email address you entered is already registered. Please use a different email or login if you already have an account.',
+      type: 'error'
     });
-  };
+  }
+};
 
   return (
     <div className="bg-white min-h-screen">
@@ -248,8 +397,17 @@ const Register = () => {
           </div>
         </div>
       </section>
-    </div>
-  );
+   
+    {/* Alert Modal*/}
+    <AlertModal
+      isOpen={alertModal.isOpen}
+      onClose={() => setAlertModal(prev => ({ ...prev, isOpen: false }))}
+      title={alertModal.title}
+      message={alertModal.message}
+      type={alertModal.type}
+    />
+  </div>
+);
 };
 
 export default Register;

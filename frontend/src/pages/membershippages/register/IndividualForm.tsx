@@ -40,8 +40,8 @@ const IndividualForm = ({
           >
             <option value="">Select Membership</option>
             {membershipClasses.map((cls) => (
-              <option key={cls} value={cls}>
-                {cls}
+              <option key={cls.value} value={cls.value}>
+                {cls.display}
               </option>
             ))}
           </select>

@@ -1,0 +1,72 @@
+from django.db import models
+from django.contrib.auth.models import AbstractUser
+from django.utils.translation import gettext_lazy as _
+from django.core.validators import MinLengthValidator
+import random
+import string
+
+
+class User(AbstractUser):
+    email = models.EmailField(_('email address'), unique=True, db_index=True)
+
+    MEMBERSHIP_CHOICES = [
+        ('full_professional', 'Full / Professional Member'),
+        ('associate', 'Associate Member'),
+        ('student', 'Trainee / Student Member'),
+        ('institutional', 'Institutional Member'),
+        ('affiliate', 'Affiliate Member'),
+        ('honorary', 'Honorary Member'),
+        ('corporate', 'Corporate / Partner Member'),
+        ('lifetime', 'Lifetime Member'),
+    ]
+
+    GENDER_CHOICES = [
+        ('male', 'Male'),
+        ('female', 'Female'),
+        ('other', 'Other'),
+        ('prefer_not_to_say', 'Prefer not to say'),
+    ]
+
+    # Common fields for all users
+    mobile_number = models.CharField(max_length=20)
+    physical_address = models.TextField()
+    country = models.CharField(max_length=100)
+    
+    gender = models.CharField(max_length=20, choices=GENDER_CHOICES, blank=True, null=True)
+    age_bracket = models.CharField(max_length=10, blank=True, null=True)
+    is_verified = models.BooleanField(default=False)
+
+    # Fields for individual members
+    membership_class = models.CharField(max_length=20, choices=MEMBERSHIP_CHOICES, blank=True, null=True)
+
+    # Fields for organizational members
+    is_organization = models.BooleanField(default=False)
+    organization_name = models.CharField(max_length=255, blank=True, null=True)
+    organization_type = models.CharField(max_length=100, blank=True, null=True)
+    registration_number = models.CharField(max_length=100, blank=True, null=True)
+    contact_person_title = models.CharField(max_length=100, blank=True, null=True)
+    organization_phone = models.CharField(max_length=20, blank=True, null=True)
+    organization_address = models.TextField(blank=True, null=True)
+    website = models.URLField(blank=True, null=True)
+
+    def __str__(self):
+        if self.is_organization:
+            return f"{self.organization_name} (Organization)"
+        return f"{self.get_full_name()} ({self.username})"
+
+
+class VerificationCode(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    code = models.CharField(max_length=6, validators=[MinLengthValidator(6)])
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_used = models.BooleanField(default=False)
+
+    @classmethod
+    def generate_code(cls):
+        return ''.join(random.choices(string.digits, k=6))
+
+    def __str__(self):
+        return f"Verification code for {self.user.email}"
+
+    class Meta:
+        ordering = ['-created_at']

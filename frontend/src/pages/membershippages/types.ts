@@ -5,6 +5,11 @@ export interface CountryOption {
   label: string;
 }
 
+export interface MembershipClass {
+  display: string;
+  value: string;
+}
+
 export const countryOptions: CountryOption[] = getNames()
   .sort()
   .map((country: string) => ({
@@ -39,12 +44,15 @@ export interface RegistrationFormData {
   termsAccepted: boolean;
 }
 
-export const membershipClasses = [
-  "Student Member",
-  "Regular Member",
-  "Senior Member",
-  "International Member",
-  "Honorary Member",
+export const membershipClasses: MembershipClass[] = [
+  { display: "Full / Professional Member", value: "full_professional" },
+  { display: "Associate Member", value: "associate" },
+  { display: "Trainee / Student Member", value: "student" },
+  { display: "Institutional Member", value: "institutional" },
+  { display: "Affiliate Member", value: "affiliate" },
+  { display: "Honorary Member", value: "honorary" },
+  { display: "Corporate / Partner Member", value: "corporate" },
+  { display: "Lifetime Member", value: "lifetime" },
 ];
 
 export const organizationTypes = [
