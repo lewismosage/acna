@@ -1,23 +1,29 @@
 import { ChangeEvent } from "react";
-import Select from 'react-select';
-import { 
-  CountryOption, 
-  RegistrationFormData, 
-  membershipClasses, 
-  ageBrackets, 
-  
-  countryOptions
-} from "../membershippages/types";
+import Select from "react-select";
+import {
+  CountryOption,
+  RegistrationFormData,
+  membershipClasses,
+  ageBrackets,
+  countryOptions,
+} from "../types";
 
 interface IndividualFormProps {
   formData: RegistrationFormData;
   handleInputChange: (
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => void;
-  handleCountryChange: (selected: CountryOption | null, field: 'country' | 'organizationCountry') => void;
+  handleCountryChange: (
+    selected: CountryOption | null,
+    field: "country" | "organizationCountry"
+  ) => void;
 }
 
-const IndividualForm = ({ formData, handleInputChange, handleCountryChange }: IndividualFormProps) => {
+const IndividualForm = ({
+  formData,
+  handleInputChange,
+  handleCountryChange,
+}: IndividualFormProps) => {
   return (
     <>
       <div className="grid md:grid-cols-3 gap-4">
@@ -114,9 +120,7 @@ const IndividualForm = ({ formData, handleInputChange, handleCountryChange }: In
             <option value="male">Male</option>
             <option value="female">Female</option>
             <option value="other">Other</option>
-            <option value="prefer-not-to-say">
-              Prefer not to say
-            </option>
+            <option value="prefer-not-to-say">Prefer not to say</option>
           </select>
         </div>
       </div>
@@ -143,7 +147,7 @@ const IndividualForm = ({ formData, handleInputChange, handleCountryChange }: In
           <Select<CountryOption>
             options={countryOptions}
             value={countryOptions.find((opt) => opt.value === formData.country)}
-            onChange={(selected) => handleCountryChange(selected, 'country')}
+            onChange={(selected) => handleCountryChange(selected, "country")}
             placeholder="Select Country"
             className="text-left basic-multi-select"
             classNamePrefix="select"

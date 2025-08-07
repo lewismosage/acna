@@ -60,7 +60,7 @@ const EventsTraining = () => {
       title: "E-Learning Platform",
       description: "Comprehensive online courses for continuous learning",
       imageUrl: "https://images.stockcake.com/public/8/6/b/86baedea-f70c-418d-9b87-590d2f1a998a_large/joyful-teaching-moment-stockcake.jpg",
-      details: "A wide range of self-paced, expert-led courses covering pediatric neurology, epilepsy, and neurodevelopmental disorders—tailored for African healthcare professionals with certification opportunities.",
+      details: "A wide range of self-paced, expert-led courses covering pediatric neurology, epilepsy, and neurodevelopmental disorders, tailored for African healthcare professionals with certification opportunities.",
       link: "/memberportal",
       buttonText: "Access E-Learning Portal"
     },

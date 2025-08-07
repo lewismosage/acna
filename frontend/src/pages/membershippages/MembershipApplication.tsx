@@ -1,16 +1,17 @@
 import { useState, ChangeEvent, FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import ScrollToTop from "../../components/common/ScrollToTop";
-import IndividualForm from "./IndividualForm";
-import OrganizationForm from "./OrganizationForm";
-import { 
-  CountryOption, 
-  RegistrationFormData, 
-} from "../membershippages/types";
+import IndividualForm from "./register/IndividualForm";
+import OrganizationForm from "./register/OrganizationForm";
+import { CountryOption, RegistrationFormData } from "../membershippages/types";
 
 const Register = () => {
-  const [activeTab, setActiveTab] = useState<"individual" | "organization">("individual");
-  
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<"individual" | "organization">(
+    "individual"
+  );
+
   const [formData, setFormData] = useState<RegistrationFormData>({
     // Individual fields
     membershipClass: "",
@@ -49,16 +50,28 @@ const Register = () => {
     }));
   };
 
-  const handleCountryChange = (selected: CountryOption | null, field: 'country' | 'organizationCountry') => {
+  const handleCountryChange = (
+    selected: CountryOption | null,
+    field: "country" | "organizationCountry"
+  ) => {
     if (selected) {
-      setFormData({...formData, [field]: selected.value});
+      setFormData({ ...formData, [field]: selected.value });
     }
   };
+
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     console.log("Form submitted:", formData);
-    // Handle form submission logic here
+    
+    // In a real app, you would first submit the form data to your backend
+    // Then if successful, navigate to verification page
+    navigate('/verification', { 
+      state: { 
+        email: formData.emailAddress || formData.organizationEmail,
+        formData 
+      } 
+    });
   };
 
   return (
@@ -170,14 +183,14 @@ const Register = () => {
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 {activeTab === "individual" ? (
-                  <IndividualForm 
-                    formData={formData} 
+                  <IndividualForm
+                    formData={formData}
                     handleInputChange={handleInputChange}
                     handleCountryChange={handleCountryChange}
                   />
                 ) : (
-                  <OrganizationForm 
-                    formData={formData} 
+                  <OrganizationForm
+                    formData={formData}
                     handleInputChange={handleInputChange}
                     handleCountryChange={handleCountryChange}
                   />
@@ -196,8 +209,8 @@ const Register = () => {
                   />
                   <label htmlFor="terms" className="text-sm text-gray-700">
                     I have read and agree to the ACNA{" "}
-                    <Link 
-                      to="/terms-and-conditions" 
+                    <Link
+                      to="/terms-and-conditions"
                       className="text-blue-600 hover:underline cursor-pointer"
                     >
                       Terms and Conditions

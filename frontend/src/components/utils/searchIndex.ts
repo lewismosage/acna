@@ -27,7 +27,7 @@ const searchIndex: SearchItem[] = [
   {
     title: "Advancing Child Neurology Across Africa",
     description: "Join the Africa Child Neurology Association and be part of a pan-African community",
-    url: "/#mission",
+    url: "/about",
     keywords: ["mission", "join", "community", "pan-african"],
     category: "about"
   },
@@ -50,14 +50,14 @@ const searchIndex: SearchItem[] = [
   {
     title: "Our Vision",
     description: "ACNA's vision for child neurology in Africa",
-    url: "/about#vision",
+    url: "/about#mission",
     keywords: ["vision", "future", "aspiration"],
     category: "about"
   },
   {
     title: "Our Structure",
     description: "Governance and leadership structure of ACNA",
-    url: "/about#structure",
+    url: "/about#leadership",
     keywords: ["structure", "governance", "leadership", "board"],
     category: "about"
   },
@@ -73,6 +73,13 @@ const searchIndex: SearchItem[] = [
     description: "Countries where ACNA operates",
     url: "/about#reach",
     keywords: ["countries", "regions", "africa", "coverage"],
+    category: "about"
+  },
+  {
+    title: "Annual Report",
+    description: "Resources that reflect impact, equity, and progress.",
+    url: "/faqs",
+    keywords: ["Impact Report", "Annual Report", "Impact in Focus", "reports"],
     category: "about"
   },
 
@@ -117,7 +124,7 @@ const searchIndex: SearchItem[] = [
   {
     title: "Active Research Projects",
     description: "Current research projects by ACNA",
-    url: "/research#projects",
+    url: "/research-papers-and-publications#active-research",
     keywords: ["projects", "current", "ongoing", "trials"],
     category: "research"
   },
@@ -151,50 +158,92 @@ const searchIndex: SearchItem[] = [
     keywords: ["events", "calendar", "schedule", "conferences"],
     category: "events"
   },
+  {
+    title: "Annual Conference and Meetings",
+    description: "Groundbreaking conferences and collaborative meetings",
+    url: "/annual-conference",
+    keywords: ["events", "calendar", "expert speakers", "acna annual Conference", "schedule", "conferences"],
+    category: "events"
+  },
+  {
+    title: "Call for Abstracts",
+    description: "Annual Conference",
+    url: "/call-for-abstracts",
+    keywords: ["events", "calendar", "abstract presentation", "abstract submission", "abstract categories"],
+    category: "events"
+  },
+  {
+    title: "Gallery",
+    description: "Moments from our conferences, training programs, community outreach, and the inspiring stories",
+    url: "/gallery",
+    keywords: ["events", "success Stories", "innovation", "community", "training", "media",  "conferences"],
+    category: "events"
+  },
 
   // Recognition & Awards
   {
     title: "Recognition & Awards",
     description: "ACNA's awards program for excellence in child neurology",
-    url: "/awards",
+    url: "/recogination-awards",
     keywords: ["awards", "recognition", "excellence", "achievement"],
     category: "awards"
   },
   {
     title: "Award Categories",
     description: "Different award categories offered by ACNA",
-    url: "/awards#categories",
+    url: "/awards",
     keywords: ["award types", "categories", "nominations"],
     category: "awards"
   },
 
   // Membership
   {
-    title: "Membership",
-    description: "Join or renew your ACNA membership",
-    url: "/membership",
-    keywords: ["join", "renew", "member", "membership", "register"],
+    title: "Membership FAQs",
+    description: "Answers to common questions about ACNA membership",
+    url: "/membership-faqs",
+    keywords: ["FAQs", "questions", "membership"],
     category: "membership"
   },
   {
     title: "Membership Categories",
     description: "Different types of ACNA membership",
-    url: "/membership#categories",
+    url: "/membership-categories",
     keywords: ["membership types", "categories", "professional", "student"],
     category: "membership"
   },
   {
     title: "Membership Benefits",
     description: "Benefits of ACNA membership",
-    url: "/membership#benefits",
-    keywords: ["benefits", "advantages", "perks", "resources"],
+    url: "/membership-categories",
+    keywords: ["benefits", "pricing", "advantages", "perks", "resources"],
     category: "membership"
   },
   {
     title: "Membership Application",
     description: "Apply for ACNA membership",
-    url: "/membership/application",
+    url: "/register",
     keywords: ["apply", "application", "join", "registration"],
+    category: "membership"
+  },
+  {
+    title: "Membeship Renewal",
+    description: "Continue your professional journey with ACNA",
+    url: "/membership-renewal",
+    keywords: ["apply", "renew", "payment", "application", "registration"],
+    category: "membership"
+  },
+  {
+    title: "Membeship Upgrade",
+    description: "Upgrade to a higher membership tier and unlock additional benefits and opportunities",
+    url: "/membership-upgrade",
+    keywords: ["apply", "renew", "application", "registration"],
+    category: "membership"
+  },
+  {
+    title: "Membeship Directory",
+    description: "African Healthcare Professionals Directory",
+    url: "/membership-directory",
+    keywords: ["join", "connect", "professionals", "directory", "registration"],
     category: "membership"
   },
 
@@ -261,6 +310,48 @@ const searchIndex: SearchItem[] = [
     keywords: ["videos", "education", "training", "tutorials"],
     category: "resources"
   },
+  {
+    title: "Member Portal",
+    description: "African Child Neurology Association - Member Portal",
+    url: "/memberportal",
+    keywords: ["profile", "forum", "account", "members directory", "e-learning", "login",],
+    category: "resources"
+  },
+  {
+    title: "Fact Sheets and Case Studies",
+    description: "Evidence-based educational Resources",
+    url: "/case-studies-and-fact-sheets",
+    keywords: ["educational resources", "education", "Case Studies", "Clinical Fact Sheets"],
+    category: "resources"
+  },
+  {
+    title: "Patient and Caregiver Resources",
+    description: "Comprehensive patient support",
+    url: "/patient-caregiver-resources",
+    keywords: ["practical resources", "Resources and Guides", "training", "Support Groups", "Emergency Support",],
+    category: "resources"
+  },
+  {
+    title: "Workshops and Symposiums",
+    description: "Advancing expertise in pediatric neurology through Workshops and Symposiums",
+    url: "/collaboration-opportunities",
+    keywords: ["videos", "education", "training", "collaboration", "opportunities", "tutorials"],
+    category: "resources"
+  },
+  {
+    title: "Journal Watch",
+    description: "Curated summaries of recent pediatric neurology research",
+    url: "/journal-watch",
+    keywords: ["journals", "education", "methodology", "findings", "neurological", "conditions", "summaries"],
+    category: "resources"
+  },
+  {
+    title: "ACNA Webinars",
+    description: "Live and recorded educational sessions on pediatric neurology topics",
+    url: "/webinars",
+    keywords: ["videos", "education", "training", "tutorials", "webinars", "live sessions"],
+    category: "resources"
+  },
 
   // Contact
   {
@@ -299,7 +390,14 @@ const searchIndex: SearchItem[] = [
     url: "/donor-privacy",
     keywords: ["donor", "privacy", "policy"],
     category: "legal"
-  }
+  },
+  {
+    title: "General Questions About ACNA",
+    description: "Frequently Asked Questions",
+    url: "/faqs",
+    keywords: ["jobs", "careers", "faqs", "employment", "membership", "opportunities"],
+    category: "careers"
+  },
 ];
 
 /**

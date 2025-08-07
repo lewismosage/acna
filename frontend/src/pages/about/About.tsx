@@ -107,7 +107,7 @@ const About = () => {
       </section>
 
       {/* Mission & Vision */}
-      <section className="py-20 bg-white">
+      <section id="mission" className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="lg:text-center mb-16">
             <h2 className="text-base font-semibold tracking-wide text-orange-600 uppercase">

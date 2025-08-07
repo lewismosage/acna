@@ -58,6 +58,8 @@ import ForumGuidelines from "./pages/membershippages/portal/forums/ForumGuidelin
 import ForumComponent from "./pages/membershippages/portal/forums/ForumThread";
 import ForumThread from "./pages/membershippages/portal/forums/ForumThread";
 import PostReply from "./pages/membershippages/portal/forums/PostReply";
+import VerificationPage from "./pages/membershippages/register/VerificationPage";
+import PaymentPage from "./pages/payment/PaymentPage";
 
 //Layout component that includes header and footer
 const Layout = ({ children }: { children: React.ReactNode }) => (
@@ -182,6 +184,9 @@ function App() {
           <Route path="/forum/:forumId" element={<ForumThread />} />
           <Route path="/forum/:forumId/post/:postId" element={<PostReply />} />
           <Route path="forum-guidelines" element={<ForumGuidelines />} />
+          {/* Payment Pages */}
+          <Route path="/verification" element={<VerificationPage />} />
+          <Route path="/payment" element={<PaymentPage />} />
         </Route>
       </Routes>
     </Router>

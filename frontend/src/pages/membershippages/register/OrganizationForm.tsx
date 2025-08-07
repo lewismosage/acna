@@ -1,21 +1,28 @@
 import { ChangeEvent } from "react";
-import Select from 'react-select';
-import { 
-  CountryOption, 
-  RegistrationFormData, 
+import Select from "react-select";
+import {
+  CountryOption,
+  RegistrationFormData,
   organizationTypes,
-  countryOptions
-} from "../membershippages/types";
+  countryOptions,
+} from "../types";
 
 interface OrganizationFormProps {
   formData: RegistrationFormData;
   handleInputChange: (
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => void;
-  handleCountryChange: (selected: CountryOption | null, field: 'country' | 'organizationCountry') => void;
+  handleCountryChange: (
+    selected: CountryOption | null,
+    field: "country" | "organizationCountry"
+  ) => void;
 }
 
-const OrganizationForm = ({ formData, handleInputChange, handleCountryChange }: OrganizationFormProps) => {
+const OrganizationForm = ({
+  formData,
+  handleInputChange,
+  handleCountryChange,
+}: OrganizationFormProps) => {
   return (
     <>
       <div className="grid md:grid-cols-2 gap-4">
@@ -166,15 +173,18 @@ const OrganizationForm = ({ formData, handleInputChange, handleCountryChange }: 
           </label>
           <Select<CountryOption>
             options={countryOptions}
-            value={countryOptions.find((opt) => opt.value === formData.organizationCountry)}
-            onChange={(selected) => handleCountryChange(selected, 'organizationCountry')}
+            value={countryOptions.find(
+              (opt) => opt.value === formData.organizationCountry
+            )}
+            onChange={(selected) =>
+              handleCountryChange(selected, "organizationCountry")
+            }
             placeholder="Select Country"
             className="text-left basic-multi-select"
             classNamePrefix="select"
             required
           />
         </div>
-        
       </div>
     </>
   );
