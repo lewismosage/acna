@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { CheckCircle, Download, ArrowRight, XCircle, Loader2 } from "lucide-react";
 import api from "../../services/api";
 import axios from "axios";
+import acnaLogo from "../../assets/ACNA.jpg";
 
 const PaymentSuccess = () => {
   const location = useLocation();
@@ -113,7 +114,11 @@ const PaymentSuccess = () => {
         <div className="bg-white rounded-xl shadow-md overflow-hidden">
           {/* Header */}
           <div className="bg-primary p-6 text-center">
-            <CheckCircle className="h-16 w-16 text-grey mx-auto mb-4" />
+            <img 
+              src={acnaLogo} 
+              alt="ACNA Logo" 
+              className="h-16 w-16 mx-auto mb-4"
+            />
             <h1 className="text-3xl font-bold text-grey mb-2">
               Payment Successful!
             </h1>
@@ -203,10 +208,10 @@ const PaymentSuccess = () => {
             {/* Actions */}
             <div className="mt-8 flex flex-col sm:flex-row gap-4">
               <button
-                onClick={() => navigate("/member-dashboard")}
+                onClick={() => navigate("/memberportal")}
                 className="flex-1 bg-white border border-gray-300 hover:bg-gray-50 text-gray-800 px-6 py-3 rounded-lg font-medium transition-colors"
               >
-                Go to Dashboard
+                Member Portal
               </button>
               <button
                 onClick={() => navigate("/")}
@@ -215,41 +220,6 @@ const PaymentSuccess = () => {
                 Back to Home
               </button>
             </div>
-          </div>
-        </div>
-
-        {/* Additional Resources */}
-        <div className="mt-8 bg-white rounded-xl shadow-md overflow-hidden">
-          <div className="p-6 md:p-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">
-              Next Steps
-            </h2>
-            <ul className="space-y-3">
-              <li className="flex items-start gap-3">
-                <div className="flex-shrink-0 h-6 w-6 text-primary">
-                  <CheckCircle className="h-full w-full" />
-                </div>
-                <span>
-                  Access member-exclusive resources in your dashboard
-                </span>
-              </li>
-              <li className="flex items-start gap-3">
-                <div className="flex-shrink-0 h-6 w-6 text-primary">
-                  <CheckCircle className="h-full w-full" />
-                </div>
-                <span>
-                  Check your email for membership confirmation and benefits guide
-                </span>
-              </li>
-              <li className="flex items-start gap-3">
-                <div className="flex-shrink-0 h-6 w-6 text-primary">
-                  <CheckCircle className="h-full w-full" />
-                </div>
-                <span>
-                  Connect with our community through member forums and events
-                </span>
-              </li>
-            </ul>
           </div>
         </div>
       </div>
