@@ -1,12 +1,11 @@
 // Payment.tsx
 import { loadStripe } from "@stripe/stripe-js";
-import { Elements, useStripe, useElements } from "@stripe/react-stripe-js";
+import { Elements, useStripe, useElements, CardElement } from "@stripe/react-stripe-js";
 import { useState, useEffect } from "react";
 import { CheckCircle, XCircle, ArrowLeft } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import { membershipCategories } from "../membershippages/types";
-
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY!);
 
@@ -91,11 +90,16 @@ const PaymentForm = ({ onBack, onSuccess }: PaymentProps) => {
         return_url: `${window.location.origin}/payment-success`,
         receipt_email: location.state?.email,
       },
+      redirect: 'if_required',
     });
 
     if (stripeError) {
       setError(stripeError.message || "Payment failed");
       setLoading(false);
+    } else {
+      setSuccess(true);
+      setLoading(false);
+      onSuccess?.();
     }
   };
 
@@ -160,59 +164,82 @@ const PaymentForm = ({ onBack, onSuccess }: PaymentProps) => {
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
-      <div className="bg-white rounded-xl shadow-md overflow-hidden">
-        <div className="p-8">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">
+    <div className="max-w-6xl mx-auto p-6">
+      <div className="flex flex-col md:flex-row gap-8">
+        {/* Checkout Form - Main Content */}
+        <div className="md:w-2/3">
+          <div className="bg-white rounded-xl shadow-md overflow-hidden p-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-6">Payment Details</h2>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="border border-gray-300 rounded-lg p-4 bg-gray-50">
+                <CardElement
+                  options={{
+                    style: {
+                      base: {
+                        fontSize: '16px',
+                        color: '#424770',
+                        fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
+                        '::placeholder': {
+                          color: '#aab7c4',
+                        },
+                        padding: '10px 12px',
+                      },
+                      invalid: {
+                        color: '#fa755a',
+                        iconColor: '#fa755a',
+                      },
+                    },
+                    hidePostalCode: true,
+                  }}
+                  className="p-2"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={!stripe || loading}
+                className={`w-full py-3 px-6 rounded-lg font-bold text-white transition-colors ${
+                  loading
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-primary hover:bg-primary-dark"
+                }`}
+              >
+                {loading ? "Processing..." : `Pay ${selectedCategory.fee}`}
+              </button>
+            </form>
+          </div>
+        </div>
+
+        {/* Order Summary - Sidebar */}
+        <div className="md:w-1/3">
+          <div className="bg-white rounded-xl shadow-md overflow-hidden p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Order Summary</h2>
+            
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-gray-900">
                 {selectedCategory.title} Membership
-              </h2>
+              </h3>
               <p className="text-gray-600">Annual Payment</p>
+              <div className="text-2xl font-bold text-blue-600 my-2">
+                {selectedCategory.fee}
+              </div>
             </div>
-            <span className="bg-blue-100 text-blue-800 px-4 py-2 rounded-full text-lg font-bold">
-              {selectedCategory.fee}
-            </span>
-          </div>
 
-          <div className="mb-8">
-            <h3 className="text-lg font-semibold mb-4">Payment Method</h3>
-            <div className="border rounded-lg p-4">
-              {/* Stripe Elements will be injected here */}
-              <div className="my-4" id="card-element" />
+            <div className="border-t border-gray-200 pt-4">
+              <h3 className="text-lg font-semibold mb-2">Membership Includes</h3>
+              <ul className="space-y-2">
+                {selectedCategory.benefits.map((benefit, index) => (
+                  <li key={index} className="flex items-start">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+                    <span className="text-gray-700">{benefit}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
+
+            <p className="text-xs text-gray-500 mt-6">
+              By completing your payment, you agree to ACNA's Terms of Service and Privacy Policy.
+            </p>
           </div>
-
-          <div className="mb-8">
-            <h3 className="text-lg font-semibold mb-2">Membership Benefits</h3>
-            <ul className="space-y-2">
-              {selectedCategory.benefits.map((benefit, index) => (
-                <li key={index} className="flex items-start">
-                  <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-                  <span className="text-gray-700">{benefit}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <form onSubmit={handleSubmit}>
-            <button
-              type="submit"
-              disabled={!stripe || loading}
-              className={`w-full py-3 px-6 rounded-lg font-bold text-white transition-colors ${
-                loading
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-primary hover:bg-primary-dark"
-              }`}
-            >
-              {loading ? "Processing..." : `Pay ${selectedCategory.fee}`}
-            </button>
-          </form>
-
-          <p className="text-sm text-gray-500 mt-4">
-            By completing your payment, you agree to ACNA's Terms of Service and
-            Privacy Policy.
-          </p>
         </div>
       </div>
     </div>
