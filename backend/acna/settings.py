@@ -20,6 +20,7 @@ DEBUG = True
 # CORS Settings
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
+    "https://checkout.stripe.com",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -160,5 +161,6 @@ COMPANY_NAME = os.getenv('COMPANY_NAME', 'ACNA')
 STRIPE_PUBLISHABLE_KEY = os.getenv('STRIPE_PUBLISHABLE_KEY')
 STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
 STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET')
+FRONTEND_URL = "http://localhost:5173"
 
 AUTH_USER_MODEL = 'users.User'

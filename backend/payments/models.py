@@ -5,7 +5,7 @@ class Payment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     currency = models.CharField(max_length=3, default='USD')
-    stripe_payment_intent_id = models.CharField(max_length=100)
+    stripe_checkout_session_id = models.CharField(max_length=255)
     status = models.CharField(max_length=20, default='pending', choices=[
         ('pending', 'Pending'),
         ('succeeded', 'Succeeded'),
