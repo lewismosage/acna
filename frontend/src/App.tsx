@@ -60,6 +60,8 @@ import ForumThread from "./pages/membershippages/portal/forums/ForumThread";
 import PostReply from "./pages/membershippages/portal/forums/PostReply";
 import VerificationPage from "./pages/membershippages/register/VerificationPage";
 import PaymentPage from "./pages/payment/PaymentPage";
+import PaymentSuccess from "./pages/payment/payment-success";
+import PaymentCanceled from "./pages/payment/PaymentCanceled";
 
 //Layout component that includes header and footer
 const Layout = ({ children }: { children: React.ReactNode }) => (
@@ -187,6 +189,8 @@ function App() {
           {/* Payment Pages */}
           <Route path="/verification" element={<VerificationPage />} />
           <Route path="/payment" element={<PaymentPage />} />
+          <Route path="/payment-success" element={<PaymentSuccess />} />
+          <Route path="/payment-canceled" element={<PaymentCanceled />} />
         </Route>
       </Routes>
     </Router>

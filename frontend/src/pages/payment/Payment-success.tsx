@@ -113,11 +113,11 @@ const PaymentSuccess = () => {
         <div className="bg-white rounded-xl shadow-md overflow-hidden">
           {/* Header */}
           <div className="bg-primary p-6 text-center">
-            <CheckCircle className="h-16 w-16 text-white mx-auto mb-4" />
-            <h1 className="text-3xl font-bold text-white mb-2">
+            <CheckCircle className="h-16 w-16 text-grey mx-auto mb-4" />
+            <h1 className="text-3xl font-bold text-grey mb-2">
               Payment Successful!
             </h1>
-            <p className="text-white/90">
+            <p className="text-grey/90">
               Thank you for becoming an ACNA member
             </p>
           </div>
@@ -204,10 +204,9 @@ const PaymentSuccess = () => {
             <div className="mt-8 flex flex-col sm:flex-row gap-4">
               <button
                 onClick={() => navigate("/member-dashboard")}
-                className="flex-1 bg-primary hover:bg-primary-dark text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                className="flex-1 bg-white border border-gray-300 hover:bg-gray-50 text-gray-800 px-6 py-3 rounded-lg font-medium transition-colors"
               >
                 Go to Dashboard
-                <ArrowRight className="h-5 w-5" />
               </button>
               <button
                 onClick={() => navigate("/")}
