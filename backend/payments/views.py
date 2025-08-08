@@ -1,5 +1,6 @@
 # payments/views.py
 import stripe
+import os
 from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -14,7 +15,7 @@ from io import BytesIO
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Table, TableStyle
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Table, TableStyle, Image
 from reportlab.lib import colors
 from django.http import HttpResponse
 from datetime import datetime
@@ -220,7 +221,7 @@ class DownloadInvoice(APIView):
         # logo at the top
         logo_path = os.path.join(settings.BASE_DIR, 'static', 'images', 'ACNA.jpg')
         if os.path.exists(logo_path):
-            logo = Image(logo_path, width=200, height=50)
+            logo = Image(logo_path, width=100, height=100)
             elements.append(logo)
             elements.append(Paragraph("<br/>", normal_style))
         
