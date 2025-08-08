@@ -21,3 +21,27 @@ html, body {
 .select__menu {
   z-index: 10;
 }
+
+/* styles/globals.css */
+.StripeElement {
+  box-sizing: border-box;
+  height: 40px;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background-color: white;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.StripeElement--focus {
+  box-shadow: 0 1px 3px 0 rgba(66, 153, 225, 0.5);
+  border-color: #4299e1;
+}
+
+.StripeElement--invalid {
+  border-color: #f56565;
+}
+
+.StripeElement--webkit-autofill {
+  background-color: #fefde5 !important;
+}
