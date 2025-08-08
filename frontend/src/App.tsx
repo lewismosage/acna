@@ -62,6 +62,7 @@ import VerificationPage from "./pages/membershippages/register/VerificationPage"
 import PaymentPage from "./pages/payment/PaymentPage";
 import PaymentSuccess from "./pages/payment/payment-success";
 import PaymentCanceled from "./pages/payment/PaymentCanceled";
+import PaymentError from "./pages/payment/PaymentError";
 
 //Layout component that includes header and footer
 const Layout = ({ children }: { children: React.ReactNode }) => (
@@ -191,6 +192,7 @@ function App() {
           <Route path="/payment" element={<PaymentPage />} />
           <Route path="/payment-success" element={<PaymentSuccess />} />
           <Route path="/payment-canceled" element={<PaymentCanceled />} />
+          <Route path="/payment-error" element={<PaymentError />} />
         </Route>
       </Routes>
     </Router>

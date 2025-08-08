@@ -217,12 +217,19 @@ class DownloadInvoice(APIView):
         # Invoice content
         elements = []
         
+        # logo at the top
+        logo_path = os.path.join(settings.BASE_DIR, 'static', 'images', 'ACNA.jpg')
+        if os.path.exists(logo_path):
+            logo = Image(logo_path, width=200, height=50)
+            elements.append(logo)
+            elements.append(Paragraph("<br/>", normal_style))
+        
         # Header
         elements.append(Paragraph("ACNA Membership Invoice", title_style))
         elements.append(Paragraph(f"Invoice #: {session.payment_intent}", heading_style))
         elements.append(Paragraph(f"Date: {datetime.now().strftime('%B %d, %Y')}", normal_style))
         elements.append(Paragraph("<br/><br/>", normal_style))
-        
+            
         # Customer Info
         customer_info = [
             ["Bill To:", ""],
@@ -230,7 +237,7 @@ class DownloadInvoice(APIView):
             [payment.user.email, ""],
             ["", ""],
         ]
-        
+            
         customer_table = Table(customer_info, colWidths=[300, 200])
         elements.append(customer_table)
         elements.append(Paragraph("<br/><br/>", normal_style))
@@ -278,13 +285,6 @@ class DownloadInvoice(APIView):
         doc.build(elements)
         buffer.seek(0)
         return buffer
-
-        # Add logo at the top
-        logo_path = os.path.join(settings.BASE_DIR, 'static', 'images', 'logo.png')
-        if os.path.exists(logo_path):
-            logo = Image(logo_path, width=200, height=50)
-            elements.insert(0, logo)
-            elements.insert(1, Paragraph("<br/>", normal_style))
 
     def get(self, request):
         session_id = request.query_params.get('session_id')

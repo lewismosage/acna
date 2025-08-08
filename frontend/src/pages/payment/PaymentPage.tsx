@@ -1,12 +1,11 @@
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, useStripe, useElements } from "@stripe/react-stripe-js";
 import { useState, useEffect } from "react";
-import { CheckCircle, XCircle, ArrowLeft } from "lucide-react";
+import { CheckCircle, XCircle, ArrowLeft, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import axios from "axios";
 
-// Move stripePromise outside the component
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY!, {
   locale: "en",
 });
@@ -19,14 +18,12 @@ interface PaymentProps {
 const PaymentForm = ({ onBack, onSuccess }: PaymentProps) => {
   const stripe = useStripe();
   const navigate = useNavigate();
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const initiateCheckout = async () => {
       if (!stripe) {
-        setError("Payment system not ready. Please refresh the page.");
-        setLoading(false);
+        // Instead of showing error, just keep showing loading state
         return;
       }
 
@@ -34,10 +31,6 @@ const PaymentForm = ({ onBack, onSuccess }: PaymentProps) => {
         const response = await api.post("/payments/create-checkout-session/", {
           membership_type: "student" 
         });
-
-        if (response.data?.error) {
-          throw new Error(response.data.error);
-        }
 
         if (!response.data?.sessionId) {
           throw new Error("Payment session could not be created");
@@ -48,69 +41,44 @@ const PaymentForm = ({ onBack, onSuccess }: PaymentProps) => {
         });
 
         if (stripeError) {
-          throw stripeError;
+          // Redirect to a proper error page instead
+          navigate("/payment-error", { state: { error: stripeError.message } });
         }
       } catch (err) {
         setLoading(false);
-        setError(
-          err instanceof Error ? err.message : "Payment initialization failed"
-        );
-        console.error("Payment error:", err);
+        // Redirect to error page instead of showing inline error
+        navigate("/payment-error", { 
+          state: { 
+            error: err instanceof Error ? err.message : "Payment initialization failed" 
+          } 
+        });
       }
     };
 
     initiateCheckout();
-  }, [stripe]);
+  }, [stripe, navigate]);
 
-
-  if (loading) {
-    return (
-      <div className="text-center p-8">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+  // Only show loading state - errors will redirect
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center p-8 max-w-md">
+        <Loader2 className="h-12 w-12 text-primary animate-spin mx-auto mb-4" />
         <h3 className="text-2xl font-bold text-gray-900 mb-2">
-          Initializing Payment System...
+          {loading ? "Preparing Secure Checkout..." : "Completing Payment..."}
         </h3>
         <p className="text-gray-600 mb-6">
           Please wait while we connect to our payment processor.
         </p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="max-w-md mx-auto p-6 text-center">
-        <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-        <h3 className="text-2xl font-bold text-gray-900 mb-2">Payment Error</h3>
-        <p className="text-gray-600 mb-6">{error}</p>
-        <div className="flex gap-4 justify-center">
+        {!loading && (
           <button
             onClick={onBack}
-            className="bg-gray-200 text-gray-800 px-6 py-3 rounded-lg font-medium hover:bg-gray-300 transition-colors"
+            className="mt-4 bg-gray-200 text-gray-800 px-6 py-3 rounded-lg font-medium hover:bg-gray-300 transition-colors"
           >
             <ArrowLeft className="inline mr-2" />
-            Back
+            Return to Previous Page
           </button>
-          <button
-            onClick={() => window.location.reload()}
-            className="bg-primary text-white px-6 py-3 rounded-lg font-medium hover:bg-primary-dark transition-colors"
-          >
-            Try Again
-          </button>
-        </div>
+        )}
       </div>
-    );
-  }
-
-  return (
-    <div className="text-center p-8">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-      <h3 className="text-2xl font-bold text-gray-900 mb-2">
-        Redirecting to Secure Checkout...
-      </h3>
-      <p className="text-gray-600 mb-6">
-        Please wait while we prepare your payment details.
-      </p>
     </div>
   );
 };
