@@ -1,27 +1,36 @@
+// api.ts
 import axios from 'axios';
 
+// Create the axios instance first
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, 
+  withCredentials: true,
 });
 
-api.interceptors.response.use(
-  response => response,
-  error => {
-    console.error('API Error:', {
-      url: error.config.url,
-      status: error.response?.status,
-      data: error.response?.data,
-      headers: error.config.headers
-    });
-    return Promise.reject(error);
+// Add request interceptor to include token
+api.interceptors.request.use((config) => {
+  // Skip adding Authorization header for registration and other unauthenticated endpoints
+  if (config.url && (
+    config.url.includes('/users/register/') || 
+    config.url.includes('/users/verify-email/') ||
+    config.url.includes('/users/resend-verification/')
+  )) {
+    return config;
   }
-);
 
-// User API
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+}, (error) => {
+  return Promise.reject(error);
+});
+
+// Export API functions
 export const registerUser = async (userData: any) => {
   try {
     const response = await api.post('/users/register/', userData);
@@ -34,9 +43,8 @@ export const registerUser = async (userData: any) => {
 export const verifyEmail = async (data: { email: string; code: string }) => {
   try {
     const response = await api.post('/users/verify-email/', data);
-    // Ensure token is stored if returned
     if (response.data.token) {
-      localStorage.setItem('token', response.data.token); 
+      localStorage.setItem('token', response.data.token);
     }
     return response.data;
   } catch (error: any) {

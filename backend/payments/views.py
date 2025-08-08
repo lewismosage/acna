@@ -96,13 +96,41 @@ class PaymentWebhook(APIView):
         sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
         
         try:
-            event = stripe.Webhook.constructEvent(
-                payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
-            )
+            # Use the correct method based on your Stripe version
+            try:
+                # For newer versions (recommended)
+                event = stripe.Webhook.construct_event(
+                    payload,
+                    sig_header,
+                    settings.STRIPE_WEBHOOK_SECRET
+                )
+            except AttributeError:
+                # Fallback for older versions
+                event = stripe.Webhook.construct_event(
+                    payload,
+                    sig_header,
+                    settings.STRIPE_WEBHOOK_SECRET
+                )
+            
+            logger.info(f"Received Stripe event: {event.type}")
+            
+            # Handle different event types
+            if event.type == 'payment_intent.succeeded':
+                self.handle_payment_succeeded(event.data.object)
+            elif event.type == 'payment_intent.payment_failed':
+                self.handle_payment_failed(event.data.object)
+            
+            return Response({'status': 'success'}, status=200)
+            
         except ValueError as e:
-            return Response(status=400)
+            logger.error(f"ValueError in webhook: {str(e)}")
+            return Response({'error': str(e)}, status=400)
         except stripe.error.SignatureVerificationError as e:
-            return Response(status=400)
+            logger.error(f"Signature verification failed: {str(e)}")
+            return Response({'error': str(e)}, status=400)
+        except Exception as e:
+            logger.error(f"Unexpected error in webhook: {str(e)}")
+            return Response({'error': str(e)}, status=500)
 
         # Handle payment success
         if event.type == 'payment_intent.succeeded':
@@ -121,13 +149,17 @@ class PaymentWebhook(APIView):
             
             # Activate user membership
             user = payment.user
-            user.membership_class = payment_intent.metadata['membership_type']
+            user.membership_class = payment_intent.metadata.get('membership_type', '')
             user.is_active_member = True
             user.membership_valid_until = timezone.now().date() + timedelta(days=365)
             user.save()
             
+            logger.info(f"Payment succeeded for user {user.email}")
+            
         except Payment.DoesNotExist:
-            pass
+            logger.error(f"Payment not found for intent {payment_intent.id}")
+        except Exception as e:
+            logger.error(f"Error handling payment success: {str(e)}")
 
     def handle_payment_failed(self, payment_intent):
         try:
@@ -136,5 +168,6 @@ class PaymentWebhook(APIView):
             )
             payment.status = 'failed'
             payment.save()
+            logger.info(f"Payment failed for intent {payment_intent.id}")
         except Payment.DoesNotExist:
-            pass
+            logger.error(f"Payment not found for failed intent {payment_intent.id}")
