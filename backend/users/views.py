@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from django.contrib.auth import get_user_model
 from .models import VerificationCode
+from rest_framework_simplejwt.tokens import RefreshToken
 from .serializers import (
     UserRegistrationSerializer,
     VerificationSerializer,
@@ -78,8 +79,10 @@ class VerifyEmailView(APIView):
                     verification_code.is_used = True
                     verification_code.save()
                     
+                    refresh = RefreshToken.for_user(user)
                     return Response({
                         'success': True,
+                        'token': str(refresh.access_token),
                         'message': 'Email verified successfully.'
                     }, status=status.HTTP_200_OK)
                 

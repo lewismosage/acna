@@ -2,12 +2,17 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils.translation import gettext_lazy as _
 from django.core.validators import MinLengthValidator
+from django.utils import timezone
+from datetime import timedelta
 import random
 import string
 
 
 class User(AbstractUser):
     email = models.EmailField(_('email address'), unique=True, db_index=True)
+    membership_class = models.CharField(max_length=50, blank=True)
+    is_active_member = models.BooleanField(default=False)
+    membership_valid_until = models.DateField(null=True, blank=True)
 
     MEMBERSHIP_CHOICES = [
         ('full_professional', 'Full / Professional Member'),
@@ -53,6 +58,13 @@ class User(AbstractUser):
         if self.is_organization:
             return f"{self.organization_name} (Organization)"
         return f"{self.get_full_name()} ({self.username})"
+    
+    @property
+    def is_membership_active(self):
+        """Check if membership is currently valid"""
+        if self.membership_valid_until:
+            return self.is_active_member and timezone.now().date() <= self.membership_valid_until
+        return False
 
 
 class VerificationCode(models.Model):

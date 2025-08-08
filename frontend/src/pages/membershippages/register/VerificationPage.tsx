@@ -78,6 +78,9 @@ const VerificationPage = () => {
         });
         setTimeout(() => navigate('/payment'), 2000);
       }
+      if (response.token) {
+        localStorage.setItem('token', response.token);
+      }
     } catch (error: any) {
       console.error('Verification failed:', error);
       setAlertModal({

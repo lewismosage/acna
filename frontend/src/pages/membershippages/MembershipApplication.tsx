@@ -2,6 +2,7 @@ import { useState, ChangeEvent, FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import ScrollToTop from "../../components/common/ScrollToTop";
+import LoadingSpinner from "../../components/common/LoadingSpinner";
 import IndividualForm from "./register/IndividualForm";
 import OrganizationForm from "./register/OrganizationForm";
 import { CountryOption, RegistrationFormData } from "../membershippages/types";
@@ -10,6 +11,7 @@ import { registerUser } from '../../services/api';
 
 const Register = () => {
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"individual" | "organization">(
     "individual"
   );
@@ -69,6 +71,7 @@ const Register = () => {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     
     try {
       // Prepare data for API - different structure for individuals vs organizations
@@ -148,6 +151,7 @@ const Register = () => {
           } 
         });
       }
+      setIsLoading(false);
     } catch (error: any) {
       console.error('Registration failed:', error.response?.data || error);
     
@@ -220,6 +224,7 @@ const Register = () => {
       message: 'The email address you entered is already registered. Please use a different email or login if you already have an account.',
       type: 'error'
     });
+    setIsLoading(false);
   }
 };
 
@@ -370,9 +375,10 @@ const Register = () => {
                 {/* Submit Button */}
                 <button
                   type="submit"
-                  className="w-full bg-yellow-500 hover:bg-green-600 text-black font-bold py-3 px-6 rounded-md transition-colors duration-300"
+                  className="w-full bg-yellow-500 hover:bg-green-600 text-black font-bold py-3 px-6 rounded-md transition-colors duration-300 flex justify-center items-center"
+                  disabled={isLoading}
                 >
-                  SIGNUP & PAY
+                  {isLoading ? <LoadingSpinner /> : "SIGNUP & PAY"}
                 </button>
 
                 {/* Sign In Link */}
