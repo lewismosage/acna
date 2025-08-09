@@ -13,5 +13,4 @@ urlpatterns = [
     path('webhook/', PaymentWebhook.as_view(), name='payment_webhook'),
     path('verify-payment/', VerifyPayment.as_view()),
     path('download-invoice/', DownloadInvoice.as_view()),
-    path('webhook/', PaymentWebhook.as_view()),
 ]

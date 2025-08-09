@@ -143,10 +143,11 @@ class PaymentWebhook(APIView):
     def handle_checkout_session_completed(self, session):
         try:
             # Get payment by session ID
+            logger.info(f"Looking up payment for session: {session.id}")
             payment = Payment.objects.get(
                 stripe_checkout_session_id=session.id
             )
-            
+            logger.info(f"Found payment: {payment.id} for user: {payment.user.id}")
             user = payment.user
             
             # Determine if this is actually a renewal
@@ -199,6 +200,9 @@ class PaymentWebhook(APIView):
         
         from_email = settings.DEFAULT_FROM_EMAIL
         to = [user.email]
+
+        valid_until = user.membership_valid_until
+        formatted_date = valid_until.strftime('%B %d, %Y') if valid_until else "N/A"
         
         context = {
             'user': user,
