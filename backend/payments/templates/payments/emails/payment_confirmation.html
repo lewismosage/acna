@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Payment Confirmation</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #f8f9fa; padding: 20px; text-align: center; }
+        .content { padding: 20px; }
+        .details { 
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+        }
+        .detail-item { margin-bottom: 10px; }
+        .footer { 
+            margin-top: 20px; 
+            padding-top: 20px; 
+            border-top: 1px solid #eee; 
+            text-align: center;
+            font-size: 12px;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+  <div class="container">
+      <div class="header">
+          <h2>{{ company_name }} - {{ subject }}</h2>
+      </div>
+      
+      <div class="content">
+          <p>Dear {% if user.get_full_name %}{{ user.get_full_name }}{% else %}{{ user.username }}{% endif %},</p>
+          
+          <p>{{ action_phrase }}</p>
+          
+          <div class="details">
+              <div class="detail-item"><strong>Membership ID:</strong> {{ user.membership_id }}</div>
+              <div class="detail-item"><strong>Membership Type:</strong> {{ payment.membership_type }}</div>
+              {% if payment.payment_type != 'initial' %}
+              <div class="detail-item"><strong>Payment Type:</strong> {{ payment_type }}</div>
+              {% endif %}
+              <div class="detail-item"><strong>Valid Until:</strong> {{ membership_valid_until }}</div>
+          </div>
+          
+          <p>You can now enjoy all the benefits of your ACNA membership.</p>
+          
+          {% if payment.payment_type == 'initial' %}
+          <p>As a new member, we recommend exploring our member portal to make the most of your membership benefits.</p>
+          {% elif payment.payment_type == 'upgrade' %}
+          <p>With your upgraded membership, you now have access to additional benefits and resources.</p>
+          {% endif %}
+          
+          <p>If you have any questions, please contact our support team.</p>
+      </div>
+      
+      <div class="footer">
+          <p>&copy; {% now "Y" %} {{ company_name }}. All rights reserved.</p>
+      </div>
+  </div>
+</body>
+</html>

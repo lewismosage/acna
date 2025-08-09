@@ -4,6 +4,10 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { verifyEmail, resendVerification } from '../../../services/api';
 import AlertModal from '../../../components/common/AlertModal';
 
+interface PaymentNavigationState {
+  paymentType: 'initial' | 'renewal' | 'upgrade';
+}
+
 const VerificationPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -65,7 +69,7 @@ const VerificationPage = () => {
       });
       return;
     }
-  
+
     setIsLoading(true);
     try {
       const response = await verifyEmail({ email, code });
@@ -76,7 +80,12 @@ const VerificationPage = () => {
           message: 'Your email has been verified successfully!',
           type: 'success'
         });
-        setTimeout(() => navigate('/payment'), 2000);
+        
+        setTimeout(() => navigate('/payment', { 
+          state: { 
+            paymentType: 'initial' 
+          } 
+        }), 2000);
       }
       if (response.token) {
         localStorage.setItem('token', response.token);

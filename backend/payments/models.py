@@ -16,5 +16,17 @@ class Payment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    PAYMENT_TYPES = [
+        ('initial', 'Initial Payment'),
+        ('renewal', 'Membership Renewal'),
+        ('upgrade', 'Membership Upgrade'),
+    ]
+    
+    payment_type = models.CharField(
+        max_length=10,
+        choices=PAYMENT_TYPES,
+        default='initial'
+    )
+
     def __str__(self):
-        return f"{self.user.email} - {self.amount} {self.currency}"
+        return f"{self.user.email} - {self.amount} {self.currency}"    

@@ -11,6 +11,7 @@ import string
 class User(AbstractUser):
     email = models.EmailField(_('email address'), unique=True, db_index=True)
     membership_class = models.CharField(max_length=50, blank=True)
+    membership_id = models.CharField(max_length=20, blank=True, null=True, unique=True)
     is_active_member = models.BooleanField(default=False)
     membership_valid_until = models.DateField(null=True, blank=True)
 
