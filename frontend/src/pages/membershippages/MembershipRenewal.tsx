@@ -1,31 +1,27 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Payment } from '../payment/PaymentPage'; 
+import api from '../../services/api';
+import AlertModal from '../../components/common/AlertModal';
 
 interface MembershipRecord {
   id: string;
+  membershipId: string;
   firstName: string;
   lastName: string;
   email: string;
   phone: string;
   membershipType: string;
+  membershipClass: string;
   membershipStatus: 'Active' | 'Expired' | 'Expiring Soon';
   expiryDate: string;
   joinDate: string;
-  renewalFee: string;
-}
-
-interface OrganizationMembershipRecord {
-  id: string;
-  organizationName: string;
-  organizationEmail: string;
-  organizationPhone: string;
-  membershipType: string;
-  membershipStatus: 'Active' | 'Expired' | 'Expiring Soon';
-  expiryDate: string;
-  joinDate: string;
-  renewalFee: string;
+  renewalFee: number;
+  isOrganization: boolean;
 }
 
 const MembershipRenew = () => {
+  const navigate = useNavigate();
   const [searchData, setSearchData] = useState({
     firstName: '',
     lastName: '',
@@ -40,9 +36,17 @@ const MembershipRenew = () => {
   });
 
   const [isOrganization, setIsOrganization] = useState(false);
-  const [membershipRecord, setMembershipRecord] = useState<MembershipRecord | OrganizationMembershipRecord | null>(null);
+  const [membershipRecord, setMembershipRecord] = useState<MembershipRecord | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState('');
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [alertModal, setAlertModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'error' as 'info' | 'success' | 'warning' | 'error'
+  });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -64,54 +68,118 @@ const MembershipRenew = () => {
     e.preventDefault();
     setIsSearching(true);
     setSearchError('');
-
-    // Simulate API call delay
-    setTimeout(() => {
-      if (isOrganization) {
-        // Mock organization membership record
-        if (organizationSearchData.organizationName && organizationSearchData.organizationEmail) {
-          const mockRecord: OrganizationMembershipRecord = {
-            id: 'ACNA-ORG-2024-00567',
-            organizationName: organizationSearchData.organizationName,
-            organizationEmail: organizationSearchData.organizationEmail,
-            organizationPhone: organizationSearchData.organizationPhone,
-            membershipType: 'Organization Member',
-            membershipStatus: 'Expiring Soon',
-            expiryDate: '2025-09-20',
-            joinDate: '2022-09-20',
-            renewalFee: 'USD $250'
-          };
-          setMembershipRecord(mockRecord);
-        } else {
-          setSearchError('Please fill in organization name and email to find your membership record.');
-        }
+  
+    try {
+      let response;
+      const payload = isOrganization ? {
+        organizationName: organizationSearchData.organizationName,
+        email: organizationSearchData.organizationEmail,
+        phone: organizationSearchData.organizationPhone,
+        isOrganization: true
+      } : {
+        firstName: searchData.firstName.trim(),
+        lastName: searchData.lastName.trim(),
+        email: searchData.email.trim(),
+        phone: searchData.phone.trim(),
+        isOrganization: false
+      };
+   
+      response = await api.post('/payments/membership-search/', payload);
+      
+      if (response.data) {
+        setMembershipRecord({
+          ...response.data,
+          // Ensure all required fields are present
+          phone: response.data.phone || '',
+          membershipStatus: response.data.membershipStatus || 'Active',
+          membershipType: response.data.membershipType || 'Regular',
+          membershipClass: response.data.membershipClass || 'full_professional',
+          renewalFee: response.data.renewalFee || 100 // default value
+        });
       } else {
-        // Mock individual membership record
-        if (searchData.email && searchData.firstName && searchData.lastName) {
-          const mockRecord: MembershipRecord = {
-            id: 'ACNA-2024-001234',
-            firstName: searchData.firstName,
-            lastName: searchData.lastName,
-            email: searchData.email,
-            phone: searchData.phone,
-            membershipType: 'Full / Professional Member',
-            membershipStatus: 'Expiring Soon',
-            expiryDate: '2025-08-15',
-            joinDate: '2023-08-15',
-            renewalFee: 'USD $80'
-          };
-          setMembershipRecord(mockRecord);
-        } else {
-          setSearchError('Please fill in all required fields to find your membership record.');
-        }
+        throw new Error('No matching membership record found');
       }
+    } catch (error: any) {
+      console.error('Search error:', error);
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.detail || 
+                          error.message || 
+                          'Failed to find membership record. Please check your details and try again.';
+      
+      setSearchError(errorMessage);
+      setAlertModal({
+        isOpen: true,
+        title: 'Search Error',
+        message: errorMessage,
+        type: 'error'
+      });
+    } finally {
       setIsSearching(false);
-    }, 1500);
+    }
   };
 
-  const handleRenewMembership = () => {
-    // Handle renewal logic here
-    console.log('Renewing membership...');
+  const handleRenewMembership = async () => {
+    if (!membershipRecord) return;
+    
+    setIsProcessingPayment(true);
+    
+    try {
+      // First check if membership is already active
+      if (membershipRecord.membershipStatus === 'Active') {
+        const daysUntilExpiry = Math.floor(
+          (new Date(membershipRecord.expiryDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+        );
+        
+        if (daysUntilExpiry > 30) {
+          setAlertModal({
+            isOpen: true,
+            title: 'Membership Active',
+            message: `Your membership is active and doesn't expire for ${daysUntilExpiry} days. You can renew starting 30 days before expiry.`,
+            type: 'info'
+          });
+          return;
+        }
+      }
+      
+      // Navigate to payment page with renewal data
+      navigate('/payment', {
+        state: {
+          paymentType: 'renewal',
+          membershipType: membershipRecord.membershipClass,
+          membershipData: {
+            id: membershipRecord.id,
+            email: membershipRecord.email,
+            name: `${membershipRecord.firstName} ${membershipRecord.lastName}`,
+            amount: membershipRecord.renewalFee,
+            membershipId: membershipRecord.membershipId
+          }
+        }
+      });
+    } catch (error: any) {
+      setAlertModal({
+        isOpen: true,
+        title: 'Renewal Error',
+        message: error.response?.data?.message || error.message || 'Failed to process renewal',
+        type: 'error'
+      });
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
+
+  const handlePaymentSuccess = () => {
+    setAlertModal({
+      isOpen: true,
+      title: 'Renewal Successful',
+      message: 'Your membership has been successfully renewed! You will receive a confirmation email shortly.',
+      type: 'success'
+    });
+    setShowPaymentModal(false);
+    setMembershipRecord(null);
+  };
+
+  const handlePaymentClose = () => {
+    setShowPaymentModal(false);
   };
 
   const getStatusColor = (status: string) => {
@@ -127,6 +195,13 @@ const MembershipRenew = () => {
     setIsOrganization(!isOrganization);
     setMembershipRecord(null);
     setSearchError('');
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(amount);
   };
 
   return (
@@ -364,46 +439,46 @@ const MembershipRenew = () => {
                         <span className="bg-green-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">
                           ✓
                         </span>
-                        {isOrganization ? 'Organization Membership Record Found' : 'Membership Record Found'}
+                        {membershipRecord.isOrganization ? 'Organization Membership Record Found' : 'Membership Record Found'}
                       </h2>
-                      <p className="text-white-300">Member ID: {membershipRecord.id}</p>
+                      <p className="text-white-300">Member ID: {membershipRecord.membershipId}</p>
                     </div>
 
                     <div className="p-6">
                       <div className="grid md:grid-cols-2 gap-6">
                         <div>
                           <h3 className="font-semibold text-gray-900 mb-4">
-                            {isOrganization ? 'Organization Information' : 'Personal Information'}
+                            {membershipRecord.isOrganization ? 'Organization Information' : 'Personal Information'}
                           </h3>
                           <div className="space-y-3">
-                            {isOrganization ? (
+                            {membershipRecord.isOrganization ? (
                               <>
                                 <div>
                                   <span className="text-sm text-gray-500">Organization Name:</span>
-                                  <p className="font-medium">{(membershipRecord as OrganizationMembershipRecord).organizationName}</p>
+                                  <p className="font-medium">{membershipRecord.firstName}</p>
                                 </div>
                                 <div>
                                   <span className="text-sm text-gray-500">Organization Email:</span>
-                                  <p className="font-medium">{(membershipRecord as OrganizationMembershipRecord).organizationEmail}</p>
+                                  <p className="font-medium">{membershipRecord.email}</p>
                                 </div>
                                 <div>
                                   <span className="text-sm text-gray-500">Organization Phone:</span>
-                                  <p className="font-medium">{(membershipRecord as OrganizationMembershipRecord).organizationPhone}</p>
+                                  <p className="font-medium">{membershipRecord.phone}</p>
                                 </div>
                               </>
                             ) : (
                               <>
                                 <div>
                                   <span className="text-sm text-gray-500">Name:</span>
-                                  <p className="font-medium">{(membershipRecord as MembershipRecord).firstName} {(membershipRecord as MembershipRecord).lastName}</p>
+                                  <p className="font-medium">{membershipRecord.firstName} {membershipRecord.lastName}</p>
                                 </div>
                                 <div>
                                   <span className="text-sm text-gray-500">Email:</span>
-                                  <p className="font-medium">{(membershipRecord as MembershipRecord).email}</p>
+                                  <p className="font-medium">{membershipRecord.email}</p>
                                 </div>
                                 <div>
                                   <span className="text-sm text-gray-500">Phone:</span>
-                                  <p className="font-medium">{(membershipRecord as MembershipRecord).phone}</p>
+                                  <p className="font-medium">{membershipRecord.phone}</p>
                                 </div>
                               </>
                             )}
@@ -443,7 +518,7 @@ const MembershipRenew = () => {
                       <span className="bg-orange-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">
                         2
                       </span>
-                      Renew Your {isOrganization ? 'Organization ' : ''}Membership
+                      Renew Your {membershipRecord.isOrganization ? 'Organization ' : ''}Membership
                     </h3>
 
                     {membershipRecord.membershipStatus === 'Expired' && (
@@ -477,7 +552,9 @@ const MembershipRenew = () => {
                           <p className="text-gray-600">12 months from renewal date</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-3xl font-bold text-orange-600">{membershipRecord.renewalFee}</p>
+                          <p className="text-3xl font-bold text-orange-600">
+                            {formatCurrency(membershipRecord.renewalFee)}
+                          </p>
                           <p className="text-sm text-gray-500">per year</p>
                         </div>
                       </div>
@@ -486,9 +563,20 @@ const MembershipRenew = () => {
                     <div className="space-y-4">
                       <button
                         onClick={handleRenewMembership}
-                        className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-lg transition-colors duration-300 text-lg"
+                        disabled={isProcessingPayment}
+                        className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-lg transition-colors duration-300 text-lg disabled:opacity-50"
                       >
-                        🔄 Renew {isOrganization ? 'Organization ' : ''}Membership - {membershipRecord.renewalFee}
+                        {isProcessingPayment ? (
+                          <span className="flex items-center justify-center">
+                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Processing...
+                          </span>
+                        ) : (
+                          `🔄 Renew ${membershipRecord.isOrganization ? 'Organization ' : ''}Membership - ${formatCurrency(membershipRecord.renewalFee)}`
+                        )}
                       </button>
                     </div>
 
@@ -562,6 +650,15 @@ const MembershipRenew = () => {
           </div>
         </div>
       </section>
+
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        onClose={() => setAlertModal(prev => ({ ...prev, isOpen: false }))}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+      />
     </div>
   );
 };

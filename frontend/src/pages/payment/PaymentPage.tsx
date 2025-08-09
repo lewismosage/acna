@@ -12,13 +12,22 @@ const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY!, {
 interface PaymentProps {
   onBack?: () => void;
   onSuccess?: () => void;
+  paymentType?: PaymentType;
+  membershipType?: string;
 }
 
 type PaymentType = "initial" | "renewal" | "upgrade";
 
 interface PaymentLocationState {
   paymentType?: PaymentType;
-  membershipType?: string; // For upgrades
+  membershipType?: string;
+  membershipData?: {
+    id: string;
+    email: string;
+    name: string;
+    amount: number;
+    membershipId: string;
+  };
 }
 
 // Payment form
@@ -31,10 +40,11 @@ const PaymentForm = ({ onBack, onSuccess }: PaymentProps) => {
   const [error, setError] = useState<string | null>(null);
   const [stripeInitialized, setStripeInitialized] = useState(false);
 
-  // Get payment type from navigation state or default to 'initial'
-  const paymentType: PaymentType =
+  // Get payment data from navigation state
+  const paymentType: PaymentType = 
     (location.state as PaymentLocationState)?.paymentType || "initial";
   const membershipType = (location.state as PaymentLocationState)?.membershipType;
+  const membershipData = (location.state as any)?.membershipData;
 
   // Check when Stripe is ready
   useEffect(() => {
@@ -48,14 +58,17 @@ const PaymentForm = ({ onBack, onSuccess }: PaymentProps) => {
       if (!stripeInitialized || error) return;
 
       try {
-        // Validate payment type for upgrades
-        if (paymentType === "upgrade" && !membershipType) {
-          throw new Error("Membership type is required for upgrades");
+        // For renewals, we need the user's current membership class
+        if (paymentType === "renewal" && !membershipType) {
+          throw new Error("Membership type is required for renewal");
         }
 
         const response = await api.post("/payments/create-checkout-session/", {
           payment_type: paymentType,
           membership_type: membershipType,
+          email: membershipData?.email,
+          user_id: membershipData?.id,
+          membership_id: membershipData?.membershipId
         });
 
         if (!response.data?.sessionId) {
@@ -78,7 +91,7 @@ const PaymentForm = ({ onBack, onSuccess }: PaymentProps) => {
     };
 
     initiateCheckout();
-  }, [stripe, navigate, paymentType, membershipType, stripeInitialized, error]);
+  }, [stripe, navigate, paymentType, membershipType, stripeInitialized, error, membershipData]);
 
   // Stripe loading state
   if (!stripeInitialized) {

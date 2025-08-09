@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny
 from .models import Payment
 from users.models import User
 from django.utils import timezone
@@ -23,7 +24,9 @@ from .utils import generate_membership_id
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
-
+from datetime import date
+from rest_framework.throttling import AnonRateThrottle
+from django.core.exceptions import ObjectDoesNotExist
 
 
 logger = logging.getLogger(__name__)
@@ -37,13 +40,33 @@ class CreateCheckoutSession(APIView):
         try:
             user = request.user
             payment_type = request.data.get('payment_type', 'initial')
+            membership_type = request.data.get('membership_type')
+            user_id = request.data.get('user_id')
+            membership_id = request.data.get('membership_id')
             
-            if not user.membership_class:
-                return Response(
-                    {'error': 'Please select a membership class before payment'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+            # Renewal-specific checks
+            if payment_type == 'renewal':
+                if not user.membership_class:
+                    return Response(
+                        {'error': 'No membership class found for renewal'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                if user.membership_valid_until and user.membership_valid_until > timezone.now().date():
+                    days_until_expiry = (user.membership_valid_until - timezone.now().date()).days
+                    if days_until_expiry > 30:
+                        return Response(
+                            {'error': f'Your membership is active for {days_until_expiry} more days. You can renew starting 30 days before expiry.'},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+            else:
+                if not user.membership_class:
+                    return Response(
+                        {'error': 'Please select a membership class before payment'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
             
+            # Price mapping
             price_ids = {
                 'full_professional': 'price_1RtndZCWhrsZxJu1lm2F17Qz',
                 'associate': 'price_1RtneVCWhrsZxJu1qvskBksP',
@@ -62,6 +85,7 @@ class CreateCheckoutSession(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
+            # Stripe checkout session creation
             session = stripe.checkout.Session.create(
                 payment_method_types=['card'],
                 line_items=[{
@@ -71,17 +95,18 @@ class CreateCheckoutSession(APIView):
                 mode='payment',
                 metadata={
                     'membership_type': user.membership_class,
-                    'user_id': user.id
+                    'user_id': user.id,
+                    'payment_type': payment_type
                 },
                 customer_email=user.email,
                 success_url=f"{settings.PAYMENT_SUCCESS_URL}?session_id={{CHECKOUT_SESSION_ID}}",
                 cancel_url=settings.PAYMENT_CANCELED_URL,
             )
             
-            # Create payment record with all required fields
+            # Create payment record
             Payment.objects.create(
                 user=user,
-                amount=self.get_membership_amount(user.membership_class)/100,
+                amount=self.get_membership_amount(user.membership_class) / 100,
                 currency='usd',
                 stripe_checkout_session_id=session.id,
                 membership_type=user.membership_class,
@@ -91,7 +116,7 @@ class CreateCheckoutSession(APIView):
             )
             
             return Response({'sessionId': session.id})
-            
+        
         except Exception as e:
             logger.error(f"Checkout error: {str(e)}")
             return Response(
@@ -423,3 +448,99 @@ class DownloadInvoice(APIView):
                 {'error': str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+class MembershipSearchView(APIView):
+    def post(self, request, *args, **kwargs):
+        try:
+            data = request.data
+            is_organization = data.get('isOrganization', False)
+            
+          #  print("Received search request with data:", data)  # Debug logging
+            
+            if is_organization:
+                # Validate organization search data
+                if not data.get('organizationName') or not data.get('email'):
+                    return Response(
+                        {'message': 'Organization name and email are required'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                # Search for organization membership
+                user = User.objects.get(
+                    organization_name__iexact=data.get('organizationName'),
+                    email__iexact=data.get('email'),
+                    is_organization=True
+                )
+            else:
+                # Validate individual search data
+                if not data.get('firstName') or not data.get('lastName') or not data.get('email'):
+                    return Response(
+                        {'message': 'First name, last name and email are required'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                # Search for individual membership
+                user = User.objects.get(
+                    first_name__iexact=data.get('firstName'),
+                    last_name__iexact=data.get('lastName'),
+                    email__iexact=data.get('email'),
+                    is_organization=False
+                )
+            
+            # Determine membership status
+            if not user.membership_valid_until:
+                membership_status = 'Inactive'
+            elif user.membership_valid_until < date.today():
+                membership_status = 'Expired'
+            elif (user.membership_valid_until - date.today()).days <= 30:
+                membership_status = 'Expiring Soon'
+            else:
+                membership_status = 'Active'
+            
+            # Calculate renewal fee (you'll need to implement your own logic here)
+            renewal_fee = self.get_renewal_fee(user.membership_class)
+                
+            # Prepare response data
+            response_data = {
+                'id': str(user.id),
+                'membershipId': user.membership_id or '',
+                'firstName': user.first_name,
+                'lastName': user.last_name if not is_organization else '',
+                'email': user.email,
+                'phone': user.mobile_number if not is_organization else user.organization_phone,
+                'membershipType': user.get_membership_class_display() if user.membership_class else 'Regular',
+                'membershipClass': user.membership_class or '',
+                'membershipStatus': membership_status,
+                'expiryDate': user.membership_valid_until.isoformat() if user.membership_valid_until else '',
+                'joinDate': user.date_joined.date().isoformat(),
+                'renewalFee': float(renewal_fee),
+                'isOrganization': user.is_organization
+            }
+            
+            return Response(response_data, status=status.HTTP_200_OK)
+            
+        except ObjectDoesNotExist:
+            return Response(
+                {'message': 'No matching membership record found. Please check your details or contact support.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {'message': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    
+    def get_renewal_fee(self, membership_class):
+        """Calculate renewal fee based on membership class"""
+        # Implement your pricing logic here
+        pricing = {
+            'full_professional': 100,
+            'associate': 75,
+            'student': 50,
+            'institutional': 200,
+            'affiliate': 60,
+            'honorary': 0,
+            'corporate': 300,
+            'lifetime': 0
+        }
+        return pricing.get(membership_class, 100)

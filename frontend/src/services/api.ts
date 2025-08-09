@@ -16,7 +16,8 @@ api.interceptors.request.use((config) => {
   if (config.url && (
     config.url.includes('/users/register/') || 
     config.url.includes('/users/verify-email/') ||
-    config.url.includes('/users/resend-verification/')
+    config.url.includes('/users/resend-verification/') ||
+    config.url.includes('/payments/membership-search/')
   )) {
     return config;
   }
