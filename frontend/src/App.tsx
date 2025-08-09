@@ -60,7 +60,7 @@ import ForumThread from "./pages/membershippages/portal/forums/ForumThread";
 import PostReply from "./pages/membershippages/portal/forums/PostReply";
 import VerificationPage from "./pages/membershippages/register/VerificationPage";
 import PaymentPage from "./pages/payment/PaymentPage";
-import PaymentSuccess from "./pages/payment/payment-success";
+import PaymentSuccess from "./pages/payment/PaymentSuccess";
 import PaymentCanceled from "./pages/payment/PaymentCanceled";
 import PaymentError from "./pages/payment/PaymentError";
 

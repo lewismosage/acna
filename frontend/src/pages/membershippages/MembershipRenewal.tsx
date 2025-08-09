@@ -341,15 +341,6 @@ const MembershipRenew = () => {
                       >
                         🔄 Renew Membership - {membershipRecord.renewalFee}
                       </button>
-                      
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <button className="w-full border-2 border-orange-600 text-orange-600 font-medium py-3 px-6 rounded-lg hover:bg-orange-50 transition-colors duration-300">
-                          Update Information
-                        </button>
-                        <button className="w-full border-2 border-gray-300 text-gray-700 font-medium py-3 px-6 rounded-lg hover:bg-gray-50 transition-colors duration-300">
-                          Download Invoice
-                        </button>
-                      </div>
                     </div>
 
                     <div className="mt-6 pt-6 border-t border-gray-200">
