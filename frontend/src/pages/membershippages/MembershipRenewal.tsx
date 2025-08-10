@@ -147,7 +147,7 @@ const MembershipRenew = () => {
           paymentType: 'renewal',
           membershipType: membershipRecord.membershipClass,
           membershipData: {
-            id: membershipRecord.id,
+            id: membershipRecord.id,  // Include user ID
             email: membershipRecord.email,
             name: `${membershipRecord.firstName} ${membershipRecord.lastName}`,
             amount: membershipRecord.renewalFee,

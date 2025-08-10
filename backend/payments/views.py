@@ -34,16 +34,31 @@ logger = logging.getLogger(__name__)
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 class CreateCheckoutSession(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     
     def post(self, request):
         try:
-            user = request.user
-            payment_type = request.data.get('payment_type', 'initial')
-            membership_type = request.data.get('membership_type')
-            user_id = request.data.get('user_id')
-            membership_id = request.data.get('membership_id')
+            # Handle both authenticated and unauthenticated cases
+            if request.user.is_authenticated:
+                user = request.user
+            else:
+                # Get user from request data for renewal payments
+                user_id = request.data.get('user_id')
+                if not user_id:
+                    return Response(
+                        {'error': 'User ID is required for unauthenticated payments'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                try:
+                    user = User.objects.get(id=user_id)
+                except User.DoesNotExist:
+                    return Response(
+                        {'error': 'User not found'},
+                        status=status.HTTP_404_NOT_FOUND
+                    )
             
+            payment_type = request.data.get('payment_type', 'initial')
+
             # Renewal-specific checks
             if payment_type == 'renewal':
                 if not user.membership_class:
@@ -51,7 +66,6 @@ class CreateCheckoutSession(APIView):
                         {'error': 'No membership class found for renewal'},
                         status=status.HTTP_400_BAD_REQUEST
                     )
-                
                 if user.membership_valid_until and user.membership_valid_until > timezone.now().date():
                     days_until_expiry = (user.membership_valid_until - timezone.now().date()).days
                     if days_until_expiry > 30:
@@ -65,7 +79,7 @@ class CreateCheckoutSession(APIView):
                         {'error': 'Please select a membership class before payment'},
                         status=status.HTTP_400_BAD_REQUEST
                     )
-            
+
             # Price mapping
             price_ids = {
                 'full_professional': 'price_1RtndZCWhrsZxJu1lm2F17Qz',
@@ -84,7 +98,7 @@ class CreateCheckoutSession(APIView):
                     {'error': 'Invalid membership type'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            
+
             # Stripe checkout session creation
             session = stripe.checkout.Session.create(
                 payment_method_types=['card'],
@@ -102,7 +116,7 @@ class CreateCheckoutSession(APIView):
                 success_url=f"{settings.PAYMENT_SUCCESS_URL}?session_id={{CHECKOUT_SESSION_ID}}",
                 cancel_url=settings.PAYMENT_CANCELED_URL,
             )
-            
+
             # Create payment record
             Payment.objects.create(
                 user=user,
@@ -114,7 +128,7 @@ class CreateCheckoutSession(APIView):
                 status='pending',
                 payment_type=payment_type
             )
-            
+
             return Response({'sessionId': session.id})
         
         except Exception as e:

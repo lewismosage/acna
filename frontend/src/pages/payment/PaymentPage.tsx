@@ -56,29 +56,37 @@ const PaymentForm = ({ onBack, onSuccess }: PaymentProps) => {
   useEffect(() => {
     const initiateCheckout = async () => {
       if (!stripeInitialized || error) return;
-
+      
       try {
-        // For renewals, we need the user's current membership class
-        if (paymentType === "renewal" && !membershipType) {
-          throw new Error("Membership type is required for renewal");
+        // Get user ID from either location state or membership data
+        let userId: string | undefined;
+        
+        if (paymentType === "renewal") {
+          userId = membershipData?.id;
+        } else {
+          // For initial payments, get user ID from location state
+          userId = (location.state as any)?.user?.id;
         }
-
-        const response = await api.post("/payments/create-checkout-session/", {
+    
+        if (!userId) {
+          throw new Error("User ID is required for payment processing");
+        }
+    
+        const payload = {
           payment_type: paymentType,
-          membership_type: membershipType,
-          email: membershipData?.email,
-          user_id: membershipData?.id,
-          membership_id: membershipData?.membershipId
-        });
-
+          user_id: userId,
+        };
+    
+        const response = await api.post("/payments/create-checkout-session/", payload);
+        
         if (!response.data?.sessionId) {
           throw new Error("Payment session could not be created");
         }
-
+    
         const { error: stripeError } = await stripe!.redirectToCheckout({
           sessionId: response.data.sessionId,
         });
-
+    
         if (stripeError) {
           throw new Error(stripeError.message);
         }
@@ -89,6 +97,7 @@ const PaymentForm = ({ onBack, onSuccess }: PaymentProps) => {
         );
       }
     };
+    
 
     initiateCheckout();
   }, [stripe, navigate, paymentType, membershipType, stripeInitialized, error, membershipData]);

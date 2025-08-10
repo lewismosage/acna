@@ -84,6 +84,7 @@ class VerifyEmailView(APIView):
                         'success': True,
                         'token': str(refresh.access_token),
                         'refresh': str(refresh),
+                        'user_id': user.id,  # ADD THIS LINE
                         'message': 'Email verified successfully.'
                     }, status=status.HTTP_200_OK)
                 

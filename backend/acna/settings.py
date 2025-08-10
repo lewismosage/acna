@@ -21,6 +21,11 @@ DEBUG = True
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "https://checkout.stripe.com",
+    "https://production-domain.com",
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://checkout.stripe.com",
 ]
 
 CORS_ALLOW_CREDENTIALS = True

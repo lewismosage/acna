@@ -83,7 +83,8 @@ const VerificationPage = () => {
         
         setTimeout(() => navigate('/payment', { 
           state: { 
-            paymentType: 'initial' 
+            paymentType: 'initial',
+            user: { id: response.user_id } 
           } 
         }), 2000);
       }

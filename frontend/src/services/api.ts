@@ -17,7 +17,8 @@ api.interceptors.request.use((config) => {
     config.url.includes('/users/register/') || 
     config.url.includes('/users/verify-email/') ||
     config.url.includes('/users/resend-verification/') ||
-    config.url.includes('/payments/membership-search/')
+    config.url.includes('/payments/membership-search/') ||
+    config.url.includes('/payments/create-checkout-session/') 
   )) {
     return config;
   }
@@ -47,6 +48,7 @@ export const verifyEmail = async (data: { email: string; code: string }) => {
     if (response.data.token) {
       localStorage.setItem('token', response.data.token);
     }
+    // Return the full response including user_id
     return response.data;
   } catch (error: any) {
     throw error.response?.data || error.message;
