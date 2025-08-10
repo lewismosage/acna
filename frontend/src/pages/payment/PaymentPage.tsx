@@ -60,9 +60,11 @@ const PaymentForm = ({ onBack, onSuccess }: PaymentProps) => {
       try {
         // Get user ID from either location state or membership data
         let userId: string | undefined;
+        let currentMembershipClass: string | undefined;
         
-        if (paymentType === "renewal") {
+        if (paymentType === "renewal" || paymentType === "upgrade") {
           userId = membershipData?.id;
+          currentMembershipClass = paymentType === "upgrade" ? membershipData?.currentMembershipClass : undefined;
         } else {
           // For initial payments, get user ID from location state
           userId = (location.state as any)?.user?.id;
@@ -75,6 +77,8 @@ const PaymentForm = ({ onBack, onSuccess }: PaymentProps) => {
         const payload = {
           payment_type: paymentType,
           user_id: userId,
+          new_membership_class: paymentType === "upgrade" ? membershipType : undefined,
+          current_membership_class: currentMembershipClass 
         };
     
         const response = await api.post("/payments/create-checkout-session/", payload);

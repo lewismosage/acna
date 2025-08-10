@@ -1,4 +1,16 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import api from '../../services/api';
+import AlertModal from '../../components/common/AlertModal';
+
+interface MembershipUpgradeOption {
+  key: string;
+  name: string;
+  fee: number;
+  description?: string;
+  benefits?: string[];
+  upgrade_cost: number;
+}
 
 interface MembershipRecord {
   id: string;
@@ -12,9 +24,12 @@ interface MembershipRecord {
   joinDate: string;
   currentFee: number;
   paidAmount: number;
+  availableUpgrades: MembershipUpgradeOption[];
+  membershipId: string;
 }
 
 interface MembershipTier {
+  key: string;
   name: string;
   fee: number;
   description: string;
@@ -24,20 +39,28 @@ interface MembershipTier {
 }
 
 const MembershipUpgrade = () => {
+  const navigate = useNavigate();
   const [searchData, setSearchData] = useState({
     firstName: '',
     lastName: '',
     phone: '',
     email: ''
-  });
+  })
 
   const [membershipRecord, setMembershipRecord] = useState<MembershipRecord | null>(null);
   const [selectedUpgrade, setSelectedUpgrade] = useState<string>('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState('');
+  const [alertModal, setAlertModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'error' as 'info' | 'success' | 'warning' | 'error'
+  });
 
   const membershipTiers: MembershipTier[] = [
     {
+      key: 'student', 
       name: 'Trainee / Student Member',
       fee: 15,
       description: 'For students and trainees in medical programs',
@@ -46,6 +69,7 @@ const MembershipUpgrade = () => {
       badgeColor: 'bg-yellow-600'
     },
     {
+      key: 'associate', 
       name: 'Associate Member',
       fee: 40,
       description: 'For allied health professionals',
@@ -54,6 +78,7 @@ const MembershipUpgrade = () => {
       badgeColor: 'bg-green-600'
     },
     {
+      key: 'affiliate',
       name: 'Affiliate Member',
       fee: 50,
       description: 'For non-clinical stakeholders and international supporters',
@@ -62,6 +87,7 @@ const MembershipUpgrade = () => {
       badgeColor: 'bg-indigo-600'
     },
     {
+      key: 'full_professional',
       name: 'Full / Professional Member',
       fee: 80,
       description: 'For licensed pediatric neurologists and medical professionals',
@@ -70,6 +96,7 @@ const MembershipUpgrade = () => {
       badgeColor: 'bg-blue-600'
     },
     {
+      key: 'institutional', 
       name: 'Institutional Member',
       fee: 300,
       description: 'For institutions, hospitals, and organizations',
@@ -78,6 +105,7 @@ const MembershipUpgrade = () => {
       badgeColor: 'bg-purple-600'
     },
     {
+      key: 'corporate', 
       name: 'Corporate / Partner Member',
       fee: 500,
       description: 'For companies and private sector entities',
@@ -86,6 +114,7 @@ const MembershipUpgrade = () => {
       badgeColor: 'bg-rose-600'
     },
     {
+      key: 'lifetime',
       name: 'Lifetime Member',
       fee: 500,
       description: 'One-time payment for lifetime benefits',
@@ -109,41 +138,54 @@ const MembershipUpgrade = () => {
     setSearchError('');
     setSelectedUpgrade('');
 
-    // Simulate API call delay
-    setTimeout(() => {
-      // Mock membership record - in real app, this would come from API
-      if (searchData.email && searchData.firstName && searchData.lastName) {
-        const mockRecord: MembershipRecord = {
-          id: 'ACNA-2024-001234',
-          firstName: searchData.firstName,
-          lastName: searchData.lastName,
-          email: searchData.email,
-          phone: searchData.phone,
-          membershipType: 'Associate Member',
-          membershipStatus: 'Active',
-          expiryDate: '2025-08-15',
-          joinDate: '2023-08-15',
-          currentFee: 40,
-          paidAmount: 40
-        };
-        setMembershipRecord(mockRecord);
+    try {
+      const response = await api.post('/payments/membership-search/', {
+        firstName: searchData.firstName.trim(),
+        lastName: searchData.lastName.trim(),
+        email: searchData.email.trim(),
+        phone: searchData.phone.trim(),
+        isOrganization: false
+      });
+
+      if (response.data) {
+        setMembershipRecord({
+          ...response.data,
+          currentFee: response.data.renewalFee,
+          paidAmount: response.data.renewalFee,
+          membershipId: response.data.membershipId
+        });
       } else {
-        setSearchError('Please fill in all required fields to find your membership record.');
+        throw new Error('No matching membership record found');
       }
+    } catch (error: any) {
+      console.error('Search error:', error);
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.detail || 
+                          error.message || 
+                          'Failed to find membership record. Please check your details and try again.';
+      
+      setSearchError(errorMessage);
+      setAlertModal({
+        isOpen: true,
+        title: 'Record Not Found',
+        message: errorMessage,
+        type: 'error'
+      });
+    } finally {
       setIsSearching(false);
-    }, 1500);
+    }
   };
 
-  const getAvailableUpgrades = () => {
+  const getAvailableUpgrades = (): MembershipTier[] => {
     if (!membershipRecord) return [];
     
     return membershipTiers.filter(tier => {
       // Don't show current membership or lower tiers
       if (tier.name === membershipRecord.membershipType) return false;
-      if (tier.fee <= membershipRecord.currentFee) return false;
+      if (tier.fee <= (membershipRecord.currentFee || 0)) return false;
       
       // Special logic for Lifetime Member
-      if (tier.name === 'Lifetime Member' && membershipRecord.membershipType !== 'Full / Professional Member') {
+      if (tier.key === 'lifetime' && membershipRecord.membershipType !== 'Full / Professional Member') {
         return false;
       }
       
@@ -151,18 +193,37 @@ const MembershipUpgrade = () => {
     });
   };
 
-  const calculateUpgradeCost = (targetTier: MembershipTier) => {
-    if (!membershipRecord) return 0;
-    return targetTier.fee - membershipRecord.paidAmount;
+  const calculateUpgradeCost = (targetTier?: MembershipTier): number => {
+    if (!targetTier || !membershipRecord) return 0;
+    return targetTier.fee - (membershipRecord.paidAmount || 0);
   };
 
-  const getSelectedTierInfo = () => {
-    return membershipTiers.find(tier => tier.name === selectedUpgrade);
+  const getSelectedTierInfo = (): MembershipTier | undefined => {
+    return membershipTiers.find(tier => tier.key === selectedUpgrade);
   };
 
   const handleUpgrade = () => {
-    // Handle upgrade logic here
-    console.log('Upgrading to:', selectedUpgrade);
+    if (!selectedUpgrade || !membershipRecord) return;
+    
+    const selectedTier = getSelectedTierInfo();
+    if (!selectedTier) return;
+    
+    navigate('/payment', {
+      state: {
+        paymentType: 'upgrade',
+        membershipType: selectedTier.key,
+        membershipData: {
+          id: membershipRecord.id, 
+          userId: membershipRecord.id,
+          email: membershipRecord.email,
+          name: `${membershipRecord.firstName} ${membershipRecord.lastName}`,
+          amount: selectedTier.fee - (membershipRecord.paidAmount || 0),
+          newMembershipClass: selectedTier.key,
+          membershipId: membershipRecord.membershipId,
+          currentMembershipClass: membershipRecord.membershipClass 
+        }
+      }
+    });
   };
 
   const getStatusColor = (status: string) => {
@@ -394,9 +455,9 @@ const MembershipUpgrade = () => {
                     </h3>
 
                     <div className="grid gap-3 sm:gap-4">
-                      {getAvailableUpgrades().map((tier, index) => {
-                        const upgradeCost = calculateUpgradeCost(tier);
-                        const isSelected = selectedUpgrade === tier.name;
+                    {getAvailableUpgrades().map((tier, index) => {
+                      const upgradeCost = calculateUpgradeCost(tier);
+                      const isSelected = selectedUpgrade === tier.key;
                         
                         return (
                           <div 
@@ -406,7 +467,7 @@ const MembershipUpgrade = () => {
                                 ? 'border-orange-500 bg-orange-50' 
                                 : `${tier.color} hover:shadow-md`
                             }`}
-                            onClick={() => setSelectedUpgrade(tier.name)}
+                            onClick={() => setSelectedUpgrade(tier.key)}
                           >
                             <div className="flex flex-col sm:flex-row justify-between items-start mb-3 sm:mb-4 gap-3">
                               <div className="flex-1">
@@ -444,7 +505,7 @@ const MembershipUpgrade = () => {
                                 name="upgrade"
                                 value={tier.name}
                                 checked={isSelected}
-                                onChange={() => setSelectedUpgrade(tier.name)}
+                                onChange={() => setSelectedUpgrade(tier.key)} 
                                 className="w-4 h-4 text-orange-600 focus:ring-orange-500"
                               />
                               <label className="ml-2 text-xs sm:text-sm font-medium text-gray-700">
@@ -482,7 +543,7 @@ const MembershipUpgrade = () => {
                               <hr className="my-1 sm:my-2" />
                               <div className="flex justify-between text-base sm:text-lg font-bold">
                                 <span className="text-green-700">You Pay:</span>
-                                <span className="text-green-700">USD ${calculateUpgradeCost(getSelectedTierInfo()!)}</span>
+                                <span className="text-green-700">USD ${calculateUpgradeCost(getSelectedTierInfo())}</span>
                               </div>
                             </div>
                           </div>
@@ -559,6 +620,14 @@ const MembershipUpgrade = () => {
           </div>
         </div>
       </section>
+
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        onClose={() => setAlertModal(prev => ({ ...prev, isOpen: false }))}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+      />
     </div>
   );
 };
