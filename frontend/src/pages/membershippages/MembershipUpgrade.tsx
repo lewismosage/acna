@@ -19,6 +19,7 @@ interface MembershipRecord {
   email: string;
   phone: string;
   membershipType: string;
+  membershipClass: string;
   membershipStatus: 'Active' | 'Expired' | 'Expiring Soon';
   expiryDate: string;
   joinDate: string;
@@ -403,7 +404,7 @@ const MembershipUpgrade = () => {
                         </span>
                         Current Membership Record
                       </h2>
-                      <p className="text-white-300 text-sm sm:text-base">Member ID: {membershipRecord.id}</p>
+                      <p className="text-white-300 text-sm sm:text-base">Member ID: {membershipRecord.membershipId}</p>
                     </div>
 
                     <div className="p-4 sm:p-6">

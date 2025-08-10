@@ -15,6 +15,7 @@ class Payment(models.Model):
     payment_frequency = models.CharField(max_length=20)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    upgrade_from = models.CharField(max_length=50, null=True, blank=True)
 
     PAYMENT_TYPES = [
         ('initial', 'Initial Payment'),

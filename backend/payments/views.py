@@ -58,6 +58,7 @@ class CreateCheckoutSession(APIView):
 
             payment_type = request.data.get('payment_type', 'initial')
             new_membership_class = request.data.get('new_membership_class')  # For upgrades
+            current_membership_class = request.data.get('current_membership_class')  # For upgrades
 
             # Price mapping
             price_ids = {
@@ -71,23 +72,8 @@ class CreateCheckoutSession(APIView):
                 'lifetime': 'price_1RtnlYCWhrsZxJu1TAoYgnOY'
             }
 
-            # Renewal-specific checks
-            if payment_type == 'renewal':
-                if not user.membership_class:
-                    return Response(
-                        {'error': 'No membership class found for renewal'},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-                if user.membership_valid_until and user.membership_valid_until > timezone.now().date():
-                    days_until_expiry = (user.membership_valid_until - timezone.now().date()).days
-                    if days_until_expiry > 30:
-                        return Response(
-                            {'error': f'Your membership is active for {days_until_expiry} more days. You can renew starting 30 days before expiry.'},
-                            status=status.HTTP_400_BAD_REQUEST
-                        )
-
             # Upgrade-specific checks
-            elif payment_type == 'upgrade':
+            if payment_type == 'upgrade':
                 if not user.membership_class:
                     return Response(
                         {'error': 'No current membership found for upgrade'},
@@ -108,14 +94,6 @@ class CreateCheckoutSession(APIView):
                 if new_price <= current_price:
                     return Response(
                         {'error': 'Cannot upgrade to a lower or equal tier'},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-
-            # Initial membership check
-            else:
-                if not user.membership_class:
-                    return Response(
-                        {'error': 'Please select a membership class before payment'},
                         status=status.HTTP_400_BAD_REQUEST
                     )
 
@@ -142,25 +120,29 @@ class CreateCheckoutSession(APIView):
                     'membership_type': membership_for_payment,
                     'user_id': user.id,
                     'payment_type': payment_type,
-                    'upgrade_from': user.membership_class if payment_type == 'upgrade' else None
+                    'upgrade_from': current_membership_class if payment_type == 'upgrade' else None
                 },
                 customer_email=user.email,
                 success_url=f"{settings.PAYMENT_SUCCESS_URL}?session_id={{CHECKOUT_SESSION_ID}}",
                 cancel_url=settings.PAYMENT_CANCELED_URL,
             )
 
-            # Create payment record
-            Payment.objects.create(
-                user=user,
-                amount=self.get_membership_amount(membership_for_payment) / 100,
-                currency='usd',
-                stripe_checkout_session_id=session.id,
-                membership_type=membership_for_payment,
-                payment_frequency='annual',
-                status='pending',
-                payment_type=payment_type,
-                upgrade_from=user.membership_class if payment_type == 'upgrade' else None
-            )
+            # Create payment record - don't include upgrade_from if not an upgrade
+            payment_data = {
+                'user': user,
+                'amount': self.get_membership_amount(membership_for_payment) / 100,
+                'currency': 'usd',
+                'stripe_checkout_session_id': session.id,
+                'membership_type': membership_for_payment,
+                'payment_frequency': 'annual',
+                'status': 'pending',
+                'payment_type': payment_type,
+            }
+            
+            if payment_type == 'upgrade':
+                payment_data['upgrade_from'] = current_membership_class
+
+            Payment.objects.create(**payment_data)
 
             return Response({'sessionId': session.id})
 
