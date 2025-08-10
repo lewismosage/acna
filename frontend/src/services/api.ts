@@ -18,7 +18,8 @@ api.interceptors.request.use((config) => {
     config.url.includes('/users/verify-email/') ||
     config.url.includes('/users/resend-verification/') ||
     config.url.includes('/payments/membership-search/') ||
-    config.url.includes('/payments/create-checkout-session/') 
+    config.url.includes('/payments/create-checkout-session/') ||
+    config.url.includes('/payments/verify-payment/') 
   )) {
     return config;
   }

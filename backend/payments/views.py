@@ -165,6 +165,7 @@ class PaymentWebhook(APIView):
             
             if event['type'] == 'checkout.session.completed':
                 session = event['data']['object']
+                logger.info(f"Processing checkout.session.completed: {session['id']}")
                 self.handle_checkout_session_completed(session)
                 
             return Response({'status': 'success'}, status=200)
@@ -281,8 +282,8 @@ class PaymentWebhook(APIView):
             logger.error(f"Failed to send payment confirmation email: {str(e)}")
 
 class VerifyPayment(APIView):
-    permission_classes = [IsAuthenticated]
-
+    permission_classes = [] 
+    
     def get(self, request):
         session_id = request.query_params.get('session_id')
         if not session_id:
@@ -292,10 +293,9 @@ class VerifyPayment(APIView):
             )
 
         try:
-            # Retrieve payment record
+            # Find payment by session ID only
             payment = Payment.objects.get(
-                stripe_checkout_session_id=session_id,
-                user=request.user
+                stripe_checkout_session_id=session_id
             )
             
             # If payment succeeded but user not updated, update now
@@ -336,58 +336,47 @@ class VerifyPayment(APIView):
             )
 
 class DownloadInvoice(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = []
 
     def generate_invoice_pdf(self, payment, session):
         buffer = BytesIO()
         doc = SimpleDocTemplate(buffer, pagesize=letter)
-        
-        # Create styles
+
         styles = getSampleStyleSheet()
-        title_style = styles['Title']
-        heading_style = styles['Heading2']
-        normal_style = styles['BodyText']
-        
-        # Invoice content
+        title_style, heading_style, normal_style = styles['Title'], styles['Heading2'], styles['BodyText']
         elements = []
-        
-        # logo at the top
+
+        # Logo
         logo_path = os.path.join(settings.BASE_DIR, 'static', 'images', 'ACNA.jpg')
         if os.path.exists(logo_path):
-            logo = Image(logo_path, width=100, height=100)
-            elements.append(logo)
+            elements.append(Image(logo_path, width=100, height=100))
             elements.append(Paragraph("<br/>", normal_style))
-        
+
         # Header
-        elements.append(Paragraph("ACNA Membership Invoice", title_style))
-        elements.append(Paragraph(f"Invoice #: {session.payment_intent}", heading_style))
-        elements.append(Paragraph(f"Date: {datetime.now().strftime('%B %d, %Y')}", normal_style))
-        elements.append(Paragraph(f"Membership ID: {payment.user.membership_id}", normal_style))
-        elements.append(Paragraph("<br/>", normal_style))
-        elements.append(Paragraph("<br/><br/>", normal_style))
-            
-        # Customer Info
-        customer_info = [
-            ["Bill To:", ""],
-            [payment.user.get_full_name(), ""],
-            [payment.user.email, ""],
-            ["", ""],
+        elements += [
+            Paragraph("ACNA Membership Invoice", title_style),
+            Paragraph(f"Invoice #: {session.payment_intent}", heading_style),
+            Paragraph(f"Date: {datetime.now().strftime('%B %d, %Y')}", normal_style),
+            Paragraph(f"Membership ID: {payment.user.membership_id}", normal_style),
+            Paragraph("<br/><br/>", normal_style),
         ]
-            
-        customer_table = Table(customer_info, colWidths=[300, 200])
-        elements.append(customer_table)
-        elements.append(Paragraph("<br/><br/>", normal_style))
-        
-        # Invoice Items
-        item_data = [
-            ["Description", "Amount"],
-            [
-                f"{payment.membership_type.capitalize()} Membership", 
-                f"${payment.amount:.2f}"
-            ]
-        ]
-        
-        item_table = Table(item_data, colWidths=[350, 150])
+
+        # Customer info
+        customer_table = Table(
+            [[ "Bill To:", ""],
+             [payment.user.get_full_name(), ""],
+             [payment.user.email, ""],
+             ["", ""]],
+            colWidths=[300, 200]
+        )
+        elements += [customer_table, Paragraph("<br/><br/>", normal_style)]
+
+        # Items
+        item_table = Table(
+            [["Description", "Amount"],
+             [f"{payment.membership_type.capitalize()} Membership", f"${payment.amount:.2f}"]],
+            colWidths=[350, 150]
+        )
         item_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
@@ -397,27 +386,23 @@ class DownloadInvoice(APIView):
             ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
             ('GRID', (0, 0), (-1, -1), 1, colors.black),
         ]))
-        elements.append(item_table)
-        elements.append(Paragraph("<br/><br/>", normal_style))
-        
+        elements += [item_table, Paragraph("<br/><br/>", normal_style)]
+
         # Total
-        total_data = [
-            ["Total:", f"${payment.amount:.2f}"]
-        ]
-        total_table = Table(total_data, colWidths=[350, 150])
+        total_table = Table([["Total:", f"${payment.amount:.2f}"]], colWidths=[350, 150])
         total_table.setStyle(TableStyle([
             ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),
             ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, -1), 14),
         ]))
-        elements.append(total_table)
-        
+        elements += [total_table, Paragraph("<br/><br/>", normal_style)]
+
         # Footer
-        elements.append(Paragraph("<br/><br/>", normal_style))
-        elements.append(Paragraph("Thank you for your membership!", normal_style))
-        elements.append(Paragraph("ACNA - Professional Association", normal_style))
-        
-        # Build PDF
+        elements += [
+            Paragraph("Thank you for your membership!", normal_style),
+            Paragraph("ACNA - Professional Association", normal_style),
+        ]
+
         doc.build(elements)
         buffer.seek(0)
         return buffer
@@ -425,43 +410,25 @@ class DownloadInvoice(APIView):
     def get(self, request):
         session_id = request.query_params.get('session_id')
         if not session_id:
-            return Response(
-                {'error': 'Session ID is required'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({'error': 'Session ID is required'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            # Verify payment belongs to user
-            payment = Payment.objects.get(
-                stripe_checkout_session_id=session_id,
-                user=request.user
-            )
-            
-            # Retrieve Stripe session
+            payment = Payment.objects.get(stripe_checkout_session_id=session_id)
             session = stripe.checkout.Session.retrieve(session_id)
-            
-            # Generate custom invoice
             pdf_buffer = self.generate_invoice_pdf(payment, session)
-            
+
             return HttpResponse(
                 pdf_buffer,
                 content_type='application/pdf',
-                headers={
-                    'Content-Disposition': f'attachment; filename="invoice-{session_id}.pdf"'
-                }
+                headers={'Content-Disposition': f'attachment; filename="invoice-{session_id}.pdf"'}
             )
-            
+
         except Payment.DoesNotExist:
-            return Response(
-                {'error': 'Payment not found'},
-                status=status.HTTP_404_NOT_FOUND
-            )
+            return Response({'error': 'Payment not found'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             logger.error(f"Invoice download error: {str(e)}")
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class MembershipSearchView(APIView):
     def post(self, request, *args, **kwargs):
