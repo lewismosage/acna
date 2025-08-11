@@ -4,8 +4,10 @@ import { Eye, EyeOff, AlertCircle, Mail, Lock } from "lucide-react";
 import Card, { CardContent } from "../../../components/common/Card";
 import ACNALogo from "../../../assets/ACNA.jpg";
 import ScrollToTop from "../../../components/common/ScrollToTop";
+import { useAuth } from '../../../services/AuthContext';
 
 const Login = () => {
+  const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -24,12 +26,12 @@ const Login = () => {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
 
-    // Basic validation
+    // Validation
     if (!formData.email.includes("@")) {
       setError("Please enter a valid email address");
       setIsLoading(false);
@@ -42,11 +44,14 @@ const Login = () => {
       return;
     }
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      await login(formData.email, formData.password);
       navigate("/memberportal");
-    }, 1500);
+    } catch (err) {
+      setError("Invalid email or password");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
