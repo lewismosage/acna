@@ -201,7 +201,8 @@ class LoginView(APIView):
                 'membership_valid_until': user.membership_valid_until,
                 'institution': user.institution,
                 'member_since': user.date_joined.strftime('%B %Y'),
-                'profile_photo': user.profile_photo.url if user.profile_photo else None
+                'specialization': user.specialization,
+                'profile_photo': request.build_absolute_uri(user.profile_photo.url) if user.profile_photo else None,
             }
         }, status=status.HTTP_200_OK)
 
@@ -228,6 +229,19 @@ class UserProfileView(UpdateAPIView):
 
     def get(self, request, *args, **kwargs):
         user = request.user
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        profile_photo_url = None
+
+        if user.profile_photo:
+            profile_photo_url = request.build_absolute_uri(user.profile_photo.url)
+
         return Response({
             'id': user.id,
             'email': user.email,
@@ -239,7 +253,9 @@ class UserProfileView(UpdateAPIView):
             'membership_id': user.membership_id,
             'membership_class': user.membership_class,
             'membership_status': 'Active' if user.is_membership_active else 'Inactive',
-            'member_since': user.date_joined.strftime('%B %Y')
+            'member_since': user.date_joined.strftime('%B %Y'),
+            'specialization': user.specialization,
+            'profile_photo': profile_photo_url,
         }, status=status.HTTP_200_OK)
 
 class ChangePasswordView(APIView):

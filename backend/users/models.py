@@ -16,7 +16,7 @@ class User(AbstractUser):
     membership_valid_until = models.DateField(null=True, blank=True)
     institution = models.CharField(max_length=255, blank=True, null=True)
     profile_photo = models.ImageField(upload_to='profile_photos/', blank=True, null=True)
-    
+    specialization = models.CharField(max_length=255, blank=True, null=True)
    
 
     MEMBERSHIP_CHOICES = [

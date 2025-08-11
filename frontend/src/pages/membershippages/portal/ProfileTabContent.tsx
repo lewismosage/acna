@@ -4,6 +4,7 @@ import Chats from '../../membershippages/portal/communications/Chats';
 import MessagingModal from '../../membershippages/portal/communications/MessagingModal';
 import api from '../../../services/api';
 import defaultProfileImage from '../../../assets/default Profile Image.png';
+import AlertModal from '../../../components/common/AlertModal';
 
 interface MemberData {
   id: number;
@@ -14,6 +15,7 @@ interface MemberData {
   membership_valid_until: string;
   membership_id: string;
   institution?: string;
+  specialization?: string;
   member_since: string;
   profile_photo?: string;
   about?: string;
@@ -48,12 +50,17 @@ const ProfileTabContent = ({ memberData, onProfileUpdate }: {
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [alertTitle, setAlertTitle] = useState('');
+  const [alertMessage, setAlertMessage] = useState('');
+  const [alertType, setAlertType] = useState<'info' | 'success' | 'warning' | 'error'>('info');
 
   // Form state for profile editing
   const [formData, setFormData] = useState({
     firstName: memberData.name.split(' ')[0] || '',
     lastName: memberData.name.split(' ').slice(1).join(' ') || '',
     institution: memberData.institution || '',
+    specialization: memberData.specialization || '',
     profilePhoto: null as File | null,
     previewUrl: memberData.profile_photo || defaultProfileImage
   });
@@ -130,6 +137,7 @@ const ProfileTabContent = ({ memberData, onProfileUpdate }: {
       const updatedData = {
         name: `${formData.firstName} ${formData.lastName}`,
         institution: formData.institution,
+        specialization: formData.specialization,
         profile_photo: response.data.profile_photo || memberData.profile_photo
       };
       onProfileUpdate(updatedData);
@@ -154,15 +162,20 @@ const ProfileTabContent = ({ memberData, onProfileUpdate }: {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-
+  
     try {
       const response = await api.post('/users/change-password/', {
         current_password: currentPassword,
         new_password: newPassword,
         confirm_password: confirmPassword
       });
-
-      alert('Password changed successfully!');
+  
+      // Show success modal
+      setAlertTitle('Success');
+      setAlertMessage('Password changed successfully!');
+      setAlertType('success');
+      setIsAlertOpen(true);
+      
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
@@ -184,6 +197,15 @@ const ProfileTabContent = ({ memberData, onProfileUpdate }: {
     }
   };
 
+  const getProfileImageUrl = (url: string | undefined) => {
+    if (!url) return defaultProfileImage;
+    
+    if (url.startsWith('http')) return url;
+    
+    const backendBaseUrl = process.env.REACT_APP_BACKEND_URL;
+    return `${backendBaseUrl}${url}`;
+  };
+
   return (
     <div className="flex flex-col md:flex-row gap-6 min-h-screen bg-gray-50 p-4">
       {/* Main Content */}
@@ -194,11 +216,11 @@ const ProfileTabContent = ({ memberData, onProfileUpdate }: {
             {/* Profile Image */}
             <div className="flex-shrink-0 mr-6">
               <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                <img 
-                  src={memberData.profile_photo || defaultProfileImage}
-                  alt="Profile" 
-                  className="w-full h-full object-cover"
-                />
+              <img 
+                src={getProfileImageUrl(memberData.profile_photo)} 
+                alt="Profile"
+                className="w-full h-full object-cover"
+              />
               </div>
             </div>
 
@@ -206,7 +228,10 @@ const ProfileTabContent = ({ memberData, onProfileUpdate }: {
             <div className="flex-1 flex justify-between items-start">
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">{memberData.name}</h1>
-                <p className="text-blue-600 text-sm font-medium mt-1">{memberData.membership_class}</p>
+                {memberData.specialization && (
+                  <p className="text-blue-600 text-sm font-medium mt-1">
+                    {memberData.specialization}</p>
+                )}
                 {memberData.institution && (
                   <p className="text-gray-500 text-sm mt-2">{memberData.institution}</p>
                 )}
@@ -428,6 +453,20 @@ const ProfileTabContent = ({ memberData, onProfileUpdate }: {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Specialization
+                  </label>
+                  <input
+                    type="text"
+                    name="specialization"
+                    value={formData.specialization}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Your medical specialization"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Institution
                   </label>
                   <input
@@ -522,6 +561,15 @@ const ProfileTabContent = ({ memberData, onProfileUpdate }: {
           onClose={handleCloseModal}
         />
       )}
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={isAlertOpen}
+        onClose={() => setIsAlertOpen(false)}
+        title={alertTitle}
+        message={alertMessage}
+        type={alertType}
+      />
+      
     </div>
   );
 };

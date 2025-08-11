@@ -15,7 +15,8 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             'country', 'gender', 'age_bracket', 'membership_class',
             'is_organization', 'organization_name', 'organization_type',
             'registration_number', 'contact_person_title', 'organization_phone',
-            'organization_address', 'website'
+            'organization_address', 'website',
+            'specialization',
         ]
     
     def validate(self, data):
@@ -77,6 +78,7 @@ class ResendVerificationSerializer(serializers.Serializer):
     email = serializers.EmailField()
 
 class UserProfileSerializer(serializers.ModelSerializer):
+    profile_photo = serializers.SerializerMethodField()
     class Meta:
         model = User
         fields = [
@@ -88,7 +90,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'physical_address',
             'country',
             'gender',
-            'age_bracket'
+            'age_bracket',
+            'specialization'
         ]
         extra_kwargs = {
             'profile_photo': {'required': False},
@@ -104,6 +107,12 @@ class UserProfileSerializer(serializers.ModelSerializer):
         if value and value.size > 2 * 1024 * 1024:  # 2MB limit
             raise serializers.ValidationError("Image size cannot exceed 2MB")
         return value
+
+    def get_profile_photo(self, obj):
+        if obj.profile_photo:
+            request = self.context.get('request')
+            return request.build_absolute_uri(obj.profile_photo.url)
+        return None
 
 class ChangePasswordSerializer(serializers.Serializer):
     current_password = serializers.CharField(required=True)

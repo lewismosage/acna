@@ -29,6 +29,7 @@ interface MemberData {
   membership_valid_until: string;
   membership_id: string;
   institution?: string;
+  specialization?: string;
   member_since: string;
   profile_photo?: string;
   cpdProgress?: {
@@ -39,6 +40,15 @@ interface MemberData {
   };
 }
 
+const getProfileImageUrl = (url: string | undefined) => {
+  if (!url) return defaultProfileImage;
+  
+  if (url.startsWith('http')) return url;
+  
+  const backendBaseUrl = process.env.REACT_APP_BACKEND_URL;
+  return `${backendBaseUrl}${url}`;
+};
+
 // Component for Member Info Panel
 const MemberInfoPanel = ({ memberData }: { memberData: MemberData }) => (
   <div className="bg-white border border-gray-300 rounded-lg">
@@ -47,8 +57,8 @@ const MemberInfoPanel = ({ memberData }: { memberData: MemberData }) => (
     </div>
     <div className="p-4">
       <div className="flex items-center mb-4">
-        <img
-          src={memberData.profile_photo || defaultProfileImage}
+      <img
+          src={getProfileImageUrl(memberData.profile_photo)}
           alt="Profile"
           className="w-12 h-12 md:w-16 md:h-16 rounded-full border-2 border-gray-300 mr-3 md:mr-4"
         />
@@ -306,6 +316,7 @@ const ACNAMemberDashboard = () => {
     membership_valid_until: user?.membership_valid_until || '',
     membership_id: user?.membership_id || '',
     institution: user?.institution || '',
+    specialization: user?.specialization || '',
     member_since: user?.member_since || '',
     profile_photo: user?.profile_photo || '',
     cpdProgress: {
