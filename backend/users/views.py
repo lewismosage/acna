@@ -12,6 +12,8 @@ from .serializers import (
 )
 from .utils import send_verification_email
 import logging
+from django.contrib.auth import authenticate
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -141,3 +143,54 @@ class ResendVerificationView(APIView):
                 }, status=status.HTTP_404_NOT_FOUND)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class LoginView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        email = request.data.get('email')
+        password = request.data.get('password')
+
+        if not email or not password:
+            return Response({'detail': 'Email and password are required.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        # If you store username == email (frontend sets username=email when registering), this works:
+        user = authenticate(username=email, password=password)
+
+        # Otherwise, fall back to email lookup:
+        if user is None:
+            # Try authenticate by finding user by email and checking password manually
+            from .models import User
+            try:
+                u = User.objects.get(email__iexact=email)
+                if u.check_password(password):
+                    user = u
+            except User.DoesNotExist:
+                user = None
+
+        if user is None:
+            # Wrong credentials
+            return Response({'detail': 'Invalid email or password.'},
+                            status=status.HTTP_401_UNAUTHORIZED)
+
+        # Membership active check
+        today = timezone.now().date()
+        if not user.is_active_member or not user.membership_valid_until or user.membership_valid_until < today:
+            return Response({
+                'detail': 'Your membership is inactive. Please make a payment to continue to access membership benefits or contact support.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        # OK -> issue JWT tokens
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            'access': str(refresh.access_token),
+            'refresh': str(refresh),
+            'user': {
+                'id': user.id,
+                'email': user.email,
+                'membership_id': user.membership_id,
+                'membership_class': user.membership_class,
+                'membership_valid_until': user.membership_valid_until
+            }
+        }, status=status.HTTP_200_OK)

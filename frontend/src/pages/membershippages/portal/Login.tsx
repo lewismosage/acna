@@ -29,30 +29,37 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError("");
-
-    // Validation
-    if (!formData.email.includes("@")) {
-      setError("Please enter a valid email address");
+    setError('');
+  
+    // Local validation
+    if (!formData.email.includes('@')) {
+      setError('Please enter a valid email address');
       setIsLoading(false);
       return;
     }
-
     if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters");
+      setError('Password must be at least 6 characters');
       setIsLoading(false);
       return;
     }
-
+  
     try {
       await login(formData.email, formData.password);
-      navigate("/memberportal");
-    } catch (err) {
-      setError("Invalid email or password");
+      // On success go to member portal
+      navigate('/memberportal');
+    } catch (err: any) {
+      if (err.message === 'invalid_credentials') {
+        setError('Invalid email or password. Please try again.');
+      } else if (err.message === 'membership_inactive') {
+        setError('Your membership is inactive. Please make a payment to continue to access membership benefits, or contact support.');
+      } else {
+        setError(err.message || 'Login failed. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
   };
+  
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
