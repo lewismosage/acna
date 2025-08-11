@@ -14,6 +14,9 @@ from .utils import send_verification_email
 import logging
 from django.contrib.auth import authenticate
 from django.utils import timezone
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.generics import UpdateAPIView
+from .serializers import UserProfileSerializer
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -189,8 +192,29 @@ class LoginView(APIView):
             'user': {
                 'id': user.id,
                 'email': user.email,
+                'name': user.get_full_name(),
+                'is_active_member': user.is_active_member,
                 'membership_id': user.membership_id,
                 'membership_class': user.membership_class,
-                'membership_valid_until': user.membership_valid_until
+                'membership_valid_until': user.membership_valid_until,
+                'membership_valid_until': user.membership_valid_until,
+                'institution': user.institution,
+                'member_since': user.date_joined.strftime('%B %Y'),
+                'profile_photo': user.profile_photo.url if user.profile_photo else None
             }
         }, status=status.HTTP_200_OK)
+
+class UserProfileView(UpdateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserProfileSerializer
+
+    def get_object(self):
+        return self.request.user
+
+    def perform_update(self, serializer):
+        # Handle profile photo upload
+        profile_photo = self.request.FILES.get('profile_photo')
+        if profile_photo:
+            serializer.save(profile_photo=profile_photo)
+        else:
+            serializer.save()

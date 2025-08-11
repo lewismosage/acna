@@ -13,20 +13,25 @@ import ELearningDashboard from './ELearningDashboard';
 import ForumComponent from './forums/ForumComponent';
 import { SignOutModal } from './SignOutModal'
 import ScrollToTop from '../../../components/common/ScrollToTop';
+import defaultProfileImage from '../../../assets/default Profile Image.png';
+import { useAuth } from '../../../services/AuthContext';
 
 interface LocationState {
   activeTab?: string;
 }
 
-// Define types for member data
 interface MemberData {
+  id: number;
   name: string;
+  email: string;
   membershipStatus: string;
-  tier: string;
-  institution: string;
-  memberSince: string;
-  profilePhoto: string;
-  cpdProgress: {
+  membership_class: string;
+  membership_valid_until: string;
+  membership_id: string;
+  institution?: string;
+  member_since: string;
+  profile_photo?: string;
+  cpdProgress?: {
     enrolledCourses: number;
     completedHours: number;
     requiredHours: number;
@@ -43,13 +48,15 @@ const MemberInfoPanel = ({ memberData }: { memberData: MemberData }) => (
     <div className="p-4">
       <div className="flex items-center mb-4">
         <img
-          src={memberData.profilePhoto}
+          src={memberData.profile_photo || defaultProfileImage}
           alt="Profile"
           className="w-12 h-12 md:w-16 md:h-16 rounded-full border-2 border-gray-300 mr-3 md:mr-4"
         />
         <div>
           <h3 className="font-semibold text-base md:text-lg">{memberData.name}</h3>
-          <p className="text-xs md:text-sm text-gray-600">{memberData.institution}</p>
+          {memberData.institution && (
+            <p className="text-xs md:text-sm text-gray-600">{memberData.institution}</p>
+          )}
         </div>
       </div>
       <table className="w-full text-xs md:text-sm">
@@ -58,17 +65,26 @@ const MemberInfoPanel = ({ memberData }: { memberData: MemberData }) => (
             <td className="py-2 text-gray-600">Status:</td>
             <td className="py-2">
               <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium">
-                {memberData.membershipStatus}
+                {memberData.membershipStatus || 'Active'}
               </span>
             </td>
           </tr>
           <tr className="border-b">
             <td className="py-2 text-gray-600">Tier:</td>
-            <td className="py-2 font-medium">{memberData.tier}</td>
+            <td className="py-2 font-medium">{memberData.membership_class || 'Member'}</td>
+          </tr>
+          <tr className="border-b">
+            <td className="py-2 text-gray-600">Member ID:</td>
+            <td className="py-2 font-medium">{memberData.membership_id}</td>
           </tr>
           <tr>
             <td className="py-2 text-gray-600">Member Since:</td>
-            <td className="py-2">{memberData.memberSince}</td>
+            <td className="py-2">
+              {memberData.member_since || new Date().toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+              })}
+            </td>
           </tr>
         </tbody>
       </table>
@@ -77,43 +93,52 @@ const MemberInfoPanel = ({ memberData }: { memberData: MemberData }) => (
 );
 
 // Component for CPD Progress Panel
-const CpdProgressPanel = ({ memberData }: { memberData: MemberData }) => (
-  <div className="bg-white border border-gray-300 rounded-lg">
-    <div className="bg-gray-100 px-4 py-2 border-b border-gray-300">
-      <h2 className="font-semibold text-gray-800">CPD Progress</h2>
-    </div>
-    <div className="p-4">
-      <div className="grid grid-cols-2 gap-3 md:gap-4 mb-3 md:mb-4">
-        <div className="text-center">
-          <div className="text-xl md:text-2xl font-bold text-blue-600">{memberData.cpdProgress.completedHours}</div>
-          <div className="text-xs text-gray-600">Hours Completed</div>
-        </div>
-        <div className="text-center">
-          <div className="text-xl md:text-2xl font-bold text-orange-600">{memberData.cpdProgress.requiredHours}</div>
-          <div className="text-xs text-gray-600">Required Hours</div>
-        </div>
+const CpdProgressPanel = ({ memberData }: { memberData: MemberData }) => {
+  const cpdData = memberData.cpdProgress || {
+    enrolledCourses: 0,
+    completedHours: 0,
+    requiredHours: 60, // Default required hours
+    certificationsEarned: 0
+  };
+
+  return (
+    <div className="bg-white border border-gray-300 rounded-lg">
+      <div className="bg-gray-100 px-4 py-2 border-b border-gray-300">
+        <h2 className="font-semibold text-gray-800">CPD Progress</h2>
       </div>
-      <div className="w-full bg-gray-200 rounded-full h-2 mb-3 md:mb-4">
-        <div 
-          className="bg-blue-600 h-2 rounded-full" 
-          style={{ width: `${Math.min(100, (memberData.cpdProgress.completedHours / memberData.cpdProgress.requiredHours) * 100)}%` }}
-        />
+      <div className="p-4">
+        <div className="grid grid-cols-2 gap-3 md:gap-4 mb-3 md:mb-4">
+          <div className="text-center">
+            <div className="text-xl md:text-2xl font-bold text-blue-600">{cpdData.completedHours}</div>
+            <div className="text-xs text-gray-600">Hours Completed</div>
+          </div>
+          <div className="text-center">
+            <div className="text-xl md:text-2xl font-bold text-orange-600">{cpdData.requiredHours}</div>
+            <div className="text-xs text-gray-600">Required Hours</div>
+          </div>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-2 mb-3 md:mb-4">
+          <div 
+            className="bg-blue-600 h-2 rounded-full" 
+            style={{ width: `${Math.min(100, (cpdData.completedHours / cpdData.requiredHours) * 100)}%` }}
+          />
+        </div>
+        <table className="w-full text-xs md:text-sm">
+          <tbody>
+            <tr className="border-b">
+              <td className="py-2 text-gray-600">Enrolled Courses:</td>
+              <td className="py-2 font-medium">{cpdData.enrolledCourses}</td>
+            </tr>
+            <tr>
+              <td className="py-2 text-gray-600">Certifications:</td>
+              <td className="py-2 font-medium">{cpdData.certificationsEarned}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-      <table className="w-full text-xs md:text-sm">
-        <tbody>
-          <tr className="border-b">
-            <td className="py-2 text-gray-600">Enrolled Courses:</td>
-            <td className="py-2 font-medium">{memberData.cpdProgress.enrolledCourses}</td>
-          </tr>
-          <tr>
-            <td className="py-2 text-gray-600">Certifications:</td>
-            <td className="py-2 font-medium">{memberData.cpdProgress.certificationsEarned}</td>
-          </tr>
-        </tbody>
-      </table>
     </div>
-  </div>
-);
+  );
+};
 
 // Component for Quick Actions Panel
 const QuickActionsPanel = () => (
@@ -264,22 +289,27 @@ const ACNAMemberDashboard = () => {
   const [activeTab, setActiveTab] = useState((location.state as LocationState)?.activeTab || 'home');
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
+  const { user, logout } = useAuth();
 
-  // Mock user data
   const memberData: MemberData = {
-    name: "Dr. Sarah Mwangi",
-    membershipStatus: "Active",
-    tier: "Professional Member",
-    institution: "Kenyatta National Hospital",
-    memberSince: "January 2020",
-    profilePhoto: "https://images.pexels.com/photos/5327580/pexels-photo-5327580.jpeg?auto=compress&cs=tinysrgb&w=150",
+    id: user?.id || 0,
+    name: user?.name || 'Member',
+    email: user?.email || '',
+    membershipStatus: user?.is_active_member ? 'Active' : 'Inactive',
+    membership_class: user?.membership_class || 'Member',
+    membership_valid_until: user?.membership_valid_until || '',
+    membership_id: user?.membership_id || '',
+    institution: user?.institution || '',
+    member_since: user?.member_since || '',
+    profile_photo: user?.profile_photo || '',
     cpdProgress: {
-      enrolledCourses: 3,
+      enrolledCourses: 3, // These would come from API in a real app
       completedHours: 45,
       requiredHours: 60,
       certificationsEarned: 2
     }
   };
+
 
   // Tab navigation items (excluding signout since we're using a modal now)
   const tabs = [

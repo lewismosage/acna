@@ -1,18 +1,20 @@
 import { useState } from 'react';
-import { 
-  User, Search, Bell,
-} from 'lucide-react';
+import { User } from 'lucide-react';
 import Chats from '../../membershippages/portal/communications/Chats'; 
 import MessagingModal from '../../membershippages/portal/communications/MessagingModal'
 
 interface MemberData {
+  id: number;
   name: string;
+  email: string;
   membershipStatus: string;
-  tier: string;
-  institution: string;
-  memberSince: string;
-  profilePhoto: string;
-  cpdProgress: {
+  membership_class: string;
+  membership_valid_until: string;
+  membership_id: string;
+  institution?: string;
+  member_since: string;
+  profile_photo?: string;
+  cpdProgress?: {
     enrolledCourses: number;
     completedHours: number;
     requiredHours: number;
@@ -26,7 +28,7 @@ interface Message {
   preview: string;
   time: string;
   unread: boolean;
-  profilePhoto?: string; 
+  profile_photo?: string; 
 }
 
 const ProfileTabContent = ({ memberData }: { memberData: MemberData }) => {
@@ -39,58 +41,18 @@ const ProfileTabContent = ({ memberData }: { memberData: MemberData }) => {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [selectedChat, setSelectedChat] = useState<{name: string, profilePhoto?: string} | null>(null);
+  const [selectedChat, setSelectedChat] = useState<{name: string, profile_photo?: string} | null>(null);
 
   const handleSelectChat = (message: Message) => {
     setSelectedChat({
       name: message.sender,
-      profilePhoto: message.profilePhoto
+      profile_photo: message.profile_photo
     });
   };
 
   const handleCloseModal = () => {
     setSelectedChat(null);
   };
-
-  const messages: Message[] = [
-    {
-      id: 1,
-      sender: "Lydia Muchiri",
-      preview: "You: Got it! Thanks..",
-      time: "11:50 AM",
-      unread: false
-    },
-    {
-      id: 2,
-      sender: "Prof. Dr. David Costa",
-      preview: "Sponsored Your Cybersecurity MSc Awards - Start Anytime",
-      time: "10:30 AM",
-      unread: true
-    },
-    {
-      id: 3,
-      sender: "CYFRA'S TECHNOLOGIE...",
-      preview: "You: Hello...",
-      time: "Yesterday",
-      unread: false
-    },
-    {
-      id: 4,
-      sender: "Emmanuel Nyakundi",
-      preview: "Emmanuel: Hello ...",
-      time: "Yesterday",
-      unread: false
-    },
-    {
-      id: 5,
-      sender: "Colina Gibson",
-      preview: "Colina: Hello...",
-      time: "2 days ago",
-      unread: false
-    }
-  ];
-
-  
 
   const handlePasswordChange = (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,9 +73,9 @@ const ProfileTabContent = ({ memberData }: { memberData: MemberData }) => {
             {/* Image placeholder on the left */}
             <div className="flex-shrink-0 mr-6">
               <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                {memberData.profilePhoto ? (
+                {memberData.profile_photo ? (
                   <img 
-                    src={memberData.profilePhoto} 
+                    src={memberData.profile_photo} 
                     alt="Profile" 
                     className="w-full h-full object-cover"
                   />
@@ -127,7 +89,7 @@ const ProfileTabContent = ({ memberData }: { memberData: MemberData }) => {
             <div className="flex-1 flex justify-between items-start">
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">{memberData.name}</h1>
-                <p className="text-blue-600 text-sm font-medium mt-1">{memberData.tier}</p>
+                <p className="text-blue-600 text-sm font-medium mt-1">{memberData.membership_class}</p>
                 <div className="flex text-gray-500 text-sm mt-2">
                   <span>{memberData.institution}</span>
                 </div>
@@ -157,11 +119,15 @@ const ProfileTabContent = ({ memberData }: { memberData: MemberData }) => {
                 </tr>
                 <tr className="border-b">
                   <td className="py-2 text-gray-600">Tier:</td>
-                  <td className="py-2 font-medium">{memberData.tier}</td>
+                  <td className="py-2 font-medium">{memberData.membership_class}</td>
+                </tr>
+                <tr className="border-b">
+                  <td className="py-2 text-gray-600">Tier:</td>
+                  <td className="py-2 font-medium">{memberData.membership_id}</td>
                 </tr>
                 <tr>
                   <td className="py-2 text-gray-600">Member Since:</td>
-                  <td className="py-2">{memberData.memberSince}</td>
+                  <td className="py-2">{memberData.member_since}</td>
                 </tr>
               </tbody>
             </table>
@@ -188,9 +154,9 @@ const ProfileTabContent = ({ memberData }: { memberData: MemberData }) => {
                 {/* Profile Image Upload */}
                 <div className="flex flex-col items-center">
                   <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden mb-2">
-                    {memberData.profilePhoto ? (
+                    {memberData.profile_photo ? (
                       <img 
-                        src={memberData.profilePhoto} 
+                        src={memberData.profile_photo} 
                         alt="Profile" 
                         className="w-full h-full object-cover"
                       />
@@ -206,27 +172,27 @@ const ProfileTabContent = ({ memberData }: { memberData: MemberData }) => {
                 {/* Form Fields */}
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                    <label className="block text-sm font-medium text-blue-700 mb-1">First Name</label>
                     <input
                       type="text"
                       defaultValue={memberData.name.split(' ')[0]} 
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                    <label className="block text-sm font-medium text-blue-700 mb-1">Last Name</label>
                     <input
                       type="text"
                       defaultValue={memberData.name.split(' ').slice(1).join(' ')} 
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Institution</label>
+                    <label className="block text-sm font-medium text-blue-700 mb-1">Institution</label>
                     <input
                       type="text"
                       defaultValue={memberData.institution}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                 </div>
@@ -392,7 +358,7 @@ const ProfileTabContent = ({ memberData }: { memberData: MemberData }) => {
             firstName: selectedChat.name.split(' ')[0],
             lastName: selectedChat.name.split(' ').slice(1).join(' '),
             profession: "Member",
-            profileImage: selectedChat.profilePhoto 
+            profileImage: selectedChat.profile_photo 
           }} 
           onClose={handleCloseModal}
         />

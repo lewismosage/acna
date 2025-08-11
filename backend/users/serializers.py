@@ -75,3 +75,11 @@ class VerificationSerializer(serializers.Serializer):
 
 class ResendVerificationSerializer(serializers.Serializer):
     email = serializers.EmailField()
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['name', 'institution', 'profile_photo']
+        extra_kwargs = {
+            'profile_photo': {'required': False}
+        }

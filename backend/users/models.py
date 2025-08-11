@@ -14,6 +14,10 @@ class User(AbstractUser):
     membership_id = models.CharField(max_length=20, blank=True, null=True, unique=True)
     is_active_member = models.BooleanField(default=False)
     membership_valid_until = models.DateField(null=True, blank=True)
+    institution = models.CharField(max_length=255, blank=True, null=True)
+    profile_photo = models.ImageField(upload_to='profile_photos/', blank=True, null=True)
+    
+   
 
     MEMBERSHIP_CHOICES = [
         ('full_professional', 'Full / Professional Member'),
