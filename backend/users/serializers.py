@@ -79,7 +79,39 @@ class ResendVerificationSerializer(serializers.Serializer):
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['name', 'institution', 'profile_photo']
+        fields = [
+            'first_name', 
+            'last_name', 
+            'institution', 
+            'profile_photo',
+            'mobile_number',
+            'physical_address',
+            'country',
+            'gender',
+            'age_bracket'
+        ]
         extra_kwargs = {
-            'profile_photo': {'required': False}
+            'profile_photo': {'required': False},
+            'mobile_number': {'required': False},
+            'physical_address': {'required': False},
+            'country': {'required': False},
+            'gender': {'required': False},
+            'age_bracket': {'required': False},
+            'institution': {'required': False}
         }
+
+    def validate_profile_photo(self, value):
+        if value and value.size > 2 * 1024 * 1024:  # 2MB limit
+            raise serializers.ValidationError("Image size cannot exceed 2MB")
+        return value
+
+class ChangePasswordSerializer(serializers.Serializer):
+    current_password = serializers.CharField(required=True)
+    new_password = serializers.CharField(required=True)
+    confirm_password = serializers.CharField(required=True)
+
+    def validate(self, data):
+        if data['new_password'] != data['confirm_password']:
+            raise serializers.ValidationError({"confirm_password": "Passwords don't match"})
+        validate_password(data['new_password'])
+        return data

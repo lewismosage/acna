@@ -290,8 +290,14 @@ const ACNAMemberDashboard = () => {
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
   const { user, logout } = useAuth();
+  const handleProfileUpdate = (updatedData: Partial<MemberData>) => {
+    setMemberData((prev: MemberData) => ({
+      ...prev,
+      ...updatedData
+    }));
+  };
 
-  const memberData: MemberData = {
+  const [memberData, setMemberData] = useState<MemberData>({
     id: user?.id || 0,
     name: user?.name || 'Member',
     email: user?.email || '',
@@ -303,12 +309,12 @@ const ACNAMemberDashboard = () => {
     member_since: user?.member_since || '',
     profile_photo: user?.profile_photo || '',
     cpdProgress: {
-      enrolledCourses: 3, // These would come from API in a real app
+      enrolledCourses: 3,
       completedHours: 45,
       requiredHours: 60,
       certificationsEarned: 2
     }
-  };
+  });
 
 
   // Tab navigation items (excluding signout since we're using a modal now)
@@ -328,7 +334,10 @@ const ACNAMemberDashboard = () => {
       case 'home':
         return <HomeTabContent />;
       case 'profile':
-        return <ProfileTabContent memberData={memberData} />;
+        return <ProfileTabContent 
+        memberData={memberData} 
+        onProfileUpdate={handleProfileUpdate} 
+      />
       case 'courses':
         return <CoursesTabContent />;
       case 'training':

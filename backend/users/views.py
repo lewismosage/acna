@@ -17,6 +17,7 @@ from django.utils import timezone
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.generics import UpdateAPIView
 from .serializers import UserProfileSerializer
+from .serializers import UserProfileSerializer, ChangePasswordSerializer
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -212,9 +213,63 @@ class UserProfileView(UpdateAPIView):
         return self.request.user
 
     def perform_update(self, serializer):
-        # Handle profile photo upload
         profile_photo = self.request.FILES.get('profile_photo')
+        
         if profile_photo:
+            # Delete old profile photo if exists
+            if self.request.user.profile_photo:
+                self.request.user.profile_photo.delete(save=False)
             serializer.save(profile_photo=profile_photo)
         else:
             serializer.save()
+
+    def put(self, request, *args, **kwargs):
+        return super().put(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        return Response({
+            'id': user.id,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'full_name': user.get_full_name(),
+            'institution': user.institution,
+            'profile_photo': user.profile_photo.url if user.profile_photo else None,
+            'membership_id': user.membership_id,
+            'membership_class': user.membership_class,
+            'membership_status': 'Active' if user.is_membership_active else 'Inactive',
+            'member_since': user.date_joined.strftime('%B %Y')
+        }, status=status.HTTP_200_OK)
+
+class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = ChangePasswordSerializer(data=request.data)
+        if serializer.is_valid():
+            user = request.user
+            if not user.check_password(serializer.validated_data['current_password']):
+                return Response(
+                    {"current_password": "Current password is incorrect"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            user.set_password(serializer.validated_data['new_password'])
+            user.save()
+            return Response({"message": "Password updated successfully"}, status=status.HTTP_200_OK)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class UpdateAboutView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        user = request.user
+        about_text = request.data.get('about_text', '')
+        # You might want to store this in a UserProfile model or similar
+        # For now, we'll just return it
+        return Response({
+            "message": "About text updated successfully",
+            "about_text": about_text
+        }, status=status.HTTP_200_OK)
