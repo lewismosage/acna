@@ -18,6 +18,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.generics import UpdateAPIView
 from .serializers import UserProfileSerializer
 from .serializers import UserProfileSerializer, ChangePasswordSerializer
+from rest_framework import generics
+from .models import User
+from .serializers import MemberSerializer
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -289,3 +292,10 @@ class UpdateAboutView(APIView):
             "message": "About text updated successfully",
             "about_text": about_text
         }, status=status.HTTP_200_OK)
+
+class MemberListView(generics.ListAPIView):
+    serializer_class = MemberSerializer
+    queryset = User.objects.filter(is_active=True)
+    
+    def get_queryset(self):
+        return super().get_queryset()

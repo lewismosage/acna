@@ -1,22 +1,20 @@
 import { useState } from 'react';
-import { User, X, Mail, MapPin, Building } from 'lucide-react';
+import { X, Mail, MapPin, Building } from 'lucide-react';
+import defaultProfileImage from '../../../../assets/default Profile Image.png';
 
 interface Member {
   id: string;
-  firstName: string;
-  lastName: string;
+  first_name: string;
+  last_name: string;
   email: string;
-  phone: string;
+  mobile_number: string;
   country: string;
-  county: string;
-  membershipType: string;
-  profession: string;
-  institution: string;
-  //specialization: string;
-  
-  status: 'Active' | 'Expired' | 'Expiring Soon';
-  profileImage?: string;
-  about?: string;
+  membership_class: string;
+  institution?: string;
+  specialization?: string;
+  is_active_member: boolean;
+  membership_valid_until?: string;
+  profile_photo?: string;
 }
 
 interface ViewProfileProps {
@@ -29,8 +27,27 @@ const ViewProfile = ({ member, onClose, onMessage }: ViewProfileProps) => {
   const [activeSection, setActiveSection] = useState('about');
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
   const [aboutText, setAboutText] = useState(
-    member.about || "This member hasn't added any information about themselves yet."
+    "This member hasn't added any information about themselves yet."
   );
+
+  // Helper function to get member status
+  const getMemberStatus = (): 'Active' | 'Expired' | 'Expiring Soon' => {
+    if (!member.is_active_member) return 'Expired';
+    
+    if (member.membership_valid_until) {
+      const expiryDate = new Date(member.membership_valid_until);
+      const today = new Date();
+      const oneMonthFromNow = new Date();
+      oneMonthFromNow.setMonth(oneMonthFromNow.getMonth() + 1);
+      
+      if (expiryDate < today) return 'Expired';
+      if (expiryDate < oneMonthFromNow) return 'Expiring Soon';
+    }
+    
+    return 'Active';
+  };
+
+  const status = getMemberStatus();
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
@@ -40,16 +57,16 @@ const ViewProfile = ({ member, onClose, onMessage }: ViewProfileProps) => {
           <div className="flex items-start gap-6">
             <div className="flex-shrink-0">
               <img
-                src={member.profileImage || 'https://via.placeholder.com/150'}
-                alt={`${member.firstName} ${member.lastName}`}
+                src={member.profile_photo || defaultProfileImage}
+                alt={`${member.first_name} ${member.last_name}`}
                 className="w-24 h-24 rounded-full object-cover border-2 border-gray-200"
               />
             </div>
             <div>
               <h2 className="text-2xl font-bold text-gray-900">
-                {member.firstName} {member.lastName}
+                {member.first_name} {member.last_name}
               </h2>
-              <p className="text-blue-600 font-medium">{member.profession}</p>
+              <p className="text-blue-600 font-medium">{member.specialization}</p>
               <p className="text-gray-600 mt-1">{member.institution}</p>
               
               <div className="mt-4 flex gap-2">
@@ -93,16 +110,6 @@ const ViewProfile = ({ member, onClose, onMessage }: ViewProfileProps) => {
             <div>
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-bold text-gray-900">About</h3>
-                {member.about && (
-                  <button 
-                    onClick={() => setIsAboutModalOpen(true)}
-                    className="text-gray-500 hover:text-gray-700 p-1"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                    </svg>
-                  </button>
-                )}
               </div>
               <div className="bg-gray-50 p-4 rounded-md">
                 <p className="text-gray-700 whitespace-pre-line">{aboutText}</p>
@@ -117,26 +124,34 @@ const ViewProfile = ({ member, onClose, onMessage }: ViewProfileProps) => {
                 <h3 className="text-lg font-bold text-gray-900 mb-4">Professional Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <div className="flex items-center">
-                      <Building className="w-5 h-5 mr-2 text-gray-400" />
-                      <span className="text-gray-700">{member.institution}</span>
-                    </div>
+                    {member.institution && (
+                      <div className="flex items-center">
+                        <Building className="w-5 h-5 mr-2 text-gray-400" />
+                        <span className="text-gray-700">{member.institution}</span>
+                      </div>
+                    )}
+                    {member.specialization && (
+                      <div className="flex items-center">
+                        <span className="w-5 h-5 mr-2 text-gray-400">•</span>
+                        <span className="text-gray-700">{member.specialization}</span>
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center">
                       <span className="w-5 h-5 mr-2 text-gray-400">•</span>
-                      <span className="text-gray-700">{member.membershipType}</span>
+                      <span className="text-gray-700">{member.membership_class}</span>
                     </div>
                     <div className="flex items-center">
                       <span className="w-5 h-5 mr-2 text-gray-400">•</span>
                       <span className={`px-2 py-1 rounded text-xs font-medium ${
-                        member.status === 'Active' 
+                        status === 'Active' 
                           ? 'bg-green-100 text-green-800' 
-                          : member.status === 'Expired' 
+                          : status === 'Expired' 
                             ? 'bg-red-100 text-red-800' 
                             : 'bg-yellow-100 text-yellow-800'
                       }`}>
-                        {member.status}
+                        {status}
                       </span>
                     </div>
                   </div>
@@ -151,15 +166,19 @@ const ViewProfile = ({ member, onClose, onMessage }: ViewProfileProps) => {
                       <Mail className="w-5 h-5 mr-2 text-gray-400" />
                       <span className="text-gray-700">{member.email}</span>
                     </div>
-                    <div className="flex items-center">
-                      <span className="w-5 h-5 mr-2 text-gray-400">•</span>
-                      <span className="text-gray-700">{member.phone}</span>
-                    </div>
+                    {member.mobile_number && (
+                      <div className="flex items-center">
+                        <span className="w-5 h-5 mr-2 text-gray-400">•</span>
+                        <span className="text-gray-700">{member.mobile_number}</span>
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center">
                       <MapPin className="w-5 h-5 mr-2 text-gray-400" />
-                      <span className="text-gray-700">{member.county}, {member.country}</span>
+                      <span className="text-gray-700">
+                        {member.country}
+                      </span>
                     </div>
                   </div>
                 </div>

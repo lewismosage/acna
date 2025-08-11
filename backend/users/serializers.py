@@ -124,3 +124,28 @@ class ChangePasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError({"confirm_password": "Passwords don't match"})
         validate_password(data['new_password'])
         return data
+
+class MemberSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = [
+            'id',
+            'first_name',
+            'last_name',
+            'email',
+            'mobile_number',
+            'country',
+            'membership_class',
+            'institution',
+            'specialization',
+            'is_active_member',
+            'membership_valid_until',
+            'profile_photo',
+        ]
+        
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if instance.profile_photo:
+            request = self.context.get('request')
+            data['profile_photo'] = request.build_absolute_uri(instance.profile_photo.url)
+        return data

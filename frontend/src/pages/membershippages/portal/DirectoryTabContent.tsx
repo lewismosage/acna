@@ -1,22 +1,24 @@
 import { useState, useEffect } from 'react';
 import { Search, MapPin, Mail, Filter, Users, Building, X, Send } from 'lucide-react';
 import ViewProfile from '../portal/communications/ViewProfile'; 
+import api from '../../../services/api'; 
+import defaultProfileImage from '../../../assets/default Profile Image.png';
 
 interface Member {
   id: string;
-  firstName: string;
-  lastName: string;
+  first_name: string;
+  last_name: string;
   email: string;
-  phone: string;
+  mobile_number: string;
   country: string;
-  county: string;
-  membershipType: string;
-  profession: string;
-  institution: string;
-  specialization: string;
-  yearsOfExperience: string;
-  status: 'Active' | 'Expired' | 'Expiring Soon';
-  profileImage?: string;
+  county?: string;
+  membership_class: string;
+  profession?: string;
+  institution?: string;
+  specialization?: string;
+  is_active_member: boolean;
+  membership_valid_until?: string;
+  profile_photo?: string;
 }
 
 interface Message {
@@ -32,7 +34,7 @@ const MessagingModal = ({ member, onClose }: { member: Member; onClose: () => vo
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      sender: member.firstName,
+      sender: member.first_name,
       content: 'Hi there, I would like to be part of your network as we are in similar disciplines',
       timestamp: '11:49 AM',
       isCurrentUser: false,
@@ -68,15 +70,15 @@ const MessagingModal = ({ member, onClose }: { member: Member; onClose: () => vo
         <div className="border-b border-gray-200 p-4 flex justify-between items-center">
           <div className="flex items-center space-x-3">
             <img
-              src={member.profileImage || 'https://via.placeholder.com/40'}
-              alt={`${member.firstName} ${member.lastName}`}
+              src={member.profile_photo || defaultProfileImage}
+              alt={`${member.first_name} ${member.last_name}`}
               className="w-10 h-10 rounded-full object-cover"
             />
             <div>
               <h3 className="font-semibold text-gray-900">
-                {member.firstName} {member.lastName}
+                {member.first_name} {member.last_name}
               </h3>
-              <p className="text-xs text-gray-500">{member.profession}</p>
+              <p className="text-xs text-gray-500">{member.specialization || member.profession}</p>
             </div>
           </div>
           <button
@@ -152,43 +154,39 @@ const DirectoryTabContent = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  // Mock data - in a real app, this would come from an API
+  // Fetch members from API
   useEffect(() => {
-    const mockMembers: Member[] = [
-      {
-        id: 'ACNA-2024-001',
-        firstName: 'Dr. Sarah',
-        lastName: 'Kimani',
-        email: 'sarah.kimani@hospital.co.ke',
-        phone: '+254 712 345 678',
-        country: 'Kenya',
-        county: 'Nairobi',
-        membershipType: 'Professional Member',
-        profession: 'Pediatric Neurologist',
-        institution: 'Kenyatta National Hospital',
-        specialization: 'Epilepsy',
-        yearsOfExperience: '8-12 years',
-        status: 'Active',
-        profileImage: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80'
-      },
-      // Add more mock members as needed...
-    ];
+    const fetchMembers = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get('/users/members/'); 
+        // Filter to only include active members
+        const activeMembers = response.data.filter((member: Member) => member.is_active_member);
+        setMembers(activeMembers);
+        setError('');
+      } catch (err) {
+        setError('Failed to load members. Please try again later.');
+        console.error('Error fetching members:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    setTimeout(() => {
-      setMembers(mockMembers);
-      setLoading(false);
-    }, 800);
+    fetchMembers();
   }, []);
 
-  const countries = ['Kenya', 'Uganda', 'Tanzania', 'Rwanda', 'Egypt', 'Nigeria', 'Ghana', 'South Africa'];
-  const specializations = ['Epilepsy', 'Cerebral Palsy', 'Developmental Disorders', 'Neuroinfections'];
+  // Extract unique countries and specializations for filters
+  const countries = Array.from(new Set(members.map(m => m.country).filter(Boolean)));
+  const specializations = Array.from(new Set(members.map(m => m.specialization).filter(Boolean)));
 
   const filteredMembers = members.filter(member => {
+    const fullName = `${member.first_name} ${member.last_name}`.toLowerCase();
     const matchesSearch = 
-      `${member.firstName} ${member.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.profession.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.institution.toLowerCase().includes(searchTerm.toLowerCase());
+      fullName.includes(searchTerm.toLowerCase()) ||
+      (member.profession && member.profession.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (member.institution && member.institution.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesCountry = !selectedCountry || member.country === selectedCountry;
     const matchesSpecialization = !selectedSpecialization || member.specialization === selectedSpecialization;
@@ -204,6 +202,19 @@ const DirectoryTabContent = () => {
 
   return (
     <div className="space-y-6">
+      {error && (
+        <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <X className="h-5 w-5 text-red-400" />
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Search and Filter Bar */}
       <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
         <div className="flex flex-col md:flex-row gap-4">
@@ -272,11 +283,11 @@ const DirectoryTabContent = () => {
       {/* Results Summary */}
       <div className="flex justify-between items-center text-sm text-gray-600 px-2">
         <span>
-          Showing {filteredMembers.length} of {members.length} members
+          Showing {filteredMembers.length} of {members.length} active members
         </span>
         <div className="flex items-center gap-2">
           <Users className="w-4 h-4" />
-          <span>{members.filter(m => m.status === 'Active').length} Active</span>
+          <span>{members.length} Active</span>
         </div>
       </div>
 
@@ -290,7 +301,7 @@ const DirectoryTabContent = () => {
           <div className="text-gray-400 mb-4">
             <Search className="w-12 h-12 mx-auto" />
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No members found</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No active members found</h3>
           <p className="text-gray-600 mb-4">Try adjusting your search or filters</p>
           <button
             onClick={clearFilters}
@@ -305,46 +316,44 @@ const DirectoryTabContent = () => {
             <div key={member.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
               <div className="p-4">
                 <div className="flex items-start gap-4 mb-4">
-                  {/* Member Profile Image */}
                   <div className="flex-shrink-0">
                     <img 
-                      src={member.profileImage || 'https://via.placeholder.com/80'} 
-                      alt={`${member.firstName} ${member.lastName}`}
+                      src={member.profile_photo || defaultProfileImage} 
+                      alt={`${member.first_name} ${member.last_name}`}
                       className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
                     />
                   </div>
                   
-                  {/* Member Info */}
                   <div className="flex-1">
                     <div className="flex justify-between items-start">
                       <div>
                         <h3 className="font-bold text-gray-900">
-                          {member.firstName} {member.lastName}
+                          {member.first_name} {member.last_name}
                         </h3>
-                        <p className="text-sm text-blue-600">{member.profession}</p>
+                        <p className="text-sm text-blue-600">
+                          {member.specialization || member.profession || 'Member'}
+                        </p>
                       </div>
-                      <span className={`px-2 py-1 text-xs rounded ${
-                        member.status === 'Active' 
-                          ? 'bg-green-100 text-green-800' 
-                          : member.status === 'Expired' 
-                            ? 'bg-red-100 text-red-800' 
-                            : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {member.status}
+                      <span className="px-2 py-1 text-xs rounded bg-green-100 text-green-800">
+                        Active
                       </span>
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-2 text-sm text-gray-600">
-                  <div className="flex items-center">
-                    <Building className="w-4 h-4 mr-2 text-gray-400" />
-                    <span>{member.institution}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <MapPin className="w-4 h-4 mr-2 text-gray-400" />
-                    <span>{member.country}</span>
-                  </div>
+                  {member.institution && (
+                    <div className="flex items-center">
+                      <Building className="w-4 h-4 mr-2 text-gray-400" />
+                      <span>{member.institution}</span>
+                    </div>
+                  )}
+                  {member.country && (
+                    <div className="flex items-center">
+                      <MapPin className="w-4 h-4 mr-2 text-gray-400" />
+                      <span>{member.country}</span>
+                    </div>
+                  )}
                   <div className="flex items-center">
                     <Mail className="w-4 h-4 mr-2 text-gray-400" />
                     <span className="truncate">{member.email}</span>
@@ -352,12 +361,12 @@ const DirectoryTabContent = () => {
                 </div>
 
                 <div className="mt-4 flex gap-2">
-                <button 
-                  onClick={() => setViewedProfile(member)}
-                  className="flex-1 bg-blue-600 text-white py-2 rounded text-sm font-medium hover:bg-blue-700"
-                >
-                  View Profile
-                </button>
+                  <button 
+                    onClick={() => setViewedProfile(member)}
+                    className="flex-1 bg-blue-600 text-white py-2 rounded text-sm font-medium hover:bg-blue-700"
+                  >
+                    View Profile
+                  </button>
                   <button 
                     onClick={() => setSelectedMember(member)}
                     className="flex-1 border border-gray-300 text-gray-700 py-2 rounded text-sm font-medium hover:bg-gray-50"
