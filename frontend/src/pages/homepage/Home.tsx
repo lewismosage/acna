@@ -1,7 +1,7 @@
 // pages/Home.tsx
 import React from "react";
 import { Link } from "react-router-dom";
-import heroVideo from "../../assets/hero.video.mp4";
+import hero from "../../assets/hero.webp"
 import pediatricVisit from "../../assets/pediatric-visit.jpg";
 import LatestNews from "./LatestNews";
 import KeyFeatures from "./KeyFeatures";
@@ -12,14 +12,10 @@ const Home = () => {
       {/* Hero Section */}
       <section className="relative h-screen flex items-center justify-center overflow-hidden">
         {/* Video Background */}
-        <video
+        <img
           className="absolute inset-0 w-full h-full object-cover z-0"
-          src={heroVideo}
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="auto"
+          src={hero}
+          alt="Hero Background"
         />
         {/* Overlay for readability */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-900/60 via-blue-800/40 to-transparent z-10" />
