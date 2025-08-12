@@ -21,6 +21,9 @@ from .serializers import UserProfileSerializer, ChangePasswordSerializer
 from rest_framework import generics
 from .models import User
 from .serializers import MemberSerializer
+from rest_framework.permissions import IsAdminUser
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework_simplejwt.views import TokenRefreshView
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -286,8 +289,7 @@ class UpdateAboutView(APIView):
     def post(self, request):
         user = request.user
         about_text = request.data.get('about_text', '')
-        # You might want to store this in a UserProfile model or similar
-        # For now, we'll just return it
+        
         return Response({
             "message": "About text updated successfully",
             "about_text": about_text
@@ -299,3 +301,80 @@ class MemberListView(generics.ListAPIView):
     
     def get_queryset(self):
         return super().get_queryset()
+
+class AdminLoginView(APIView):
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        email = request.data.get('email')
+        password = request.data.get('password')
+        
+        if not email or not password:
+            return Response({'detail': 'Email and password are required.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        
+        user = authenticate(username=email, password=password)
+        if user is None:
+            try:
+                u = User.objects.get(email__iexact=email)
+                if u.check_password(password):
+                    user = u
+            except User.DoesNotExist:
+                user = None
+        
+        if user is None:
+            return Response({'detail': 'Invalid email or password.'},
+                            status=status.HTTP_401_UNAUTHORIZED)
+        
+        if not user.is_admin:
+            return Response({
+                'detail': 'You do not have admin privileges.'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            'access': str(refresh.access_token),
+            'refresh': str(refresh),
+            'admin': {
+                'id': user.id,
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'is_admin': user.is_admin
+            }
+        }, status=status.HTTP_200_OK)
+
+class AdminDashboardView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAdminUser]
+    
+    def get(self, request):
+        # Implement your dashboard data here
+        data = {
+            "message": "Welcome to the Admin Dashboard",
+            "stats": {
+                "total_members": User.objects.count(),
+                "active_members": User.objects.filter(is_active_member=True).count(),
+                "pending_approvals": 8,
+                "recent_activity": []
+            }
+        }
+        return Response(data, status=status.HTTP_200_OK)
+
+class AdminTokenRefreshView(TokenRefreshView):
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        if response.status_code == 200:
+            # Verify the user is an admin
+            token = response.data.get('access')
+            if token:
+                from rest_framework_simplejwt.tokens import AccessToken
+                access_token = AccessToken(token)
+                user_id = access_token['user_id']
+                user = User.objects.get(id=user_id)
+                if not user.is_admin:
+                    return Response(
+                        {'detail': 'Not an admin user'},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+        return response

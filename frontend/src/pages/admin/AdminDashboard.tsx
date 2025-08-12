@@ -14,6 +14,8 @@ import EventsManagement from './EventsManagement';
 import FinancialManagement from './FinancialManagement';
 import AdminSettings from './AdminSettings';
 import ReportsAnalytics from './ReportsAnalytics';
+import { SignOutModal } from './SignOutModal';
+import AdminAuthCheck from '../../components/common/AdminAuthCheck';
 
 // Mock data for demo purposes
 const mockMemberStats = {
@@ -185,6 +187,8 @@ const DashboardOverview = ({ setActiveTab }: any) => (
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
+  const [adminName, setAdminName] = useState({ firstName: 'Admin', lastName: 'User' }); 
 
   const tabs = [
     { id: 'dashboard', label: 'DASHBOARD', icon: Home },
@@ -227,6 +231,11 @@ const AdminDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-100">
+      <AdminAuthCheck />
+      <SignOutModal 
+        isOpen={showSignOutModal} 
+        onClose={() => setShowSignOutModal(false)} 
+      />
       {/* Mobile Header */}
       <div className="md:hidden bg-red-800 text-white p-3 flex items-center justify-between">
         <button 
@@ -267,6 +276,7 @@ const AdminDashboard = () => {
               </button>
             ))}
             <button
+              onClick={() => setShowSignOutModal(true)}
               className="w-full text-left px-4 py-3 flex items-center hover:bg-red-700"
             >
               <LogOut className="w-5 h-5 mr-3" />
@@ -309,21 +319,13 @@ const AdminDashboard = () => {
                   <ArrowLeftIcon className="w-5 h-5 text-blue-800" />
                 </Link>
                 <div className="flex items-center">
-                  <h1 className="text-lg md:text-xl font-semibold">African Child Neurology Association - Admin Dashboard</h1>
+                  <h1 className="text-lg md:text-xl font-semibold">African Child Neurology Association - Site administration</h1>
                 </div>
               </div>
-              <div className="hidden md:flex items-center bg-white rounded-lg overflow-hidden shadow max-w-xs">
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  className="px-3 py-1 w-full text-sm text-gray-700 focus:outline-none"
-                />
-                <button
-                  type="submit"
-                  className="bg-yellow-400 hover:bg-yellow-500 text-white px-3 py-1 flex items-center"
-                >
-                  <Search className="w-4 h-4" />
-                </button>
+              <div className="hidden md:flex items-center space-x-4">
+                <div className="text-white">
+                  Welcome, {adminName.firstName} {adminName.lastName}
+                </div>
               </div>
             </div>
           </div>
@@ -347,6 +349,7 @@ const AdminDashboard = () => {
                   </button>
                 ))}
                 <button
+                  onClick={() => setShowSignOutModal(true)}
                   className="px-3 py-2 md:px-4 md:py-3 text-xs md:text-sm font-medium border-r border-blue-600 last:border-r-0 hover:bg-blue-600 transition-colors whitespace-nowrap text-blue-100"
                 >
                   <span className="hidden md:inline">SIGN OUT</span>

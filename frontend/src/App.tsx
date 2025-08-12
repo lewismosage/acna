@@ -69,6 +69,8 @@ import PaymentError from "./pages/payment/PaymentError";
 import ACNAMemberDashboard from "./pages/membershippages/portal/ACNAMemberDashboard";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import UnsubscribePage from './pages/other/Unsubscribe';
+import AdminLogin from "./pages/admin/AdminLogin";
+import AdminProtectedRoute from "./components/common/AdminProtectedRoute";
 
 // Layout component
 const Layout = ({ children }: { children: React.ReactNode }) => (
@@ -161,8 +163,12 @@ function App() {
           {/* Protected Route */}
           <Route element={<ProtectedRoute />}>
             <Route path="/memberportal" element={<ACNAMemberDashboard />} />
-            <Route path="/admin" element={<AdminDashboard />} />
           </Route>
+          <Route element={<AdminProtectedRoute />}>
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          </Route>
+          {/* Admin Pages */}
+          <Route path="/admin/login" element={<AdminLogin />} />
           {/* Forum Pages */}
           <Route path="/forum" element={<ForumComponent />} />        
           <Route path="/forum/:forumId" element={<ForumThread />} />

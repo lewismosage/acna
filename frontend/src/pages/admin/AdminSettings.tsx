@@ -4,61 +4,6 @@ import {
 
 const AdminSettings = () => (
   <div className="space-y-6">
-    {/* Site Settings */}
-    <div className="bg-white border border-gray-300 rounded-lg">
-      <div className="bg-gray-100 px-4 py-2 border-b border-gray-300">
-        <h2 className="font-semibold text-gray-800">Site Settings</h2>
-      </div>
-      <div className="p-4 space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Site Name</label>
-            <input
-              type="text"
-              defaultValue="African Child Neurology Association"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Contact Email</label>
-            <input
-              type="email"
-              defaultValue="admin@acna.org"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
-            <input
-              type="tel"
-              defaultValue="+1 (555) 123-4567"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Time Zone</label>
-            <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <option>UTC-5 (Eastern Time)</option>
-              <option>UTC+0 (GMT)</option>
-              <option>UTC+1 (Central European Time)</option>
-              <option>UTC+3 (East Africa Time)</option>
-            </select>
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Site Description</label>
-          <textarea
-            rows={3}
-            defaultValue="The African Child Neurology Association is dedicated to advancing child neurology care across Africa through education, research, and collaboration."
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-          Save Settings
-        </button>
-      </div>
-    </div>
-
     {/* Security Settings */}
     <div className="bg-white border border-gray-300 rounded-lg">
       <div className="bg-gray-100 px-4 py-2 border-b border-gray-300">

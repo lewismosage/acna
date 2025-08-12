@@ -7,7 +7,7 @@ from rest_framework.generics import UpdateAPIView
 from .views import (
     RegisterView, VerifyEmailView, ResendVerificationView,
     LoginView, UserProfileView, ChangePasswordView, UpdateAboutView,
-    MemberListView
+    MemberListView, AdminLoginView, AdminDashboardView, AdminTokenRefreshView
 )
 from .serializers import UserProfileSerializer, ChangePasswordSerializer
 
@@ -20,4 +20,7 @@ urlpatterns = [
     path('change-password/', ChangePasswordView.as_view(), name='change-password'),
     path('update-about/', UpdateAboutView.as_view(), name='update-about'),
     path('members/', MemberListView.as_view(), name='member-list'),
+    path('admin/login/', AdminLoginView.as_view(), name='admin_login'),
+    path('admin/dashboard/', AdminDashboardView.as_view(), name='admin_dashboard'),
+    path('admin/token/refresh/', AdminTokenRefreshView.as_view(), name='admin_token_refresh'),
 ]

@@ -17,7 +17,7 @@ class User(AbstractUser):
     institution = models.CharField(max_length=255, blank=True, null=True)
     profile_photo = models.ImageField(upload_to='profile_photos/', blank=True, null=True)
     specialization = models.CharField(max_length=255, blank=True, null=True)
-   
+    is_admin = models.BooleanField(default=False)
 
     MEMBERSHIP_CHOICES = [
         ('full_professional', 'Full / Professional Member'),
