@@ -6,7 +6,7 @@ import ACNALogo from "../../assets/ACNA.jpg";
 import { useAuth } from '../../services/AuthContext';
 
 const AdminLogin = () => {
-  const { adminLogin } = useAuth(); 
+  const { adminLogin } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);

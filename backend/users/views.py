@@ -23,7 +23,7 @@ from .models import User
 from .serializers import MemberSerializer
 from rest_framework.permissions import IsAdminUser
 from rest_framework_simplejwt.authentication import JWTAuthentication
-from rest_framework_simplejwt.views import TokenRefreshView
+
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -289,7 +289,6 @@ class UpdateAboutView(APIView):
     def post(self, request):
         user = request.user
         about_text = request.data.get('about_text', '')
-        
         return Response({
             "message": "About text updated successfully",
             "about_text": about_text
@@ -359,6 +358,7 @@ class AdminDashboardView(APIView):
                 "recent_activity": []
             }
         }
+<<<<<<< HEAD
         return Response(data, status=status.HTTP_200_OK)
 
 class AdminTokenRefreshView(APIView):
@@ -376,3 +376,6 @@ class AdminTokenRefreshView(APIView):
             return Response({'access': access_token}, status=200)
         except Exception as e:
             return Response({'error': 'Invalid refresh token'}, status=401)
+=======
+        return Response(data, status=status.HTTP_200_OK)
+>>>>>>> 5e55192ec9852047a8f52040949b2984334dc310

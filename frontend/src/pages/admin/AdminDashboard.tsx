@@ -15,7 +15,6 @@ import FinancialManagement from './FinancialManagement';
 import AdminSettings from './AdminSettings';
 import ReportsAnalytics from './ReportsAnalytics';
 import { SignOutModal } from './SignOutModal';
-import AdminAuthCheck from '../../components/common/AdminAuthCheck';
 
 // Mock data for demo purposes
 const mockMemberStats = {
@@ -231,7 +230,6 @@ const AdminDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <AdminAuthCheck />
       <SignOutModal 
         isOpen={showSignOutModal} 
         onClose={() => setShowSignOutModal(false)} 
