@@ -21,7 +21,8 @@ api.interceptors.request.use((config) => {
     config.url.includes('/payments/membership-search/') ||
     config.url.includes('/payments/create-checkout-session/') ||
     config.url.includes('/payments/verify-payment/') ||
-    config.url.includes('/payments/download-invoice/')
+    config.url.includes('/payments/download-invoice/') ||
+    config.url.includes('/newsletter/')
   )) {
     return config;
   }
@@ -61,6 +62,28 @@ export const verifyEmail = async (data: { email: string; code: string }) => {
 export const resendVerification = async (data: { email: string }) => {
   try {
     const response = await api.post('/users/resend-verification/', data);
+    return response.data;
+  } catch (error: any) {
+    throw error.response?.data || error.message;
+  }
+};
+
+export const getSubscribers = async () => {
+  try {
+    const response = await api.get('/newsletter/subscribers/');
+    return response.data;
+  } catch (error: any) {
+    throw error.response?.data || error.message;
+  }
+};
+
+export const sendNewsletter = async (newsletterData: {
+  subject: string;
+  content: string;
+  recipients: string; // 'all' or specific group
+}) => {
+  try {
+    const response = await api.post('/newsletter/send-newsletter/', newsletterData);
     return response.data;
   } catch (error: any) {
     throw error.response?.data || error.message;

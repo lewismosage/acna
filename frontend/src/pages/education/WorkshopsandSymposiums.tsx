@@ -14,6 +14,12 @@ import {
   Users
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import api from '../../services/api';
+
+interface SubscriptionStatus {
+  type: 'success' | 'error';
+  message: string;
+}
 
 interface AccordionItem {
   title: string;
@@ -50,6 +56,11 @@ interface CollaborationOpportunity {
 const WorkshopsSymposiums = () => {
   const [activeTab, setActiveTab] = useState<"highlights" | "collaborations">("highlights");
   const [openAccordion, setOpenAccordion] = useState<number | null>(null);
+  const [email, setEmail] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
 
   const toggleAccordion = (index: number) => {
     setOpenAccordion(openAccordion === index ? null : index);
@@ -164,6 +175,47 @@ const WorkshopsSymposiums = () => {
       }, 100);
     }
   }, [location]);
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setSubscriptionStatus(null);
+
+    try {
+      const response = await api.post('/newsletter/subscribe/', {
+        email,
+        first_name: firstName,
+        last_name: lastName,
+        source: 'workshops_and_symposiums'
+      });
+
+      setSubscriptionStatus({
+        type: 'success',
+        message: 'Thank you for subscribing to our newsletter!'
+      });
+      setEmail('');
+      setFirstName('');
+      setLastName('');
+    } catch (error: unknown) {
+      let errorMessage = 'Failed to subscribe. Please try again later.';
+      
+      if (typeof error === 'object' && error !== null && 'response' in error) {
+        const axiosError = error as { response?: { status?: number, data?: any } };
+        if (axiosError.response?.status === 400 && axiosError.response.data?.email) {
+          errorMessage = axiosError.response.data.email[0];
+        } else if (axiosError.response?.data?.detail) {
+          errorMessage = axiosError.response.data.detail;
+        }
+      }
+
+      setSubscriptionStatus({
+        type: 'error',
+        message: errorMessage
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="bg-white min-h-screen">
@@ -386,20 +438,71 @@ const WorkshopsSymposiums = () => {
                   <p className="text-gray-700 mb-6">
                     Never miss an announcement about upcoming workshops and symposiums. Connect with fellow professionals and access event materials.
                   </p>
-                  <div className="relative mb-3 sm:mb-4">
-                    <input
-                      type="email"
-                      placeholder="Email address"
-                      className="w-full px-4 sm:px-6 py-3 sm:py-4 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-white"
-                    />
-                    <button className="absolute right-2 top-2 bg-orange-600 text-white px-3 py-1 sm:px-4 sm:py-2 rounded-md hover:bg-orange-700 transition-colors flex items-center text-sm sm:text-base">
-                      <Users className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                      Subscribe
-                    </button>
-                  </div>
-                  <p className="text-xs sm:text-sm text-grey-100 opacity-90">
+                  <form onSubmit={handleSubscribe} className="max-w-md mx-auto">
+                    {subscriptionStatus && (
+                      <div className={`mb-4 p-3 rounded-md ${
+                        subscriptionStatus.type === 'success' 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {subscriptionStatus.message}
+                      </div>
+                    )}
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <input
+                          type="text"
+                          placeholder="First name"
+                          value={firstName}
+                          onChange={(e) => setFirstName(e.target.value)}
+                          className="w-full px-4 py-3 rounded-lg text-grey-900 focus:outline-none focus:ring-2 focus:ring-white"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <input
+                          type="text"
+                          placeholder="Last name"
+                          value={lastName}
+                          onChange={(e) => setLastName(e.target.value)}
+                          className="w-full px-4 py-3 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-white"
+                          required
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="relative mb-4">
+                      <input
+                        type="email"
+                        placeholder="Email address"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full px-6 py-4 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-white"
+                        required
+                      />
+                      <button 
+                        type="submit"
+                        disabled={isSubmitting}
+                        className={`absolute right-2 top-2 bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 transition-colors flex items-center ${
+                          isSubmitting ? 'opacity-75 cursor-not-allowed' : ''
+                        }`}
+                      >
+                        {isSubmitting ? (
+                          'Subscribing...'
+                        ) : (
+                          <>
+                            <Mail className="mr-2 h-4 w-4" />
+                            Subscribe
+                          </>
+                        )}
+                      </button>
+                    </div>
+                    
+                    <p className="text-xs sm:text-sm text-grey-100 opacity-90">
                     By subscribing, you agree to receive event notifications and updates from ACNA. You can unsubscribe at any time.
                   </p>
+                  </form>
                 </div>
                 <div className="bg-white border border-gray-200 rounded-xl p-8">
                   <h3 className="text-xl font-bold text-gray-900 mb-4">Access Resources</h3>

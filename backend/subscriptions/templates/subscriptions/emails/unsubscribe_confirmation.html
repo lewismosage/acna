@@ -1,0 +1,53 @@
+<!-- subscriptions/templates/subscriptions/emails/unsubscribe_confirmation.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Unsubscribe Confirmation</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #f8f9fa; padding: 20px; text-align: center; }
+        .content { padding: 20px; }
+        .footer { 
+            margin-top: 20px; 
+            padding-top: 20px; 
+            border-top: 1px solid #eee; 
+            text-align: center;
+            font-size: 12px;
+            color: #777;
+        }
+        .button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 10px 0;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>You've been unsubscribed</h2>
+        </div>
+        
+        <div class="content">
+            <p>Dear {{ subscriber.first_name|default:"Subscriber" }},</p>
+            
+            <p>You have been successfully unsubscribed from the {{ company_name }} newsletter. You will no longer receive updates from us.</p>
+            
+            <p>If this was a mistake, you can <a href="{{ resubscribe_url }}">resubscribe here</a>.</p>
+        </div>
+        
+        <div class="footer">
+            <p>&copy; {% now "Y" %} {{ company_name }}. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,5 +1,11 @@
 import React, { useState } from 'react';
-import { Heart, Phone, MessageCircle, Download, Users, BookOpen, AlertCircle, Clock, Search, Filter, Star, ExternalLink, Play, FileText, Globe, Headphones } from 'lucide-react';
+import { Heart, Phone, MessageCircle, Download, Users, Mail, BookOpen, AlertCircle, Clock, Search, Filter, Star, ExternalLink, Play, FileText, Globe, Headphones } from 'lucide-react';
+import api from '../../services/api';
+
+interface SubscriptionStatus {
+  type: 'success' | 'error';
+  message: string;
+}
 
 interface Resource {
   id: number;
@@ -47,6 +53,11 @@ const PatientCaregiverResources = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedCondition, setSelectedCondition] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const [email, setEmail] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
 
   const resources: Resource[] = [
     {
@@ -117,6 +128,47 @@ const PatientCaregiverResources = () => {
       case 'Website': return <ExternalLink className="w-4 h-4" />;
       case 'Checklist': return <BookOpen className="w-4 h-4" />;
       default: return <FileText className="w-4 h-4" />;
+    }
+  };
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setSubscriptionStatus(null);
+
+    try {
+      const response = await api.post('/newsletter/subscribe/', {
+        email,
+        first_name: firstName,
+        last_name: lastName,
+        source: 'patient_care'
+      });
+
+      setSubscriptionStatus({
+        type: 'success',
+        message: 'Thank you for subscribing to our newsletter!'
+      });
+      setEmail('');
+      setFirstName('');
+      setLastName('');
+    } catch (error: unknown) {
+      let errorMessage = 'Failed to subscribe. Please try again later.';
+      
+      if (typeof error === 'object' && error !== null && 'response' in error) {
+        const axiosError = error as { response?: { status?: number, data?: any } };
+        if (axiosError.response?.status === 400 && axiosError.response.data?.email) {
+          errorMessage = axiosError.response.data.email[0];
+        } else if (axiosError.response?.data?.detail) {
+          errorMessage = axiosError.response.data.detail;
+        }
+      }
+
+      setSubscriptionStatus({
+        type: 'error',
+        message: errorMessage
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -482,23 +534,71 @@ const PatientCaregiverResources = () => {
             pediatric neurological care delivered directly to your inbox.
           </p>
           
-          <div className="max-w-md mx-auto">
+          <form onSubmit={handleSubscribe} className="max-w-md mx-auto">
+            {subscriptionStatus && (
+              <div className={`mb-4 p-3 rounded-md ${
+                subscriptionStatus.type === 'success' 
+                  ? 'bg-green-100 text-green-800' 
+                  : 'bg-red-100 text-red-800'
+              }`}>
+                {subscriptionStatus.message}
+              </div>
+            )}
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <input
+                  type="text"
+                  placeholder="First name"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  className="w-full px-4 py-3 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-white"
+                  required
+                />
+              </div>
+              <div>
+                <input
+                  type="text"
+                  placeholder="Last name"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  className="w-full px-4 py-3 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-white"
+                  required
+                />
+              </div>
+            </div>
+            
             <div className="relative mb-4">
               <input
                 type="email"
                 placeholder="Email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-6 py-4 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-white"
+                required
               />
-              <button className="absolute right-2 top-2 bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 transition-colors flex items-center">
-                <Heart className="mr-2 h-4 w-4" />
-                Subscribe
+              <button 
+                type="submit"
+                disabled={isSubmitting}
+                className={`absolute right-2 top-2 bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 transition-colors flex items-center ${
+                  isSubmitting ? 'opacity-75 cursor-not-allowed' : ''
+                }`}
+              >
+                {isSubmitting ? (
+                  'Subscribing...'
+                ) : (
+                  <>
+                    <Mail className="mr-2 h-4 w-4" />
+                    Subscribe
+                  </>
+                )}
               </button>
             </div>
             
             <p className="text-sm text-orange-100 opacity-90">
               Join thousands of families receiving support and resources. You can unsubscribe at any time.
             </p>
-          </div>
+          </form>
         </div>
       </section>
     </div>

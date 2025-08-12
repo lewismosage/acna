@@ -67,6 +67,8 @@ import PaymentSuccess from "./pages/payment/PaymentSuccess";
 import PaymentCanceled from "./pages/payment/PaymentCanceled";
 import PaymentError from "./pages/payment/PaymentError";
 import ACNAMemberDashboard from "./pages/membershippages/portal/ACNAMemberDashboard";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import UnsubscribePage from './pages/other/Unsubscribe';
 
 // Layout component
 const Layout = ({ children }: { children: React.ReactNode }) => (
@@ -92,6 +94,8 @@ function App() {
           >
             <Route path="/" element={<Home />} />
             <Route path="/donate" element={<Donate />} />
+            {/* Other Pages */}
+            <Route path="/unsubscribe" element={<UnsubscribePage />} />
             {/* About Pages */}
             <Route path="/about" element={<About />} />
             <Route path="/about/what-we-do" element={<WhatWeDo />} />
@@ -157,6 +161,7 @@ function App() {
           {/* Protected Route */}
           <Route element={<ProtectedRoute />}>
             <Route path="/memberportal" element={<ACNAMemberDashboard />} />
+            <Route path="/admin" element={<AdminDashboard />} />
           </Route>
           {/* Forum Pages */}
           <Route path="/forum" element={<ForumComponent />} />        

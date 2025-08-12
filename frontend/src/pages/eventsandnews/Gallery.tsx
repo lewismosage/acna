@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import { Camera, Video, Users, Calendar, MapPin, Eye, Download, Share2, Play } from 'lucide-react';
+import { Camera, Video, Users, Calendar, MapPin, Eye, Download, Share2, Play, Mail } from 'lucide-react';
+import api from '../../services/api';
+
+interface SubscriptionStatus {
+  type: 'success' | 'error';
+  message: string;
+}
 
 interface GalleryItem {
   id: number;
@@ -22,6 +28,11 @@ interface Category {
 const Gallery = () => {
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
   const [selectedMedia, setSelectedMedia] = useState<GalleryItem | null>(null);
+  const [email, setEmail] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
 
   const galleryItems = [
     {
@@ -151,6 +162,47 @@ const Gallery = () => {
 
   const closeModal = () => {
     setSelectedMedia(null);
+  };
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setSubscriptionStatus(null);
+
+    try {
+      const response = await api.post('/newsletter/subscribe/', {
+        email,
+        first_name: firstName,
+        last_name: lastName,
+        source: 'gallery'
+      });
+
+      setSubscriptionStatus({
+        type: 'success',
+        message: 'Thank you for subscribing to our newsletter!'
+      });
+      setEmail('');
+      setFirstName('');
+      setLastName('');
+    } catch (error: unknown) {
+      let errorMessage = 'Failed to subscribe. Please try again later.';
+      
+      if (typeof error === 'object' && error !== null && 'response' in error) {
+        const axiosError = error as { response?: { status?: number, data?: any } };
+        if (axiosError.response?.status === 400 && axiosError.response.data?.email) {
+          errorMessage = axiosError.response.data.email[0];
+        } else if (axiosError.response?.data?.detail) {
+          errorMessage = axiosError.response.data.detail;
+        }
+      }
+
+      setSubscriptionStatus({
+        type: 'error',
+        message: errorMessage
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -450,23 +502,74 @@ const Gallery = () => {
             Subscribe to receive updates about our latest programs, events, and the inspiring stories from our community.
           </p>
           
-          <div className="max-w-md mx-auto">
+          <form onSubmit={handleSubscribe} className="max-w-md mx-auto">
+            {subscriptionStatus && (
+              <div className={`mb-4 p-3 rounded-md ${
+                subscriptionStatus.type === 'success' 
+                  ? 'bg-green-100 text-green-800' 
+                  : 'bg-red-100 text-red-800'
+              }`}>
+                {subscriptionStatus.message}
+              </div>
+            )}
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <input
+                  type="text"
+                  placeholder="First name"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  className="w-full px-4 py-3 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-white"
+                  required
+                />
+              </div>
+              <div>
+                <input
+                  type="text"
+                  placeholder="Last name"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  className="w-full px-4 py-3 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-white"
+                  required
+                />
+              </div>
+            </div>
+            
             <div className="relative mb-4">
               <input
                 type="email"
                 placeholder="Email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-6 py-4 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-white"
+                required
               />
-              <button className="absolute right-2 top-2 bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 transition-colors flex items-center">
-                <Camera className="mr-2 h-4 w-4" />
-                Subscribe
+              <button 
+                type="submit"
+                disabled={isSubmitting}
+                className={`absolute right-2 top-2 bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 transition-colors flex items-center ${
+                  isSubmitting ? 'opacity-75 cursor-not-allowed' : ''
+                }`}
+              >
+                {isSubmitting ? (
+                  'Subscribing...'
+                ) : (
+                  <>
+                    <Mail className="mr-2 h-4 w-4" />
+                    Subscribe
+                  </>
+                )}
               </button>
             </div>
             
             <p className="text-sm text-orange-100 opacity-90">
-              By subscribing, you agree to receive updates and media from ACNA. You can unsubscribe at any time.
+              This site is protected by reCAPTCHA and the Google{' '}
+              <a href="https://policies.google.com/privacy" className="underline hover:text-white">Privacy Policy</a>, and{' '}
+              <a href="https://policies.google.com/terms" className="underline hover:text-white">Terms of Service</a> apply. By submitting your email to subscribe, you agree to the ACNA's{' '}
+              <a href="/privacy-policy" className="underline hover:text-white">Privacy & Cookies Notice</a>.
             </p>
-          </div>
+          </form>
         </div>
       </section>
     </div>
