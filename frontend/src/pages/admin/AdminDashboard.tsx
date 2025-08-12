@@ -16,6 +16,7 @@ import AdminSettings from './AdminSettings';
 import ReportsAnalytics from './ReportsAnalytics';
 import { SignOutModal } from './SignOutModal';
 import { useAuth } from '../../services/AuthContext'; 
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 
 // Mock data for demo purposes
 const mockMemberStats = {
@@ -188,21 +189,36 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [adminName, setAdminName] = useState({ firstName: 'Admin', lastName: 'User' });
   const { admin, isAdmin, logout } = useAuth(); 
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (isAdmin === undefined) return;
+
     if (!isAdmin) {
       navigate('/admin/login');
     } else {
-      // Set admin name from auth context
       setAdminName({
         firstName: admin?.first_name || 'Admin',
         lastName: admin?.last_name || 'User'
       });
     }
+    setIsLoading(false);
   }, [isAdmin, admin, navigate]);
+
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-800 mx-auto"></div>
+          <LoadingSpinner />; 
+        </div>
+      </div>
+    );
+  }
 
   const tabs = [
     { id: 'dashboard', label: 'DASHBOARD', icon: Home },

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
 import api from '../services/api'; 
 
 interface AuthContextType {
@@ -14,27 +14,26 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return localStorage.getItem('isAuthenticated') === 'true';
+  // Synchronously initialize state from localStorage
+  const [isAuthenticated, setIsAuthenticated] = useState(
+    localStorage.getItem('isAuthenticated') === 'true'
+  );
+
+  const [isAdmin, setIsAdmin] = useState(() => {
+    const adminToken = localStorage.getItem('admin_token');
+    const adminData = localStorage.getItem('admin_data');
+    return !!(adminToken && adminData);
   });
-  const [isAdmin, setIsAdmin] = useState(false); 
-  const [admin, setAdmin] = useState<any>(null); 
+
+  const [admin, setAdmin] = useState<any>(() => {
+    const adminData = localStorage.getItem('admin_data');
+    return adminData ? JSON.parse(adminData) : null;
+  });
+
   const [user, setUser] = useState<any>(() => {
     const u = localStorage.getItem('acna_user');
     return u ? JSON.parse(u) : null;
   });
-
-  useEffect(() => {
-    const adminToken = localStorage.getItem('admin_token');
-    const adminData = localStorage.getItem('admin_data');
-    
-    if (adminToken && adminData) {
-      setIsAdmin(true);
-      setAdmin(JSON.parse(adminData));
-    } else {
-      setIsAdmin(false); 
-    }
-  }, []);
 
   const login = async (email: string, password: string) => {
     try {
@@ -50,7 +49,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(userData);
       setIsAuthenticated(true);
     } catch (err: any) {
-      // Normalize error to throw back to UI
       if (err.response) {
         const status = err.response.status;
         const detail = err.response.data?.detail || 'Login failed';
@@ -102,7 +100,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsAdmin(false);
     setUser(undefined);
     setAdmin(null);
-};
+  };
 
   return (
     <AuthContext.Provider value={{ 
