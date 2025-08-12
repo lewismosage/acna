@@ -25,17 +25,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   });
 
   useEffect(() => {
-    const checkAuthState = () => {
-      const adminToken = localStorage.getItem('admin_token');
-      const adminData = localStorage.getItem('admin_data');
-      
-      if (adminToken && adminData) {
-        setIsAdmin(true);
-        setAdmin(JSON.parse(adminData));
-      }
-    };
-
-    checkAuthState();
+    const adminToken = localStorage.getItem('admin_token');
+    const adminData = localStorage.getItem('admin_data');
+    
+    if (adminToken && adminData) {
+      setIsAdmin(true);
+      setAdmin(JSON.parse(adminData));
+    } else {
+      setIsAdmin(false); 
+    }
   }, []);
 
   const login = async (email: string, password: string) => {

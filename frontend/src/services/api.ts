@@ -35,24 +35,15 @@ const refreshAdminToken = async () => {
 // --- Request interceptor ---
 api.interceptors.request.use(
   async (config) => {
-    // --- Admin route token handling ---
-    if (config.url?.includes('/admin/')) {
-      let token = localStorage.getItem('admin_token');
-
-      // Refresh if missing
-      if (!token) {
-        try {
-          token = await refreshAdminToken();
-        } catch (error) {
-          window.location.href = '/admin/login';
-          return Promise.reject(error);
-        }
-      }
-
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-      return config;
+    // Skip auth handling for these endpoints
+    const skipAuthEndpoints = [
+      '/users/admin/login/',
+      '/users/admin/token/refresh/'
+    ];
+    
+    if (skipAuthEndpoints.some(endpoint => config.url?.includes(endpoint))) {
+      return config; 
+      
     }
 
     // Skip adding Authorization header for public endpoints
