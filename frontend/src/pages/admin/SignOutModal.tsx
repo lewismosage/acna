@@ -1,16 +1,10 @@
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../services/AuthContext';
+interface SignOutModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+}
 
-export const SignOutModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
-  const navigate = useNavigate();
-  const { logout } = useAuth();
-
-  const handleLogout = () => {
-    logout();
-    onClose();
-    navigate('/')
-  };
-
+export const SignOutModal = ({ isOpen, onClose, onConfirm }: SignOutModalProps) => {
   if (!isOpen) return null;
 
   return (
@@ -26,7 +20,7 @@ export const SignOutModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: ()
             Cancel
           </button>
           <button
-            onClick={handleLogout}
+            onClick={onConfirm}
             className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
           >
             Confirm Sign Out

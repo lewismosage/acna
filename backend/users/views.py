@@ -358,7 +358,6 @@ class AdminDashboardView(APIView):
                 "recent_activity": []
             }
         }
-<<<<<<< HEAD
         return Response(data, status=status.HTTP_200_OK)
 
 class AdminTokenRefreshView(APIView):
@@ -376,6 +375,3 @@ class AdminTokenRefreshView(APIView):
             return Response({'access': access_token}, status=200)
         except Exception as e:
             return Response({'error': 'Invalid refresh token'}, status=401)
-=======
-        return Response(data, status=status.HTTP_200_OK)
->>>>>>> 5e55192ec9852047a8f52040949b2984334dc310

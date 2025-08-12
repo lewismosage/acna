@@ -1,7 +1,7 @@
 // api.ts
 import axios from 'axios';
 
-// Create the axios instance first
+// Create the axios instance
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
   headers: {
@@ -10,7 +10,7 @@ const api = axios.create({
   withCredentials: true,
 });
 
-// --- Helper: Refresh admin token ---
+// Helper: Refresh admin token
 const refreshAdminToken = async () => {
   try {
     const refreshToken = localStorage.getItem('admin_refresh');
@@ -24,6 +24,7 @@ const refreshAdminToken = async () => {
     localStorage.setItem('admin_token', response.data.access);
     return response.data.access;
   } catch (error) {
+    // Clear all admin auth data on refresh failure
     localStorage.removeItem('admin_token');
     localStorage.removeItem('admin_refresh');
     localStorage.removeItem('admin_data');
@@ -32,35 +33,57 @@ const refreshAdminToken = async () => {
   }
 };
 
-// --- Request interceptor ---
+// Request interceptor
 api.interceptors.request.use(
   async (config) => {
     // Skip auth handling for these endpoints
     const skipAuthEndpoints = [
       '/users/admin/login/',
-      '/users/admin/token/refresh/'
+      '/users/admin/token/refresh/',
+      '/users/login/',
+      '/users/register/',
+      '/users/verify-email/',
+      '/users/resend-verification/'
     ];
     
     if (skipAuthEndpoints.some(endpoint => config.url?.includes(endpoint))) {
-      return config; 
-      
+      return config;
+    }
+
+    // --- Admin route token handling ---
+    if (config.url?.includes('/admin/')) {
+      let token = localStorage.getItem('admin_token');
+
+      // Attempt refresh if no token
+      if (!token) {
+        try {
+          token = await refreshAdminToken();
+        } catch (error) {
+          // Only redirect if not already on login page
+          if (!window.location.pathname.includes('/admin/login')) {
+            window.location.href = '/admin/login';
+          }
+          return Promise.reject(error);
+        }
+      }
+
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
     }
 
     // Skip adding Authorization header for public endpoints
-    if (
-      config.url &&
-      (
-        config.url.includes('/users/register/') || 
-        config.url.includes('/users/verify-email/') ||
-        config.url.includes('/users/resend-verification/') ||
-        config.url.includes('/users/members/') ||
-        config.url.includes('/payments/membership-search/') ||
-        config.url.includes('/payments/create-checkout-session/') ||
-        config.url.includes('/payments/verify-payment/') ||
-        config.url.includes('/payments/download-invoice/') ||
-        config.url.includes('/newsletter/')
-      )
-    ) {
+    const publicEndpoints = [
+      '/users/members/',
+      '/payments/membership-search/',
+      '/payments/create-checkout-session/',
+      '/payments/verify-payment/',
+      '/payments/download-invoice/',
+      '/newsletter/'
+    ];
+
+    if (publicEndpoints.some(endpoint => config.url?.includes(endpoint))) {
       return config;
     }
 
@@ -75,7 +98,7 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// --- Response interceptor ---
+// Response interceptor
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -94,8 +117,18 @@ api.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
         return api(originalRequest);
       } catch (refreshError) {
-        window.location.href = '/admin/login';
+        // Only redirect if not already on login page
+        if (!window.location.pathname.includes('/admin/login')) {
+          window.location.href = '/admin/login';
+        }
         return Promise.reject(refreshError);
+      }
+    }
+
+    // Handle 403 Forbidden (admin privileges required)
+    if (error.response?.status === 403 && originalRequest.url?.includes('/admin/')) {
+      if (!window.location.pathname.includes('/admin/login')) {
+        window.location.href = '/admin/login';
       }
     }
 
@@ -105,6 +138,7 @@ api.interceptors.response.use(
 
 // --- API functions ---
 
+// User authentication functions
 export const registerUser = async (userData: any) => {
   try {
     const response = await api.post('/users/register/', userData);
@@ -135,6 +169,7 @@ export const resendVerification = async (data: { email: string }) => {
   }
 };
 
+// Newsletter functions
 export const getSubscribers = async () => {
   try {
     const response = await api.get('/newsletter/subscribers/');
@@ -161,14 +196,26 @@ export const sendNewsletter = async (newsletterData: {
 export const adminLogin = async (credentials: { email: string; password: string }) => {
   try {
     const response = await api.post('/users/admin/login/', credentials);
+    
     if (response.data.admin_token) {
       localStorage.setItem('admin_token', response.data.admin_token);
     }
     if (response.data.admin_refresh) {
       localStorage.setItem('admin_refresh', response.data.admin_refresh);
     }
+    if (response.data.admin) {
+      localStorage.setItem('admin_data', JSON.stringify(response.data.admin));
+      localStorage.setItem('is_admin', 'true');
+    }
+    
     return response.data;
   } catch (error: any) {
+    // Clear admin auth data on login failure
+    localStorage.removeItem('admin_token');
+    localStorage.removeItem('admin_refresh');
+    localStorage.removeItem('admin_data');
+    localStorage.removeItem('is_admin');
+    
     throw error.response?.data || error.message;
   }
 };
@@ -179,6 +226,19 @@ export const getAdminDashboardData = async () => {
     return response.data;
   } catch (error: any) {
     throw error.response?.data || error.message;
+  }
+};
+
+export const adminLogout = async () => {
+  try {
+    await api.post('/users/admin/logout/');
+  } finally {
+    // Clear all admin auth data
+    localStorage.removeItem('admin_token');
+    localStorage.removeItem('admin_refresh');
+    localStorage.removeItem('admin_data');
+    localStorage.removeItem('is_admin');
+    window.location.href = '/admin/login';
   }
 };
 

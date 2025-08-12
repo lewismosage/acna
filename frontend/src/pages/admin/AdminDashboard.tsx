@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Settings, Users, Calendar, FileText, DollarSign, BarChart3, Shield, LogOut,
   Home, Mail, Upload, Edit3, Search, Menu, X, Plus, Eye, Trash2,
   AlertCircle, CheckCircle, Clock, TrendingUp, UserCheck, UserX,
   Download, Bell, Archive, Globe, Database, Lock
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import CommunicationTools from './communication/CommunicationTools';
 import MembersManagement from './MembersManagement';
@@ -15,6 +15,7 @@ import FinancialManagement from './FinancialManagement';
 import AdminSettings from './AdminSettings';
 import ReportsAnalytics from './ReportsAnalytics';
 import { SignOutModal } from './SignOutModal';
+import { useAuth } from '../../services/AuthContext'; 
 
 // Mock data for demo purposes
 const mockMemberStats = {
@@ -187,7 +188,21 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
-  const [adminName, setAdminName] = useState({ firstName: 'Admin', lastName: 'User' }); 
+  const [adminName, setAdminName] = useState({ firstName: 'Admin', lastName: 'User' });
+  const { admin, isAdmin, logout } = useAuth(); 
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isAdmin) {
+      navigate('/admin/login');
+    } else {
+      // Set admin name from auth context
+      setAdminName({
+        firstName: admin?.first_name || 'Admin',
+        lastName: admin?.last_name || 'User'
+      });
+    }
+  }, [isAdmin, admin, navigate]);
 
   const tabs = [
     { id: 'dashboard', label: 'DASHBOARD', icon: Home },
@@ -232,7 +247,11 @@ const AdminDashboard = () => {
     <div className="min-h-screen bg-gray-100">
       <SignOutModal 
         isOpen={showSignOutModal} 
-        onClose={() => setShowSignOutModal(false)} 
+        onClose={() => setShowSignOutModal(false)}
+        onConfirm={() => {
+          logout();
+          navigate('/admin/login');
+        }}
       />
       {/* Mobile Header */}
       <div className="md:hidden bg-red-800 text-white p-3 flex items-center justify-between">
