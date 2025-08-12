@@ -23,7 +23,7 @@ from .models import User
 from .serializers import MemberSerializer
 from rest_framework.permissions import IsAdminUser
 from rest_framework_simplejwt.authentication import JWTAuthentication
-from rest_framework_simplejwt.views import TokenRefreshView
+
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -289,7 +289,6 @@ class UpdateAboutView(APIView):
     def post(self, request):
         user = request.user
         about_text = request.data.get('about_text', '')
-        
         return Response({
             "message": "About text updated successfully",
             "about_text": about_text
@@ -360,21 +359,3 @@ class AdminDashboardView(APIView):
             }
         }
         return Response(data, status=status.HTTP_200_OK)
-
-class AdminTokenRefreshView(TokenRefreshView):
-    def post(self, request, *args, **kwargs):
-        response = super().post(request, *args, **kwargs)
-        if response.status_code == 200:
-            # Verify the user is an admin
-            token = response.data.get('access')
-            if token:
-                from rest_framework_simplejwt.tokens import AccessToken
-                access_token = AccessToken(token)
-                user_id = access_token['user_id']
-                user = User.objects.get(id=user_id)
-                if not user.is_admin:
-                    return Response(
-                        {'detail': 'Not an admin user'},
-                        status=status.HTTP_403_FORBIDDEN
-                    )
-        return response

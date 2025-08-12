@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
 import api from '../services/api'; 
 
 interface AuthContextType {
@@ -17,26 +17,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     return localStorage.getItem('isAuthenticated') === 'true';
   });
-  const [isAdmin, setIsAdmin] = useState(false); 
-  const [admin, setAdmin] = useState<any>(null); 
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [admin, setAdmin] = useState<any>(null);
   const [user, setUser] = useState<any>(() => {
     const u = localStorage.getItem('acna_user');
     return u ? JSON.parse(u) : null;
   });
 
-  useEffect(() => {
-    const checkAuthState = () => {
-      const adminToken = localStorage.getItem('admin_token');
-      const adminData = localStorage.getItem('admin_data');
-      
-      if (adminToken && adminData) {
-        setIsAdmin(true);
-        setAdmin(JSON.parse(adminData));
-      }
-    };
+  const adminLogin = async (email: string, password: string) => {
+    try {
+      const resp = await api.post('/users/admin/login/', { email, password });
+      const { access, refresh, admin: adminData } = resp.data;
 
-    checkAuthState();
-  }, []);
+      // Store admin tokens & data separately
+      localStorage.setItem('admin_token', access);
+      localStorage.setItem('admin_refresh', refresh);
+      localStorage.setItem('is_admin', 'true');
+      localStorage.setItem('admin_data', JSON.stringify(adminData));
+
+      setAdmin(adminData);
+      setIsAdmin(true);
+    } catch (err: any) {
+      if (err.response) {
+        const status = err.response.status;
+        const detail = err.response.data?.detail || 'Admin login failed';
+        if (status === 401) throw new Error('invalid_credentials');
+        if (status === 403) throw new Error('admin_privileges_required');
+        throw new Error(detail);
+      }
+      throw new Error('Network error');
+    }
+  };
 
   const login = async (email: string, password: string) => {
     try {
@@ -64,31 +75,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const adminLogin = async (email: string, password: string) => {
-    try {
-      const resp = await api.post('/users/admin/login/', { email, password });
-      const { access, refresh, admin: adminData } = resp.data;
-
-      // Store admin tokens & data separately
-      localStorage.setItem('admin_token', access);
-      localStorage.setItem('admin_refresh', refresh);
-      localStorage.setItem('is_admin', 'true');
-      localStorage.setItem('admin_data', JSON.stringify(adminData));
-
-      setAdmin(adminData);
-      setIsAdmin(true);
-    } catch (err: any) {
-      if (err.response) {
-        const status = err.response.status;
-        const detail = err.response.data?.detail || 'Admin login failed';
-        if (status === 401) throw new Error('invalid_credentials');
-        if (status === 403) throw new Error('admin_privileges_required');
-        throw new Error(detail);
-      }
-      throw new Error('Network error');
-    }
-  };
-
   const logout = () => {
     // Clear both user and admin tokens
     localStorage.removeItem('token');
@@ -103,8 +89,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsAuthenticated(false);
     setIsAdmin(false);
     setUser(undefined);
-    setAdmin(null);
-};
+    setAdmin(null); 
+  };
 
   return (
     <AuthContext.Provider value={{ 
