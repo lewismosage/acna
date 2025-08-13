@@ -11,7 +11,7 @@ import CommunicationTools from './communication/CommunicationTools';
 import MembersManagement from './MembersManagement';
 import ContentManagement from './ContentManagement';
 import EventsManagement from './EventsManagement';
-import FinancialManagement from './FinancialManagement';
+import FinancialManagement from './financial/FinancialManagement';
 import AdminSettings from './AdminSettings';
 import ReportsAnalytics from './ReportsAnalytics';
 import { SignOutModal } from './SignOutModal';
@@ -72,6 +72,7 @@ const QuickActionsPanel = ({ setActiveTab }: any) => (
       {[
         { icon: Plus, label: 'Add New Member', color: 'blue', action: () => setActiveTab('members') },
         { icon: Calendar, label: 'Create Event', color: 'green', action: () => setActiveTab('events') },
+        { icon: Plus, label: 'Career Opportunities', color: 'blue', action: () => setActiveTab('members') },
         { icon: FileText, label: 'Publish Content', color: 'purple', action: () => setActiveTab('content') },
         { icon: Mail, label: 'Send Newsletter', color: 'orange', action: () => setActiveTab('communication') },
         { icon: Download, label: 'Export Reports', color: 'red', action: () => setActiveTab('reports') },
@@ -224,6 +225,7 @@ const AdminDashboard = () => {
     { id: 'members', label: 'MEMBERS', icon: Users },
     { id: 'content', label: 'CONTENT', icon: FileText },
     { id: 'events', label: 'EVENTS', icon: Calendar },
+    { id: 'news', label: 'NEWS & PRESS RELEASES', icon: Calendar },
     { id: 'financial', label: 'FINANCIAL', icon: DollarSign },
     { id: 'communication', label: 'COMMUNICATION', icon: Mail },
     { id: 'reports', label: 'REPORTS', icon: BarChart3 },
@@ -269,10 +271,10 @@ const AdminDashboard = () => {
         }}
       />
       {/* Mobile Header */}
-      <div className="md:hidden bg-red-800 text-white p-3 flex items-center justify-between">
+      <div className="md:hidden bg-blue-800 text-white p-3 flex items-center justify-between">
         <button 
           onClick={() => setShowMobileSidebar(!showMobileSidebar)}
-          className="p-2 rounded-full hover:bg-red-700"
+          className="p-2 rounded-full hover:bg-blue-700"
         >
           {showMobileSidebar ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
@@ -281,14 +283,14 @@ const AdminDashboard = () => {
       </div>
 
       {/* Mobile Sidebar */}
-      <div className={`md:hidden fixed inset-y-0 left-0 w-64 bg-red-800 text-white transform z-40 transition-transform duration-300 ease-in-out ${
+      <div className={`md:hidden fixed inset-y-0 left-0 w-64 bg-blue-800 text-white transform z-40 transition-transform duration-300 ease-in-out ${
         showMobileSidebar ? 'translate-x-0' : '-translate-x-full'
       }`}>
         <div className="h-full flex flex-col">
-          <div className="p-4 border-b border-red-700">
+          <div className="p-4 border-b border-blue-700">
             <div className="flex items-center">
               <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center mr-3">
-                <Shield className="w-5 h-5 text-red-800" />
+                <Shield className="w-5 h-5 text-blue-800" />
               </div>
               <h1 className="text-lg font-semibold">Admin Portal</h1>
             </div>
@@ -300,7 +302,7 @@ const AdminDashboard = () => {
                 key={id}
                 onClick={() => handleTabClick(id)}
                 className={`w-full text-left px-4 py-3 flex items-center ${
-                  activeTab === id ? 'bg-red-700' : 'hover:bg-red-700'
+                  activeTab === id ? 'bg-blue-700' : 'hover:bg-blue-700'
                 }`}
               >
                 <Icon className="w-5 h-5 mr-3" />
@@ -309,17 +311,17 @@ const AdminDashboard = () => {
             ))}
             <button
               onClick={() => setShowSignOutModal(true)}
-              className="w-full text-left px-4 py-3 flex items-center hover:bg-red-700"
+              className="w-full text-left px-4 py-3 flex items-center hover:bg-blue-700"
             >
               <LogOut className="w-5 h-5 mr-3" />
               <span>SIGN OUT</span>
             </button>
           </nav>
           
-          <div className="p-4 border-t border-red-700">
+          <div className="p-4 border-t border-blue-700">
             <Link
               to='/'
-              className="flex items-center text-sm hover:text-red-200"
+              className="flex items-center text-sm hover:text-blue-200"
             >
               <Home className="w-4 h-4 mr-2" />
               Return to Home
