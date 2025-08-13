@@ -375,3 +375,36 @@ class AdminTokenRefreshView(APIView):
             return Response({'access': access_token}, status=200)
         except Exception as e:
             return Response({'error': 'Invalid refresh token'}, status=401)
+
+class UpdateUserRolesView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAdminUser]
+    
+    def patch(self, request, user_id):
+        try:
+            user = User.objects.get(id=user_id)
+            roles = request.data.get('roles', [])
+            user.roles = roles
+            user.save()
+            return Response({'success': True}, status=status.HTTP_200_OK)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+class UpdateUserStatusView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAdminUser]
+    
+    def patch(self, request, user_id):
+        try:
+            user = User.objects.get(id=user_id)
+            status_action = request.data.get('status')
+            
+            if status_action == 'Active':
+                user.is_active_member = True
+            elif status_action in ['Suspended', 'Banned']:
+                user.is_active_member = False
+                
+            user.save()
+            return Response({'success': True}, status=status.HTTP_200_OK)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
