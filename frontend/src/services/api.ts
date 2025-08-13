@@ -80,7 +80,7 @@ api.interceptors.request.use(
       '/payments/create-checkout-session/',
       '/payments/verify-payment/',
       '/payments/download-invoice/',
-      '/newsletter/'
+      '/newsletter/send-newsletter/'
     ];
 
     if (publicEndpoints.some(endpoint => config.url?.includes(endpoint))) {
@@ -188,6 +188,7 @@ export const sendNewsletter = async (newsletterData: {
     const response = await api.post('/newsletter/send-newsletter/', newsletterData);
     return response.data;
   } catch (error: any) {
+    console.error('Newsletter send error:', error.response?.data || error.message); 
     throw error.response?.data || error.message;
   }
 };

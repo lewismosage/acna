@@ -27,6 +27,8 @@ from django.conf import settings
 from datetime import date
 from rest_framework.throttling import AnonRateThrottle
 from django.core.exceptions import ObjectDoesNotExist
+from rest_framework import generics
+from .serializers import PaymentSerializer
 
 
 logger = logging.getLogger(__name__)
@@ -584,3 +586,13 @@ class MembershipSearchView(APIView):
             'lifetime': 'Lifetime Member'
         }
         return names.get(tier_key, tier_key)
+
+class UserPaymentsListView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = PaymentSerializer
+
+    def get_queryset(self):
+        user_id = self.request.query_params.get('user_id')
+        if user_id:
+            return Payment.objects.filter(user_id=user_id)
+        return Payment.objects.none()

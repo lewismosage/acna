@@ -12,11 +12,11 @@ const safeFormatDate = (dateString: string | null | undefined, formatStr = 'yyyy
   if (!dateString) return 'N/A';
   
   try {
-    const date = parseISO(dateString);
+    // Handle Django's date format (might include time)
+    const date = new Date(dateString);
     return isValid(date) ? format(date, formatStr) : 'Invalid date';
   } catch (error) {
-    console.error('Error formatting date:', error);
-    return 'Invalid date';
+    return 'N/A';
   }
 };
 
@@ -86,7 +86,7 @@ const MembersManagement = () => {
       if (!selectedMember) return;
       
       try {
-        const response = await api.get(`/payments/?user_id=${selectedMember.id}`);
+        const response = await api.get(`/payments/user-payments/?user_id=${selectedMember.id}`);
         setPayments(response.data);
       } catch (err) {
         console.error('Failed to fetch payments', err);
@@ -201,11 +201,6 @@ const MembersManagement = () => {
     } catch (err) {
       console.error('Failed to change status', err);
     }
-  };
-
-  const handleSendMessage = () => {
-    if (!selectedMember) return;
-    console.log('Sending message to:', selectedMember.email);
   };
 
   const filteredMembers = members.filter(member => {
@@ -358,7 +353,7 @@ const MembersManagement = () => {
                   <h2 className="text-xl font-bold text-gray-900">
                     {selectedMember.first_name} {selectedMember.last_name}
                   </h2>
-                  <p className="text-gray-600">{selectedMember.specialization || 'N/A'}</p>
+                  <p className="text-gray-600">{selectedMember.specialization }</p>
                   <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(getStatus(selectedMember))}`}>
                     {getStatus(selectedMember)}
                   </span>
@@ -547,12 +542,6 @@ const MembersManagement = () => {
                             >
                               Moderator
                             </button>
-                            <button 
-                              onClick={() => handleAssignRole('Admin')}
-                              className="block w-full text-left px-4 py-2 hover:bg-gray-100"
-                            >
-                              Admin
-                            </button>
                           </div>
                         )}
                       </div>
@@ -590,13 +579,6 @@ const MembersManagement = () => {
                     <div className="space-y-4">
                       <h4 className="font-medium text-gray-900">Communication</h4>
                       <div className="space-y-2">
-                        <button 
-                          onClick={handleSendMessage}
-                          className="w-full text-left px-4 py-2 border border-blue-300 rounded hover:bg-blue-50 flex items-center text-blue-700"
-                        >
-                          <MessageCircle className="w-4 h-4 mr-3" />
-                          Send Message
-                        </button>
                         <button className="w-full text-left px-4 py-2 border border-gray-300 rounded hover:bg-gray-50 flex items-center">
                           <Mail className="w-4 h-4 mr-3" />
                           Send Email

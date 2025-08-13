@@ -6,6 +6,7 @@ import NewsletterManagement from './NewsletterManagement';
 import MessageManagement from './MessageManagement';
 import { getSubscribers, sendNewsletter } from '../../../services/api';
 import NewsletterForm from './NewsletterForm';
+import AlertModal from '../../../components/common/AlertModal';
 
 type Message = {
   id: number;
@@ -28,12 +29,13 @@ interface Subscriber {
 
 const CommunicationDashboard = () => {
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
-  const [newsletterData, setNewsletterData] = useState({
-    subject: '',
-    content: '',
-    recipients: 'all'
-  });
   const [activeTab, setActiveTab] = useState<'home' | 'subscribers' | 'messages'>('home');
+  const [alert, setAlert] = useState({
+    show: false,
+    title: '',
+    message: '',
+    type: 'success' as 'success' | 'error' | 'warning' | 'info'
+  });
   const [messages] = useState<Message[]>([
     {
       id: 1,
@@ -76,27 +78,32 @@ const CommunicationDashboard = () => {
     fetchSubscribers();
   }, []);
 
-  const handleSendNewsletter = async () => {
+  const handleSendNewsletter = async (data: {
+    subject: string;
+    content: string;
+    recipients: string;
+  }) => {
     try {
-      await sendNewsletter(newsletterData);
-      setNewsletterData({
-        subject: '',
-        content: '',
-        recipients: 'all'
+      await sendNewsletter(data);
+      setAlert({
+        show: true,
+        title: 'Success',
+        message: 'Newsletter sent successfully!',
+        type: 'success'
       });
-      alert('Newsletter sent successfully!');
     } catch (err: any) {
       console.error('Failed to send newsletter:', err.message);
-      alert('Failed to send newsletter');
+      setAlert({
+        show: true,
+        title: 'Error',
+        message: 'Failed to send newsletter',
+        type: 'error'
+      });
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setNewsletterData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+  const closeAlert = () => {
+    setAlert(prev => ({ ...prev, show: false }));
   };
 
   const activeSubscribers = subscribers.filter(sub => sub.is_active);
@@ -171,6 +178,14 @@ const CommunicationDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-100">
+       {/* Alert Modal */}
+        <AlertModal
+        isOpen={alert.show}
+        onClose={closeAlert}
+        title={alert.title}
+        message={alert.message}
+        type={alert.type}
+      />
       <div className="bg-white border-b-2 border-gray-200">
         <div className="bg-blue-700 overflow-x-auto">
           <nav className="px-4 md:px-6">

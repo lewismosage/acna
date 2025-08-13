@@ -1,10 +1,8 @@
 from django.urls import path
 from .views import (
-    CreateCheckoutSession,
-    PaymentWebhook,
-    VerifyPayment,
-    DownloadInvoice,
-    MembershipSearchView
+    CreateCheckoutSession, PaymentWebhook,
+    VerifyPayment, DownloadInvoice,
+    MembershipSearchView, UserPaymentsListView
 )
 from rest_framework_simplejwt.views import TokenVerifyView
 
@@ -14,6 +12,7 @@ urlpatterns = [
     path('verify-payment/', VerifyPayment.as_view()),
     path('download-invoice/', DownloadInvoice.as_view()),
     path('webhook/', PaymentWebhook.as_view(), name='payment-webhook'),
+    path('user-payments/', UserPaymentsListView.as_view(), name='user-payments'),
     
     # Public membership endpoint
     path('membership-search/', MembershipSearchView.as_view(), name='membership-search'),

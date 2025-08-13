@@ -141,6 +141,8 @@ class MemberSerializer(serializers.ModelSerializer):
             'is_active_member',
             'membership_valid_until',
             'profile_photo',
+            'membership_id', 
+            'date_joined',
         ]
         
     def to_representation(self, instance):

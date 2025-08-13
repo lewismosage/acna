@@ -1,18 +1,28 @@
-# subscriptions/views.py
-from rest_framework import status
+from rest_framework import status, serializers
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from .models import NewsletterSubscriber
-from .serializers import NewsletterSubscriberSerializer
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
 import logging
+from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
+class NewsletterSubscriberSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NewsletterSubscriber
+        fields = ['id', 'email', 'first_name', 'last_name', 'is_active', 'subscribed_at', 'unsubscribed_at', 'source']
+        read_only_fields = ['is_active', 'subscribed_at', 'unsubscribed_at']
+
+class NewsletterSerializer(serializers.Serializer):
+    subject = serializers.CharField(required=True)
+    content = serializers.CharField(required=True)
+    recipients = serializers.CharField(required=False, default='all')
+
+    
 class SubscribeToNewsletter(APIView):
   
     def post(self, request):
@@ -141,21 +151,32 @@ The ACNA Team
 
 
 class SendNewsletter(APIView):
-    permission_classes = [IsAuthenticated]  # Only admins to send newsletters
+    permission_classes = [AllowAny]
 
     def post(self, request):
-        subject = request.data.get('subject')
-        content = request.data.get('content')
+        serializer = NewsletterSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
-        if not subject or not content:
-            return Response(
-                {'error': 'Subject and content are required'},
-                status=status.HTTP_400_BAD_REQUEST
+        validated_data = serializer.validated_data
+        subject = validated_data['subject']
+        content = validated_data['content']
+        recipients = validated_data.get('recipients', 'all')
+
+        # Filter subscribers based on recipients
+        if recipients == 'new':
+            # Get subscribers from the last 30 days
+            from datetime import datetime, timedelta
+            thirty_days_ago = datetime.now() - timedelta(days=30)
+            active_subscribers = NewsletterSubscriber.objects.filter(
+                is_active=True,
+                subscribed_at__gte=thirty_days_ago
             )
+        else:
+            # Default to all active subscribers
+            active_subscribers = NewsletterSubscriber.objects.filter(is_active=True)
 
-        active_subscribers = NewsletterSubscriber.objects.filter(is_active=True)
         sent_count = 0
-
         for subscriber in active_subscribers:
             try:
                 self.send_newsletter_email(subscriber, subject, content)
