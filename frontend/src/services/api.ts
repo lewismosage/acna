@@ -80,7 +80,8 @@ api.interceptors.request.use(
       '/payments/create-checkout-session/',
       '/payments/verify-payment/',
       '/payments/download-invoice/',
-      '/newsletter/send-newsletter/'
+      '/newsletter/send-newsletter/',
+      '/newsletter/messages/'
     ];
 
     if (publicEndpoints.some(endpoint => config.url?.includes(endpoint))) {
@@ -189,6 +190,56 @@ export const sendNewsletter = async (newsletterData: {
     return response.data;
   } catch (error: any) {
     console.error('Newsletter send error:', error.response?.data || error.message); 
+    throw error.response?.data || error.message;
+  }
+};
+
+// Contact functions
+export const sendContactMessage = async (messageData: {
+  first_name: string;
+  last_name: string;
+  email: string;
+  subject: string;
+  message: string;
+}) => {
+  try {
+    const response = await api.post('/newsletter/contact/', messageData);
+    return response.data;
+  } catch (error: any) {
+    throw error.response?.data || error.message;
+  }
+};
+
+// Message functions (for admin)
+export const getMessages = async () => {
+  try {
+    const response = await api.get('/newsletter/messages/');
+    return response.data;
+  } catch (error: any) {
+    throw error.response?.data || error.message;
+  }
+};
+
+export const updateMessage = async (id: number, updateData: {
+  is_read?: boolean;
+  responded?: boolean;
+  response_notes?: string;
+}) => {
+  try {
+    const response = await api.patch(`/newsletter/messages/${id}/`, updateData);
+    return response.data;
+  } catch (error: any) {
+    throw error.response?.data || error.message;
+  }
+};
+
+export const sendMessageResponse = async (messageId: number, responseText: string) => {
+  try {
+    const apiResponse = await api.post(`/newsletter/messages/${messageId}/respond/`, { 
+      response: responseText 
+    });
+    return apiResponse.data;
+  } catch (error: any) {
     throw error.response?.data || error.message;
   }
 };

@@ -1,95 +1,120 @@
 import { useState } from 'react';
 import { 
-  MessageSquare, ArrowLeft, Reply, Send, Mail 
+  MessageSquare, ArrowLeft, Reply, Send, Mail, Loader2
 } from 'lucide-react';
+import AlertModal from '../../../components/common/AlertModal';
+import { getMessages, updateMessage, sendMessageResponse } from '../../../services/api';
 
-
-
-export type Message = {
-  id: number;
-  firstName: string;
-  lastName: string;
-  subject: string;
-  message: string;
-  time: string;
-  read: boolean;
-};
-
-export interface Subscriber {
+export interface ContactMessage {
   id: number;
   first_name: string;
   last_name: string;
   email: string;
-  subscribed_at: string;
-  is_active: boolean;
+  subject: string;
+  message: string;
+  created_at: string;
+  is_read: boolean;
+  responded: boolean;
+  response_notes?: string;
 }
 
-
-// Mock data for messages
-const mockMessages = [
-  {
-    id: 1,
-    firstName: "Dr. Sarah",
-    lastName: "Johnson",
-    subject: "Question about membership renewal",
-    message: "Hello, I hope this email finds you well. I have a question regarding my membership renewal process. Could you please provide information about the renewal deadline and any updated fees? I want to ensure I don't miss any important dates. Thank you for your assistance.",
-    time: "2 hours ago",
-    read: false
-  },
-  {
-    id: 2,
-    firstName: "Dr. Michael",
-    lastName: "Chen",
-    subject: "Event registration issue",
-    message: "I am experiencing difficulties registering for the upcoming pediatric neurology conference. The registration form seems to be encountering an error when I try to submit my information. Could you please help resolve this issue or let me know if there's an alternative registration method? Thank you.",
-    time: "1 day ago",
-    read: false
-  },
-  {
-    id: 3,
-    firstName: "Dr. Amara",
-    lastName: "Okafor",
-    subject: "Resource access request",
-    message: "I would like to request access to the advanced EEG interpretation resources that were mentioned in the recent newsletter. I believe these materials would be very beneficial for my current research project on pediatric epilepsy. Please let me know the process for accessing these resources.",
-    time: "2 days ago",
-    read: true
-  },
-  {
-    id: 4,
-    firstName: "Prof. David",
-    lastName: "Martinez",
-    subject: "Collaboration opportunity",
-    message: "I am reaching out to discuss a potential collaboration opportunity between our institutions. We are working on a multi-center study on cerebral palsy treatment outcomes and would love to have ACNA participate. Would it be possible to schedule a meeting to discuss this further?",
-    time: "3 days ago",
-    read: true
-  },
-  {
-    id: 5,
-    firstName: "Dr. Lisa",
-    lastName: "Thompson",
-    subject: "Thank you for the webinar",
-    message: "I wanted to express my gratitude for the excellent webinar on advanced pediatric stroke management that was held last week. The content was incredibly informative and will definitely help improve my clinical practice. Are there any similar sessions planned for the coming months?",
-    time: "5 days ago",
-    read: true
-  }
-];
-
-interface MessageManagementProps {
-  messages: Message[];
+export interface MessageManagementProps {
+  messages: ContactMessage[];
 }
 
-const MessageManagement = ({ messages }: MessageManagementProps) => {
-  const [selectedMessage, setSelectedMessage] = useState<any>(null);
+const MessageManagement = ({ messages: initialMessages }: MessageManagementProps) => {
+  const [selectedMessage, setSelectedMessage] = useState<ContactMessage | null>(null);
+  const [messages, setMessages] = useState<ContactMessage[]>(initialMessages);
+  const [responseText, setResponseText] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [alert, setAlert] = useState({
+    show: false,
+    title: '',
+    message: '',
+    type: 'success' as 'success' | 'error' | 'warning' | 'info'
+  });
 
-  const handleReply = (email: string) => {
-    // In a real app, this would open a reply compose modal
-    console.log(`Preparing reply to: ${email}`);
-    alert(`Reply window would open for: ${email}`);
+  const handleReply = async () => {
+    if (!selectedMessage || !responseText.trim()) {
+      setAlert({
+        show: true,
+        title: 'Error',
+        message: 'Please write a response before sending',
+        type: 'error'
+      });
+      return;
+    }
+
+    setIsSending(true);
+    try {
+      // Send the response
+      await sendMessageResponse(selectedMessage.id, responseText);
+      
+      // Update the message as responded
+      const updatedMessage = await updateMessage(selectedMessage.id, {
+        responded: true,
+        response_notes: responseText,
+        is_read: true
+      });
+
+      // Update the messages list
+      setMessages(messages.map(msg => 
+        msg.id === selectedMessage.id ? updatedMessage : msg
+      ));
+
+      setAlert({
+        show: true,
+        title: 'Success',
+        message: 'Response sent successfully',
+        type: 'success'
+      });
+
+      // Clear the response
+      setResponseText('');
+    } catch (error) {
+      setAlert({
+        show: true,
+        title: 'Error',
+        message: 'Failed to send response',
+        type: 'error'
+      });
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+
+    if (diffInHours < 24) {
+      return `${diffInHours} hours ago`;
+    } else {
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    }
+  };
+
+  const closeAlert = () => {
+    setAlert(prev => ({ ...prev, show: false }));
   };
 
   if (selectedMessage) {
     return (
       <div className="space-y-6">
+        {/* Alert Modal */}
+        <AlertModal
+          isOpen={alert.show}
+          onClose={closeAlert}
+          title={alert.title}
+          message={alert.message}
+          type={alert.type}
+        />
+
         <div className="bg-white border border-gray-300 rounded-lg">
           <div className="bg-blue-100 px-6 py-4 border-b border-gray-300 flex items-center">
             <button 
@@ -105,19 +130,36 @@ const MessageManagement = ({ messages }: MessageManagementProps) => {
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <h3 className="text-lg font-semibold">{selectedMessage.subject}</h3>
-                  <p className="text-gray-600">From: {selectedMessage.firstName} {selectedMessage.lastName}</p>
-                  <p className="text-sm text-gray-500">{selectedMessage.time}</p>
+                  <p className="text-gray-600">
+                    From: {selectedMessage.first_name} {selectedMessage.last_name}
+                    <br />
+                    Email: {selectedMessage.email}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {formatDate(selectedMessage.created_at)}
+                  </p>
                 </div>
                 <span className={`px-3 py-1 rounded text-sm ${
-                  selectedMessage.read ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+                  selectedMessage.is_read ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
                 }`}>
-                  {selectedMessage.read ? 'Read' : 'Unread'}
+                  {selectedMessage.is_read ? 'Read' : 'Unread'}
                 </span>
               </div>
               
               <div className="bg-gray-50 p-4 rounded-lg mb-6">
-                <p className="text-gray-800 leading-relaxed">{selectedMessage.message}</p>
+                <p className="text-gray-800 leading-relaxed whitespace-pre-line">
+                  {selectedMessage.message}
+                </p>
               </div>
+
+              {selectedMessage.responded && selectedMessage.response_notes && (
+                <div className="bg-blue-50 p-4 rounded-lg mb-6 border border-blue-100">
+                  <h4 className="font-semibold text-blue-800 mb-2">Your Response</h4>
+                  <p className="text-gray-800 leading-relaxed whitespace-pre-line">
+                    {selectedMessage.response_notes}
+                  </p>
+                </div>
+              )}
 
               <div className="border-t pt-6">
                 <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
@@ -140,17 +182,35 @@ const MessageManagement = ({ messages }: MessageManagementProps) => {
                       rows={6}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="Write your response..."
+                      value={responseText}
+                      onChange={(e) => setResponseText(e.target.value)}
+                      disabled={isSending}
                     />
                   </div>
                   <div className="flex space-x-2">
                     <button 
-                      onClick={() => handleReply(`${selectedMessage.firstName.toLowerCase()}.${selectedMessage.lastName.toLowerCase()}@acna.org`)}
-                      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center"
+                      onClick={handleReply}
+                      disabled={isSending || !responseText.trim()}
+                      className={`bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center ${
+                        isSending ? 'opacity-75 cursor-not-allowed' : ''
+                      }`}
                     >
-                      <Send className="w-4 h-4 mr-2" />
-                      Send Reply
+                      {isSending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-4 h-4 mr-2" />
+                          Send Reply
+                        </>
+                      )}
                     </button>
-                    <button className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
+                    <button 
+                      className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
+                      disabled={isSending}
+                    >
                       Save Draft
                     </button>
                   </div>
@@ -165,17 +225,26 @@ const MessageManagement = ({ messages }: MessageManagementProps) => {
 
   return (
     <div className="space-y-6">
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={alert.show}
+        onClose={closeAlert}
+        title={alert.title}
+        message={alert.message}
+        type={alert.type}
+      />
+
       <div className="bg-white border border-gray-300 rounded-lg">
         <div className="bg-blue-100 px-6 py-4 border-b border-gray-300">
           <h2 className="text-xl font-bold text-gray-800">Messages Inbox</h2>
         </div>
         <div className="p-6">
           <div className="space-y-3">
-            {mockMessages.map((message) => (
+            {messages.map((message) => (
               <div 
                 key={message.id} 
                 className={`p-4 border rounded-lg cursor-pointer hover:shadow-md transition-shadow ${
-                  message.read ? 'border-gray-200 bg-gray-50' : 'border-blue-200 bg-blue-50'
+                  message.is_read ? 'border-gray-200 bg-gray-50' : 'border-blue-200 bg-blue-50'
                 }`}
                 onClick={() => setSelectedMessage(message)}
               >
@@ -183,9 +252,9 @@ const MessageManagement = ({ messages }: MessageManagementProps) => {
                   <div className="flex-1">
                     <div className="flex items-center mb-2">
                       <h3 className="font-semibold text-gray-800 mr-3">
-                        {message.firstName} {message.lastName}
+                        {message.first_name} {message.last_name}
                       </h3>
-                      {!message.read && (
+                      {!message.is_read && (
                         <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
                       )}
                     </div>
@@ -193,7 +262,9 @@ const MessageManagement = ({ messages }: MessageManagementProps) => {
                     <p className="text-sm text-gray-600 line-clamp-2">
                       {message.message.substring(0, 100)}...
                     </p>
-                    <p className="text-xs text-gray-500 mt-2">{message.time}</p>
+                    <p className="text-xs text-gray-500 mt-2">
+                      {formatDate(message.created_at)}
+                    </p>
                   </div>
                   <div className="ml-4">
                     <MessageSquare className="w-5 h-5 text-gray-400" />
@@ -207,20 +278,20 @@ const MessageManagement = ({ messages }: MessageManagementProps) => {
             <h3 className="font-semibold text-gray-800 mb-3">Message Summary</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="text-center">
-                <p className="text-2xl font-bold text-blue-600">{mockMessages.length}</p>
+                <p className="text-2xl font-bold text-blue-600">{messages.length}</p>
                 <p className="text-sm text-gray-600">Total Messages</p>
               </div>
               <div className="text-center">
                 <p className="text-2xl font-bold text-red-600">
-                  {mockMessages.filter(m => !m.read).length}
+                  {messages.filter(m => !m.is_read).length}
                 </p>
                 <p className="text-sm text-gray-600">Unread Messages</p>
               </div>
               <div className="text-center">
                 <p className="text-2xl font-bold text-green-600">
-                  {mockMessages.filter(m => m.read).length}
+                  {messages.filter(m => m.responded).length}
                 </p>
-                <p className="text-sm text-gray-600">Read Messages</p>
+                <p className="text-sm text-gray-600">Responded Messages</p>
               </div>
             </div>
           </div>

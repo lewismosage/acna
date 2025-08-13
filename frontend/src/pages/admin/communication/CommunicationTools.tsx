@@ -1,22 +1,23 @@
 import { useEffect, useState } from 'react';
-import { 
-  Mail, Users, MessageSquare, Send
-} from 'lucide-react';
+import { Mail, Users, MessageSquare } from 'lucide-react';
 import NewsletterManagement from './NewsletterManagement';
 import MessageManagement from './MessageManagement';
-import { getSubscribers, sendNewsletter } from '../../../services/api';
+import { getSubscribers, sendNewsletter, getMessages } from '../../../services/api';
 import NewsletterForm from './NewsletterForm';
 import AlertModal from '../../../components/common/AlertModal';
 
-type Message = {
+interface ContactMessage {
   id: number;
-  firstName: string;
-  lastName: string;
+  first_name: string;
+  last_name: string;
+  email: string;
   subject: string;
   message: string;
-  time: string;
-  read: boolean;
-};
+  created_at: string;
+  is_read: boolean;
+  responded: boolean;
+  response_notes?: string;
+}
 
 interface Subscriber {
   id: number;
@@ -29,6 +30,7 @@ interface Subscriber {
 
 const CommunicationDashboard = () => {
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
+  const [messages, setMessages] = useState<ContactMessage[]>([]);
   const [activeTab, setActiveTab] = useState<'home' | 'subscribers' | 'messages'>('home');
   const [alert, setAlert] = useState({
     show: false,
@@ -36,35 +38,22 @@ const CommunicationDashboard = () => {
     message: '',
     type: 'success' as 'success' | 'error' | 'warning' | 'info'
   });
-  const [messages] = useState<Message[]>([
-    {
-      id: 1,
-      firstName: "Dr. Sarah",
-      lastName: "Johnson",
-      subject: "Question about membership renewal",
-      message: "Hello, I have a question regarding my membership renewal...",
-      time: "2 hours ago",
-      read: false
-    },
-    {
-      id: 2,
-      firstName: "Dr. Michael",
-      lastName: "Chen",
-      subject: "Event registration issue",
-      message: "I am experiencing difficulties registering for the upcoming conference...",
-      time: "1 day ago",
-      read: false
-    },
-    {
-      id: 3,
-      firstName: "Dr. Amara",
-      lastName: "Okafor",
-      subject: "Resource access request",
-      message: "I would like to request access to the advanced EEG interpretation resources...",
-      time: "2 days ago",
-      read: true
-    }
-  ]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [subscribersData, messagesData] = await Promise.all([
+          getSubscribers(),
+          getMessages()
+        ]);
+        setSubscribers(subscribersData);
+        setMessages(messagesData);
+      } catch (err: any) {
+        console.error('Failed to fetch data:', err.message);
+      }
+    };
+    fetchData();
+  }, []);
 
   useEffect(() => {
     const fetchSubscribers = async () => {
@@ -120,6 +109,22 @@ const CommunicationDashboard = () => {
     { id: 'messages', label: 'MESSAGES', icon: MessageSquare }
   ];
 
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+
+    if (diffInHours < 24) {
+      return `${diffInHours} hours ago`;
+    } else {
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    }
+  };
+
   const RecentMessages = () => (
     <div className="bg-white border border-gray-300 rounded-lg">
       <div className="bg-gray-100 px-4 py-2 border-b border-gray-300">
@@ -131,11 +136,11 @@ const CommunicationDashboard = () => {
             <div key={message.id} className="p-3 border border-gray-200 rounded hover:bg-gray-50 cursor-pointer">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <p className="font-medium text-sm">{message.firstName} {message.lastName}</p>
+                  <p className="font-medium text-sm">{message.first_name} {message.last_name}</p>
                   <p className="text-sm text-gray-700">{message.subject}</p>
-                  <p className="text-xs text-gray-500">{message.time}</p>
+                  <p className="text-xs text-gray-500">{formatTime(message.created_at)}</p>
                 </div>
-                {!message.read && (
+                {!message.is_read && (
                   <div className="w-2 h-2 bg-blue-600 rounded-full ml-2 mt-1"></div>
                 )}
               </div>
@@ -178,8 +183,7 @@ const CommunicationDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-100">
-       {/* Alert Modal */}
-        <AlertModal
+      <AlertModal
         isOpen={alert.show}
         onClose={closeAlert}
         title={alert.title}

@@ -23,3 +23,23 @@ class NewsletterSubscriber(models.Model):
         self.is_active = False
         self.unsubscribed_at = timezone.now()
         self.save()
+
+class ContactMessage(models.Model):
+    first_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100)
+    email = models.EmailField()
+    subject = models.CharField(max_length=200)
+    message = models.TextField()
+    created_at = models.DateTimeField(default=timezone.now)
+    is_read = models.BooleanField(default=False)
+    responded = models.BooleanField(default=False)
+    response_notes = models.TextField(blank=True, null=True)
+    source = models.CharField(max_length=50, default='website')  
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Contact Message'
+        verbose_name_plural = 'Contact Messages'
+
+    def __str__(self):
+        return f"{self.subject} - {self.first_name} {self.last_name}"

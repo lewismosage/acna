@@ -588,7 +588,7 @@ class MembershipSearchView(APIView):
         return names.get(tier_key, tier_key)
 
 class UserPaymentsListView(generics.ListAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     serializer_class = PaymentSerializer
 
     def get_queryset(self):
