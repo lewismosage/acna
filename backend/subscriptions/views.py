@@ -315,7 +315,7 @@ class ContactMessageDetailView(generics.RetrieveUpdateAPIView):
             instance.save()
 
 class MessageResponseView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, message_id):
         try:
@@ -326,6 +326,13 @@ class MessageResponseView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
+        # Ensure the user is an admin
+        if not request.user.is_staff:
+            return Response(
+                {'error': 'Admin privileges required'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         response_text = request.data.get('response')
         if not response_text:
             return Response(
@@ -333,24 +340,35 @@ class MessageResponseView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Send the response email
-        self.send_response_email(message, response_text, request.user)
-        
-        # Update the message as responded
-        message.responded = True
-        message.response_notes = response_text
-        message.save()
+        try:
+            # Send the response email
+            self.send_response_email(message, response_text, request.user)
+            
+            # Update the message as responded
+            message.responded = True
+            message.response_notes = response_text
+            message.save()
 
-        return Response(
-            {'message': 'Response sent successfully'},
-            status=status.HTTP_200_OK
-        )
+            return Response(
+                {'message': 'Response sent successfully'},
+                status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            logger.error(f"Failed to send response: {str(e)}")
+            return Response(
+                {'error': 'Failed to send response email'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     def send_response_email(self, message, response_text, admin_user):
         subject = f"Re: {message.subject}"
         from_email = settings.DEFAULT_FROM_EMAIL
         to = [message.email]
-        admin_name = f"{admin_user.first_name} {admin_user.last_name}" if admin_user.first_name else "ACNA Admin"
+        
+        # Safe admin name handling
+        admin_name = "ACNA Admin"
+        if admin_user.first_name or admin_user.last_name:
+            admin_name = f"{admin_user.first_name or ''} {admin_user.last_name or ''}".strip()
 
         context = {
             'original_message': message.message,
@@ -377,12 +395,12 @@ Best regards,
 {settings.COMPANY_NAME}
 """
 
-            # HTML version
+            # HTML version (template)
             html_content = render_to_string("subscriptions/emails/response.html", context)
 
             msg = EmailMultiAlternatives(subject, text_content, from_email, to)
             msg.attach_alternative(html_content, "text/html")
             msg.send()
         except Exception as e:
-            logger.error(f"Failed to send response email: {str(e)}")
+            logger.error(f"Failed to send response email to {message.email}: {str(e)}")
             raise

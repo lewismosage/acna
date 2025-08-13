@@ -168,6 +168,8 @@ EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true'
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'savannatek.ke@gmail.com')
+CONTACT_EMAIL = os.getenv('CONTACT_EMAIL') 
+ADMIN_EMAIL = os.getenv('ADMIN_EMAIL')
 COMPANY_NAME = os.getenv('COMPANY_NAME', 'ACNA')
 #Stripe Settings
 STRIPE_PUBLISHABLE_KEY = os.getenv('STRIPE_PUBLISHABLE_KEY')

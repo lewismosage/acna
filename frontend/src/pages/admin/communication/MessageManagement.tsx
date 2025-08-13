@@ -207,12 +207,6 @@ const MessageManagement = ({ messages: initialMessages }: MessageManagementProps
                         </>
                       )}
                     </button>
-                    <button 
-                      className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
-                      disabled={isSending}
-                    >
-                      Save Draft
-                    </button>
                   </div>
                 </div>
               </div>

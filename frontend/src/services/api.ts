@@ -51,22 +51,22 @@ api.interceptors.request.use(
     }
 
     // --- Admin route token handling ---
-    if (config.url?.includes('/admin/')) {
+    if (config.url?.includes('/messages/') && config.url?.includes('/respond/')) {
+      // This is an admin-only endpoint
       let token = localStorage.getItem('admin_token');
-
+    
       // Attempt refresh if no token
       if (!token) {
         try {
           token = await refreshAdminToken();
         } catch (error) {
-          // Only redirect if not already on login page
           if (!window.location.pathname.includes('/admin/login')) {
             window.location.href = '/admin/login';
           }
           return Promise.reject(error);
         }
       }
-
+    
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -84,7 +84,8 @@ api.interceptors.request.use(
       '/newsletter/messages/'
     ];
 
-    if (publicEndpoints.some(endpoint => config.url?.includes(endpoint))) {
+    if (publicEndpoints.some(endpoint => config.url?.includes(endpoint)) && 
+      !config.url?.includes('/respond/')) {
       return config;
     }
 
