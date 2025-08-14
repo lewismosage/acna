@@ -1,22 +1,22 @@
 import { useState } from 'react';
 import { Newspaper, Heart } from 'lucide-react';
 import NewsUpdatesTab from './NewsUpdatesTab';
-import StoriesTab from './StoriesTab';
+import GalleryTab from './GalleryTab';
 
 const NewsManagement = () => {
   const [activeTab, setActiveTab] = useState('news');
 
   const tabs = [
     { id: 'news', label: 'NEWS & UPDATES', icon: Newspaper },
-    { id: 'stories', label: 'STORIES OF CHANGED LIVES', icon: Heart }
+    { id: 'gallery', label: 'GALLERY', icon: Heart }
   ];
 
   const renderTabContent = () => {
     switch (activeTab) {
       case 'news':
         return <NewsUpdatesTab newsItems={[]} />;
-      case 'stories':
-        return <StoriesTab />;
+      case 'gallery':  // Changed from 'stories' to 'gallery'
+        return <GalleryTab galleryItems={[]} storyItems={[]} />;
       default:
         return <NewsUpdatesTab newsItems={[]} />;
     }

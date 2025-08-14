@@ -10,7 +10,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import CommunicationTools from './communication/CommunicationTools';
 import MembersManagement from './MembersManagement';
-import ContentManagement from './ContentManagement';
+import ResourceManagement from './Resources/ResourceManagement';
 import EventsManagement from './events/EventsManagement';
 import FinancialManagement from './financial/FinancialManagement';
 import AdminSettings from './AdminSettings';
@@ -174,7 +174,7 @@ const DashboardOverview = ({ setActiveTab }: any) => (
   //Member Management Tab
   <MembersManagement />
   // Content Management Tab
-  <ContentManagement />
+  <ResourceManagement />
   // Events Management Tab
   <EventsManagement />
   // Financial Management Tab
@@ -225,7 +225,7 @@ const AdminDashboard = () => {
   const tabs = [
     { id: 'dashboard', label: 'DASHBOARD', icon: Home },
     { id: 'members', label: 'MEMBERS', icon: Users },
-    { id: 'content', label: 'CONTENT', icon: FileText },
+    { id: 'resources', label: 'RESOURCES', icon: FileText },
     { id: 'events', label: 'EVENTS', icon: Calendar },
     { id: 'news', label: 'NEWS & PRESS RELEASES', icon: Newspaper },
     { id: 'financial', label: 'FINANCIAL', icon: DollarSign },
@@ -240,8 +240,8 @@ const AdminDashboard = () => {
         return <DashboardOverview setActiveTab={setActiveTab} />;
       case 'members':
           return <MembersManagement />;
-      case 'content':
-        return <ContentManagement />;
+      case 'resources':
+        return <ResourceManagement />;
       case 'events':
         return <EventsManagement />;
       case 'news':
