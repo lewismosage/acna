@@ -3,7 +3,8 @@ import {
   Settings, Users, Calendar, FileText, DollarSign, BarChart3, Shield, LogOut,
   Home, Mail, Upload, Edit3, Search, Menu, X, Plus, Eye, Trash2,
   AlertCircle, CheckCircle, Clock, TrendingUp, UserCheck, UserX,
-  Download, Bell, Archive, Globe, Database, Lock
+  Download, Bell, Archive, Globe, Database, Lock,
+  Newspaper
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
@@ -17,6 +18,7 @@ import ReportsAnalytics from './ReportsAnalytics';
 import { SignOutModal } from './SignOutModal';
 import { useAuth } from '../../services/AuthContext'; 
 import LoadingSpinner from '../../components/common/LoadingSpinner';
+import NewsManagement from './news/NewsManagement';
 
 // Mock data for demo purposes
 const mockMemberStats = {
@@ -225,7 +227,7 @@ const AdminDashboard = () => {
     { id: 'members', label: 'MEMBERS', icon: Users },
     { id: 'content', label: 'CONTENT', icon: FileText },
     { id: 'events', label: 'EVENTS', icon: Calendar },
-    { id: 'news', label: 'NEWS & PRESS RELEASES', icon: Calendar },
+    { id: 'news', label: 'NEWS & PRESS RELEASES', icon: Newspaper },
     { id: 'financial', label: 'FINANCIAL', icon: DollarSign },
     { id: 'communication', label: 'COMMUNICATION', icon: Mail },
     { id: 'reports', label: 'REPORTS', icon: BarChart3 },
@@ -242,6 +244,8 @@ const AdminDashboard = () => {
         return <ContentManagement />;
       case 'events':
         return <EventsManagement />;
+      case 'news':
+          return <NewsManagement />; 
       case 'financial':
         return <FinancialManagement />;
       case 'communication':

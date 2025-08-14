@@ -12,7 +12,7 @@ import AwardsTab from '../../../pages/admin/events/AwardsTab';
 import AbstractsTab from '../../../pages/admin/events/AbstractsTab';
 
 const EventsManagement = () => {
-  const [activeTab, setActiveTab] = useState<string>('workshops');
+  const [activeTab, setActiveTab] = useState<string>('conferences');
 
   // Typed mock data
   const mockWorkshops = [
