@@ -856,7 +856,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg w-full max-w-4x1 max-h-[100vh] overflow-hidden">
+      <div className="bg-white rounded-lg w-full max-w-4x1 max-h-[95vh] overflow-hidden">
         <div className="flex justify-between items-center border-b border-gray-200 p-4">
           <h2 className="text-xl font-semibold">Create New Conference</h2>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
