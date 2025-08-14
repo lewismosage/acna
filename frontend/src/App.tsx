@@ -71,6 +71,8 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import UnsubscribePage from './pages/other/Unsubscribe';
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminProtectedRoute from "./components/common/AdminProtectedRoute";
+import AwardNominationPage from "./pages/eventsandnews/AwardNominationPage";
+import AbstractSubmissionForm from "./pages/eventsandnews/AbstractSubmissionForm";
 
 // Layout component
 const Layout = ({ children }: { children: React.ReactNode }) => (
@@ -145,8 +147,10 @@ function App() {
             {/* Events */}
             <Route path="/annual-conference" element={<AnnualConferenceAndMeetings />} />
             <Route path="/call-for-abstracts" element={<CallForAbstracts />} />
+            <Route path="/abstract-submission" element={<AbstractSubmissionForm />} />
             <Route path="/news" element={<News />} />
             <Route path="/awards" element={<Awards />} />
+            <Route path="/awards-nomination" element={<AwardNominationPage />} />
             <Route path="/events" element={<Events />} />
             <Route path="/gallery" element={<Gallery />} />
           </Route>

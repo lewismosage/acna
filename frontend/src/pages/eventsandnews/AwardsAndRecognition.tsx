@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Award, Trophy, Users, Calendar, FileText, CheckCircle, Star, Medal } from 'lucide-react';
 import ScrollToTop from '../../components/common/ScrollToTop';
+import { Link } from 'react-router';
 
 const AwardsPage = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -147,9 +148,11 @@ const AwardsPage = () => {
             <p className="text-lg mb-6 max-w-2xl mx-auto">
               Nominate exceptional individuals and initiatives for ACNA's prestigious awards. Deadline: December 31, 2025
             </p>
-            <button className="bg-white text-red-600 px-8 py-3 font-bold hover:bg-gray-100 transition-colors duration-300 uppercase tracking-wide rounded">
+            <Link
+              to="/awards-nomination"
+              className="bg-white text-red-600 px-8 py-3 font-bold hover:bg-gray-100 transition-colors duration-300 uppercase tracking-wide rounded">
               Submit Nomination
-            </button>
+            </Link>
           </div>
         </div>
       </section>
@@ -329,9 +332,11 @@ const AwardsPage = () => {
               </div>
             </div>
 
-            <button className="border-2 border-orange-600 text-orange-600 px-6 py-2 sm:px-8 sm:py-3 font-medium hover:bg-orange-600 hover:text-white transition-all duration-300 uppercase tracking-wide rounded text-sm sm:text-base">
+            <Link
+             to="/awards-nomination"
+             className="border-2 border-orange-600 text-orange-600 px-6 py-2 sm:px-8 sm:py-3 font-medium hover:bg-orange-600 hover:text-white transition-all duration-300 uppercase tracking-wide rounded text-sm sm:text-base">
               Start Nomination Process
-            </button>
+            </Link>
           </div>
         </div>
       </section>

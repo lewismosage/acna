@@ -10,7 +10,7 @@ import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import CommunicationTools from './communication/CommunicationTools';
 import MembersManagement from './MembersManagement';
 import ContentManagement from './ContentManagement';
-import EventsManagement from './EventsManagement';
+import EventsManagement from './events/EventsManagement';
 import FinancialManagement from './financial/FinancialManagement';
 import AdminSettings from './AdminSettings';
 import ReportsAnalytics from './ReportsAnalytics';
@@ -70,7 +70,7 @@ const QuickActionsPanel = ({ setActiveTab }: any) => (
     </div>
     <div className="p-4 space-y-3">
       {[
-        { icon: Plus, label: 'Add New Member', color: 'blue', action: () => setActiveTab('members') },
+        { icon: Plus, label: 'Collaboration Opportunities', color: 'blue', action: () => setActiveTab('members') },
         { icon: Calendar, label: 'Create Event', color: 'green', action: () => setActiveTab('events') },
         { icon: Plus, label: 'Career Opportunities', color: 'blue', action: () => setActiveTab('members') },
         { icon: FileText, label: 'Publish Content', color: 'purple', action: () => setActiveTab('content') },

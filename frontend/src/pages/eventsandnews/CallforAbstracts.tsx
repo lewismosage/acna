@@ -11,11 +11,14 @@ import {
   Upload,
   Search,
   Filter,
+  Link,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import ScrollToTop from "../../components/common/ScrollToTop";
 
 const CallForAbstracts = () => {
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [showSubmissionForm, setShowSubmissionForm] = useState(false);
+  const navigate = useNavigate();
 
   const abstractCategories = [
     {
@@ -270,8 +273,13 @@ const CallForAbstracts = () => {
           (category) => category.id === selectedCategory
         );
 
+  const handleSubmitClick = () => {
+    navigate("/abstract-submission");
+  };
+
   return (
     <div className="bg-white min-h-screen">
+      <ScrollToTop />
       {/* Hero Section */}
       <section className="py-12 md:py-20 bg-gradient-to-r from-blue-50 to-indigo-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 text-center">
@@ -285,7 +293,7 @@ const CallForAbstracts = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <button
-              onClick={() => setShowSubmissionForm(true)}
+              onClick={handleSubmitClick}
               className="bg-orange-600 text-white px-8 py-4 font-bold hover:bg-orange-700 transition-colors uppercase tracking-wide rounded inline-flex items-center"
             >
               <Upload className="mr-2 w-5 h-5" />
@@ -581,7 +589,7 @@ const CallForAbstracts = () => {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
-              onClick={() => setShowSubmissionForm(true)}
+              onClick={handleSubmitClick}
               className="bg-white text-red-600 px-8 py-4 font-bold hover:bg-gray-100 transition-colors uppercase tracking-wide rounded inline-flex items-center justify-center"
             >
               <Upload className="mr-2 w-5 h-5" />

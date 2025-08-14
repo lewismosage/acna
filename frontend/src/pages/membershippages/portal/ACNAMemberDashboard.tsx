@@ -473,18 +473,10 @@ const ACNAMemberDashboard = () => {
                 </Link>
                 <h1 className="text-lg md:text-xl font-semibold">African Child Neurology Association - Member Portal</h1>
               </div>
-              <div className="hidden md:flex items-center bg-white rounded-lg overflow-hidden shadow max-w-xs">
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  className="px-3 py-1 w-full text-sm text-gray-700 focus:outline-none"
-                />
-                <button
-                  type="submit"
-                  className="bg-yellow-400 hover:bg-yellow-500 text-white px-3 py-1 flex items-center"
-                >
-                  <Search className="w-4 h-4" />
-                </button>
+              <div className="hidden md:flex items-center space-x-4">
+                <div className="text-white">
+                  Welcome, {memberData.name}
+                </div>
               </div>
             </div>
           </div>
