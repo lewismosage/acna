@@ -71,11 +71,7 @@ const Gallery = () => {
           status: 'published',
           ordering: '-created_at'
         });
-        
-        // Debug: Log the actual API response
-        console.log('API Response:', apiItems);
-        console.log('First item:', apiItems[0]);
-        
+                
         // Transform API data to component format
         const transformedItems = apiItems.map(transformGalleryItem);
         setGalleryItems(transformedItems);

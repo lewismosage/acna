@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Calendar, 
   User, 
@@ -8,7 +9,6 @@ import {
   Download,
   Mail,
   Phone,
-  Globe,
   ExternalLink,
   Building,
   Tag,
@@ -16,188 +16,166 @@ import {
   BookOpen,
   ArrowRight
 } from 'lucide-react';
-
-interface Author {
-  name: string;
-  title: string;
-  organization: string;
-  bio: string;
-  imageUrl: string;
-}
-
-interface RelatedArticle {
-  id: number;
-  type: string;
-  title: string;
-  date: string;
-  image: string;
-  category: string;
-  excerpt: string;
-}
-
-interface NewsArticleData {
-  id: number;
-  type: 'news' | 'press-release';
-  category: string;
-  title: string;
-  subtitle?: string;
-  date: string;
-  readTime: string;
-  views: number;
-  imageUrl: string;
-  content: {
-    introduction: string;
-    sections: {
-      heading: string;
-      content: string;
-    }[];
-    conclusion?: string;
-  };
-  author?: Author;
-  tags: string[];
-  source?: {
-    name: string;
-    url: string;
-  };
-  contact?: {
-    name: string;
-    email: string;
-    phone: string;
-  };
-}
+import { newsApi, NewsItem } from '../../services/newsApi';
+import ScrollToTop from '../../components/common/ScrollToTop';
 
 const NewsDetailPage = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [article, setArticle] = useState<NewsItem | null>(null);
+  const [relatedArticles, setRelatedArticles] = useState<NewsItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'article' | 'about'>('article');
 
-  // Sample news article data - in real app would come from router params or API
-  const article: NewsArticleData = {
-    id: 1,
-    type: 'news',
-    category: 'Healthcare Systems',
-    title: "Building Stronger Pediatric Neurology Services Across Africa",
-    subtitle: "How ACNA is transforming neurological care through innovative training programs and community partnerships",
-    date: "July 15, 2025",
-    readTime: "8 min read",
-    views: 1247,
-    imageUrl: "https://images.pexels.com/photos/5215024/pexels-photo-5215024.jpeg?auto=compress&cs=tinysrgb&w=800",
-    content: {
-      introduction: "The African Child Neurology Association (ACNA) continues to make significant strides in improving pediatric neurological care across the continent. Through innovative training programs, community partnerships, and policy advocacy, ACNA is addressing critical gaps in neurological healthcare for children in Africa.",
-      sections: [
-        {
-          heading: "Addressing the Healthcare Gap",
-          content: "Africa faces a significant shortage of pediatric neurologists, with fewer than 200 specialists serving over 400 million children across the continent. This critical gap has left many families without access to essential neurological care, leading to delayed diagnoses and limited treatment options for conditions such as epilepsy, cerebral palsy, and developmental disorders."
-        },
-        {
-          heading: "Innovative Training Programs",
-          content: "ACNA has launched comprehensive training programs that combine traditional medical education with modern telemedicine technologies. These programs have trained over 500 healthcare workers in the past year alone, focusing on early detection, basic management, and appropriate referral pathways for pediatric neurological conditions. The training emphasizes practical skills that can be implemented in resource-limited settings."
-        },
-        {
-          heading: "Community-Based Care Models",
-          content: "Recognizing that hospital-based care alone cannot address the continent's needs, ACNA has pioneered community-based care models that bring neurological services closer to families. These models involve training community health workers to identify early signs of neurological conditions and provide basic interventions while maintaining strong referral networks to specialist centers."
-        },
-        {
-          heading: "Technology and Telemedicine",
-          content: "The integration of telemedicine has revolutionized how neurological care is delivered across Africa. ACNA's telemedicine platform now connects over 50 healthcare facilities across 15 countries, enabling real-time consultations between primary care providers and specialist neurologists. This technology has reduced diagnosis times by an average of 60% and improved treatment outcomes significantly."
-        },
-        {
-          heading: "Policy and Advocacy Efforts",
-          content: "Beyond direct healthcare delivery, ACNA actively engages with government officials and international organizations to advocate for policies that support pediatric neurological health. Recent advocacy efforts have led to the inclusion of pediatric neurology services in national health insurance schemes in three African countries, making care more accessible to families who previously couldn't afford specialized treatment."
-        }
-      ],
-      conclusion: "The work of ACNA demonstrates that with innovative approaches, strategic partnerships, and dedicated advocacy, it is possible to transform pediatric neurological care in Africa. As the organization continues to expand its programs and influence, thousands more children across the continent will gain access to the specialized care they need to thrive."
-    },
-    author: {
-      name: "Dr. Fatima Hassan",
-      title: "Senior Health Correspondent",
-      organization: "African Medical Journal",
-      bio: "Dr. Hassan is a respected health journalist with over 12 years of experience covering healthcare developments across Africa. She holds an MD from the University of Cape Town and has received multiple awards for her reporting on public health issues.",
-      imageUrl: "https://images.pexels.com/photos/5407206/pexels-photo-5407206.jpeg?auto=compress&cs=tinysrgb&w=300"
-    },
-    tags: ["Pediatric Neurology", "Healthcare Systems", "Medical Training", "Telemedicine", "Community Health", "Africa"],
-    source: {
-      name: "African Medical Journal",
-      url: "https://africanmedicaljournal.org"
+  useEffect(() => {
+    const fetchArticle = async () => {
+      if (!id) {
+        setError('No article ID provided');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Fetch the main article
+        const articleData = await newsApi.getById(Number(id));
+        setArticle(articleData);
+
+        // Fetch related articles (same category, excluding current article)
+        const relatedData = await newsApi.getAll({
+          status: 'Published',
+          category: articleData.category
+        });
+        
+        // Filter out current article and limit to 3 related articles
+        const filteredRelated = relatedData
+          .filter(item => item.id !== articleData.id)
+          .slice(0, 3);
+        
+        setRelatedArticles(filteredRelated);
+
+      } catch (err) {
+        console.error('Error fetching article:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load article');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchArticle();
+  }, [id]);
+
+  const handleBackToNews = () => {
+    navigate('/news');
+  };
+
+  const handleRelatedArticleClick = (relatedArticle: NewsItem) => {
+    navigate(`/news/${relatedArticle.id}`);
+  };
+
+  const handleViewAllNews = () => {
+    navigate('/news');
+  };
+
+  const handleShare = () => {
+    if (navigator.share && article) {
+      navigator.share({
+        title: article.title,
+        text: article.content.introduction,
+        url: window.location.href,
+      });
+    } else {
+      // Fallback: copy to clipboard
+      navigator.clipboard.writeText(window.location.href);
+      alert('Link copied to clipboard!');
     }
   };
 
-  const pressRelease: NewsArticleData = {
-    id: 2,
-    type: 'press-release',
-    category: 'Press Release',
-    title: "ACNA celebrates the African Child Neurology Day and launches community outreach programs",
-    date: "April 26, 2025",
-    readTime: "5 min read",
-    views: 892,
-    imageUrl: "https://images.pexels.com/photos/5452293/pexels-photo-5452293.jpeg?auto=compress&cs=tinysrgb&w=800",
-    content: {
-      introduction: "The African Child Neurology Association (ACNA) marks the African Child Neurology Day by launching comprehensive community outreach programs across 15 African countries to improve access to neurological care for children.",
-      sections: [
-        {
-          heading: "Celebrating Progress and Commitment",
-          content: "African Child Neurology Day serves as a reminder of the progress made in pediatric neurological care across the continent and reaffirms our commitment to ensuring every child has access to quality neurological healthcare. This year's celebration is particularly significant as we launch our most ambitious community outreach initiative to date."
-        },
-        {
-          heading: "Community Outreach Programs Launch",
-          content: "The new community outreach programs will operate in 15 African countries, focusing on early detection, education, and basic care for common pediatric neurological conditions. These programs are designed to work within existing healthcare systems while building local capacity for long-term sustainability."
-        },
-        {
-          heading: "Partnership and Collaboration",
-          content: "ACNA has partnered with local governments, international NGOs, and community organizations to ensure the success of these programs. Key partners include the World Health Organization, UNICEF, and various national health ministries who have committed resources and policy support."
-        },
-        {
-          heading: "Expected Impact and Reach",
-          content: "The programs are expected to reach over 2 million children in their first year of operation, providing screening services, health education, and referral pathways to specialized care. The initiative will also train 1,000 community health workers in basic pediatric neurology principles."
-        }
-      ],
-      conclusion: "This African Child Neurology Day marks not just a celebration of our achievements, but the beginning of an even more impactful chapter in our mission to improve neurological health outcomes for children across Africa."
-    },
-    contact: {
-      name: "ACNA Communications Team",
-      email: "media@acna.org",
-      phone: "+254-700-123-456"
-    },
-    tags: ["ACNA", "Community Outreach", "African Child Neurology Day", "Healthcare Access", "Public Health"]
+  const handleDownloadPDF = () => {
+    // Implement PDF download functionality
+    console.log('Download PDF functionality to be implemented');
   };
 
-  // Use press release for demo, but in real app this would be determined by route params
-  const currentArticle = article;
+  const handlePrint = () => {
+    window.print();
+  };
 
-  const relatedArticles: RelatedArticle[] = [
-    {
-      id: 3,
-      type: "ACNA JOURNAL",
-      title: "How Nutrition Impacts Brain Development in African Children",
-      date: "June 30, 2025",
-      image: "https://images.pexels.com/photos/3184192/pexels-photo-3184192.jpeg?auto=compress&cs=tinysrgb&w=400",
-      category: "Neurodevelopment & Nutrition",
-      excerpt: "New research highlights the critical role of nutrition in early brain development and neurological health outcomes."
-    },
-    {
-      id: 4,
-      type: "BULLETIN",
-      title: "Bridging the Gap: Child Neurology Training in Sub-Saharan Africa",
-      date: "June 5, 2025",
-      image: "https://images.pexels.com/photos/5452293/pexels-photo-5452293.jpeg?auto=compress&cs=tinysrgb&w=400",
-      category: "Medical Education",
-      excerpt: "Exploring innovative approaches to training the next generation of pediatric neurologists in resource-limited settings."
-    },
-    {
-      id: 5,
-      type: "ACNA NEWS",
-      title: "Telemedicine Revolution: Connecting Rural Communities to Specialist Care",
-      date: "May 20, 2025",
-      image: "https://images.pexels.com/photos/5215024/pexels-photo-5215024.jpeg?auto=compress&cs=tinysrgb&w=400",
-      category: "Technology & Innovation",
-      excerpt: "How digital health technologies are transforming access to pediatric neurological care across Africa."
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+    } catch {
+      return dateString;
     }
-  ];
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-flex items-center px-4 py-2 font-semibold leading-6 text-sm shadow rounded-md text-gray-500 bg-white">
+            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Loading article...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="bg-red-50 border border-red-200 rounded p-8 text-center max-w-md mx-auto">
+          <h3 className="text-lg font-medium text-red-900 mb-2">Error loading article</h3>
+          <p className="text-red-700 mb-4">{error}</p>
+          <button
+            onClick={() => navigate('/news')}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+          >
+            Back to News
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!article) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Article not found</h3>
+          <p className="text-gray-600 mb-4">The article you're looking for doesn't exist.</p>
+          <button
+            onClick={() => navigate('/news')}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+          >
+            Back to News
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white min-h-screen">
       {/* Back Navigation */}
       <div className="bg-gray-50 border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-4 py-4">
-          <button className="flex items-center text-red-600 hover:text-red-700 font-medium">
+          <button 
+            onClick={handleBackToNews}
+            className="flex items-center text-red-600 hover:text-red-700 font-medium"
+          >
             <ChevronLeft className="w-4 h-4 mr-1" />
             Back to News
           </button>
@@ -210,18 +188,20 @@ const NewsDetailPage = () => {
           {/* Category Badge */}
           <div className="mb-4">
             <span className="bg-red-600 text-white px-3 py-1 text-sm font-bold uppercase tracking-wide rounded">
-              {currentArticle.type === 'news' ? 'NEWS ARTICLE' : 'PRESS RELEASE'}
+              {article.type === 'News Article' ? 'NEWS ARTICLE' : 
+               article.type === 'Press Release' ? 'PRESS RELEASE' : 
+               article.type.toUpperCase()}
             </span>
           </div>
 
           {/* Title and Subtitle */}
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4 leading-tight">
-            {currentArticle.title}
+            {article.title}
           </h1>
           
-          {currentArticle.subtitle && (
+          {article.subtitle && (
             <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-              {currentArticle.subtitle}
+              {article.subtitle}
             </p>
           )}
 
@@ -229,33 +209,42 @@ const NewsDetailPage = () => {
           <div className="flex flex-wrap items-center gap-6 text-sm text-gray-600 mb-8">
             <div className="flex items-center">
               <Calendar className="w-4 h-4 mr-2 text-red-600" />
-              <span>{currentArticle.date}</span>
+              <span>{formatDate(article.date)}</span>
             </div>
             <div className="flex items-center">
               <Clock className="w-4 h-4 mr-2 text-red-600" />
-              <span>{currentArticle.readTime}</span>
+              <span>{article.readTime}</span>
             </div>
             <div className="flex items-center">
               <Eye className="w-4 h-4 mr-2 text-red-600" />
-              <span>{currentArticle.views.toLocaleString()} views</span>
+              <span>{article.views.toLocaleString()} views</span>
             </div>
             <div className="flex items-center">
               <Tag className="w-4 h-4 mr-2 text-red-600" />
-              <span>{currentArticle.category}</span>
+              <span>{article.category}</span>
             </div>
           </div>
 
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-4 mb-12">
-            <button className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+            <button 
+              onClick={handleShare}
+              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
               <Share2 className="w-4 h-4 mr-2" />
               Share Article
             </button>
-            <button className="flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+            <button 
+              onClick={handleDownloadPDF}
+              className="flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            >
               <Download className="w-4 h-4 mr-2" />
               Download PDF
             </button>
-            <button className="flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+            <button 
+              onClick={handlePrint}
+              className="flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            >
               <BookOpen className="w-4 h-4 mr-2" />
               Print Article
             </button>
@@ -264,15 +253,17 @@ const NewsDetailPage = () => {
       </section>
 
       {/* Hero Image */}
-      <section className="mb-12">
-        <div className="max-w-6xl mx-auto px-4">
-          <img
-            src={currentArticle.imageUrl}
-            alt={currentArticle.title}
-            className="w-full h-64 md:h-96 object-cover rounded-lg shadow-lg"
-          />
-        </div>
-      </section>
+      {article.imageUrl && (
+        <section className="mb-12">
+          <div className="max-w-6xl mx-auto px-4">
+            <img
+              src={article.imageUrl}
+              alt={article.title}
+              className="w-full h-64 md:h-96 object-cover rounded-lg shadow-lg"
+            />
+          </div>
+        </section>
+      )}
 
       {/* Navigation Tabs */}
       <section className="bg-gray-50 border-b border-gray-200">
@@ -288,7 +279,7 @@ const NewsDetailPage = () => {
             >
               Article
             </button>
-            {currentArticle.author && (
+            {article.author && (
               <button
                 onClick={() => setActiveTab('about')}
                 className={`py-4 border-b-2 font-medium text-sm transition-colors ${
@@ -306,6 +297,7 @@ const NewsDetailPage = () => {
 
       {/* Main Content */}
       <section className="py-16">
+        <ScrollToTop />
         <div className="max-w-6xl mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-12">
             {/* Main Content */}
@@ -314,11 +306,11 @@ const NewsDetailPage = () => {
                 <div className="prose prose-lg max-w-none">
                   {/* Introduction */}
                   <div className="text-lg leading-relaxed text-gray-700 mb-8 font-medium">
-                    {currentArticle.content.introduction}
+                    {article.content.introduction}
                   </div>
 
                   {/* Article Sections */}
-                  {currentArticle.content.sections.map((section, index) => (
+                  {article.content.sections.map((section, index) => (
                     <div key={index} className="mb-8">
                       <h2 className="text-2xl font-bold text-gray-900 mb-4">
                         {section.heading}
@@ -330,54 +322,64 @@ const NewsDetailPage = () => {
                   ))}
 
                   {/* Conclusion */}
-                  {currentArticle.content.conclusion && (
+                  {article.content.conclusion && (
                     <div className="bg-blue-50 p-6 rounded-lg mb-8">
                       <h3 className="text-xl font-bold text-gray-900 mb-4">Conclusion</h3>
                       <p className="text-gray-700 leading-relaxed">
-                        {currentArticle.content.conclusion}
+                        {article.content.conclusion}
                       </p>
                     </div>
                   )}
 
                   {/* Tags */}
-                  <div className="mb-8">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Tags</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {currentArticle.tags.map((tag, index) => (
-                        <span
-                          key={index}
-                          className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm hover:bg-gray-200 cursor-pointer transition-colors"
-                        >
-                          #{tag}
-                        </span>
-                      ))}
+                  {article.tags && article.tags.length > 0 && (
+                    <div className="mb-8">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Tags</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {article.tags.map((tag, index) => (
+                          <span
+                            key={index}
+                            className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm hover:bg-gray-200 cursor-pointer transition-colors"
+                          >
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
 
-              {activeTab === 'about' && currentArticle.author && (
+              {activeTab === 'about' && article.author && (
                 <div className="max-w-2xl">
                   <div className="bg-white border border-gray-200 rounded-lg p-8">
                     <div className="flex items-start gap-6">
-                      <img
-                        src={currentArticle.author.imageUrl}
-                        alt={currentArticle.author.name}
-                        className="w-20 h-20 rounded-full object-cover flex-shrink-0"
-                      />
+                      {article.author.imageUrl && (
+                        <img
+                          src={article.author.imageUrl}
+                          alt={article.author.name}
+                          className="w-20 h-20 rounded-full object-cover flex-shrink-0"
+                        />
+                      )}
                       <div>
                         <h3 className="text-xl font-bold text-gray-900 mb-1">
-                          {currentArticle.author.name}
+                          {article.author.name}
                         </h3>
-                        <p className="text-red-600 font-medium mb-2">
-                          {currentArticle.author.title}
-                        </p>
-                        <p className="text-gray-600 mb-4">
-                          {currentArticle.author.organization}
-                        </p>
-                        <p className="text-gray-700 leading-relaxed">
-                          {currentArticle.author.bio}
-                        </p>
+                        {article.author.title && (
+                          <p className="text-red-600 font-medium mb-2">
+                            {article.author.title}
+                          </p>
+                        )}
+                        {article.author.organization && (
+                          <p className="text-gray-600 mb-4">
+                            {article.author.organization}
+                          </p>
+                        )}
+                        {article.author.bio && (
+                          <p className="text-gray-700 leading-relaxed">
+                            {article.author.bio}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -388,85 +390,110 @@ const NewsDetailPage = () => {
             {/* Sidebar */}
             <div className="lg:col-span-1 space-y-8">
               {/* Contact Information (for press releases) */}
-              {currentArticle.type === 'press-release' && currentArticle.contact && (
+              {article.type === 'Press Release' && article.contact && (
                 <div className="bg-red-50 p-6 rounded-lg">
                   <h3 className="text-lg font-bold text-gray-900 mb-4">Media Contact</h3>
                   <div className="space-y-3 text-sm">
-                    <div className="flex items-center">
-                      <User className="w-4 h-4 mr-2 text-red-600" />
-                      <span className="font-medium">{currentArticle.contact.name}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <Mail className="w-4 h-4 mr-2 text-red-600" />
-                      <a href={`mailto:${currentArticle.contact.email}`} className="text-red-600 hover:underline">
-                        {currentArticle.contact.email}
-                      </a>
-                    </div>
-                    <div className="flex items-center">
-                      <Phone className="w-4 h-4 mr-2 text-red-600" />
-                      <span>{currentArticle.contact.phone}</span>
-                    </div>
+                    {article.contact.name && (
+                      <div className="flex items-center">
+                        <User className="w-4 h-4 mr-2 text-red-600" />
+                        <span className="font-medium">{article.contact.name}</span>
+                      </div>
+                    )}
+                    {article.contact.email && (
+                      <div className="flex items-center">
+                        <Mail className="w-4 h-4 mr-2 text-red-600" />
+                        <a href={`mailto:${article.contact.email}`} className="text-red-600 hover:underline">
+                          {article.contact.email}
+                        </a>
+                      </div>
+                    )}
+                    {article.contact.phone && (
+                      <div className="flex items-center">
+                        <Phone className="w-4 h-4 mr-2 text-red-600" />
+                        <span>{article.contact.phone}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
 
               {/* Source Information (for news articles) */}
-              {currentArticle.source && (
+              {article.source && (
                 <div className="bg-gray-50 p-6 rounded-lg">
                   <h3 className="text-lg font-bold text-gray-900 mb-4">Source</h3>
                   <div className="space-y-2">
-                    <div className="flex items-center">
-                      <Building className="w-4 h-4 mr-2 text-red-600" />
-                      <span className="font-medium">{currentArticle.source.name}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <ExternalLink className="w-4 h-4 mr-2 text-red-600" />
-                      <a href={currentArticle.source.url} className="text-red-600 hover:underline text-sm">
-                        Visit Source
-                      </a>
-                    </div>
+                    {article.source.name && (
+                      <div className="flex items-center">
+                        <Building className="w-4 h-4 mr-2 text-red-600" />
+                        <span className="font-medium">{article.source.name}</span>
+                      </div>
+                    )}
+                    {article.source.url && (
+                      <div className="flex items-center">
+                        <ExternalLink className="w-4 h-4 mr-2 text-red-600" />
+                        <a href={article.source.url} target="_blank" rel="noopener noreferrer" className="text-red-600 hover:underline text-sm">
+                          Visit Source
+                        </a>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
 
               {/* Related Articles */}
-              <div>
-                <h3 className="text-lg font-bold text-gray-900 mb-4">Related Articles</h3>
-                <div className="space-y-4">
-                  {relatedArticles.map((related) => (
-                    <div key={related.id} className="group cursor-pointer">
-                      <div className="flex gap-3 hover:bg-gray-50 transition-colors duration-200 p-3 rounded-lg">
-                        <div className="relative flex-shrink-0 w-16 h-16 overflow-hidden rounded">
-                          <img
-                            src={related.image}
-                            alt={related.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
-                          <div className="absolute top-0.5 left-0.5">
-                            <span className="bg-red-600 text-white px-1 py-0.5 text-xs font-bold uppercase tracking-wide text-[10px]">
-                              {related.type}
-                            </span>
+              {relatedArticles.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-4">Related Articles</h3>
+                  <div className="space-y-4">
+                    {relatedArticles.map((related) => (
+                      <div 
+                        key={related.id} 
+                        className="group cursor-pointer"
+                        onClick={() => handleRelatedArticleClick(related)}
+                      >
+                        <div className="flex gap-3 hover:bg-gray-50 transition-colors duration-200 p-3 rounded-lg">
+                          <div className="relative flex-shrink-0 w-16 h-16 overflow-hidden rounded">
+                            {related.imageUrl ? (
+                              <img
+                                src={related.imageUrl}
+                                alt={related.title}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                                <span className="text-gray-500 text-xs">No Image</span>
+                              </div>
+                            )}
+                            <div className="absolute top-0.5 left-0.5">
+                              <span className="bg-red-600 text-white px-1 py-0.5 text-xs font-bold uppercase tracking-wide text-[10px]">
+                                {related.type}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            <h4 className="text-sm font-semibold text-gray-900 leading-tight group-hover:text-red-600 transition-colors line-clamp-2">
+                              {related.title}
+                            </h4>
+                            <p className="text-xs text-gray-500">{formatDate(related.date)}</p>
+                            <p className="text-xs text-red-600 font-medium uppercase">{related.category}</p>
                           </div>
                         </div>
-                        <div className="flex-1 space-y-1">
-                          <h4 className="text-sm font-semibold text-gray-900 leading-tight group-hover:text-red-600 transition-colors line-clamp-2">
-                            {related.title}
-                          </h4>
-                          <p className="text-xs text-gray-500">{related.date}</p>
-                          <p className="text-xs text-red-600 font-medium uppercase">{related.category}</p>
-                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+                  
+                  <div className="mt-6">
+                    <button 
+                      onClick={handleViewAllNews}
+                      className="w-full text-center text-red-600 font-medium hover:text-red-700 transition-colors flex items-center justify-center"
+                    >
+                      View All News
+                      <ArrowRight className="ml-2 w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
-                
-                <div className="mt-6">
-                  <button className="w-full text-center text-red-600 font-medium hover:text-red-700 transition-colors flex items-center justify-center">
-                    View All News
-                    <ArrowRight className="ml-2 w-4 h-4" />
-                  </button>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

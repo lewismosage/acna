@@ -73,6 +73,7 @@ import AdminLogin from "./pages/admin/AdminLogin";
 import AdminProtectedRoute from "./components/common/AdminProtectedRoute";
 import AwardNominationPage from "./pages/eventsandnews/AwardNominationPage";
 import AbstractSubmissionForm from "./pages/eventsandnews/AbstractSubmissionForm";
+import NewsDetailPage from './pages/eventsandnews/NewsDetailPage';
 
 // Layout component
 const Layout = ({ children }: { children: React.ReactNode }) => (
@@ -149,6 +150,7 @@ function App() {
             <Route path="/call-for-abstracts" element={<CallForAbstracts />} />
             <Route path="/abstract-submission" element={<AbstractSubmissionForm />} />
             <Route path="/news" element={<News />} />
+            <Route path="/news/:id" element={<NewsDetailPage />} />
             <Route path="/awards" element={<Awards />} />
             <Route path="/awards-nomination" element={<AwardNominationPage />} />
             <Route path="/events" element={<Events />} />

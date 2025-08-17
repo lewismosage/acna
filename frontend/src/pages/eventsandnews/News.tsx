@@ -1,95 +1,125 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowRight, Mail } from 'lucide-react';
+import { useNavigate } from 'react-router-dom'; // Add this import for navigation
 import api from '../../services/api';
+import { newsApi, NewsItem } from '../../services/newsApi';
 
 interface SubscriptionStatus {
   type: 'success' | 'error';
   message: string;
 }
 
-interface PressRelease {
-  title: string;
-  date: string;
-  excerpt: string;
-}
-
-interface NewsArticle {
-  type: string;
-  title: string;
-  date: string;
-  image: string;
-  category: string;
-}
-
 const LatestNewsPage = () => {
+  const navigate = useNavigate(); // Add navigation hook
   const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
-  const pressReleases: PressRelease[] = [
-    {
-      title: "ACNA celebrates the African Child Neurology Day and launches community outreach programs",
-      date: "April 26, 2025",
-      excerpt: "The African Child Neurology Association marks this important day by launching comprehensive community outreach programs across 15 African countries to improve access to neurological care for children."
-    },
-    {
-      title: "ACNA Mourns the Passing of Former President Dr. Sarah Mwangi",
-      date: "March 18, 2025",
-      excerpt: "The African Child Neurology Association mourns the loss of Dr. Sarah Mwangi, former president and pioneering advocate for child neurological health across Africa."
-    },
-    {
-      title: "ACNA Recognized with Ghana's 2024 Health Innovation Award for Epilepsy Care Designation",
-      date: "February 15, 2025",
-      excerpt: "The Association receives prestigious recognition for groundbreaking work in epilepsy care and innovative treatment approaches for children across West Africa."
-    },
-    {
-      title: "ACNA Appoints New Board Chair, Welcomes New Member Organizations",
-      date: "February 1, 2025",
-      excerpt: "The organization welcomes Dr. Michael Okonkwo as new Board Chair and announces partnerships with three new member organizations from East Africa."
-    },
-    {
-      title: "ACNA Launches Telemedicine Initiative for Remote Neurological Consultations",
-      date: "January 22, 2025",
-      excerpt: "New telemedicine program connects specialist neurologists with healthcare workers in remote areas, improving access to expert consultation for children with neurological conditions."
-    },
-    {
-      title: "ACNA Research Shows Significant Improvement in Early Diagnosis Rates",
-      date: "January 10, 2025",
-      excerpt: "Multi-country study reveals 60% improvement in early diagnosis rates of pediatric neurological conditions following ACNA's training programs for primary healthcare workers."
-    }
-  ];
+  
+  // News Articles State
+  const [newsArticles, setNewsArticles] = useState<NewsItem[]>([]);
+  const [displayedNewsArticles, setDisplayedNewsArticles] = useState<NewsItem[]>([]);
+  const [loadingMoreNews, setLoadingMoreNews] = useState(false);
+  const [hasMoreNews, setHasMoreNews] = useState(false);
+  
+  // Press Releases State
+  const [pressReleases, setPressReleases] = useState<NewsItem[]>([]);
+  const [displayedPressReleases, setDisplayedPressReleases] = useState<NewsItem[]>([]);
+  const [loadingMorePress, setLoadingMorePress] = useState(false);
+  const [hasMorePress, setHasMorePress] = useState(false);
+  
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const newsArticles = [
-    {
-      type: "ACNA JOURNAL",
-      title: "Building Stronger Pediatric Neurology Services Across Africa",
-      date: "July 15, 2025",
-      image: "https://images.pexels.com/photos/5215024/pexels-photo-5215024.jpeg?auto=compress&cs=tinysrgb&w=400",
-      category: "Healthcare Systems"
-    },
-    {
-      type: "NEUROLOGY REPORT",
-      title: "How Nutrition Impacts Brain Development in African Children",
-      date: "June 30, 2025",
-      image: "https://images.pexels.com/photos/3184192/pexels-photo-3184192.jpeg?auto=compress&cs=tinysrgb&w=400",
-      category: "Neurodevelopment & Nutrition"
-    },
-    {
-      type: "ACNA NEWS",
-      title: "Remembering Dr. Sarah Mwangi: A Legacy of Neurological Advocacy",
-      date: "June 18, 2025",
-      image: "https://images.pexels.com/photos/1181438/pexels-photo-1181438.jpeg?auto=compress&cs=tinysrgb&w=400",
-      category: "Leadership & Legacy"
-    },
-    {
-      type: "BULLETIN",
-      title: "Bridging the Gap: Child Neurology Training in Sub-Saharan Africa",
-      date: "June 5, 2025",
-      image: "https://images.pexels.com/photos/5452293/pexels-photo-5452293.jpeg?auto=compress&cs=tinysrgb&w=400",
-      category: "Medical Education"
-    }
-  ];  
+  const ITEMS_PER_SECTION = 6;
+
+  // Navigation handlers
+  const handleNewsClick = (article: NewsItem) => {
+    navigate(`/news/${article.id}`, { state: { article } });
+  };
+
+  const handlePressReleaseClick = (release: NewsItem) => {
+    navigate(`/news/${release.id}`, { state: { article: release } });
+  };
+
+  const handleViewAllNews = () => {
+    navigate('/news/all', { state: { type: 'news' } });
+  };
+
+  const handleViewAllPressReleases = () => {
+    navigate('/news/all', { state: { type: 'press-releases' } });
+  };
+
+  // Fetch news data from API
+  useEffect(() => {
+    const fetchNewsData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Fetch news articles (excluding press releases)
+        const articles = await newsApi.getAll({ 
+          status: 'Published',
+          type: 'News Article'
+        });
+        setNewsArticles(articles);
+        
+        // Set initial displayed news articles (first 6)
+        const initialNewsItems = articles.slice(0, ITEMS_PER_SECTION);
+        setDisplayedNewsArticles(initialNewsItems);
+        setHasMoreNews(articles.length > ITEMS_PER_SECTION);
+        
+        // Fetch press releases
+        const releases = await newsApi.getAll({
+          status: 'Published',
+          type: 'Press Release'
+        });
+        setPressReleases(releases);
+        
+        // Set initial displayed press releases (first 6)
+        const initialPressItems = releases.slice(0, ITEMS_PER_SECTION);
+        setDisplayedPressReleases(initialPressItems);
+        setHasMorePress(releases.length > ITEMS_PER_SECTION);
+        
+      } catch (err) {
+        console.error('Error fetching news data:', err);
+        setError('Failed to load news data. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNewsData();
+  }, []);
+
+  // Load more news articles
+  const loadMoreNews = () => {
+    setLoadingMoreNews(true);
+    
+    setTimeout(() => {
+      const currentCount = displayedNewsArticles.length;
+      const nextItems = newsArticles.slice(currentCount, currentCount + ITEMS_PER_SECTION);
+      
+      setDisplayedNewsArticles(prev => [...prev, ...nextItems]);
+      setHasMoreNews(currentCount + ITEMS_PER_SECTION < newsArticles.length);
+      setLoadingMoreNews(false);
+    }, 500);
+  };
+
+  // Load more press releases
+  const loadMorePress = () => {
+    setLoadingMorePress(true);
+    
+    setTimeout(() => {
+      const currentCount = displayedPressReleases.length;
+      const nextItems = pressReleases.slice(currentCount, currentCount + ITEMS_PER_SECTION);
+      
+      setDisplayedPressReleases(prev => [...prev, ...nextItems]);
+      setHasMorePress(currentCount + ITEMS_PER_SECTION < pressReleases.length);
+      setLoadingMorePress(false);
+    }, 500);
+  };
 
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,6 +162,53 @@ const LatestNewsPage = () => {
     }
   };
 
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-flex items-center px-4 py-2 font-semibold leading-6 text-sm shadow rounded-md text-gray-500 bg-white">
+            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Loading news...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="bg-red-50 border border-red-200 rounded p-8 text-center max-w-md mx-auto">
+          <h3 className="text-lg font-medium text-red-900 mb-2">Error loading news</h3>
+          <p className="text-red-700 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+          >
+            Reload Page
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white min-h-screen">
       {/* Hero Section */}
@@ -156,42 +233,96 @@ const LatestNewsPage = () => {
               <p className="text-lg text-gray-600 max-w-3xl mx-auto">
                 Guest articles on other sources referencing our work to end hunger and poverty.
               </p>
+              {newsArticles.length > 0 && (
+                <p className="text-sm text-gray-500 mt-2">
+                  Showing {displayedNewsArticles.length} of {newsArticles.length} articles
+                </p>
+              )}
             </div>
 
-            <div className="grid md:grid-cols-2 gap-8 mb-12">
-              {newsArticles.map((article, index) => (
-                <div key={index} className="group cursor-pointer flex gap-4 hover:bg-gray-50 transition-colors duration-200 p-4 rounded-lg">
-                  <div className="relative flex-shrink-0 w-24 h-24 overflow-hidden rounded">
-                    <img
-                      src={article.image}
-                      alt={article.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className="absolute top-1 left-1">
-                      <span className="bg-red-600 text-white px-2 py-0.5 text-xs font-bold uppercase tracking-wide">
-                        {article.type}
-                      </span>
+            {displayedNewsArticles.length > 0 ? (
+              <>
+                <div className="grid md:grid-cols-2 gap-8 mb-12">
+                  {displayedNewsArticles.map((article) => (
+                    <div 
+                      key={article.id} 
+                      className="group cursor-pointer flex gap-4 hover:bg-gray-50 transition-colors duration-200 p-4 rounded-lg"
+                      onClick={() => handleNewsClick(article)}
+                    >
+                      <div className="relative flex-shrink-0 w-24 h-24 overflow-hidden rounded">
+                        {article.imageUrl ? (
+                          <img
+                            src={article.imageUrl}
+                            alt={article.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                            <span className="text-gray-500 text-xs">No Image</span>
+                          </div>
+                        )}
+                        <div className="absolute top-1 left-1">
+                          <span className="bg-red-600 text-white px-2 py-0.5 text-xs font-bold uppercase tracking-wide">
+                            {article.type}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <p className="text-red-600 font-medium text-xs uppercase">{article.category}</p>
+                        <h3 className="text-base font-bold text-gray-900 leading-tight group-hover:text-red-600 transition-colors">
+                          {article.title}
+                        </h3>
+                        <p className="text-gray-600 text-sm">{formatDate(article.date)}</p>
+                        <div className="text-red-600 text-sm font-medium inline-flex items-center hover:text-red-700">
+                          READ MORE <ArrowRight className="ml-1 w-3 h-3" />
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex-1 space-y-1">
-                    <p className="text-red-600 font-medium text-xs uppercase">{article.category}</p>
-                    <h3 className="text-base font-bold text-gray-900 leading-tight group-hover:text-red-600 transition-colors">
-                      {article.title}
-                    </h3>
-                    <p className="text-gray-600 text-sm">{article.date}</p>
-                    <a href="#" className="text-red-600 text-sm font-medium inline-flex items-center hover:text-red-700">
-                      READ MORE <ArrowRight className="ml-1 w-3 h-3" />
-                    </a>
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
 
-            <div className="text-center">
-              <button className="border-2 border-orange-600 text-orange-600 px-6 py-2 sm:px-8 sm:py-3 font-medium hover:bg-orange-600 hover:text-white transition-all duration-300 uppercase tracking-wide rounded text-sm sm:text-base">
-                View All News About ACNA
-              </button>
-            </div>
+                {/* Load More News Button - Only show if there are more than 6 items */}
+                {hasMoreNews && (
+                  <div className="text-center mb-8">
+                    <button 
+                      onClick={loadMoreNews}
+                      disabled={loadingMoreNews}
+                      className={`border-2 border-orange-600 text-orange-600 px-6 py-2 sm:px-8 sm:py-3 font-medium hover:bg-orange-600 hover:text-white transition-all duration-300 uppercase tracking-wide rounded text-sm sm:text-base ${
+                        loadingMoreNews ? 'opacity-75 cursor-not-allowed' : ''
+                      }`}
+                    >
+                      {loadingMoreNews ? (
+                        <div className="flex items-center">
+                          <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Loading More...
+                        </div>
+                      ) : (
+                        'Load More News'
+                      )}
+                    </button>
+                  </div>
+                )}
+
+                {/* View All Button - Only show if there are 6 or more items */}
+                {newsArticles.length >= ITEMS_PER_SECTION && (
+                  <div className="text-center">
+                    <button 
+                      onClick={handleViewAllNews}
+                      className="border-2 border-orange-600 text-orange-600 px-6 py-2 sm:px-8 sm:py-3 font-medium hover:bg-orange-600 hover:text-white transition-all duration-300 uppercase tracking-wide rounded text-sm sm:text-base"
+                    >
+                      View All News About ACNA
+                    </button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-gray-600">No news articles available at the moment.</p>
+              </div>
+            )}
           </div>
 
           {/* Press Releases Section - Second */}
@@ -202,27 +333,80 @@ const LatestNewsPage = () => {
               <p className="text-lg text-gray-600 max-w-3xl mx-auto">
                 Check out the latest press releases from African Child Neurology Association.
               </p>
+              {pressReleases.length > 0 && (
+                <p className="text-sm text-gray-500 mt-2">
+                  Showing {displayedPressReleases.length} of {pressReleases.length} releases
+                </p>
+              )}
             </div>
 
-            <div className="grid md:grid-cols-2 gap-8 mb-12">
-              {pressReleases.map((release, index) => (
-                <div key={index} className="border-l-4 border-red-600 pl-6 hover:bg-gray-50 transition-colors duration-200 py-4">
-                  <h3 className="text-xl font-bold text-gray-900 mb-2 leading-tight">
-                    <a href="#" className="hover:text-red-600 transition-colors">
-                      {release.title}
-                    </a>
-                  </h3>
-                  <p className="text-red-600 font-medium text-sm mb-3">{release.date}</p>
-                  <p className="text-gray-700 leading-relaxed text-sm">{release.excerpt}</p>
+            {displayedPressReleases.length > 0 ? (
+              <>
+                <div className="grid md:grid-cols-2 gap-8 mb-12">
+                  {displayedPressReleases.map((release) => (
+                    <div 
+                      key={release.id} 
+                      className="border-l-4 border-red-600 pl-6 hover:bg-gray-50 transition-colors duration-200 py-4 cursor-pointer"
+                      onClick={() => handlePressReleaseClick(release)}
+                    >
+                      <h3 className="text-xl font-bold text-gray-900 mb-2 leading-tight">
+                        <span className="hover:text-red-600 transition-colors">
+                          {release.title}
+                        </span>
+                      </h3>
+                      <p className="text-red-600 font-medium text-sm mb-3">{formatDate(release.date)}</p>
+                      <p className="text-gray-700 leading-relaxed text-sm mb-3">
+                        {release.content?.introduction || 'No excerpt available'}
+                      </p>
+                      <div className="text-red-600 text-sm font-medium inline-flex items-center hover:text-red-700">
+                        READ MORE <ArrowRight className="ml-1 w-3 h-3" />
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
 
-            <div className="text-center">
-              <button className="border-2 border-orange-600 text-orange-600 px-6 py-2 sm:px-8 sm:py-3 font-medium hover:bg-orange-600 hover:text-white transition-all duration-300 uppercase tracking-wide rounded text-sm sm:text-base">
-                View All Press Releases
-              </button>
-            </div>
+                {/* Load More Press Releases Button - Only show if there are more than 6 items */}
+                {hasMorePress && (
+                  <div className="text-center mb-8">
+                    <button 
+                      onClick={loadMorePress}
+                      disabled={loadingMorePress}
+                      className={`border-2 border-orange-600 text-orange-600 px-6 py-2 sm:px-8 sm:py-3 font-medium hover:bg-orange-600 hover:text-white transition-all duration-300 uppercase tracking-wide rounded text-sm sm:text-base ${
+                        loadingMorePress ? 'opacity-75 cursor-not-allowed' : ''
+                      }`}
+                    >
+                      {loadingMorePress ? (
+                        <div className="flex items-center">
+                          <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Loading More...
+                        </div>
+                      ) : (
+                        'Load More Press Releases'
+                      )}
+                    </button>
+                  </div>
+                )}
+
+                {/* View All Button - Only show if there are 6 or more items */}
+                {pressReleases.length >= ITEMS_PER_SECTION && (
+                  <div className="text-center">
+                    <button 
+                      onClick={handleViewAllPressReleases}
+                      className="border-2 border-orange-600 text-orange-600 px-6 py-2 sm:px-8 sm:py-3 font-medium hover:bg-orange-600 hover:text-white transition-all duration-300 uppercase tracking-wide rounded text-sm sm:text-base"
+                    >
+                      View All Press Releases
+                    </button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-gray-600">No press releases available at the moment.</p>
+              </div>
+            )}
           </div>
         </div>
       </section>
