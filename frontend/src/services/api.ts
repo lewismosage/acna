@@ -123,7 +123,12 @@ export const loginUser = async (credentials: { email: string; password: string }
 
 export const logoutUser = async () => {
   try {
-    await api.post('/users/logout/');
+    const refreshToken = getItem(USER_REFRESH);
+    if (refreshToken) {
+      await api.post('/users/logout/', { refresh: refreshToken });
+    }
+  } catch (error) {
+    console.error('Logout error:', error);
   } finally {
     clearUserStorage();
   }

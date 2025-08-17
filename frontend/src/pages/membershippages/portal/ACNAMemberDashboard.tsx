@@ -299,7 +299,7 @@ const ACNAMemberDashboard = () => {
   const [activeTab, setActiveTab] = useState((location.state as LocationState)?.activeTab || 'home');
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
-  const { user, logout } = useAuth();
+  const { user} = useAuth();
   const handleProfileUpdate = (updatedData: Partial<MemberData>) => {
     setMemberData((prev: MemberData) => ({
       ...prev,

@@ -6,9 +6,9 @@ export const SignOutModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: ()
   const { logout } = useAuth();
 
   const handleLogout = () => {
-    logout();
+    const wasAdmin = logout();
     onClose();
-    navigate('/')
+    navigate(wasAdmin ? '/admin/login' : '/login');
   };
 
   if (!isOpen) return null;

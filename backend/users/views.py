@@ -212,6 +212,26 @@ class LoginView(APIView):
             }
         }, status=status.HTTP_200_OK)
 
+class LogoutView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            refresh_token = request.data.get("refresh")
+            if refresh_token:
+                token = RefreshToken(refresh_token)
+                token.blacklist()
+            
+            return Response(
+                {"detail": "Successfully logged out."}, 
+                status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            return Response(
+                {"detail": str(e)}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
 class UserProfileView(UpdateAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = UserProfileSerializer

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import api from '../services/api';
+import api, { logoutUser } from '../services/api';
 import { adminLogin as adminApiLogin, adminLogout as adminApiLogout } from './adminApi';
 
 interface AuthContextType {
@@ -14,7 +14,7 @@ interface AuthContextType {
   } | null;
   login: (email: string, password: string) => Promise<void>;
   adminLogin: (email: string, password: string) => Promise<any>;
-  logout: () => void;
+  logout: () => boolean;
   user?: any;
 }
 
@@ -111,22 +111,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = () => {
-    // Clear user data
+    const wasAdmin = isAdmin;
+    
+    if (wasAdmin) {
+      adminApiLogout();
+    } else {
+      logoutUser();
+    }
+  
+    // Clear all storage
     localStorage.removeItem('token');
     localStorage.removeItem('refresh');
     localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('acna_user');
-    
-    // Clear admin data
     localStorage.removeItem('is_admin');
     localStorage.removeItem('admin_data');
-    adminApiLogout();
-
+  
     // Reset state
     setIsAuthenticated(false);
     setIsAdmin(false);
     setUser(null);
     setAdmin(null);
+  
+    return wasAdmin;
   };
 
   return (
