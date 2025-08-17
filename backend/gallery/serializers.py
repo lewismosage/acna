@@ -74,7 +74,7 @@ class GalleryItemListSerializer(serializers.ModelSerializer):
     class Meta:
         model = GalleryItem
         fields = [
-            'id', 'title', 'type', 'category', 'thumbnail_url', 'media_url',
+            'id', 'title', 'type', 'category', 'description','thumbnail_url', 'media_url',
             'event_date', 'location', 'status', 'is_featured', 'created_at',
             'slug', 'view_count'
         ]

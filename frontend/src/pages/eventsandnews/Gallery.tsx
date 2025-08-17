@@ -1,23 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Camera, Video, Users, Calendar, MapPin, Eye, Download, Share2, Stethoscope, Play, Mail } from 'lucide-react';
 import api from '../../services/api';
+import { galleryItemsApi, GalleryItem as ApiGalleryItem } from '../../services/galleryApi';
 
 interface SubscriptionStatus {
   type: 'success' | 'error';
   message: string;
 }
 
-interface GalleryItem {
-  id: number;
-  type: 'photo' | 'video';
-  title: string;
-  category: string;
+// Use the API GalleryItem type but keep the legacy interface for compatibility
+interface GalleryItem extends Omit<ApiGalleryItem, 'event_date' | 'media_url' | 'thumbnail_url'> {
   date: string;
-  location: string;
-  description: string;
   imageUrl: string;
   thumbnailUrl: string;
-  duration?: string;
 }
 
 interface Category {
@@ -25,6 +20,7 @@ interface Category {
   name: string;
   icon: any; 
 }
+
 const Gallery = () => {
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
   const [selectedMedia, setSelectedMedia] = useState<GalleryItem | null>(null);
@@ -33,111 +29,14 @@ const Gallery = () => {
   const [lastName, setLastName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
-
-  const galleryItems = [
-    {
-      id: 1,
-      type: 'photo' as const,
-      title: "ACNA Annual Conference 2025 - Opening Ceremony",
-      category: "conferences",
-      date: "July 10, 2025",
-      location: "Kampala, Uganda",
-      description: "Healthcare professionals from across Africa gathered for the opening ceremony of our flagship annual conference.",
-      imageUrl: "https://images.pexels.com/photos/1181438/pexels-photo-1181438.jpeg?auto=compress&cs=tinysrgb&w=800",
-      thumbnailUrl: "https://images.pexels.com/photos/1181438/pexels-photo-1181438.jpeg?auto=compress&cs=tinysrgb&w=400"
-    },
-    {
-      id: 2,
-      type: 'video' as const,
-      title: "Pediatric Neurology Training Workshop Highlights",
-      category: "training",
-      date: "September 5, 2025",
-      location: "Lagos, Nigeria",
-      description: "Key moments from our intensive training program for healthcare workers in pediatric neurological care.",
-      imageUrl: "https://images.pexels.com/photos/5452293/pexels-photo-5452293.jpeg?auto=compress&cs=tinysrgb&w=800",
-      thumbnailUrl: "https://images.pexels.com/photos/5452293/pexels-photo-5452293.jpeg?auto=compress&cs=tinysrgb&w=400",
-      duration: "4:32"
-    },
-    {
-      id: 3,
-      type: 'photo'as const,
-      title: "Community Outreach Program - Epilepsy Awareness",
-      category: "community",
-      date: "August 22, 2025",
-      location: "Cape Town, South Africa",
-      description: "Community members participating in our epilepsy awareness and education program.",
-      imageUrl: "https://images.pexels.com/photos/3184638/pexels-photo-3184638.jpeg?auto=compress&cs=tinysrgb&w=800",
-      thumbnailUrl: "https://images.pexels.com/photos/3184638/pexels-photo-3184638.jpeg?auto=compress&cs=tinysrgb&w=400"
-    },
-    {
-      id: 4,
-      type: 'photo'as const,
-      title: "Medical Equipment Donation Ceremony",
-      category: "events",
-      date: "August 15, 2025",
-      location: "Nairobi, Kenya",
-      description: "State-of-the-art neurological diagnostic equipment being donated to local healthcare facilities.",
-      imageUrl: "https://images.pexels.com/photos/5215024/pexels-photo-5215024.jpeg?auto=compress&cs=tinysrgb&w=800",
-      thumbnailUrl: "https://images.pexels.com/photos/5215024/pexels-photo-5215024.jpeg?auto=compress&cs=tinysrgb&w=400"
-    },
-    {
-      id: 5,
-      type: 'video'as const,
-      title: "Telemedicine Initiative Launch",
-      category: "innovation",
-      date: "July 20, 2025",
-      location: "Multiple Locations",
-      description: "Launch event for our new telemedicine program connecting specialists with remote healthcare facilities.",
-      imageUrl: "https://images.pexels.com/photos/3952048/pexels-photo-3952048.jpeg?auto=compress&cs=tinysrgb&w=800",
-      thumbnailUrl: "https://images.pexels.com/photos/3952048/pexels-photo-3952048.jpeg?auto=compress&cs=tinysrgb&w=400",
-      duration: "6:15"
-    },
-    {
-      id: 6,
-      type: 'photo'as const,
-      title: "Cerebral Palsy Support Group Meeting",
-      category: "community",
-      date: "June 28, 2025",
-      location: "Johannesburg, South Africa",
-      description: "Families and caregivers coming together to share experiences and support each other.",
-      imageUrl: "https://images.pexels.com/photos/4260323/pexels-photo-4260323.jpeg?auto=compress&cs=tinysrgb&w=800",
-      thumbnailUrl: "https://images.pexels.com/photos/4260323/pexels-photo-4260323.jpeg?auto=compress&cs=tinysrgb&w=400"
-    },
-    {
-      id: 7,
-      type: 'photo'as const,
-      title: "Research Collaboration Summit",
-      category: "conferences",
-      date: "June 15, 2025",
-      location: "Accra, Ghana",
-      description: "Leading researchers presenting groundbreaking studies in pediatric neurology.",
-      imageUrl: "https://images.pexels.com/photos/3184192/pexels-photo-3184192.jpeg?auto=compress&cs=tinysrgb&w=800",
-      thumbnailUrl: "https://images.pexels.com/photos/3184192/pexels-photo-3184192.jpeg?auto=compress&cs=tinysrgb&w=400"
-    },
-    {
-      id: 8,
-      type: 'video'as const,
-      title: "Success Stories: Patients and Families",
-      category: "stories",
-      date: "May 30, 2025",
-      location: "Various Locations",
-      description: "Inspiring stories from patients and families whose lives have been transformed through our programs.",
-      imageUrl: "https://images.pexels.com/photos/5214907/pexels-photo-5214907.jpeg?auto=compress&cs=tinysrgb&w=800",
-      thumbnailUrl: "https://images.pexels.com/photos/5214907/pexels-photo-5214907.jpeg?auto=compress&cs=tinysrgb&w=400",
-      duration: "8:45"
-    },
-    {
-      id: 9,
-      type: 'photo'as const,
-      title: "Mobile Diagnostic Unit Deployment",
-      category: "innovation",
-      date: "May 15, 2025",
-      location: "Rural Uganda",
-      description: "Our mobile diagnostic units bringing neurological screening to remote communities.",
-      imageUrl: "https://images.pexels.com/photos/3952057/pexels-photo-3952057.jpeg?auto=compress&cs=tinysrgb&w=800",
-      thumbnailUrl: "https://images.pexels.com/photos/3952057/pexels-photo-3952057.jpeg?auto=compress&cs=tinysrgb&w=400"
-    }
-  ];
+  const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
+  const [displayedItems, setDisplayedItems] = useState<GalleryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  
+  const ITEMS_PER_PAGE = 9;
 
   const categories: Category[] = [
     { id: 'all', name: 'All Media', icon: Camera },
@@ -150,9 +49,76 @@ const Gallery = () => {
     { id: 'stories', name: 'Success Stories', icon: Video }
   ];
 
+  // Transform API data to component format
+  const transformGalleryItem = (apiItem: ApiGalleryItem): GalleryItem => {
+    return {
+      ...apiItem,
+      date: apiItem.event_date,
+      imageUrl: apiItem.media_url || apiItem.thumbnail_url || '',
+      thumbnailUrl: apiItem.thumbnail_url || apiItem.media_url || ''
+    };
+  };
+
+  // Fetch gallery items from API
+  useEffect(() => {
+    const fetchGalleryItems = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Fetch only published items
+        const apiItems = await galleryItemsApi.getAll({ 
+          status: 'published',
+          ordering: '-created_at'
+        });
+        
+        // Debug: Log the actual API response
+        console.log('API Response:', apiItems);
+        console.log('First item:', apiItems[0]);
+        
+        // Transform API data to component format
+        const transformedItems = apiItems.map(transformGalleryItem);
+        setGalleryItems(transformedItems);
+      } catch (err) {
+        console.error('Error fetching gallery items:', err);
+        setError('Failed to load gallery items. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGalleryItems();
+  }, []);
+
+  // Update displayed items when filter changes
+  useEffect(() => {
+    const filteredItems = selectedFilter === 'all' 
+      ? galleryItems 
+      : galleryItems.filter(item => item.category === selectedFilter);
+    
+    // Reset to first 9 items when filter changes
+    const initialItems = filteredItems.slice(0, ITEMS_PER_PAGE);
+    setDisplayedItems(initialItems);
+    setHasMore(filteredItems.length > ITEMS_PER_PAGE);
+  }, [selectedFilter, galleryItems]);
+
   const filteredItems = selectedFilter === 'all' 
     ? galleryItems 
     : galleryItems.filter(item => item.category === selectedFilter);
+
+  const loadMoreItems = () => {
+    setLoadingMore(true);
+    
+    // Simulate loading delay for better UX
+    setTimeout(() => {
+      const currentCount = displayedItems.length;
+      const nextItems = filteredItems.slice(currentCount, currentCount + ITEMS_PER_PAGE);
+      
+      setDisplayedItems(prev => [...prev, ...nextItems]);
+      setHasMore(currentCount + ITEMS_PER_PAGE < filteredItems.length);
+      setLoadingMore(false);
+    }, 500);
+  };
 
   const photoCount = galleryItems.filter(item => item.type === 'photo').length;
   const videoCount = galleryItems.filter(item => item.type === 'video').length;
@@ -206,6 +172,20 @@ const Gallery = () => {
     }
   };
 
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
   return (
     <div className="bg-white min-h-screen">
       {/* Hero Section */}
@@ -239,7 +219,7 @@ const Gallery = () => {
             <div className="lg:hidden bg-white border border-gray-200 rounded p-4">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-bold text-gray-900">
-                  {filteredItems.length} items
+                  {displayedItems.length} of {filteredItems.length} items
                 </h3>
                 <button 
                   onClick={() => setSelectedFilter('all')}
@@ -326,106 +306,166 @@ const Gallery = () => {
 
             {/* Gallery Grid */}
             <div className="flex-1">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                {filteredItems.map((item) => (
-                  <div 
-                    key={item.id} 
-                    className="group cursor-pointer bg-white border border-gray-200 rounded overflow-hidden hover:shadow-lg transition-all duration-300"
-                    onClick={() => openModal(item)}
-                  >
-                    <div className="relative aspect-square overflow-hidden">
-                      <img
-                        src={item.thumbnailUrl}
-                        alt={item.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      
-                      {/* Media Type Overlay */}
-                      <div className="absolute top-3 left-3">
-                        <span className={`px-2 py-1 text-xs font-bold uppercase tracking-wide rounded ${
-                          item.type === 'video' ? 'bg-red-600 text-white' : 'bg-black bg-opacity-50 text-white'
-                        }`}>
-                          {item.type === 'video' ? (
-                            <div className="flex items-center">
-                              <Play className="w-3 h-3 mr-1" />
-                              Video
-                            </div>
-                          ) : (
-                            <div className="flex items-center">
-                              <Camera className="w-3 h-3 mr-1" />
-                              Photo
-                            </div>
-                          )}
-                        </span>
-                      </div>
-
-                      {/* Video Duration */}
-                      {item.type === 'video' && item.duration && (
-                        <div className="absolute bottom-3 right-3">
-                          <span className="bg-black bg-opacity-75 text-white px-2 py-1 text-xs rounded">
-                            {item.duration}
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Hover Overlay */}
-                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all duration-300 flex items-center justify-center">
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                          <Eye className="w-8 h-8 text-white" />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="p-4">
-                      <div className="mb-2">
-                        <span className="text-red-600 font-medium text-xs uppercase tracking-wide">
-                          {item.category.replace(/([A-Z])/g, ' $1').trim()}
-                        </span>
-                      </div>
-                      
-                      <h3 className="text-sm font-bold text-gray-900 mb-2 leading-tight line-clamp-2">
-                        {item.title}
-                      </h3>
-
-                      <div className="space-y-1 mb-3">
-                        <div className="flex items-center text-gray-600 text-xs">
-                          <Calendar className="w-3 h-3 mr-1 text-red-600" />
-                          {item.date}
-                        </div>
-                        <div className="flex items-center text-gray-600 text-xs">
-                          <MapPin className="w-3 h-3 mr-1 text-red-600" />
-                          {item.location}
-                        </div>
-                      </div>
-
-                      <p className="text-gray-700 text-xs leading-relaxed line-clamp-2">
-                        {item.description}
-                      </p>
-                    </div>
+              {/* Loading State */}
+              {loading && (
+                <div className="text-center py-12">
+                  <div className="inline-flex items-center px-4 py-2 font-semibold leading-6 text-sm shadow rounded-md text-gray-500 bg-white">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Loading gallery items...
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
 
-              {/* No Items Found */}
-              {filteredItems.length === 0 && (
-                <div className="bg-white border border-gray-200 rounded p-8 text-center">
-                  <Camera className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No media found</h3>
-                  <p className="text-gray-600 mb-4">Try selecting a different category to explore our gallery.</p>
+              {/* Error State */}
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded p-8 text-center">
+                  <Camera className="w-12 h-12 text-red-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-red-900 mb-2">Error loading gallery</h3>
+                  <p className="text-red-700 mb-4">{error}</p>
                   <button
-                    onClick={() => setSelectedFilter('all')}
+                    onClick={() => window.location.reload()}
                     className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                   >
-                    Show All Media
+                    Reload Page
                   </button>
                 </div>
               )}
 
-              {/* Load More Button */}
-              {filteredItems.length > 0 && (
+              {/* Gallery Items */}
+              {!loading && !error && displayedItems.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                  {displayedItems.map((item) => (
+                    <div 
+                      key={item.id} 
+                      className="group cursor-pointer bg-white border border-gray-200 rounded overflow-hidden hover:shadow-lg transition-all duration-300"
+                      onClick={() => openModal(item)}
+                    >
+                      <div className="relative aspect-square overflow-hidden">
+                        <img
+                          src={item.thumbnailUrl || '/placeholder-image.jpg'}
+                          alt={item.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = '/placeholder-image.jpg';
+                          }}
+                        />
+                        
+                        {/* Media Type Overlay */}
+                        <div className="absolute top-3 left-3">
+                          <span className={`px-2 py-1 text-xs font-bold uppercase tracking-wide rounded ${
+                            item.type === 'video' ? 'bg-red-600 text-white' : 'bg-black bg-opacity-50 text-white'
+                          }`}>
+                            {item.type === 'video' ? (
+                              <div className="flex items-center">
+                                <Play className="w-3 h-3 mr-1" />
+                                Video
+                              </div>
+                            ) : (
+                              <div className="flex items-center">
+                                <Camera className="w-3 h-3 mr-1" />
+                                Photo
+                              </div>
+                            )}
+                          </span>
+                        </div>
+
+                        {/* Video Duration */}
+                        {item.type === 'video' && item.duration && (
+                          <div className="absolute bottom-3 right-3">
+                            <span className="bg-black bg-opacity-75 text-white px-2 py-1 text-xs rounded">
+                              {item.duration}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Hover Overlay */}
+                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all duration-300 flex items-center justify-center">
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <Eye className="w-8 h-8 text-white" />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="p-4">
+                        <div className="mb-2">
+                          <span className="text-red-600 font-medium text-xs uppercase tracking-wide">
+                            {item.category.replace(/([A-Z])/g, ' $1').trim()}
+                          </span>
+                        </div>
+                        
+                        <h3 className="text-sm font-bold text-gray-900 mb-2 leading-tight line-clamp-2">
+                          {item.title}
+                        </h3>
+
+                        <div className="space-y-1 mb-3">
+                          <div className="flex items-center text-gray-600 text-xs">
+                            <Calendar className="w-3 h-3 mr-1 text-red-600" />
+                            {formatDate(item.date)}
+                          </div>
+                          <div className="flex items-center text-gray-600 text-xs">
+                            <MapPin className="w-3 h-3 mr-1 text-red-600" />
+                            {item.location}
+                          </div>
+                        </div>
+
+                        <p className="text-gray-700 text-xs leading-relaxed line-clamp-2">
+                          {item.description || 'No description available'}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* No Items Found */}
+              {!loading && !error && displayedItems.length === 0 && (
+                <div className="bg-white border border-gray-200 rounded p-8 text-center">
+                  <Camera className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    {galleryItems.length === 0 ? 'No media at the moment' : 'No media found'}
+                  </h3>
+                  <p className="text-gray-600 mb-4">
+                    {galleryItems.length === 0 
+                      ? 'Check back later for new gallery content.' 
+                      : 'Try selecting a different category to explore our gallery.'
+                    }
+                  </p>
+                  {galleryItems.length > 0 && (
+                    <button
+                      onClick={() => setSelectedFilter('all')}
+                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                    >
+                      Show All Media
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Load More Button - Only show if there are more items to load */}
+              {!loading && !error && hasMore && displayedItems.length > 0 && (
                 <div className="text-center mt-8 sm:mt-12">
-                  <button className="border-2 border-orange-600 text-orange-600 px-6 py-2 sm:px-8 sm:py-3 font-medium hover:bg-orange-600 hover:text-white transition-all duration-300 uppercase tracking-wide rounded text-sm sm:text-base">
-                    Load More Media
+                  <button 
+                    onClick={loadMoreItems}
+                    disabled={loadingMore}
+                    className={`border-2 border-orange-600 text-orange-600 px-6 py-2 sm:px-8 sm:py-3 font-medium hover:bg-orange-600 hover:text-white transition-all duration-300 uppercase tracking-wide rounded text-sm sm:text-base ${
+                      loadingMore ? 'opacity-75 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    {loadingMore ? (
+                      <div className="flex items-center">
+                        <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Loading More...
+                      </div>
+                    ) : (
+                      'Load More Media'
+                    )}
                   </button>
                 </div>
               )}
@@ -434,7 +474,7 @@ const Gallery = () => {
         </div>
       </section>
 
-      {/* Modal - Updated with smaller size */}
+      {/* Modal */}
       {selectedMedia && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-90" onClick={closeModal}>
           <div className="relative max-w-3xl w-full bg-white rounded-lg overflow-hidden max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
@@ -449,9 +489,13 @@ const Gallery = () => {
             
             <div className="flex-1 overflow-hidden">
               <img
-                src={selectedMedia.imageUrl}
+                src={selectedMedia.imageUrl || '/placeholder-image.jpg'}
                 alt={selectedMedia.title}
                 className="w-full h-full object-contain max-h-[60vh]"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = '/placeholder-image.jpg';
+                }}
               />
             </div>
             
@@ -467,7 +511,7 @@ const Gallery = () => {
                   <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-1 sm:space-y-0 text-sm text-gray-600 mb-3">
                     <div className="flex items-center">
                       <Calendar className="w-4 h-4 mr-1 text-red-600" />
-                      {selectedMedia.date}
+                      {formatDate(selectedMedia.date)}
                     </div>
                     <div className="flex items-center">
                       <MapPin className="w-4 h-4 mr-1 text-red-600" />
@@ -475,7 +519,7 @@ const Gallery = () => {
                     </div>
                   </div>
                   <p className="text-gray-700 text-sm sm:text-base leading-relaxed">
-                    {selectedMedia.description}
+                    {selectedMedia.description || 'No description available'}
                   </p>
                 </div>
                 
