@@ -71,6 +71,11 @@ class User(AbstractUser):
             return self.is_active_member and timezone.now().date() <= self.membership_valid_until
         return False
 
+    def save(self, *args, **kwargs):
+        if self.is_superuser:
+            self.is_admin = True
+        super().save(*args, **kwargs)
+
 
 class VerificationCode(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)

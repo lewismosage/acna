@@ -29,30 +29,20 @@ const AdminLogin = () => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-  
-    // Local validation
-    if (!formData.email.includes('@')) {
-      setError('Please enter a valid email address');
-      setIsLoading(false);
-      return;
-    }
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
-      setIsLoading(false);
-      return;
-    }
-  
+    
     try {
-      await adminLogin(formData.email, formData.password);
-      navigate('/admin/dashboard');
-    } catch (err: any) {
-      if (err.message === 'invalid_credentials') {
-        setError('Invalid admin credentials. Please try again.');
-      } else if (err.message === 'admin_privileges_required') {
-        setError('You do not have admin privileges. Contact the system administrator.');
+      const response = await adminLogin(formData.email, formData.password);
+      console.log('Login response:', response);
+      
+      // Verify we have the required data
+      if (response && response.access && response.admin) {
+        navigate('/admin/dashboard');
       } else {
-        setError(err.message || 'Admin login failed. Please try again.');
+        setError('Login successful but missing required data');
       }
+    } catch (err: any) {
+      setError(err.message || 'Login failed. Please try again.');
+      console.error('Login error:', err);
     } finally {
       setIsLoading(false);
     }

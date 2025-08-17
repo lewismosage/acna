@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Newspaper, 
   Plus, 
@@ -7,278 +7,225 @@ import {
   Star,
   Mail,
   Phone,
-  Trash2, 
   Calendar, 
   Clock, 
   User, 
-  Download, 
   BarChart2,
   Search,
   CheckCircle,
   AlertCircle,
   Clock as DraftIcon,
-  Share2,
-  Tag,
-  BookOpen,
+  Tag as TagIcon,
   ChevronDown,
   ChevronUp,
-  ExternalLink
+  ExternalLink,
+  Trash2,
+  RefreshCw
 } from 'lucide-react';
 import CreateNewsModal from './CreateNewsModal';
+import { NewsItem, NewsStatus, NewsType } from './types';
+import { newsApi } from '../../../services/newsApi';
+import LoadingSpinner from '../../../components/common/LoadingSpinner';
+import placeholderImg from '../../../assets/default Profile Image.png';
 
-type NewsStatus = 'Published' | 'Draft' | 'Archived';
-type NewsType = 'News Article' | 'Press Release' | 'Announcement' | 'Research Update';
-
-export interface NewsItem {
-  id: number;
-  title: string;
-  subtitle?: string;
-  type: NewsType;
-  status: NewsStatus;
-  category: string;
-  date: string;
-  readTime: string;
-  views: number;
-  imageUrl: string;
-  content: {
-    introduction: string;
-    sections: {
-      heading: string;
-      content: string;
-    }[];
-    conclusion?: string;
-  };
-  author?: {
-    name: string;
-    title: string;
-    organization: string;
-    bio: string;
-    imageUrl: string;
-  };
-  tags: string[];
-  source?: {
-    name: string;
-    url: string;
-  };
-  contact?: {
-    name: string;
-    email: string;
-    phone: string;
-  };
-  createdAt: string;
-  updatedAt: string;
-  isFeatured?: boolean;
-}
-
-interface NewsTabProps {
-  newsItems: NewsItem[];
-}
-
-const NewsTab: React.FC<NewsTabProps> = ({ newsItems: initialNewsItems }) => {
-  const [newsItems, setNewsItems] = useState<NewsItem[]>(initialNewsItems);
+const NewsUpdatesTab: React.FC = () => {
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
+  const [filteredNews, setFilteredNews] = useState<NewsItem[]>([]);
   const [selectedTab, setSelectedTab] = useState<'all' | 'published' | 'drafts' | 'archived'>('all');
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState<string>('');
   const [expandedNews, setExpandedNews] = useState<number | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
+  const [editingNews, setEditingNews] = useState<NewsItem | undefined>(undefined);
+  const [stats, setStats] = useState({
+    total: 0,
+    published: 0,
+    drafts: 0,
+    archived: 0,
+    totalViews: 0,
+    monthlyViews: 0
+  });
 
-  // Sample data for admin view
-  const [allNews, setAllNews] = useState<NewsItem[]>([
-    {
-      id: 1,
-      title: "Building Stronger Pediatric Neurology Services Across Africa",
-      subtitle: "How ACNA is transforming neurological care through innovative training programs",
-      type: "News Article",
-      status: "Published",
-      category: "Healthcare Systems",
-      date: "July 15, 2025",
-      readTime: "8 min read",
-      views: 1247,
-      imageUrl: "https://images.pexels.com/photos/5215024/pexels-photo-5215024.jpeg?auto=compress&cs=tinysrgb&w=800",
-      content: {
-        introduction: "The African Child Neurology Association (ACNA) continues to make significant strides in improving pediatric neurological care across the continent.",
-        sections: [
-          {
-            heading: "Addressing the Healthcare Gap",
-            content: "Africa faces a significant shortage of pediatric neurologists, with fewer than 200 specialists serving over 400 million children across the continent."
-          },
-          {
-            heading: "Innovative Training Programs",
-            content: "ACNA has launched comprehensive training programs that combine traditional medical education with modern telemedicine technologies."
-          }
-        ],
-        conclusion: "The work of ACNA demonstrates that with innovative approaches, strategic partnerships, and dedicated advocacy, it is possible to transform pediatric neurological care in Africa."
-      },
-      author: {
-        name: "Dr. Fatima Hassan",
-        title: "Senior Health Correspondent",
-        organization: "African Medical Journal",
-        bio: "Dr. Hassan is a respected health journalist with over 12 years of experience covering healthcare developments across Africa.",
-        imageUrl: "https://images.pexels.com/photos/5407206/pexels-photo-5407206.jpeg?auto=compress&cs=tinysrgb&w=300"
-      },
-      tags: ["Pediatric Neurology", "Healthcare Systems", "Medical Training"],
-      source: {
-        name: "African Medical Journal",
-        url: "https://africanmedicaljournal.org"
-      },
-      createdAt: "2025-07-10",
-      updatedAt: "2025-07-15",
-      isFeatured: true
-    },
-    {
-      id: 2,
-      title: "ACNA celebrates the African Child Neurology Day",
-      type: "Press Release",
-      status: "Published",
-      category: "Press Release",
-      date: "April 26, 2025",
-      readTime: "5 min read",
-      views: 892,
-      imageUrl: "https://images.pexels.com/photos/5452293/pexels-photo-5452293.jpeg?auto=compress&cs=tinysrgb&w=800",
-      content: {
-        introduction: "The African Child Neurology Association (ACNA) marks the African Child Neurology Day by launching comprehensive community outreach programs.",
-        sections: [
-          {
-            heading: "Community Outreach Programs Launch",
-            content: "The new community outreach programs will operate in 15 African countries, focusing on early detection, education, and basic care."
-          }
-        ],
-        conclusion: "This African Child Neurology Day marks not just a celebration of our achievements, but the beginning of an even more impactful chapter."
-      },
-      contact: {
-        name: "ACNA Communications Team",
-        email: "media@acna.org",
-        phone: "+254-700-123-456"
-      },
-      tags: ["ACNA", "Community Outreach", "African Child Neurology Day"],
-      createdAt: "2025-04-20",
-      updatedAt: "2025-04-26"
-    },
-    {
-      id: 3,
-      title: "Upcoming Training Workshop on Pediatric Epilepsy",
-      type: "Announcement",
-      status: "Draft",
-      category: "Events",
-      date: "September 18, 2025",
-      readTime: "3 min read",
-      views: 0,
-      imageUrl: "https://images.pexels.com/photos/3184192/pexels-photo-3184192.jpeg?auto=compress&cs=tinysrgb&w=800",
-      content: {
-        introduction: "ACNA will be hosting a specialized training workshop on pediatric epilepsy management in Nairobi, Kenya.",
-        sections: [
-          {
-            heading: "Workshop Details",
-            content: "The workshop will cover the latest diagnostic techniques and treatment protocols for pediatric epilepsy."
-          }
-        ]
-      },
-      tags: ["Epilepsy", "Training", "Workshop"],
-      createdAt: "2025-08-15",
-      updatedAt: "2025-08-20"
-    },
-    {
-      id: 4,
-      title: "New Research on Autism Spectrum Disorders in Africa",
-      type: "Research Update",
-      status: "Archived",
-      category: "Research",
-      date: "March 10, 2025",
-      readTime: "6 min read",
-      views: 543,
-      imageUrl: "https://images.pexels.com/photos/5212359/pexels-photo-5212359.jpeg?auto=compress&cs=tinysrgb&w=800",
-      content: {
-        introduction: "Groundbreaking research on autism spectrum disorders in African populations has been published.",
-        sections: [
-          {
-            heading: "Key Findings",
-            content: "The study reveals important cultural factors in diagnosis and treatment of autism in African contexts."
-          }
-        ]
-      },
-      tags: ["Autism", "Research", "Neurodevelopment"],
-      createdAt: "2025-02-28",
-      updatedAt: "2025-03-10"
+  useEffect(() => {
+    fetchNews();
+  }, []);
+
+  useEffect(() => {
+    let filtered = newsItems;
+    
+    // Filter by tab
+    if (selectedTab !== 'all') {
+      filtered = filtered.filter(item => 
+        selectedTab === 'published' ? item.status === 'Published' :
+        selectedTab === 'drafts' ? item.status === 'Draft' :
+        item.status === 'Archived'
+      );
     }
-  ]);
+    
+    // Filter by search term
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(item => 
+        item.title.toLowerCase().includes(term) ||
+        (item.subtitle && item.subtitle.toLowerCase().includes(term)) ||
+        item.content.introduction.toLowerCase().includes(term) ||
+        item.tags.some(tag => tag.toLowerCase().includes(term))
+      );
+    }
+    
+    setFilteredNews(filtered);
+  }, [selectedTab, searchTerm, newsItems]);
+
+  const fetchNews = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const [newsData, analyticsData] = await Promise.all([
+        newsApi.getAll(),
+        newsApi.getAnalytics()
+      ]);
+      
+      setNewsItems(newsData);
+      setFilteredNews(newsData);
+      setStats(analyticsData);
+    } catch (err: any) {
+      console.error('Error fetching news:', err);
+      setError(err.message || 'Failed to load news items. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleExpand = (id: number) => {
+    setExpandedNews(expandedNews === id ? null : id);
+  };
+
+  const toggleFeatured = async (id: number) => {
+    try {
+      const updatedNews = await newsApi.toggleFeatured(id); 
+      setNewsItems(newsItems.map(item => 
+        item.id === id ? updatedNews : item
+      ));
+    } catch (error) {
+      console.error('Error toggling featured status:', error);
+      setError('Failed to update featured status');
+    }
+  };
+
+  const handleStatusChange = async (id: number, status: NewsStatus) => {
+    try {
+      const updatedNews = await newsApi.updateStatus(id, status);
+      setNewsItems(newsItems.map(item => 
+        item.id === id ? updatedNews : item
+      ));
+    } catch (error) {
+      console.error('Error updating status:', error);
+      setError('Failed to update status');
+    }
+  };
+
+  const handleCreateNews = (newNews: NewsItem) => {
+    setNewsItems([newNews, ...newsItems]);
+    setShowCreateModal(false);
+    // Refresh stats
+    fetchNews();
+  };
+
+  const handleEditNews = (newsItem: NewsItem) => {
+    setEditingNews(newsItem);
+    setShowCreateModal(true);
+  };
+
+  const handleUpdateNews = (updatedNews: NewsItem) => {
+    setNewsItems(newsItems.map(item => 
+      item.id === updatedNews.id ? updatedNews : item
+    ));
+    setShowCreateModal(false);
+    setEditingNews(undefined);
+    // Refresh stats
+    fetchNews();
+  };
+
+  const handleDeleteNews = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this news item? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await newsApi.delete(id);
+      setNewsItems(newsItems.filter(item => item.id !== id));
+      // Refresh stats
+      fetchNews();
+    } catch (error) {
+      console.error('Error deleting news:', error);
+      setError('Failed to delete news item');
+    }
+  };
+
+  const handleCloseModal = () => {
+    setShowCreateModal(false);
+    setEditingNews(undefined);
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
 
   const getStatusColor = (status: NewsStatus) => {
     switch (status) {
-      case 'Published':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'Draft':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'Archived':
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'Published': return 'border-green-500 bg-green-50 text-green-800';
+      case 'Draft': return 'border-yellow-500 bg-yellow-50 text-yellow-800';
+      case 'Archived': return 'border-gray-500 bg-gray-50 text-gray-800';
+      default: return 'border-gray-300 bg-gray-50 text-gray-800';
     }
   };
 
   const getStatusIcon = (status: NewsStatus) => {
     switch (status) {
-      case 'Published':
-        return <CheckCircle className="w-4 h-4" />;
-      case 'Draft':
-        return <DraftIcon className="w-4 h-4" />;
-      case 'Archived':
-        return <AlertCircle className="w-4 h-4" />;
-      default:
-        return <Newspaper className="w-4 h-4" />;
+      case 'Published': return <CheckCircle className="w-3 h-3" />;
+      case 'Draft': return <DraftIcon className="w-3 h-3" />;
+      case 'Archived': return <AlertCircle className="w-3 h-3" />;
+      default: return <AlertCircle className="w-3 h-3" />;
     }
   };
 
-  const handleStatusChange = (newsId: number, newStatus: NewsStatus) => {
-    setAllNews(prev => 
-      prev.map(item => 
-        item.id === newsId 
-          ? { ...item, status: newStatus, updatedAt: new Date().toISOString().split('T')[0] }
-          : item
-      )
-    );
-  };
-
-  const handleCreateNews = (newNews: NewsItem) => {
-    setAllNews(prev => [newNews, ...prev]);
-    setShowCreateModal(false);
-  };
-
-  const toggleFeatured = (newsId: number) => {
-    setAllNews(prev => 
-      prev.map(item => 
-        item.id === newsId 
-          ? { ...item, isFeatured: !item.isFeatured }
-          : item
-      )
-    );
-  };
-
-  const toggleExpand = (newsId: number) => {
-    setExpandedNews(expandedNews === newsId ? null : newsId);
-  };
-
-  const filteredNews = allNews.filter(item => {
-    switch (selectedTab) {
-      case 'published':
-        return item.status === 'Published';
-      case 'drafts':
-        return item.status === 'Draft';
-      case 'archived':
-        return item.status === 'Archived';
-      default:
-        return true;
+  const getTypeLabel = (type: NewsType) => {
+    switch (type) {
+      case 'News Article': return 'Article';
+      case 'Press Release': return 'Press Release';
+      case 'Announcement': return 'Announcement';
+      case 'Research Update': return 'Research';
+      default: return type;
     }
-  }).filter(item => 
-    item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (item.subtitle && item.subtitle.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    item.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
-
-  const stats = {
-    total: allNews.length,
-    published: allNews.filter(n => n.status === 'Published').length,
-    drafts: allNews.filter(n => n.status === 'Draft').length,
-    archived: allNews.filter(n => n.status === 'Archived').length,
   };
+
+  if (loading) {
+    return <LoadingSpinner />;
+  }
+
+  if (error) {
+    return (
+      <div className="bg-white border border-gray-300 rounded-lg p-6 text-center">
+        <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+        <h3 className="text-lg font-medium text-gray-900 mb-2">Error Loading News</h3>
+        <p className="text-gray-500 mb-4">{error}</p>
+        <div className="flex gap-3 justify-center">
+          <button 
+            onClick={fetchNews}
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 font-medium flex items-center"
+          >
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -301,10 +248,47 @@ const NewsTab: React.FC<NewsTabProps> = ({ newsItems: initialNewsItems }) => {
                 <Plus className="w-5 h-5 mr-2" />
                 Create News
               </button>
+              <button 
+                onClick={fetchNews}
+                className="border border-blue-600 text-blue-600 px-6 py-2 rounded-lg hover:bg-blue-50 flex items-center font-medium transition-colors"
+              >
+                <RefreshCw className="w-5 h-5 mr-2" />
+                Refresh
+              </button>
               <button className="border border-blue-600 text-blue-600 px-6 py-2 rounded-lg hover:bg-blue-50 flex items-center font-medium transition-colors">
                 <BarChart2 className="w-5 h-5 mr-2" />
                 Analytics
               </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Stats Bar */}
+        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4 text-center">
+            <div>
+              <div className="text-2xl font-bold text-blue-600">{stats.total}</div>
+              <div className="text-xs text-gray-500">Total Items</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-green-600">{stats.published}</div>
+              <div className="text-xs text-gray-500">Published</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-yellow-600">{stats.drafts}</div>
+              <div className="text-xs text-gray-500">Drafts</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-gray-600">{stats.archived}</div>
+              <div className="text-xs text-gray-500">Archived</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-purple-600">{stats.totalViews}</div>
+              <div className="text-xs text-gray-500">Total Views</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-indigo-600">{stats.monthlyViews}</div>
+              <div className="text-xs text-gray-500">Monthly Views</div>
             </div>
           </div>
         </div>
@@ -358,7 +342,7 @@ const NewsTab: React.FC<NewsTabProps> = ({ newsItems: initialNewsItems }) => {
                     <div className="lg:w-1/4">
                       <div className="relative">
                         <img
-                          src={item.imageUrl}
+                          src={item.imageUrl || 'https://via.placeholder.com/800x500?text=No+Image'}
                           alt={item.title}
                           className="w-full h-48 lg:h-full object-cover rounded-t-lg lg:rounded-l-lg lg:rounded-t-none"
                         />
@@ -378,7 +362,7 @@ const NewsTab: React.FC<NewsTabProps> = ({ newsItems: initialNewsItems }) => {
                         )}
                         <div className="absolute bottom-3 left-3">
                           <span className="bg-black bg-opacity-75 text-white px-2 py-1 rounded text-xs font-medium">
-                            {item.type}
+                            {getTypeLabel(item.type)}
                           </span>
                         </div>
                       </div>
@@ -398,7 +382,7 @@ const NewsTab: React.FC<NewsTabProps> = ({ newsItems: initialNewsItems }) => {
                           <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-4">
                             <div className="flex items-center">
                               <Calendar className="w-4 h-4 mr-2 text-blue-600" />
-                              <span>{item.date}</span>
+                              <span>{formatDate(item.date)}</span>
                             </div>
                             <div className="flex items-center">
                               <Clock className="w-4 h-4 mr-2 text-blue-600" />
@@ -409,7 +393,7 @@ const NewsTab: React.FC<NewsTabProps> = ({ newsItems: initialNewsItems }) => {
                               <span>{item.views} views</span>
                             </div>
                             <div className="flex items-center">
-                              <Tag className="w-4 h-4 mr-2 text-blue-600" />
+                              <TagIcon className="w-4 h-4 mr-2 text-blue-600" />
                               <span>{item.category}</span>
                             </div>
                           </div>
@@ -434,20 +418,22 @@ const NewsTab: React.FC<NewsTabProps> = ({ newsItems: initialNewsItems }) => {
                       {expandedNews === item.id && (
                         <div className="mt-4 pt-4 border-t border-gray-200 space-y-4">
                           {/* Content Sections */}
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {item.content.sections.map((section, index) => (
-                              <div key={index} className="mb-4">
-                                <h4 className="font-medium text-gray-900 mb-2">{section.heading}</h4>
-                                <p className="text-gray-600 text-sm whitespace-pre-line">{section.content}</p>
-                              </div>
-                            ))}
-                          </div>
+                          {item.content.sections && item.content.sections.length > 0 && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              {item.content.sections.map((section, index) => (
+                                <div key={index} className="mb-4">
+                                  <h4 className="font-medium text-gray-900 mb-2">{section.heading}</h4>
+                                  <p className="text-gray-600 text-sm whitespace-pre-line">{section.content}</p>
+                                </div>
+                              ))}
+                            </div>
+                          )}
 
                           {/* Conclusion */}
                           {item.content.conclusion && (
-                            <div className="bg-blue-50 p-4 rounded-lg">
+                            <div className="bg-gray-50 p-4 rounded-lg">
                               <h4 className="font-medium text-gray-900 mb-2">Conclusion</h4>
-                              <p className="text-gray-600 text-sm whitespace-pre-line">{item.content.conclusion}</p>
+                              <p className="text-gray-600 text-sm">{item.content.conclusion}</p>
                             </div>
                           )}
 
@@ -456,16 +442,22 @@ const NewsTab: React.FC<NewsTabProps> = ({ newsItems: initialNewsItems }) => {
                             <div className="bg-gray-50 p-4 rounded-lg">
                               <h4 className="font-medium text-gray-900 mb-2">Author</h4>
                               <div className="flex items-center gap-3">
-                                <img
-                                  src={item.author.imageUrl}
+                                <img 
+                                  src={item.author.imageUrl || placeholderImg}
                                   alt={item.author.name}
                                   className="w-12 h-12 rounded-full object-cover"
                                 />
                                 <div>
-                                  <p className="font-medium text-gray-900">{item.author.name}</p>
-                                  <p className="text-sm text-gray-600">{item.author.title}, {item.author.organization}</p>
+                                  <p className="font-medium text-gray-900">
+                                    {item.author.name}
+                                  </p>
+                                  <p className="text-sm text-gray-600">{item.author.title}</p>
+                                  <p className="text-sm text-gray-600">{item.author.organization}</p>
                                 </div>
                               </div>
+                              {item.author.bio && (
+                                <p className="text-gray-600 text-sm mt-2">{item.author.bio}</p>
+                              )}
                             </div>
                           )}
 
@@ -484,10 +476,12 @@ const NewsTab: React.FC<NewsTabProps> = ({ newsItems: initialNewsItems }) => {
                                     {item.contact.email}
                                   </a>
                                 </div>
-                                <div className="flex items-center">
-                                  <Phone className="w-4 h-4 mr-2 text-blue-600" />
-                                  <span>{item.contact.phone}</span>
-                                </div>
+                                {item.contact.phone && (
+                                  <div className="flex items-center">
+                                    <Phone className="w-4 h-4 mr-2 text-blue-600" />
+                                    <span>{item.contact.phone}</span>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           )}
@@ -498,7 +492,12 @@ const NewsTab: React.FC<NewsTabProps> = ({ newsItems: initialNewsItems }) => {
                               <h4 className="font-medium text-gray-900 mb-2">Source</h4>
                               <div className="flex items-center">
                                 <ExternalLink className="w-4 h-4 mr-2 text-blue-600" />
-                                <a href={item.source.url} className="text-blue-600 hover:underline text-sm">
+                                <a 
+                                  href={item.source.url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:underline text-sm"
+                                >
                                   {item.source.name}
                                 </a>
                               </div>
@@ -508,7 +507,7 @@ const NewsTab: React.FC<NewsTabProps> = ({ newsItems: initialNewsItems }) => {
                       )}
 
                       {/* Admin Actions */}
-                      <div className="flex flex-wrap gap-3">
+                      <div className="flex flex-wrap gap-3 mt-4">
                         <button 
                           onClick={() => toggleExpand(item.id)}
                           className="border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center text-sm font-medium transition-colors"
@@ -526,7 +525,10 @@ const NewsTab: React.FC<NewsTabProps> = ({ newsItems: initialNewsItems }) => {
                           )}
                         </button>
 
-                        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center text-sm font-medium transition-colors">
+                        <button 
+                          onClick={() => handleEditNews(item)}
+                          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center text-sm font-medium transition-colors"
+                        >
                           <Edit className="w-4 h-4 mr-2" />
                           Edit
                         </button>
@@ -554,13 +556,21 @@ const NewsTab: React.FC<NewsTabProps> = ({ newsItems: initialNewsItems }) => {
                             <option value="Archived">Archive</option>
                           </select>
                         </div>
+
+                        <button 
+                          onClick={() => handleDeleteNews(item.id)}
+                          className="border border-red-300 text-red-600 px-4 py-2 rounded-lg hover:bg-red-50 flex items-center text-sm font-medium transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete
+                        </button>
                       </div>
 
                       {/* Metadata */}
                       <div className="mt-4 pt-4 border-t border-gray-200">
                         <div className="flex flex-wrap gap-4 text-xs text-gray-500">
-                          <span>Created: {item.createdAt}</span>
-                          <span>Last Updated: {item.updatedAt}</span>
+                          <span>Created: {formatDate(item.createdAt)}</span>
+                          <span>Last Updated: {formatDate(item.updatedAt)}</span>
                           <span>ID: #{item.id}</span>
                         </div>
                       </div>
@@ -589,14 +599,15 @@ const NewsTab: React.FC<NewsTabProps> = ({ newsItems: initialNewsItems }) => {
         </div>
       </div>
 
-      {/* Create News Modal */}
+      {/* Create/Edit News Modal */}
       <CreateNewsModal 
         isOpen={showCreateModal} 
-        onClose={() => setShowCreateModal(false)}
-        onSave={handleCreateNews}
+        onClose={handleCloseModal}
+        onSave={editingNews ? handleUpdateNews : handleCreateNews}
+        initialData={editingNews}
       />
     </div>
   );
 };
 
-export default NewsTab;
+export default NewsUpdatesTab;

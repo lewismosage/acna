@@ -343,6 +343,13 @@ class AdminLoginView(APIView):
             }
         }, status=status.HTTP_200_OK)
 
+class AdminLogoutView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAdminUser]
+    
+    def post(self, request):
+        return Response({'detail': 'Successfully logged out.'}, status=status.HTTP_200_OK)
+
 class AdminDashboardView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAdminUser]

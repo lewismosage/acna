@@ -1,136 +1,84 @@
-// api.ts
-import axios from 'axios';
+// src/services/api.ts
+import axios, { AxiosError } from 'axios';
 
-// Create the axios instance
+const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+// Storage keys
+const USER_TOKEN = 'token';
+const USER_REFRESH = 'refresh';
+const USER_DATA = 'acna_user';
+const IS_AUTHENTICATED = 'isAuthenticated';
+
+// --- LocalStorage Helpers ---
+const setItem = (key: string, value: string) => localStorage.setItem(key, value);
+const getItem = (key: string) => localStorage.getItem(key);
+const removeItems = (...keys: string[]) => keys.forEach((key) => localStorage.removeItem(key));
+
+const clearUserStorage = () => {
+  removeItems(USER_TOKEN, USER_REFRESH, USER_DATA, IS_AUTHENTICATED);
+};
+
+// --- Axios instance ---
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  baseURL: BASE_URL,
+  headers: { 'Content-Type': 'application/json' },
   withCredentials: true,
 });
 
-// Helper: Refresh admin token
-const refreshAdminToken = async () => {
-  try {
-    const refreshToken = localStorage.getItem('admin_refresh');
-    if (!refreshToken) throw new Error('No refresh token');
+// --- Token Refresh ---
+const refreshToken = async (): Promise<string> => {
+  const refreshToken = getItem(USER_REFRESH);
+  if (!refreshToken) throw new Error('No refresh token');
 
-    const response = await axios.post(
-      `${import.meta.env.VITE_API_BASE_URL}/users/admin/token/refresh/`,
-      { refresh: refreshToken }
-    );
+  const { data } = await axios.post(`${BASE_URL}/users/token/refresh/`, {
+    refresh: refreshToken,
+  });
 
-    localStorage.setItem('admin_token', response.data.access);
-    return response.data.access;
-  } catch (error) {
-    // Clear all admin auth data on refresh failure
-    localStorage.removeItem('admin_token');
-    localStorage.removeItem('admin_refresh');
-    localStorage.removeItem('admin_data');
-    localStorage.removeItem('is_admin');
-    throw error;
-  }
+  setItem(USER_TOKEN, data.access);
+  return data.access;
 };
 
-// Request interceptor
+// --- Interceptors ---
 api.interceptors.request.use(
   async (config) => {
-    // Skip auth handling for these endpoints
+    // Skip auth for these endpoints
     const skipAuthEndpoints = [
-      '/users/admin/login/',
-      '/users/admin/token/refresh/',
       '/users/login/',
       '/users/register/',
       '/users/verify-email/',
-      '/users/resend-verification/'
-    ];
-    
-    if (skipAuthEndpoints.some(endpoint => config.url?.includes(endpoint))) {
-      return config;
-    }
-
-    // --- Admin route token handling ---
-    if (config.url?.includes('/messages/') && config.url?.includes('/respond/')) {
-      // This is an admin-only endpoint
-      let token = localStorage.getItem('admin_token');
-    
-      // Attempt refresh if no token
-      if (!token) {
-        try {
-          token = await refreshAdminToken();
-        } catch (error) {
-          if (!window.location.pathname.includes('/admin/login')) {
-            window.location.href = '/admin/login';
-          }
-          return Promise.reject(error);
-        }
-      }
-    
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-      return config;
-    }
-
-    // Skip adding Authorization header for public endpoints
-    const publicEndpoints = [
-      '/users/members/',
+      '/users/resend-verification/',
       '/payments/membership-search/',
       '/payments/create-checkout-session/',
       '/payments/verify-payment/',
       '/payments/download-invoice/',
-      '/newsletter/send-newsletter/',
-      '/newsletter/messages/'
     ];
 
-    if (publicEndpoints.some(endpoint => config.url?.includes(endpoint)) && 
-      !config.url?.includes('/respond/')) {
+    if (skipAuthEndpoints.some(endpoint => config.url?.includes(endpoint))) {
       return config;
     }
 
-    // Regular user token handling
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-
+    const token = getItem(USER_TOKEN);
+    if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// Response interceptor
 api.interceptors.response.use(
   (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
+  async (error: AxiosError) => {
+    const originalRequest = error.config as any;
 
-    // If 401 on admin route, try refresh once
-    if (
-      error.response?.status === 401 &&
-      originalRequest.url?.includes('/admin/') &&
-      !originalRequest._retry
-    ) {
+    if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {
-        const newToken = await refreshAdminToken();
+        const newToken = await refreshToken();
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
         return api(originalRequest);
       } catch (refreshError) {
-        // Only redirect if not already on login page
-        if (!window.location.pathname.includes('/admin/login')) {
-          window.location.href = '/admin/login';
-        }
+        clearUserStorage();
         return Promise.reject(refreshError);
-      }
-    }
-
-    // Handle 403 Forbidden (admin privileges required)
-    if (error.response?.status === 403 && originalRequest.url?.includes('/admin/')) {
-      if (!window.location.pathname.includes('/admin/login')) {
-        window.location.href = '/admin/login';
       }
     }
 
@@ -138,161 +86,280 @@ api.interceptors.response.use(
   }
 );
 
-// --- API functions ---
+// --- User Authentication ---
+export const registerUser = async (userData: {
+  email: string;
+  password: string;
+  first_name: string;
+  last_name: string;
+}) => {
+  const { data } = await api.post('/users/register/', userData);
+  return data;
+};
 
-// User authentication functions
-export const registerUser = async (userData: any) => {
+export const verifyEmail = async (verificationData: { email: string; code: string }) => {
+  const { data } = await api.post('/users/verify-email/', verificationData);
+  if (data.token) setItem(USER_TOKEN, data.token);
+  return data;
+};
+
+export const resendVerification = async (emailData: { email: string }) => {
+  const { data } = await api.post('/users/resend-verification/', emailData);
+  return data;
+};
+
+export const loginUser = async (credentials: { email: string; password: string }) => {
+  const { data } = await api.post('/users/login/', credentials);
+  
+  if (data.access) setItem(USER_TOKEN, data.access);
+  if (data.refresh) setItem(USER_REFRESH, data.refresh);
+  if (data.user) {
+    setItem(USER_DATA, JSON.stringify(data.user));
+    setItem(IS_AUTHENTICATED, 'true');
+  }
+
+  return data.user;
+};
+
+export const logoutUser = async () => {
   try {
-    const response = await api.post('/users/register/', userData);
-    return response.data;
-  } catch (error: any) {
-    throw error.response?.data || error.message;
+    await api.post('/users/logout/');
+  } finally {
+    clearUserStorage();
   }
 };
 
-export const verifyEmail = async (data: { email: string; code: string }) => {
-  try {
-    const response = await api.post('/users/verify-email/', data);
-    if (response.data.token) {
-      localStorage.setItem('token', response.data.token);
-    }
-    return response.data;
-  } catch (error: any) {
-    throw error.response?.data || error.message;
-  }
+// --- User Profile ---
+export const getUserProfile = async () => {
+  const { data } = await api.get('/users/profile/');
+  return data;
 };
 
-export const resendVerification = async (data: { email: string }) => {
-  try {
-    const response = await api.post('/users/resend-verification/', data);
-    return response.data;
-  } catch (error: any) {
-    throw error.response?.data || error.message;
-  }
+export const updateUserProfile = async (profileData: FormData) => {
+  const { data } = await api.patch('/users/profile/', profileData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return data;
 };
 
-// Newsletter functions
-export const getSubscribers = async () => {
-  try {
-    const response = await api.get('/newsletter/subscribers/');
-    return response.data;
-  } catch (error: any) {
-    throw error.response?.data || error.message;
-  }
+export const changePassword = async (passwordData: {
+  current_password: string;
+  new_password: string;
+}) => {
+  const { data } = await api.post('/users/change-password/', passwordData);
+  return data;
+};
+
+
+// --- Newsletter Management ---
+export const getSubscribers = async (params?: {
+  status?: 'active' | 'inactive';
+  search?: string;
+  page?: number;
+}) => {
+  const { data } = await api.get('/newsletter/subscribers/', { params });
+  return data;
 };
 
 export const sendNewsletter = async (newsletterData: {
   subject: string;
   content: string;
-  recipients: string;
+  recipients: 'all' | 'active' | string[];
 }) => {
-  try {
-    const response = await api.post('/newsletter/send-newsletter/', newsletterData);
-    return response.data;
-  } catch (error: any) {
-    console.error('Newsletter send error:', error.response?.data || error.message); 
-    throw error.response?.data || error.message;
-  }
+  const { data } = await api.post('/newsletter/send/', newsletterData);
+  return data;
 };
 
-// Contact functions
-export const sendContactMessage = async (messageData: {
-  first_name: string;
-  last_name: string;
-  email: string;
+export const getNewsletterMessages = async (params?: {
+  status?: 'sent' | 'draft' | 'scheduled';
+  search?: string;
+  page?: number;
+}) => {
+  const { data } = await api.get('/newsletter/messages/', { params });
+  return data;
+};
+
+export const createNewsletterMessage = async (messageData: {
   subject: string;
-  message: string;
+  content: string;
+  status?: 'draft' | 'scheduled';
+  scheduled_at?: string;
 }) => {
-  try {
-    const response = await api.post('/newsletter/contact/', messageData);
-    return response.data;
-  } catch (error: any) {
-    throw error.response?.data || error.message;
-  }
+  const { data } = await api.post('/newsletter/messages/', messageData);
+  return data;
 };
 
-// Message functions (for admin)
-export const getMessages = async () => {
-  try {
-    const response = await api.get('/newsletter/messages/');
-    return response.data;
-  } catch (error: any) {
-    throw error.response?.data || error.message;
-  }
+export const updateNewsletterMessage = async (id: number, updateData: {
+  subject?: string;
+  content?: string;
+  status?: 'draft' | 'scheduled' | 'sent';
+  scheduled_at?: string | null;
+}) => {
+  const { data } = await api.patch(`/newsletter/messages/${id}/`, updateData);
+  return data;
 };
 
-export const updateMessage = async (id: number, updateData: {
+export const deleteNewsletterMessage = async (id: number) => {
+  await api.delete(`/newsletter/messages/${id}/`);
+};
+
+// --- Message Management ---
+export const getMessages = async (params?: {
+  is_read?: boolean;
+  responded?: boolean;
+  search?: string;
+  page?: number;
+}) => {
+  const { data } = await api.get('/messages/', { params });
+  return data;
+};
+
+export const getMessageDetails = async (id: number) => {
+  const { data } = await api.get(`/messages/${id}/`);
+  return data;
+};
+
+export const updateMessageStatus = async (id: number, statusData: {
+  is_read?: boolean;
+  responded?: boolean;
+}) => {
+  const { data } = await api.patch(`/messages/${id}/`, statusData);
+  return data;
+};
+
+export const updateMessage = async (id: number, messageData: {
   is_read?: boolean;
   responded?: boolean;
   response_notes?: string;
 }) => {
-  try {
-    const response = await api.patch(`/newsletter/messages/${id}/`, updateData);
-    return response.data;
-  } catch (error: any) {
-    throw error.response?.data || error.message;
-  }
+  const { data } = await api.patch(`/messages/${id}/`, messageData);
+  return data;
 };
 
-export const sendMessageResponse = async (messageId: number, responseText: string) => {
-  try {
-    const apiResponse = await api.post(`/newsletter/messages/${messageId}/respond/`, { 
-      response: responseText 
-    });
-    return apiResponse.data;
-  } catch (error: any) {
-    throw error.response?.data || error.message;
-  }
+export const sendMessageResponse = async (messageId: number, responseData: {
+  response: string;
+  notes?: string;
+}) => {
+  const { data } = await api.post(`/messages/${messageId}/respond/`, responseData);
+  return data;
 };
 
-// --- Admin-specific API functions ---
-export const adminLogin = async (credentials: { email: string; password: string }) => {
-  try {
-    const response = await api.post('/users/admin/login/', credentials);
-    
-    if (response.data.admin_token) {
-      localStorage.setItem('admin_token', response.data.admin_token);
-    }
-    if (response.data.admin_refresh) {
-      localStorage.setItem('admin_refresh', response.data.admin_refresh);
-    }
-    if (response.data.admin) {
-      localStorage.setItem('admin_data', JSON.stringify(response.data.admin));
-      localStorage.setItem('is_admin', 'true');
-    }
-    
-    return response.data;
-  } catch (error: any) {
-    // Clear admin auth data on login failure
-    localStorage.removeItem('admin_token');
-    localStorage.removeItem('admin_refresh');
-    localStorage.removeItem('admin_data');
-    localStorage.removeItem('is_admin');
-    
-    throw error.response?.data || error.message;
-  }
+export const deleteMessage = async (id: number) => {
+  await api.delete(`/messages/${id}/`);
 };
 
-export const getAdminDashboardData = async () => {
-  try {
-    const response = await api.get('/users/admin/dashboard/');
-    return response.data;
-  } catch (error: any) {
-    throw error.response?.data || error.message;
-  }
+// --- Members ---
+export const getMembers = async (params?: {
+  search?: string;
+  page?: number;
+  membership_class?: string;
+}) => {
+  const { data } = await api.get('/users/members/', { params });
+  return data;
 };
 
-export const adminLogout = async () => {
-  try {
-    await api.post('/users/admin/logout/');
-  } finally {
-    // Clear all admin auth data
-    localStorage.removeItem('admin_token');
-    localStorage.removeItem('admin_refresh');
-    localStorage.removeItem('admin_data');
-    localStorage.removeItem('is_admin');
-    window.location.href = '/admin/login';
-  }
+export const getMemberDetails = async (id: number) => {
+  const { data } = await api.get(`/users/members/${id}/`);
+  return data;
+};
+
+// --- Payments ---
+export const createPaymentSession = async (paymentData: {
+  membership_type: string;
+  amount: number;
+  currency: string;
+}) => {
+  const { data } = await api.post('/payments/create-checkout-session/', paymentData);
+  return data;
+};
+
+export const verifyPayment = async (sessionId: string) => {
+  const { data } = await api.post('/payments/verify-payment/', { session_id: sessionId });
+  return data;
+};
+
+export const downloadInvoice = async (paymentId: string) => {
+  const response = await api.get(`/payments/download-invoice/${paymentId}/`, {
+    responseType: 'blob',
+  });
+  return response.data;
+};
+
+// --- Newsletter ---
+export const subscribeNewsletter = async (email: string) => {
+  const { data } = await api.post('/newsletter/subscribe/', { email });
+  return data;
+};
+
+export const sendContactMessage = async (messageData: {
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+}) => {
+  const { data } = await api.post('/newsletter/contact/', messageData);
+  return data;
+};
+
+// --- Content ---
+export const getNews = async (params?: {
+  status?: string;
+  featured?: boolean;
+  search?: string;
+  page?: number;
+}) => {
+  const { data } = await api.get('/content/news/', { params });
+  return data;
+};
+
+export const getNewsItem = async (slug: string) => {
+  const { data } = await api.get(`/content/news/${slug}/`);
+  return data;
+};
+
+export const getEvents = async (params?: {
+  upcoming?: boolean;
+  past?: boolean;
+  search?: string;
+  page?: number;
+}) => {
+  const { data } = await api.get('/content/events/', { params });
+  return data;
+};
+
+export const getEventDetails = async (slug: string) => {
+  const { data } = await api.get(`/content/events/${slug}/`);
+  return data;
+};
+
+export const getResources = async (params?: {
+  category?: string;
+  type?: string;
+  search?: string;
+  page?: number;
+}) => {
+  const { data } = await api.get('/content/resources/', { params });
+  return data;
+};
+
+export const getGalleryItems = async (params?: {
+  category?: string;
+  featured?: boolean;
+  search?: string;
+  page?: number;
+}) => {
+  const { data } = await api.get('/content/gallery/', { params });
+  return data;
+};
+
+export const getSuccessStories = async (params?: {
+  featured?: boolean;
+  condition?: string;
+  search?: string;
+  page?: number;
+}) => {
+  const { data } = await api.get('/content/stories/', { params });
+  return data;
 };
 
 export default api;

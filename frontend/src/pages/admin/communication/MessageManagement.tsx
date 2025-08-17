@@ -49,7 +49,10 @@ const MessageManagement = ({ messages: initialMessages }: MessageManagementProps
     setIsSending(true);
     try {
       // Send the response
-      await sendMessageResponse(selectedMessage.id, responseText);
+      await sendMessageResponse(selectedMessage.id, {
+        response: responseText,
+        notes: '' 
+      });
       
       // Update the message as responded
       const updatedMessage = await updateMessage(selectedMessage.id, {

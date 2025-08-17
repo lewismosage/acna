@@ -1,18 +1,63 @@
-import React, { useState } from 'react';
-import { X, Camera, Video, Image, BookOpen, Heart, Plus, Minus, Trash2 } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { X, Camera, Heart, FileImage, FileVideo } from 'lucide-react';
+
+interface GalleryItem {
+  id: number;
+  type: 'photo' | 'video';
+  title: string;
+  category: string;
+  description: string;
+  event_date: string;
+  location: string;
+  duration?: string;
+  media_url?: string;
+  thumbnail_url?: string;
+  is_featured: boolean;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface Story {
+  id: number;
+  title: string;
+  patient_name: string;
+  age: number;
+  condition: string;
+  story: string;
+  story_date: string;
+  location: string;
+  image_url?: string;
+  is_featured: boolean;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
 
 interface CreateGalleryItemModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (item: any) => void;
   type: 'gallery' | 'stories';
+  initialData?: GalleryItem | Story;
 }
 
-const CreateGalleryItemModal: React.FC<CreateGalleryItemModalProps> = ({ isOpen, onClose, onSave, type }) => {
+const CreateGalleryItemModal: React.FC<CreateGalleryItemModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  onSave, 
+  type,
+  initialData 
+}) => {
+  // Determine if we're in edit mode
+  const isEditMode = !!initialData;
+
   // Common fields
   const [title, setTitle] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
-  const [thumbnailUrl, setThumbnailUrl] = useState('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState('');
+  const [thumbnailPreview, setThumbnailPreview] = useState('');
   const [isFeatured, setIsFeatured] = useState(false);
 
   // Gallery item fields
@@ -29,46 +74,297 @@ const CreateGalleryItemModal: React.FC<CreateGalleryItemModalProps> = ({ isOpen,
   const [condition, setCondition] = useState('');
   const [story, setStory] = useState('');
 
+  // File input refs
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const thumbnailInputRef = useRef<HTMLInputElement>(null);
+
+  // Populate form when editing
+  useEffect(() => {
+    if (initialData) {
+      setTitle(initialData.title || '');
+      setIsFeatured(initialData.is_featured || false);
+      
+      if ('type' in initialData) {
+        // Gallery item
+        const galleryItem = initialData as GalleryItem;
+        setItemType(galleryItem.type || 'photo');
+        setCategory(galleryItem.category || '');
+        setDate(galleryItem.event_date || '');
+        setLocation(galleryItem.location || '');
+        setDescription(galleryItem.description || '');
+        setDuration(galleryItem.duration || '');
+        
+        // Set existing media preview
+        if (galleryItem.media_url) {
+          setImagePreview(galleryItem.media_url);
+        }
+        if (galleryItem.thumbnail_url) {
+          setThumbnailPreview(galleryItem.thumbnail_url);
+        }
+      } else {
+        // Story
+        const storyItem = initialData as Story;
+        setPatientName(storyItem.patient_name || '');
+        setAge(String(storyItem.age || ''));
+        setCondition(storyItem.condition || '');
+        setStory(storyItem.story || '');
+        setDate(storyItem.story_date || '');
+        setLocation(storyItem.location || '');
+        
+        // Set existing image preview
+        if (storyItem.image_url) {
+          setImagePreview(storyItem.image_url);
+        }
+      }
+    }
+  }, [initialData]);
+
+  const handleImageUpload = (file: File, isMain: boolean = true) => {
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        if (isMain) {
+          setImageFile(file);
+          setImagePreview(result);
+        } else {
+          setThumbnailFile(file);
+          setThumbnailPreview(result);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleImageInputChange = (e: React.ChangeEvent<HTMLInputElement>, isMain: boolean = true) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleImageUpload(file, isMain);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e: React.DragEvent, isMain: boolean = true) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const files = Array.from(e.dataTransfer.files);
+    const imageFile = files.find(file => file.type.startsWith('image/') || file.type.startsWith('video/'));
+    
+    if (imageFile) {
+      handleImageUpload(imageFile, isMain);
+    }
+  };
+
+  const removeImage = (isMain: boolean = true) => {
+    if (isMain) {
+      setImageFile(null);
+      setImagePreview('');
+      if (imageInputRef.current) {
+        imageInputRef.current.value = '';
+      }
+    } else {
+      setThumbnailFile(null);
+      setThumbnailPreview('');
+      if (thumbnailInputRef.current) {
+        thumbnailInputRef.current.value = '';
+      }
+    }
+  };
+
+  const resetForm = () => {
+    setTitle('');
+    setImageFile(null);
+    setThumbnailFile(null);
+    setImagePreview('');
+    setThumbnailPreview('');
+    setIsFeatured(false);
+    setItemType('photo');
+    setCategory('');
+    setDate('');
+    setLocation('');
+    setDescription('');
+    setDuration('');
+    setPatientName('');
+    setAge('');
+    setCondition('');
+    setStory('');
+  };
+
   const handleSubmit = () => {
     if (type === 'gallery') {
-      const newItem = {
-        id: Date.now(),
+      const itemData = {
         type: itemType,
         title,
         category,
-        date: date || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+        event_date: date || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
         location,
         description,
-        imageUrl,
-        thumbnailUrl: thumbnailUrl || imageUrl,
+        imageFile,
+        thumbnailFile,
         duration: itemType === 'video' ? duration : undefined,
-        status: 'Draft',
-        createdAt: new Date().toISOString().split('T')[0],
-        updatedAt: new Date().toISOString().split('T')[0],
-        isFeatured
+        is_featured: isFeatured
       };
-      onSave(newItem);
+      onSave(itemData);
     } else {
-      const newItem = {
-        id: Date.now(),
+      const itemData = {
         title,
-        patientName,
+        patient_name: patientName,
         age: parseInt(age) || 0,
         condition,
         location,
-        date: date || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+        story_date: date || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
         story,
-        imageUrl,
-        status: 'Draft',
-        createdAt: new Date().toISOString().split('T')[0],
-        updatedAt: new Date().toISOString().split('T')[0],
-        isFeatured
+        imageFile,
+        is_featured: isFeatured
       };
-      onSave(newItem);
+      onSave(itemData);
+    }
+    resetForm();
+  };
+
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
+
+  // Validation for edit mode - don't require new files if existing media exists
+  const isFormValid = () => {
+    const hasTitle = !!title.trim();
+    const hasRequiredImage = imageFile || (isEditMode && imagePreview);
+    
+    if (type === 'gallery') {
+      return hasTitle && hasRequiredImage && category && description;
+    } else {
+      return hasTitle && hasRequiredImage && patientName && age && condition && story;
     }
   };
 
   if (!isOpen) return null;
+
+  const FileUploadArea = ({ 
+    file, 
+    preview, 
+    onUpload, 
+    onRemove, 
+    inputRef, 
+    accept, 
+    label, 
+    isMain = true 
+  }: {
+    file: File | null;
+    preview: string;
+    onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    onRemove: () => void;
+    inputRef: React.RefObject<HTMLInputElement>;
+    accept: string;
+    label: string;
+    isMain?: boolean;
+  }) => (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        {label}{(isMain && !isEditMode) && '*'}
+        {isEditMode && isMain && (
+          <span className="text-gray-500 text-xs ml-1">(Upload new file to replace existing)</span>
+        )}
+      </label>
+      
+      {!file && !preview ? (
+        <div
+          className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-purple-400 transition-colors cursor-pointer"
+          onDragOver={handleDragOver}
+          onDrop={(e) => handleDrop(e, isMain)}
+          onClick={() => inputRef.current?.click()}
+        >
+          <div className="space-y-2">
+            <div className="flex justify-center">
+              {accept.includes('video') ? (
+                <FileVideo className="w-12 h-12 text-gray-400" />
+              ) : (
+                <FileImage className="w-12 h-12 text-gray-400" />
+              )}
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">
+                <span className="font-medium text-purple-600">Click to upload</span> or drag and drop
+              </p>
+              <p className="text-xs text-gray-500">
+                {accept.includes('video') ? 'MP4, MOV, AVI' : 'PNG, JPG, JPEG'} (max 10MB)
+              </p>
+            </div>
+          </div>
+          <input
+            ref={inputRef}
+            type="file"
+            accept={accept}
+            onChange={onUpload}
+            className="hidden"
+          />
+        </div>
+      ) : (
+        <div className="relative">
+          <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+            {preview && (
+              <div className="relative mb-3">
+                <img
+                  src={preview}
+                  alt="Preview"
+                  className="w-full h-48 object-cover rounded-md"
+                />
+                {!file && isEditMode && (
+                  <div className="absolute inset-0 bg-black bg-opacity-50 rounded-md flex items-center justify-center">
+                    <span className="text-white text-sm font-medium">Current File</span>
+                  </div>
+                )}
+              </div>
+            )}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <FileImage className="w-5 h-5 text-gray-500" />
+                <span className="text-sm text-gray-700 truncate">
+                  {file ? file.name : (isEditMode ? 'Existing file' : 'No file')}
+                </span>
+                {file && (
+                  <span className="text-xs text-gray-500">
+                    ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center space-x-2">
+                {(preview && !file) && (
+                  <button
+                    onClick={() => inputRef.current?.click()}
+                    className="text-purple-600 hover:text-purple-700 text-sm font-medium"
+                    type="button"
+                  >
+                    Replace
+                  </button>
+                )}
+                <button
+                  onClick={onRemove}
+                  className="text-red-500 hover:text-red-700 p-1"
+                  type="button"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+          <input
+            ref={inputRef}
+            type="file"
+            accept={accept}
+            onChange={onUpload}
+            className="hidden"
+          />
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -81,9 +377,9 @@ const CreateGalleryItemModal: React.FC<CreateGalleryItemModalProps> = ({ isOpen,
               ) : (
                 <Heart className="w-6 h-6 mr-2 text-purple-600" />
               )}
-              Create New {type === 'gallery' ? 'Gallery Item' : 'Story'}
+              {isEditMode ? 'Edit' : 'Create New'} {type === 'gallery' ? 'Gallery Item' : 'Story'}
             </h2>
-            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            <button onClick={handleClose} className="text-gray-500 hover:text-gray-700">
               <X className="w-6 h-6" />
             </button>
           </div>
@@ -94,7 +390,7 @@ const CreateGalleryItemModal: React.FC<CreateGalleryItemModalProps> = ({ isOpen,
               <label className="block text-sm font-medium text-gray-700 mb-1">Title*</label>
               <input
                 type="text"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
@@ -115,63 +411,31 @@ const CreateGalleryItemModal: React.FC<CreateGalleryItemModalProps> = ({ isOpen,
               </label>
             </div>
 
-            {/* Image URLs */}
+            {/* File Upload Areas */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Image URL*</label>
-                <div className="flex items-center">
-                  <input
-                    type="text"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md"
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    placeholder="https://example.com/image.jpg"
-                    required
-                  />
-                  <button className="px-3 py-2 bg-gray-100 border border-l-0 border-gray-300 rounded-r-md hover:bg-gray-200">
-                    <Image className="w-5 h-5 text-gray-600" />
-                  </button>
-                </div>
-                {imageUrl && (
-                  <div className="mt-2">
-                    <img 
-                      src={imageUrl} 
-                      alt="Preview" 
-                      className="h-32 object-cover rounded-md border border-gray-200"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = 'none';
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Thumbnail URL</label>
-                <div className="flex items-center">
-                  <input
-                    type="text"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md"
-                    value={thumbnailUrl}
-                    onChange={(e) => setThumbnailUrl(e.target.value)}
-                    placeholder="https://example.com/thumbnail.jpg"
-                  />
-                  <button className="px-3 py-2 bg-gray-100 border border-l-0 border-gray-300 rounded-r-md hover:bg-gray-200">
-                    <Image className="w-5 h-5 text-gray-600" />
-                  </button>
-                </div>
-                {thumbnailUrl && (
-                  <div className="mt-2">
-                    <img 
-                      src={thumbnailUrl} 
-                      alt="Thumbnail Preview" 
-                      className="h-32 object-cover rounded-md border border-gray-200"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = 'none';
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
+              <FileUploadArea
+                file={imageFile}
+                preview={imagePreview}
+                onUpload={(e) => handleImageInputChange(e, true)}
+                onRemove={() => removeImage(true)}
+                inputRef={imageInputRef}
+                accept={itemType === 'video' ? 'video/*' : 'image/*'}
+                label={itemType === 'video' ? 'Video File' : 'Image File'}
+                isMain={true}
+              />
+              
+              {type === 'gallery' && (
+                <FileUploadArea
+                  file={thumbnailFile}
+                  preview={thumbnailPreview}
+                  onUpload={(e) => handleImageInputChange(e, false)}
+                  onRemove={() => removeImage(false)}
+                  inputRef={thumbnailInputRef}
+                  accept="image/*"
+                  label="Thumbnail (Optional)"
+                  isMain={false}
+                />
+              )}
             </div>
 
             {type === 'gallery' ? (
@@ -181,7 +445,7 @@ const CreateGalleryItemModal: React.FC<CreateGalleryItemModalProps> = ({ isOpen,
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Type*</label>
                     <select
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       value={itemType}
                       onChange={(e) => setItemType(e.target.value as 'photo' | 'video')}
                       required
@@ -191,20 +455,30 @@ const CreateGalleryItemModal: React.FC<CreateGalleryItemModalProps> = ({ isOpen,
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Category*</label>
-                    <input
-                      type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Category*
+                    </label>
+                    <select
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       value={category}
                       onChange={(e) => setCategory(e.target.value)}
                       required
-                    />
+                    >
+                      <option value="">Select a category</option>
+                      <option value="conferences">Conferences</option>
+                      <option value="training">Training</option>
+                      <option value="community">Community</option>
+                      <option value="events">Events</option>
+                      <option value="outreach">Outreach</option>
+                      <option value="medical">Medical</option>
+                      <option value="education">Education</option>
+                    </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
                     <input
                       type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       value={date}
                       onChange={(e) => setDate(e.target.value)}
                       placeholder="e.g. July 10, 2025"
@@ -214,7 +488,7 @@ const CreateGalleryItemModal: React.FC<CreateGalleryItemModalProps> = ({ isOpen,
                     <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
                     <input
                       type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       value={location}
                       onChange={(e) => setLocation(e.target.value)}
                       placeholder="e.g. Kampala, Uganda"
@@ -225,7 +499,7 @@ const CreateGalleryItemModal: React.FC<CreateGalleryItemModalProps> = ({ isOpen,
                       <label className="block text-sm font-medium text-gray-700 mb-1">Duration</label>
                       <input
                         type="text"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                         value={duration}
                         onChange={(e) => setDuration(e.target.value)}
                         placeholder="e.g. 4:32"
@@ -238,10 +512,11 @@ const CreateGalleryItemModal: React.FC<CreateGalleryItemModalProps> = ({ isOpen,
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Description*</label>
                   <textarea
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     rows={4}
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Describe the gallery item..."
                     required
                   />
                 </div>
@@ -254,9 +529,10 @@ const CreateGalleryItemModal: React.FC<CreateGalleryItemModalProps> = ({ isOpen,
                     <label className="block text-sm font-medium text-gray-700 mb-1">Patient Name*</label>
                     <input
                       type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       value={patientName}
                       onChange={(e) => setPatientName(e.target.value)}
+                      placeholder="Enter patient's name"
                       required
                     />
                   </div>
@@ -264,9 +540,12 @@ const CreateGalleryItemModal: React.FC<CreateGalleryItemModalProps> = ({ isOpen,
                     <label className="block text-sm font-medium text-gray-700 mb-1">Age*</label>
                     <input
                       type="number"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      min="0"
+                      max="150"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       value={age}
                       onChange={(e) => setAge(e.target.value)}
+                      placeholder="Age in years"
                       required
                     />
                   </div>
@@ -274,9 +553,10 @@ const CreateGalleryItemModal: React.FC<CreateGalleryItemModalProps> = ({ isOpen,
                     <label className="block text-sm font-medium text-gray-700 mb-1">Medical Condition*</label>
                     <input
                       type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       value={condition}
                       onChange={(e) => setCondition(e.target.value)}
+                      placeholder="e.g., Epilepsy, Cerebral Palsy"
                       required
                     />
                   </div>
@@ -284,7 +564,7 @@ const CreateGalleryItemModal: React.FC<CreateGalleryItemModalProps> = ({ isOpen,
                     <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
                     <input
                       type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       value={location}
                       onChange={(e) => setLocation(e.target.value)}
                       placeholder="e.g. Nairobi, Kenya"
@@ -294,7 +574,7 @@ const CreateGalleryItemModal: React.FC<CreateGalleryItemModalProps> = ({ isOpen,
                     <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
                     <input
                       type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       value={date}
                       onChange={(e) => setDate(e.target.value)}
                       placeholder="e.g. June 15, 2025"
@@ -306,10 +586,11 @@ const CreateGalleryItemModal: React.FC<CreateGalleryItemModalProps> = ({ isOpen,
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Story*</label>
                   <textarea
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     rows={6}
                     value={story}
                     onChange={(e) => setStory(e.target.value)}
+                    placeholder="Tell the story of how this person's life was changed..."
                     required
                   />
                 </div>
@@ -319,21 +600,17 @@ const CreateGalleryItemModal: React.FC<CreateGalleryItemModalProps> = ({ isOpen,
             {/* Action Buttons */}
             <div className="flex justify-end gap-3 pt-6 border-t border-gray-200">
               <button
-                onClick={onClose}
-                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium"
+                onClick={handleClose}
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmit}
-                className="px-4 py-2 bg-purple-600 text-white rounded-md text-sm font-medium hover:bg-purple-700"
-                disabled={
-                  !title || !imageUrl || 
-                  (type === 'gallery' && (!category || !description)) ||
-                  (type === 'stories' && (!patientName || !age || !condition || !story))
-                }
+                className="px-4 py-2 bg-purple-600 text-white rounded-md text-sm font-medium hover:bg-purple-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                disabled={!isFormValid()}
               >
-                Create {type === 'gallery' ? 'Gallery Item' : 'Story'}
+                {isEditMode ? 'Update' : 'Create'} {type === 'gallery' ? 'Gallery Item' : 'Story'}
               </button>
             </div>
           </div>

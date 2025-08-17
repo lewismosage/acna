@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Camera, Video, Users, Calendar, MapPin, Eye, Download, Share2, Play, Mail } from 'lucide-react';
+import { Camera, Video, Users, Calendar, MapPin, Eye, Download, Share2, Stethoscope, Play, Mail } from 'lucide-react';
 import api from '../../services/api';
 
 interface SubscriptionStatus {
@@ -145,7 +145,8 @@ const Gallery = () => {
     { id: 'training', name: 'Training', icon: Calendar },
     { id: 'community', name: 'Community', icon: Users },
     { id: 'events', name: 'Events', icon: Calendar },
-    { id: 'innovation', name: 'Innovation', icon: Camera },
+    { id: 'outreach', name: 'Outreach', icon: Camera },
+    { id: 'medical', name: 'Medical', icon: Stethoscope},
     { id: 'stories', name: 'Success Stories', icon: Video }
   ];
 
