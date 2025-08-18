@@ -10,6 +10,7 @@ urlpatterns = [
     path('api/newsletter/', include('subscriptions.urls')),
     path('api/', include('news.urls')),
     path('gallery/', include('gallery.urls')),
+    path('api/', include('conferences.urls')),
 ]
 
 if settings.DEBUG:

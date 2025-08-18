@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, Mail } from 'lucide-react';
-import { useNavigate } from 'react-router-dom'; // Add this import for navigation
+import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { newsApi, NewsItem } from '../../services/newsApi';
 

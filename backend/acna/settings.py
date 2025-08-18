@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'subscriptions',
     'news',
     'gallery',
+    'conferences',
 ]
 
 MIDDLEWARE = [

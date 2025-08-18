@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Calendar, 
   BookOpen, 
@@ -9,104 +9,24 @@ import {
   Plus,
   Minus,
   Trash2,
-  X
+  X,
+  Image as ImageIcon,
+  Upload
 } from 'lucide-react';
+import { 
+  Conference, 
+  FormData, 
+  CreateEventModalProps,
+  Speaker,
+  Session
+} from './conferenceTypes';
 
-type ConferenceStatus = 'Planning' | 'Registration Open' | 'Coming Soon';
-type ConferenceType = 'In-person' | 'Virtual' | 'Hybrid';
-
-interface Organizer {
-  name: string;
-  contact: string;
-  phone: string;
-  website: string;
-}
-
-interface Speaker {
-  name: string;
-  title: string;
-  organization: string;
-  bio: string;
-  imageUrl: string;
-  expertise: string[];
-  isKeynote: boolean;
-}
-
-interface Session {
-  time: string;
-  title: string;
-  speaker: string;
-  duration: string;
-  type: 'presentation' | 'workshop' | 'panel' | 'break' | 'registration' | 'social';
-  location?: string;
-  capacity?: string;
-  moderator?: string;
-  topic?: string;
-  speakers?: string[];
-}
-
-interface FormData {
-  title: string;
-  date: string;
-  time: string;
-  location: string;
-  venue: string;
-  type: ConferenceType;
-  status: ConferenceStatus;
-  category: string;
-  theme: string;
-  description: string;
-  fullDescription: string;
-  imageUrl: string;
-  isOnline: boolean;
-  capacity: string;
-  price: string;
-  earlyBirdFee: string;
-  regularFee: string;
-  earlyBirdDeadline: string;
-  languages: string[];
-  cmeCredits: string;
-  targetAudience: string[];
-  learningObjectives: string[];
-  keyTopics: string[];
-  technicalRequirements: string[];
-  organizer: Organizer;
-  speakers: Speaker[];
-  program: Session[];
-  highlights: string[];
-}
-
-interface CreateEventModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSave: (eventData: Conference) => void;
-}
-
-interface Conference {
-  id: number;
-  title: string;
-  date: string;
-  location: string;
-  venue?: string;
-  type: ConferenceType;
-  status: ConferenceStatus;
-  theme?: string;
-  description: string;
-  imageUrl: string;
-  attendees: string;
-  speakers: string;
-  countries: string;
-  earlyBirdDeadline?: string;
-  regularFee?: string;
-  earlyBirdFee?: string;
-  registrationCount?: number;
-  capacity?: number;
-  highlights?: string[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, onSave }) => {
+const CreateEventModal: React.FC<CreateEventModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  onSave, 
+  editingConference 
+}) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FormData>({
     title: '',
@@ -121,6 +41,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
     description: '',
     fullDescription: '',
     imageUrl: '',
+    imageFile: undefined,
     isOnline: false,
     capacity: '',
     price: '',
@@ -128,7 +49,6 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
     regularFee: '',
     earlyBirdDeadline: '',
     languages: ['English'],
-    cmeCredits: '',
     targetAudience: [''],
     learningObjectives: [''],
     keyTopics: [''],
@@ -147,6 +67,9 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
   const [speakers, setSpeakers] = useState<Speaker[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const speakerFileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const steps = [
     { number: 1, title: 'Basic Info', icon: Calendar },
@@ -156,7 +79,144 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
     { number: 5, title: 'Settings', icon: Settings }
   ];
 
+  // Initialize form with editing conference data
+  useEffect(() => {
+    if (editingConference) {
+      setFormData({
+        title: editingConference.title || '',
+        date: editingConference.date || '',
+        time: '', // You might want to extract time from date if it's included
+        location: editingConference.location || '',
+        venue: editingConference.venue || '',
+        type: editingConference.type || 'In-person',
+        status: editingConference.status || 'Planning',
+        category: 'CONFERENCE',
+        theme: editingConference.theme || '',
+        description: editingConference.description || '',
+        fullDescription: editingConference.description || '', // Use description as fullDescription if not available
+        imageUrl: editingConference.imageUrl || '',
+        imageFile: undefined,
+        isOnline: editingConference.type === 'Virtual' || editingConference.type === 'Hybrid',
+        capacity: editingConference.capacity?.toString() || '',
+        price: '',
+        earlyBirdFee: editingConference.earlyBirdFee || '',
+        regularFee: editingConference.regularFee || '',
+        earlyBirdDeadline: editingConference.earlyBirdDeadline || '',
+        languages: ['English'],
+        targetAudience: [''],
+        learningObjectives: [''],
+        keyTopics: [''],
+        technicalRequirements: [''],
+        organizer: {
+          name: 'African Child Neurology Association (ACNA)',
+          contact: '',
+          phone: '',
+          website: ''
+        },
+        speakers: [],
+        program: [],
+        highlights: editingConference.highlights || ['']
+      });
+
+      // Initialize speakers if you have speaker data in the conference
+      setSpeakers([]);
+      setSessions([]);
+    } else {
+      // Reset form for new conference
+      setFormData({
+        title: '',
+        date: '',
+        time: '',
+        location: '',
+        venue: '',
+        type: 'In-person',
+        status: 'Planning',
+        category: 'CONFERENCE',
+        theme: '',
+        description: '',
+        fullDescription: '',
+        imageUrl: '',
+        imageFile: undefined,
+        isOnline: false,
+        capacity: '',
+        price: '',
+        earlyBirdFee: '',
+        regularFee: '',
+        earlyBirdDeadline: '',
+        languages: ['English'],
+        targetAudience: [''],
+        learningObjectives: [''],
+        keyTopics: [''],
+        technicalRequirements: [''],
+        organizer: {
+          name: 'African Child Neurology Association (ACNA)',
+          contact: '',
+          phone: '',
+          website: ''
+        },
+        speakers: [],
+        program: [],
+        highlights: ['']
+      });
+      setSpeakers([]);
+      setSessions([]);
+    }
+
+    // Reset current step when modal opens
+    setCurrentStep(1);
+    setErrors({});
+  }, [editingConference, isOpen]);
+
   if (!isOpen) return null;
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, index?: number) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Check if the file is an image
+    if (!file.type.match('image.*')) {
+      alert('Please select an image file (jpg, png, gif, etc.)');
+      return;
+    }
+
+    // Check file size (e.g., 5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image size should be less than 5MB');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const imageDataUrl = event.target?.result as string;
+      
+      if (typeof index === 'number') {
+        // Update speaker image
+        updateSpeaker(index, 'imageFile', {
+          file,
+          preview: imageDataUrl
+        });
+      } else {
+        // Update event image
+        setFormData(prev => ({
+          ...prev,
+          imageFile: {
+            file,
+            preview: imageDataUrl
+          },
+          imageUrl: '' // Clear URL if one was previously set
+        }));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const triggerFileInput = (index?: number) => {
+    if (typeof index === 'number') {
+      speakerFileInputRefs.current[index]?.click();
+    } else {
+      fileInputRef.current?.click();
+    }
+  };
 
   const handleInputChange = (field: string, value: any) => {
     if (field.includes('.')) {
@@ -203,6 +263,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
       organization: '',
       bio: '',
       imageUrl: '',
+      imageFile: undefined,
       expertise: [''],
       isKeynote: false
     }]);
@@ -249,6 +310,10 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
         if (!formData.time) stepErrors.time = 'Time is required';
         if (!formData.location) stepErrors.location = 'Location is required';
         if (!formData.description) stepErrors.description = 'Description is required';
+        // Make featured image required
+        if (!formData.imageFile?.preview && !formData.imageUrl) {
+          stepErrors.image = 'Featured image is required';
+        }
         break;
       case 2:
         if (!formData.capacity) stepErrors.capacity = 'Capacity is required';
@@ -271,8 +336,8 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
   };
 
   const handleSubmit = () => {
-    const newConference: Conference = {
-      id: Math.floor(Math.random() * 10000) + 1,
+    const conferenceData: Conference = {
+      id: editingConference?.id || Math.floor(Math.random() * 10000) + 1,
       title: formData.title,
       date: formData.date,
       location: formData.location,
@@ -281,21 +346,21 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
       status: formData.status,
       theme: formData.theme,
       description: formData.description,
-      imageUrl: formData.imageUrl || 'https://images.unsplash.com/photo-1431540015161-0bf868a2d407',
-      attendees: '0',
+      imageUrl: formData.imageFile?.preview || formData.imageUrl || '',
+      attendees: editingConference?.attendees || '0',
       speakers: speakers.length.toString(),
-      countries: '1',
+      countries: editingConference?.countries || '1',
       earlyBirdDeadline: formData.earlyBirdDeadline,
       regularFee: formData.regularFee,
       earlyBirdFee: formData.earlyBirdFee,
-      registrationCount: 0,
+      registrationCount: editingConference?.registrationCount || 0,
       capacity: parseInt(formData.capacity) || 0,
       highlights: formData.highlights.filter(h => h.trim() !== ''),
-      createdAt: new Date().toISOString().split('T')[0],
+      createdAt: editingConference?.createdAt || new Date().toISOString().split('T')[0],
       updatedAt: new Date().toISOString().split('T')[0]
     };
     
-    onSave(newConference);
+    onSave(conferenceData);
     onClose();
   };
 
@@ -399,15 +464,51 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
               />
             </div>
             
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Featured Image URL</label>
-              <input
-                type="text"
-                value={formData.imageUrl}
-                onChange={(e) => handleInputChange('imageUrl', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                placeholder="https://example.com/image.jpg"
-              />
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Featured Image *</label>
+              <div className="mt-1 flex items-center">
+                {(formData.imageFile?.preview || formData.imageUrl) ? (
+                  <div className="relative">
+                    <img 
+                      src={formData.imageFile?.preview || formData.imageUrl} 
+                      alt="Event preview" 
+                      className="h-32 w-32 object-cover rounded-md"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ 
+                        ...prev, 
+                        imageFile: undefined, 
+                        imageUrl: '' 
+                      }))}
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <div 
+                    className={`border-2 border-dashed rounded-md p-4 text-center cursor-pointer hover:border-blue-500 ${
+                      errors.image ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    onClick={() => triggerFileInput()}
+                  >
+                    <div className="flex flex-col items-center">
+                      <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                      <p className="text-sm text-gray-600">Click to upload</p>
+                      <p className="text-xs text-gray-500">PNG, JPG up to 5MB</p>
+                    </div>
+                  </div>
+                )}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleImageUpload}
+                  accept="image/*"
+                  className="hidden"
+                />
+              </div>
+              {errors.image && <p className="mt-1 text-sm text-red-600">{errors.image}</p>}
             </div>
           </div>
         );
@@ -598,15 +699,50 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
                         />
                       </div>
                       
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
-                        <input
-                          type="text"
-                          value={speaker.imageUrl}
-                          onChange={(e) => updateSpeaker(index, 'imageUrl', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                          placeholder="https://example.com/speaker.jpg"
-                        />
+                      <div className="mt-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Speaker Photo</label>
+                        <div className="flex items-center gap-4">
+                          {speaker.imageFile?.preview ? (
+                            <div className="relative">
+                              <img 
+                                src={speaker.imageFile.preview} 
+                                alt={`Speaker ${index + 1} preview`} 
+                                className="h-20 w-20 object-cover rounded-full"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => updateSpeaker(index, 'imageFile', null)}
+                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ) : (
+                            <div 
+                              className="border-2 border-dashed border-gray-300 rounded-full p-2 cursor-pointer hover:border-blue-500"
+                              onClick={() => triggerFileInput(index)}
+                            >
+                              <ImageIcon className="w-6 h-6 text-gray-400" />
+                            </div>
+                          )}
+                          <div>
+                            <button
+                              type="button"
+                              onClick={() => triggerFileInput(index)}
+                              className="px-3 py-1 bg-gray-100 text-gray-700 rounded-md text-sm hover:bg-gray-200"
+                            >
+                              {speaker.imageFile ? 'Change' : 'Upload'} Photo
+                            </button>
+                            <p className="text-xs text-gray-500 mt-1">PNG, JPG up to 2MB</p>
+                          </div>
+                          <input
+                            type="file"
+                            ref={el => speakerFileInputRefs.current[index] = el}
+                            onChange={(e) => handleImageUpload(e, index)}
+                            accept="image/*"
+                            className="hidden"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -834,17 +970,6 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
                     </div>
                   ))}
                 </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">CME Credits</label>
-                  <input
-                    type="text"
-                    value={formData.cmeCredits}
-                    onChange={(e) => handleInputChange('cmeCredits', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    placeholder="e.g. 15 CME credits"
-                  />
-                </div>
               </div>
             </div>
           </div>
@@ -856,9 +981,11 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg w-full max-w-4x1 max-h-[95vh] overflow-hidden">
+      <div className="bg-white rounded-lg w-full max-w-4xl max-h-[95vh] overflow-hidden">
         <div className="flex justify-between items-center border-b border-gray-200 p-4">
-          <h2 className="text-xl font-semibold">Create New Conference</h2>
+          <h2 className="text-xl font-semibold">
+            {editingConference ? 'Edit Conference' : 'Create New Conference'}
+          </h2>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
             <X className="w-6 h-6" />
           </button>
@@ -925,7 +1052,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
                 onClick={handleSubmit}
                 className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
               >
-                Create Conference
+                {editingConference ? 'Update Conference' : 'Create Conference'}
               </button>
             )}
           </div>
