@@ -11,6 +11,7 @@ urlpatterns = [
     path('api/', include('news.urls')),
     path('gallery/', include('gallery.urls')),
     path('api/', include('conferences.urls')),
+    path('api/', include('webinars.urls')),
 ]
 
 if settings.DEBUG:

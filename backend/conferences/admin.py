@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Conference, Registration, ConferenceView
+from .models import Conference, Speaker, Session, Registration, ConferenceView
 
 @admin.register(Conference)
 class ConferenceAdmin(admin.ModelAdmin):
@@ -12,24 +12,29 @@ class ConferenceAdmin(admin.ModelAdmin):
     search_fields = ['title', 'description', 'location', 'theme']
     list_editable = ['status']
     readonly_fields = ['registration_count', 'created_at', 'updated_at', 'image_preview']
+    # Removed filter_horizontal as it's not applicable for TextField
     
     fieldsets = (
         ('Basic Information', {
             'fields': (
-                'title', 'date', 'location', 'venue', 'type', 'status',
-                'theme', 'description'
+                'title', 'theme', 'description', 'full_description',
+                'date', 'time', 'location', 'venue', 'type', 'status'
             )
         }),
         ('Image', {
             'fields': ('image', 'image_url', 'image_preview')
         }),
-        ('Attendance', {
-            'fields': ('attendees', 'speakers', 'countries')
-        }),
         ('Registration', {
             'fields': (
-                'early_bird_deadline', 'regular_fee', 'early_bird_fee',
-                'registration_count', 'capacity'
+                'capacity', 'regular_fee', 'early_bird_fee',
+                'early_bird_deadline', 'expected_attendees',
+                'countries_represented', 'registration_count'
+            )
+        }),
+        ('Organizer', {
+            'fields': (
+                'organizer_name', 'organizer_email',
+                'organizer_phone', 'organizer_website'
             )
         }),
         ('Highlights', {
@@ -51,17 +56,47 @@ class ConferenceAdmin(admin.ModelAdmin):
         return "No Image"
     image_preview.short_description = "Image Preview"
 
+@admin.register(Speaker)
+class SpeakerAdmin(admin.ModelAdmin):
+    list_display = ['name', 'conference', 'organization', 'is_keynote', 'image_preview']
+    list_filter = ['is_keynote', 'conference']
+    search_fields = ['name', 'organization', 'conference__title']
+    readonly_fields = ['image_preview']
+    
+    def image_preview(self, obj):
+        if obj.image_url_display:
+            return format_html(
+                '<img src="{}" style="width: 60px; height: 60px; object-fit: cover;" />',
+                obj.image_url_display
+            )
+        return "No Image"
+    image_preview.short_description = "Image Preview"
+
+@admin.register(Session)
+class SessionAdmin(admin.ModelAdmin):
+    list_display = ['title', 'conference', 'session_type', 'start_time', 'duration_display']
+    list_filter = ['session_type', 'conference']
+    search_fields = ['title', 'conference__title']
+    
+    def duration_display(self, obj):
+        return obj.duration_display
+    duration_display.short_description = "Duration"
+
 @admin.register(Registration)
 class RegistrationAdmin(admin.ModelAdmin):
-    list_display = ['name', 'conference', 'registration_type', 'payment_status', 'registration_date']
-    list_filter = ['payment_status', 'registration_type', 'registration_date']
-    search_fields = ['name', 'email', 'organization', 'conference__title']
-    raw_id_fields = ['conference']
+    list_display = ['full_name', 'conference', 'registration_type', 'payment_status', 'registered_at']
+    list_filter = ['payment_status', 'registration_type', 'conference']
+    search_fields = ['first_name', 'last_name', 'email', 'organization', 'conference__title']
+    readonly_fields = ['registered_at']
+    
+    def full_name(self, obj):
+        return obj.full_name
+    full_name.short_description = "Name"
 
 @admin.register(ConferenceView)
 class ConferenceViewAdmin(admin.ModelAdmin):
     list_display = ['conference', 'ip_address', 'viewed_at']
-    list_filter = ['viewed_at']
+    list_filter = ['viewed_at', 'conference']
     search_fields = ['conference__title', 'ip_address']
     readonly_fields = ['conference', 'ip_address', 'user_agent', 'viewed_at']
     date_hierarchy = 'viewed_at'

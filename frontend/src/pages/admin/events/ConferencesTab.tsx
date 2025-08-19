@@ -16,58 +16,40 @@ import {
 } from 'lucide-react';
 import CreateEventModal from './CreateEventsModal';
 import { conferencesApi } from '../../../services/conferenceApi';
-import { 
-  Conference as LocalConference, 
-  Registration as LocalRegistration,
-  ConferencesTabProps,
-  ConferenceStatus,
-  ConferenceAnalytics
-} from './conferenceTypes';
-import { 
-  Conference as ApiConference,
-  Registration as ApiRegistration
+import type { 
+  Conference,
+  Registration,
+  ConferenceAnalytics,
+  ConferenceCreateUpdateData
 } from '../../../services/conferenceApi';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 
+interface ConferencesTabProps {
+  conferences?: Conference[];
+}
+
 const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialConferences }) => {
-  const [conferences, setConferences] = useState<LocalConference[]>(initialConferences || []);
+  const [conferences, setConferences] = useState<Conference[]>(initialConferences || []);
   const [selectedTab, setSelectedTab] = useState<'all' | 'upcoming' | 'completed' | 'registrations' | 'analytics'>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [editingConference, setEditingConference] = useState<LocalConference | null>(null);
+  const [editingConference, setEditingConference] = useState<Conference | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [registrations, setRegistrations] = useState<LocalRegistration[]>([]);
+  const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [analyticsData, setAnalyticsData] = useState<ConferenceAnalytics | null>(null);
-
-  // Helper function to convert API Conference to Local Conference
-  const convertApiToLocalConference = (apiConference: ApiConference): LocalConference => {
-    return {
-      ...apiConference,
-      imageUrl: apiConference.imageUrl || '', // Convert undefined to empty string
-      attendees: apiConference.attendees || '0',
-      speakers: apiConference.speakers || '0',
-      countries: apiConference.countries || '0',
-      registrationCount: apiConference.registrationCount || 0,
-    };
-  };
-
-  // Helper function to convert API Registration to Local Registration
-  const convertApiToLocalRegistration = (apiRegistration: ApiRegistration, conferenceId: number): LocalRegistration => {
-    return {
-      ...apiRegistration,
-      conferenceId, // Add the missing conferenceId field
-    };
-  };
 
   // Fetch conferences from backend
   useEffect(() => {
     const fetchConferences = async () => {
+      if (initialConferences && initialConferences.length > 0) {
+        return; // Use initial data if available
+      }
+      
       setIsLoading(true);
       setError(null);
       try {
         const data = await conferencesApi.getAll();
-        const convertedData = data.map(convertApiToLocalConference);
-        setConferences(convertedData);
+        setConferences(data);
       } catch (err) {
         setError('Failed to load conferences. Please try again later.');
         console.error('Error fetching conferences:', err);
@@ -77,7 +59,7 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
     };
 
     fetchConferences();
-  }, []);
+  }, [initialConferences]);
 
   // Fetch registrations when tab changes
   useEffect(() => {
@@ -85,17 +67,12 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
       const fetchRegistrations = async () => {
         setIsLoading(true);
         try {
-          // This would need to be implemented in your backend
-          // For now, we'll just get all conferences with their registrations
           const data = await conferencesApi.getAll();
-          const allRegistrations: LocalRegistration[] = [];
+          const allRegistrations: Registration[] = [];
           
           data.forEach(conf => {
-            if (conf.registrations) {
-              const convertedRegistrations = conf.registrations.map(reg => 
-                convertApiToLocalRegistration(reg, conf.id)
-              );
-              allRegistrations.push(...convertedRegistrations);
+            if (conf.conference_registrations) {
+              allRegistrations.push(...conf.conference_registrations);
             }
           });
           
@@ -132,36 +109,56 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
     }
   }, [selectedTab]);
 
-  const getStatusColor = (status: ConferenceStatus) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Registration Open':
+      case 'registration_open':
         return 'bg-green-100 text-green-800 border-green-200';
-      case 'Completed':
+      case 'completed':
         return 'bg-gray-100 text-gray-800 border-gray-200';
-      case 'Cancelled':
+      case 'cancelled':
         return 'bg-red-100 text-red-800 border-red-200';
+      case 'coming_soon':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'planning':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
-  const getStatusIcon = (status: ConferenceStatus) => {
+  const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'Registration Open':
+      case 'registration_open':
         return <CheckCircle className="w-4 h-4" />;
-      case 'Completed':
+      case 'completed':
         return <Archive className="w-4 h-4" />;
-      case 'Cancelled':
+      case 'cancelled':
         return <AlertCircle className="w-4 h-4" />;
       default:
         return <Calendar className="w-4 h-4" />;
     }
   };
 
-  const handleStatusChange = async (conferenceId: number, newStatus: ConferenceStatus) => {
+  const getStatusDisplayName = (status: string) => {
+    switch (status) {
+      case 'registration_open':
+        return 'Registration Open';
+      case 'coming_soon':
+        return 'Coming Soon';
+      case 'completed':
+        return 'Completed';
+      case 'cancelled':
+        return 'Cancelled';
+      case 'planning':
+        return 'Planning';
+      default:
+        return status;
+    }
+  };
+
+  const handleStatusChange = async (conferenceId: number, newStatus: string) => {
     try {
-      const updatedApiConference = await conferencesApi.updateStatus(conferenceId, newStatus);
-      const updatedConference = convertApiToLocalConference(updatedApiConference);
+      const updatedConference = await conferencesApi.updateStatus(conferenceId, newStatus);
       setConferences(prev => 
         prev.map(conf => 
           conf.id === conferenceId ? updatedConference : conf
@@ -173,69 +170,27 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
     }
   };
 
-  const handleEditConference = (conference: LocalConference) => {
+  const handleEditConference = (conference: Conference) => {
     setEditingConference(conference);
     setShowCreateModal(true);
   };
 
-  const handleCreateConference = async (newConference: LocalConference) => {
+  const handleCreateConference = async (conferenceData: ConferenceCreateUpdateData) => {
     try {
-      if (editingConference) {
+      let result: Conference;
+      
+      if (editingConference && editingConference.id) {
         // Update existing conference
-        const apiConferenceData = {
-          title: newConference.title,
-          date: newConference.date,
-          location: newConference.location,
-          venue: newConference.venue,
-          type: newConference.type,
-          status: newConference.status,
-          theme: newConference.theme,
-          description: newConference.description,
-          imageUrl: newConference.imageUrl || undefined,
-          attendees: newConference.attendees,
-          speakers: newConference.speakers,
-          countries: newConference.countries,
-          earlyBirdDeadline: newConference.earlyBirdDeadline,
-          regularFee: newConference.regularFee,
-          earlyBirdFee: newConference.earlyBirdFee,
-          registrationCount: newConference.registrationCount,
-          capacity: newConference.capacity,
-          highlights: newConference.highlights,
-        };
-        
-        const updatedApiConference = await conferencesApi.update(editingConference.id, apiConferenceData);
-        const updatedConference = convertApiToLocalConference(updatedApiConference);
+        result = await conferencesApi.update(editingConference.id, conferenceData);
         setConferences(prev => 
           prev.map(conf => 
-            conf.id === editingConference.id ? updatedConference : conf
+            conf.id === editingConference.id ? result : conf
           )
         );
       } else {
         // Create new conference
-        const apiConferenceData = {
-          title: newConference.title,
-          date: newConference.date,
-          location: newConference.location,
-          venue: newConference.venue,
-          type: newConference.type,
-          status: newConference.status,
-          theme: newConference.theme,
-          description: newConference.description,
-          imageUrl: newConference.imageUrl || undefined,
-          attendees: newConference.attendees,
-          speakers: newConference.speakers,
-          countries: newConference.countries,
-          earlyBirdDeadline: newConference.earlyBirdDeadline,
-          regularFee: newConference.regularFee,
-          earlyBirdFee: newConference.earlyBirdFee,
-          registrationCount: newConference.registrationCount,
-          capacity: newConference.capacity,
-          highlights: newConference.highlights,
-        };
-        
-        const createdApiConference = await conferencesApi.create(apiConferenceData);
-        const createdConference = convertApiToLocalConference(createdApiConference);
-        setConferences(prev => [createdConference, ...prev]);
+        result = await conferencesApi.create(conferenceData);
+        setConferences(prev => [result, ...prev]);
       }
       
       setShowCreateModal(false);
@@ -252,6 +207,10 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
   };
 
   const handleDeleteConference = async (conferenceId: number) => {
+    if (!confirm('Are you sure you want to delete this conference? This action cannot be undone.')) {
+      return;
+    }
+
     try {
       await conferencesApi.delete(conferenceId);
       setConferences(prev => prev.filter(conf => conf.id !== conferenceId));
@@ -261,16 +220,16 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
     }
   };
 
-  const getProgressPercentage = (registered: number, capacity: number) => {
+  const getProgressPercentage = (registered: number, capacity?: number) => {
     return capacity ? Math.round((registered / capacity) * 100) : 0;
   };
 
-  const filteredConferences = (conferences || []).filter(conference => {
+  const filteredConferences = conferences.filter(conference => {
     switch (selectedTab) {
       case 'upcoming':
-        return conference.status === 'Registration Open' || conference.status === 'Coming Soon';
+        return conference.status === 'registration_open' || conference.status === 'coming_soon';
       case 'completed':
-        return conference.status === 'Completed';
+        return conference.status === 'completed';
       case 'registrations':
       case 'analytics':
         return true;
@@ -281,12 +240,14 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
 
   const getPaymentStatusColor = (status: string) => {
     switch (status) {
-      case 'Paid':
+      case 'paid':
         return 'bg-green-100 text-green-800';
-      case 'Pending':
+      case 'pending':
         return 'bg-yellow-100 text-yellow-800';
-      case 'Failed':
+      case 'failed':
         return 'bg-red-100 text-red-800';
+      case 'refunded':
+        return 'bg-gray-100 text-gray-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -303,7 +264,7 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-blue-600 text-sm font-medium">Total Conferences</p>
-                <p className="text-3xl font-bold text-blue-900">{analyticsData.total}</p>
+                <p className="text-3xl font-bold text-blue-900">{analyticsData.total_conferences}</p>
               </div>
               <Calendar className="w-8 h-8 text-blue-600" />
             </div>
@@ -314,7 +275,7 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-green-600 text-sm font-medium">Total Registrations</p>
-                <p className="text-3xl font-bold text-green-900">{analyticsData.totalRegistrations.toLocaleString()}</p>
+                <p className="text-3xl font-bold text-green-900">{analyticsData.total_registrations.toLocaleString()}</p>
               </div>
               <Users className="w-8 h-8 text-green-600" />
             </div>
@@ -325,7 +286,7 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-purple-600 text-sm font-medium">Total Revenue</p>
-                <p className="text-3xl font-bold text-purple-900">${analyticsData.totalRevenue.toLocaleString()}</p>
+                <p className="text-3xl font-bold text-purple-900">${analyticsData.total_revenue.toLocaleString()}</p>
               </div>
               <BarChart3 className="w-8 h-8 text-purple-600" />
             </div>
@@ -336,7 +297,7 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-orange-600 text-sm font-medium">Upcoming Conferences</p>
-                <p className="text-3xl font-bold text-orange-900">{analyticsData.upcoming}</p>
+                <p className="text-3xl font-bold text-orange-900">{analyticsData.upcoming_conferences}</p>
               </div>
               <CheckCircle className="w-8 h-8 text-orange-600" />
             </div>
@@ -351,52 +312,43 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
             <div className="bg-blue-50 p-4 rounded-lg">
               <div className="flex items-center justify-between">
                 <span className="text-blue-800 font-medium">In-person</span>
-                <span className="text-blue-600 font-bold">{analyticsData.inPerson}</span>
+                <span className="text-blue-600 font-bold">{analyticsData.conferences_by_type.in_person || 0}</span>
               </div>
             </div>
             <div className="bg-green-50 p-4 rounded-lg">
               <div className="flex items-center justify-between">
                 <span className="text-green-800 font-medium">Virtual</span>
-                <span className="text-green-600 font-bold">{analyticsData.virtual}</span>
+                <span className="text-green-600 font-bold">{analyticsData.conferences_by_type.virtual || 0}</span>
               </div>
             </div>
             <div className="bg-purple-50 p-4 rounded-lg">
               <div className="flex items-center justify-between">
                 <span className="text-purple-800 font-medium">Hybrid</span>
-                <span className="text-purple-600 font-bold">{analyticsData.hybrid}</span>
+                <span className="text-purple-600 font-bold">{analyticsData.conferences_by_type.hybrid || 0}</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Recent Registrations */}
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Registrations</h3>
-          <div className="space-y-3">
-            {registrations.slice(0, 5).map((registration) => {
-              const conference = conferences.find(c => c.id === registration.conferenceId);
-              return (
-                <div key={registration.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
-                  <div className="flex items-center">
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                      <User className="w-4 h-4 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{registration.name}</p>
-                      <p className="text-xs text-gray-500">{conference?.title}</p>
-                    </div>
+        {/* Top Conferences */}
+        {analyticsData.top_conferences && analyticsData.top_conferences.length > 0 && (
+          <div className="bg-white border border-gray-200 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Conferences by Registration</h3>
+            <div className="space-y-3">
+              {analyticsData.top_conferences.map((conference) => (
+                <div key={conference.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{conference.title}</p>
+                    <p className="text-xs text-gray-500">{conference.date}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm text-gray-600">{registration.registrationDate}</p>
-                    <span className={`text-xs px-2 py-1 rounded-full ${getPaymentStatusColor(registration.paymentStatus)}`}>
-                      {registration.paymentStatus}
-                    </span>
+                    <p className="text-sm font-bold text-blue-600">{conference.registration_count} registrations</p>
                   </div>
                 </div>
-              );
-            })}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     );
   };
@@ -420,9 +372,6 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
                   Contact Info
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Conference
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Registration Type
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -437,59 +386,52 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {registrations.map((registration) => {
-                const conference = conferences.find(c => c.id === registration.conferenceId);
-                return (
-                  <tr key={registration.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">{registration.name}</div>
-                        <div className="text-sm text-gray-500">{registration.organization}</div>
+              {registrations.map((registration) => (
+                <tr key={registration.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {registration.full_name || `${registration.first_name} ${registration.last_name}`}
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <div className="text-sm text-gray-900">{registration.email}</div>
-                        <div className="text-sm text-gray-500">{registration.phone}</div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900 max-w-xs">
-                        {conference?.title || 'Unknown Conference'}
-                      </div>
-                      <div className="text-sm text-gray-500">{conference?.date}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        registration.registrationType === 'Early Bird' 
-                          ? 'bg-blue-100 text-blue-800' 
-                          : 'bg-purple-100 text-purple-800'
-                      }`}>
-                        {registration.registrationType}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPaymentStatusColor(registration.paymentStatus)}`}>
-                        {registration.paymentStatus}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {registration.registrationDate}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                      <button className="text-blue-600 hover:text-blue-900">
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      <button className="text-green-600 hover:text-green-900">
-                        <Mail className="w-4 h-4" />
-                      </button>
-                      <button className="text-red-600 hover:text-red-900">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
+                      <div className="text-sm text-gray-500">{registration.organization}</div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div>
+                      <div className="text-sm text-gray-900">{registration.email}</div>
+                      <div className="text-sm text-gray-500">{registration.phone}</div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      registration.registration_type === 'early_bird' 
+                        ? 'bg-blue-100 text-blue-800' 
+                        : 'bg-purple-100 text-purple-800'
+                    }`}>
+                      {registration.registration_type.replace('_', ' ').toUpperCase()}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPaymentStatusColor(registration.payment_status)}`}>
+                      {registration.payment_status.toUpperCase()}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {registration.registered_at ? new Date(registration.registered_at).toLocaleDateString() : '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                    <button className="text-blue-600 hover:text-blue-900">
+                      <Eye className="w-4 h-4" />
+                    </button>
+                    <button className="text-green-600 hover:text-green-900">
+                      <Mail className="w-4 h-4" />
+                    </button>
+                    <button className="text-red-600 hover:text-red-900">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -557,12 +499,12 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
               { 
                 id: 'upcoming', 
                 label: 'Upcoming', 
-                count: conferences?.filter(c => c.status === 'Registration Open' || c.status === 'Coming Soon').length || 0
+                count: conferences?.filter(c => c.status === 'registration_open' || c.status === 'coming_soon').length || 0
               },
               { 
                 id: 'completed', 
                 label: 'Completed', 
-                count: conferences?.filter(c => c.status === 'Completed').length || 0
+                count: conferences?.filter(c => c.status === 'completed').length || 0
               },
               { id: 'registrations', label: 'Registrations', count: registrations?.length || 0 }
             ].map((tab) => (
@@ -604,11 +546,11 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
                         {/* Conference Image */}
                         <div className="lg:w-1/4">
                           <div className="relative">
-                            {conference.imageUrl ? (
-                              <img
-                                src={conference.imageUrl}
-                                alt={conference.title}
-                                className="w-full h-48 lg:h-full object-cover rounded-t-lg lg:rounded-l-lg lg:rounded-t-none"
+                            {conference.display_image_url || conference.image_url ? (
+                              <img 
+                                src={conference.display_image_url || conference.image_url || ''}
+                                alt="Event preview" 
+                                className="h-32 w-32 object-cover rounded-md"
                               />
                             ) : (
                               <div className="w-full h-48 lg:h-full bg-gray-200 flex items-center justify-center rounded-t-lg lg:rounded-l-lg lg:rounded-t-none">
@@ -618,13 +560,13 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
                             <div className="absolute top-3 left-3">
                               <span className={`px-2 py-1 rounded-full text-xs font-bold border ${getStatusColor(conference.status)} flex items-center`}>
                                 {getStatusIcon(conference.status)}
-                                <span className="ml-1">{conference.status}</span>
+                                <span className="ml-1">{getStatusDisplayName(conference.status)}</span>
                               </span>
                             </div>
                             {conference.type && (
                               <div className="absolute top-3 right-3">
                                 <span className="bg-black bg-opacity-75 text-white px-2 py-1 rounded text-xs font-medium">
-                                  {conference.type}
+                                  {conference.type.replace('_', ' ').toUpperCase()}
                                 </span>
                               </div>
                             )}
@@ -649,6 +591,7 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
                                   <div className="flex items-center text-gray-600 text-sm">
                                     <Calendar className="w-4 h-4 mr-2 text-blue-600" />
                                     <span className="font-medium">{conference.date}</span>
+                                    {conference.time && <span className="ml-2">at {conference.time}</span>}
                                   </div>
                                   <div className="flex items-center text-gray-600 text-sm">
                                     <MapPin className="w-4 h-4 mr-2 text-blue-600" />
@@ -661,39 +604,39 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
                                   </div>
                                   <div className="flex items-center text-gray-600 text-sm">
                                     <Globe className="w-4 h-4 mr-2 text-blue-600" />
-                                    <span className="font-medium">{conference.type}</span>
+                                    <span className="font-medium">{conference.type.replace('_', ' ').toUpperCase()}</span>
                                   </div>
                                 </div>
 
                                 <div className="grid grid-cols-3 gap-3 text-center">
                                   <div className="bg-gray-50 p-2 rounded">
-                                    <div className="text-lg font-bold text-blue-600">{conference.attendees || 0}</div>
+                                    <div className="text-lg font-bold text-blue-600">{conference.expected_attendees || 0}</div>
                                     <div className="text-xs text-gray-600">Expected</div>
                                   </div>
                                   <div className="bg-gray-50 p-2 rounded">
-                                    <div className="text-lg font-bold text-blue-600">{conference.speakers || 0}</div>
+                                    <div className="text-lg font-bold text-blue-600">{conference.conference_speakers?.length || 0}</div>
                                     <div className="text-xs text-gray-600">Speakers</div>
                                   </div>
                                   <div className="bg-gray-50 p-2 rounded">
-                                    <div className="text-lg font-bold text-blue-600">{conference.countries || 0}</div>
+                                    <div className="text-lg font-bold text-blue-600">{conference.countries_represented || 0}</div>
                                     <div className="text-xs text-gray-600">Countries</div>
                                   </div>
                                 </div>
                               </div>
                               
                               {/* Registration Progress */}
-                              {conference.registrationCount !== undefined && conference.capacity && (
+                              {conference.registration_count !== undefined && conference.capacity && (
                                 <div className="mb-4">
                                   <div className="flex justify-between items-center mb-1">
                                     <span className="text-sm font-medium text-gray-700">Registration Progress</span>
                                     <span className="text-sm text-gray-600">
-                                      {conference.registrationCount} / {conference.capacity} ({getProgressPercentage(conference.registrationCount, conference.capacity)}%)
+                                      {conference.registration_count} / {conference.capacity} ({getProgressPercentage(conference.registration_count, conference.capacity)}%)
                                     </span>
                                   </div>
                                   <div className="w-full bg-gray-200 rounded-full h-2">
                                     <div 
                                       className="bg-blue-600 h-2 rounded-full" 
-                                      style={{ width: `${getProgressPercentage(conference.registrationCount, conference.capacity)}%` }}
+                                      style={{ width: `${getProgressPercentage(conference.registration_count, conference.capacity)}%` }}
                                     ></div>
                                   </div>
                                 </div>
@@ -704,6 +647,20 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
                           <p className="text-gray-600 text-sm mb-4 leading-relaxed">
                             {conference.description}
                           </p>
+
+                          {/* Highlights */}
+                          {conference.highlights && Array.isArray(conference.highlights) && conference.highlights.length > 0 && (
+                            <div className="mb-4">
+                              <h4 className="text-sm font-medium text-gray-700 mb-2">Event Highlights</h4>
+                              <div className="flex flex-wrap gap-2">
+                                {conference.highlights.map((highlight, idx) => (
+                                  <span key={idx} className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">
+                                    {highlight}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
 
                           {/* Admin Actions */}
                           <div className="flex flex-wrap gap-3">
@@ -723,19 +680,19 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
                             <div className="relative">
                               <select
                                 value={conference.status}
-                                onChange={(e) => handleStatusChange(conference.id, e.target.value as ConferenceStatus)}
+                                onChange={(e) => handleStatusChange(conference.id!, e.target.value)}
                                 className="border border-gray-300 px-3 py-2 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                               >
-                                <option value="Planning">Planning</option>
-                                <option value="Registration Open">Registration Open</option>
-                                <option value="Coming Soon">Coming Soon</option>
-                                <option value="Completed">Mark as Completed</option>
-                                <option value="Cancelled">Cancel</option>
+                                <option value="planning">Planning</option>
+                                <option value="registration_open">Registration Open</option>
+                                <option value="coming_soon">Coming Soon</option>
+                                <option value="completed">Mark as Completed</option>
+                                <option value="cancelled">Cancel</option>
                               </select>
                             </div>
 
                             <button 
-                              onClick={() => handleDeleteConference(conference.id)}
+                              onClick={() => handleDeleteConference(conference.id!)}
                               className="text-red-600 hover:text-red-800 flex items-center text-sm font-medium"
                             >
                               <Trash2 className="w-4 h-4 mr-1" />
@@ -746,8 +703,8 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
                           {/* Metadata */}
                           <div className="mt-4 pt-4 border-t border-gray-200">
                             <div className="flex flex-wrap gap-4 text-xs text-gray-500">
-                              <span>Created: {new Date(conference.createdAt).toLocaleDateString()}</span>
-                              <span>Last Updated: {new Date(conference.updatedAt).toLocaleDateString()}</span>
+                              <span>Created: {conference.created_at ? new Date(conference.created_at).toLocaleDateString() : 'N/A'}</span>
+                              <span>Last Updated: {conference.updated_at ? new Date(conference.updated_at).toLocaleDateString() : 'N/A'}</span>
                               <span>ID: #{conference.id}</span>
                             </div>
                           </div>
@@ -757,7 +714,7 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
                   ))}
                 </div>
 
-                {filteredConferences.length === 0 && (
+                {filteredConferences.length === 0 && !isLoading && (
                   <div className="text-center py-12">
                     <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 mb-2">No conferences found</h3>
