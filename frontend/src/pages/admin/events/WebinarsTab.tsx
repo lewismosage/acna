@@ -234,30 +234,30 @@ const WebinarsTab: React.FC<WebinarsTabProps> = ({ webinars: initialWebinars = [
     }
   };
 
-  const handleCreateWebinar = async (newWebinar: Webinar) => {
+  const handleCreateWebinar = async (webinarData: Webinar) => {
     try {
       if (editingWebinar) {
         // Update existing webinar
         const updatedWebinar = await webinarsApi.update(editingWebinar.id, {
-          title: newWebinar.title,
-          description: newWebinar.description,
-          category: newWebinar.category,
-          date: newWebinar.date,
-          time: newWebinar.time,
-          duration: newWebinar.duration,
-          speakers: newWebinar.speakers,
-          status: newWebinar.status,
-          type: newWebinar.type,
-          isFeatured: newWebinar.isFeatured,
-          registrationLink: newWebinar.registrationLink,
-          recordingLink: newWebinar.recordingLink,
-          slidesLink: newWebinar.slidesLink,
-          imageUrl: newWebinar.imageUrl,
-          tags: newWebinar.tags,
-          languages: newWebinar.languages,
-          targetAudience: newWebinar.targetAudience,
-          learningObjectives: newWebinar.learningObjectives,
-          capacity: newWebinar.capacity,
+          title: webinarData.title,
+          description: webinarData.description,
+          category: webinarData.category,
+          date: webinarData.date,
+          time: webinarData.time,
+          duration: webinarData.duration,
+          speakers: webinarData.speakers,
+          status: webinarData.status,
+          type: webinarData.type,
+          isFeatured: webinarData.isFeatured,
+          registrationLink: webinarData.registrationLink,
+          recordingLink: webinarData.recordingLink,
+          slidesLink: webinarData.slidesLink,
+          imageUrl: webinarData.imageUrl,
+          tags: webinarData.tags,
+          languages: webinarData.languages,
+          targetAudience: webinarData.targetAudience,
+          learningObjectives: webinarData.learningObjectives,
+          capacity: webinarData.capacity,
         });
         setWebinars(prev => 
           prev.map(w => w.id === editingWebinar.id ? updatedWebinar : w)
@@ -265,25 +265,25 @@ const WebinarsTab: React.FC<WebinarsTabProps> = ({ webinars: initialWebinars = [
       } else {
         // Create new webinar
         const createdWebinar = await webinarsApi.create({
-          title: newWebinar.title,
-          description: newWebinar.description,
-          category: newWebinar.category,
-          date: newWebinar.date,
-          time: newWebinar.time,
-          duration: newWebinar.duration,
-          speakers: newWebinar.speakers,
-          status: newWebinar.status,
-          type: newWebinar.type,
-          isFeatured: newWebinar.isFeatured,
-          registrationLink: newWebinar.registrationLink,
-          recordingLink: newWebinar.recordingLink,
-          slidesLink: newWebinar.slidesLink,
-          imageUrl: newWebinar.imageUrl,
-          tags: newWebinar.tags,
-          languages: newWebinar.languages,
-          targetAudience: newWebinar.targetAudience,
-          learningObjectives: newWebinar.learningObjectives,
-          capacity: newWebinar.capacity,
+          title: webinarData.title,
+          description: webinarData.description,
+          category: webinarData.category,
+          date: webinarData.date,
+          time: webinarData.time,
+          duration: webinarData.duration,
+          speakers: webinarData.speakers,
+          status: webinarData.status,
+          type: webinarData.type,
+          isFeatured: webinarData.isFeatured,
+          registrationLink: webinarData.registrationLink,
+          recordingLink: webinarData.recordingLink,
+          slidesLink: webinarData.slidesLink,
+          imageUrl: webinarData.imageUrl,
+          tags: webinarData.tags,
+          languages: webinarData.languages,
+          targetAudience: webinarData.targetAudience,
+          learningObjectives: webinarData.learningObjectives,
+          capacity: webinarData.capacity,
         });
         setWebinars(prev => [createdWebinar, ...prev]);
       }
@@ -920,15 +920,17 @@ const WebinarsTab: React.FC<WebinarsTabProps> = ({ webinars: initialWebinars = [
       </div>
 
       {/* Create/Edit Webinar Modal */}
-      <CreateWebinarModal
-        isOpen={showCreateModal}
-        onClose={() => {
-          setShowCreateModal(false);
-          setEditingWebinar(undefined);
-        }}
-        onSave={handleCreateWebinar}
-        initialData={editingWebinar}
-      />
+      {showCreateModal && (
+        <CreateWebinarModal
+          isOpen={showCreateModal}
+          onClose={() => {
+            setShowCreateModal(false);
+            setEditingWebinar(undefined);
+          }}
+          onSave={handleCreateWebinar}
+          initialData={editingWebinar}
+        />
+      )}
     </div>
   );
 };

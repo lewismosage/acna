@@ -56,22 +56,61 @@ const WebinarDetailPage = () => {
     fetchWebinar();
   }, [id]);
 
+  // Status detection functions (same as in Webinars page)
+  const getIsUpcoming = (webinar: Webinar): boolean => {
+    return webinar.status === 'Planning' || webinar.status === 'Registration Open';
+  };
+
+  const getIsLive = (webinar: Webinar): boolean => {
+    return webinar.status === 'Live';
+  };
+
+  const getIsRecorded = (webinar: Webinar): boolean => {
+    return webinar.status === 'Completed' || webinar.status === 'Cancelled';
+  };
+
   const isUpcoming = (webinar: Webinar): boolean => {
-    if (webinar.status === 'Completed' || webinar.status === 'Cancelled') return false;
-    if (webinar.status === 'Live') return false;
-    
-    // For other statuses, check if the date is in the future
-    if (webinar.date) {
-      const webinarDate = new Date(webinar.date);
-      const today = new Date();
-      return webinarDate > today;
-    }
-    
-    return webinar.status === 'Registration Open' || webinar.status === 'Planning';
+    return getIsUpcoming(webinar);
   };
 
   const isLive = (webinar: Webinar): boolean => {
-    return webinar.status === 'Live';
+    return getIsLive(webinar);
+  };
+
+  const isRecorded = (webinar: Webinar): boolean => {
+    return getIsRecorded(webinar);
+  };
+
+  const getStatusBadge = () => {
+    if (!webinar) return null;
+    
+    const isLiveNow = isLive(webinar);
+    const isUpcomingNow = isUpcoming(webinar);
+    const isRecordedNow = isRecorded(webinar);
+
+    if (isLiveNow) {
+      return (
+        <span className="bg-red-600 text-white px-3 py-1 text-sm font-bold rounded-full flex items-center">
+          <span className="w-2 h-2 bg-white rounded-full mr-2"></span>
+          LIVE NOW
+        </span>
+      );
+    }
+    if (isUpcomingNow) {
+      return (
+        <span className="bg-blue-600 text-white px-3 py-1 text-sm font-bold rounded-full">
+          UPCOMING
+        </span>
+      );
+    }
+    if (isRecordedNow) {
+      return (
+        <span className="bg-gray-600 text-white px-3 py-1 text-sm font-bold rounded-full">
+          RECORDED
+        </span>
+      );
+    }
+    return null;
   };
 
   const handleRegistration = async () => {
@@ -106,6 +145,10 @@ const WebinarDetailPage = () => {
         phone: '',
         country: ''
       });
+
+      // Refresh webinar data to update registration count
+      const updatedWebinar = await webinarsApi.getById(webinar.id);
+      setWebinar(updatedWebinar);
     } catch (err) {
       setRegistrationStatus({
         type: 'error',
@@ -116,35 +159,10 @@ const WebinarDetailPage = () => {
     }
   };
 
-  const getStatusBadge = () => {
-    if (!webinar) return null;
-    
-    if (isLive(webinar)) {
-      return (
-        <span className="bg-red-600 text-white px-3 py-1 text-sm font-bold rounded-full flex items-center">
-          <span className="w-2 h-2 bg-white rounded-full mr-2"></span>
-          LIVE NOW
-        </span>
-      );
-    }
-    if (isUpcoming(webinar)) {
-      return (
-        <span className="bg-blue-600 text-white px-3 py-1 text-sm font-bold rounded-full">
-          UPCOMING
-        </span>
-      );
-    }
-    return (
-      <span className="bg-gray-600 text-white px-3 py-1 text-sm font-bold rounded-full">
-        RECORDED
-      </span>
-    );
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        < LoadingSpinner />
+        <LoadingSpinner />
       </div>
     );
   }
@@ -166,6 +184,7 @@ const WebinarDetailPage = () => {
 
   const webinarIsUpcoming = isUpcoming(webinar);
   const webinarIsLive = isLive(webinar);
+  const webinarIsRecorded = isRecorded(webinar);
 
   return (
     <div className="bg-white min-h-screen">
@@ -181,7 +200,7 @@ const WebinarDetailPage = () => {
 
       {/* Hero Section */}
       <section className="py-12 md:py-16">
-      < ScrollToTop />
+        <ScrollToTop />
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Webinar Image */}
@@ -245,7 +264,7 @@ const WebinarDetailPage = () => {
                     <span>Languages: {webinar.languages.join(', ')}</span>
                   </div>
                   
-                  {webinar.registrationCount !== undefined && (
+                  {webinar.registrationCount !== undefined && webinar.registrationCount > 0 && (
                     <div className="flex items-center text-gray-600">
                       <User className="w-5 h-5 mr-3 text-red-600" />
                       <span>{webinar.registrationCount} registered</span>
@@ -267,7 +286,7 @@ const WebinarDetailPage = () => {
                     <Mail className="w-5 h-5 mr-2" />
                     Register Now - Free
                   </button>
-                ) : webinar.recordingLink ? (
+                ) : webinarIsRecorded && webinar.recordingLink ? (
                   <a
                     href={webinar.recordingLink}
                     target="_blank"
@@ -276,6 +295,16 @@ const WebinarDetailPage = () => {
                   >
                     <Play className="w-5 h-5 mr-2" />
                     Watch Recording
+                  </a>
+                ) : webinarIsLive && webinar.registrationLink ? (
+                  <a
+                    href={webinar.registrationLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-red-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors flex items-center justify-center"
+                  >
+                    <Play className="w-5 h-5 mr-2" />
+                    Join Live
                   </a>
                 ) : null}
                 
@@ -452,7 +481,7 @@ const WebinarDetailPage = () => {
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">Webinar Resources</h2>
                 
-                {!webinar.isUpcoming ? (
+                {webinarIsRecorded ? (
                   <div className="space-y-6">
                     {webinar.recordingLink && (
                       <div className="bg-gray-50 p-6 rounded-lg">

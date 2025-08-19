@@ -14,9 +14,10 @@ import {
   Globe,
   Languages,
   Target,
-  User
+  User,
+  Camera
 } from 'lucide-react';
-import { webinarsApi } from '../../../services/webinarsApi'; // Import your API
+import { webinarsApi } from '../../../services/webinarsApi'; 
 
 type WebinarStatus = 'Planning' | 'Registration Open' | 'Live' | 'Completed' | 'Cancelled';
 type WebinarType = 'Live' | 'Recorded' | 'Hybrid';
@@ -25,6 +26,8 @@ interface Speaker {
   name: string;
   credentials: string;
   affiliation: string;
+  bio?: string;
+  imageUrl?: string;
 }
 
 interface CreateWebinarInput {
@@ -61,7 +64,7 @@ interface CreateWebinarModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (webinar: Webinar) => void;
-  initialData?: Webinar; // For edit mode
+  initialData?: Webinar;
 }
 
 const CreateWebinarModal: React.FC<CreateWebinarModalProps> = ({ 
@@ -70,6 +73,7 @@ const CreateWebinarModal: React.FC<CreateWebinarModalProps> = ({
   onSave, 
   initialData 
 }) => {
+  if (!isOpen) return null;
   // Form state
   const [formData, setFormData] = useState<CreateWebinarInput>({
     title: '',
@@ -78,7 +82,7 @@ const CreateWebinarModal: React.FC<CreateWebinarModalProps> = ({
     date: new Date().toISOString().split('T')[0],
     time: '14:00',
     duration: '60 min',
-    speakers: [{ name: '', credentials: '', affiliation: '' }],
+    speakers: [{ name: '', credentials: '', affiliation: '', bio: '', imageUrl: '' }],
     status: 'Planning',
     type: 'Live',
     isFeatured: false,
@@ -93,6 +97,8 @@ const CreateWebinarModal: React.FC<CreateWebinarModalProps> = ({
   // UI state
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [speakerImagePreviews, setSpeakerImagePreviews] = useState<{ [key: number]: string | null }>({});
+  const [speakerImageUploading, setSpeakerImageUploading] = useState<{ [key: number]: boolean }>({});
   const [expandedSections, setExpandedSections] = useState<{ [key: string]: boolean }>({
     speakers: true,
     objectives: false,
@@ -103,9 +109,11 @@ const CreateWebinarModal: React.FC<CreateWebinarModalProps> = ({
   const [newLanguage, setNewLanguage] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [imageUploading, setImageUploading] = useState(false);
 
   // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const speakerFileInputRefs = useRef<{ [key: number]: HTMLInputElement | null }>({});
 
   // Predefined options
   const categoryOptions = [
@@ -126,59 +134,6 @@ const CreateWebinarModal: React.FC<CreateWebinarModalProps> = ({
     'Hausa', 'Amharic', 'Yoruba', 'Igbo', 'Afrikaans'
   ];
 
-  // Initialize form with data when editing
-  useEffect(() => {
-    if (initialData) {
-      setFormData({
-        title: initialData.title,
-        description: initialData.description,
-        category: initialData.category,
-        date: initialData.date,
-        time: initialData.time,
-        duration: initialData.duration,
-        speakers: initialData.speakers,
-        status: initialData.status,
-        type: initialData.type,
-        isFeatured: initialData.isFeatured,
-        capacity: initialData.capacity,
-        registrationLink: initialData.registrationLink,
-        recordingLink: initialData.recordingLink,
-        slidesLink: initialData.slidesLink,
-        imageUrl: initialData.imageUrl || '',
-        tags: initialData.tags,
-        languages: initialData.languages,
-        targetAudience: initialData.targetAudience,
-        learningObjectives: initialData.learningObjectives
-      });
-
-      if (initialData.imageUrl) {
-        setImagePreview(initialData.imageUrl);
-      }
-    } else {
-      // Reset form for new webinar
-      setFormData({
-        title: '',
-        description: '',
-        category: '',
-        date: new Date().toISOString().split('T')[0],
-        time: '14:00',
-        duration: '60 min',
-        speakers: [{ name: '', credentials: '', affiliation: '' }],
-        status: 'Planning',
-        type: 'Live',
-        isFeatured: false,
-        capacity: 200,
-        imageUrl: '',
-        tags: [],
-        languages: ['English'],
-        targetAudience: [],
-        learningObjectives: ['']
-      });
-      setImageFile(null);
-      setImagePreview(null);
-    }
-  }, [initialData]);
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -195,19 +150,102 @@ const CreateWebinarModal: React.FC<CreateWebinarModalProps> = ({
     });
   };
 
+  const handleSpeakerImageChange = async (index: number, file: File | null) => {
+    if (!file) return;
+
+    // Create preview URL
+    const previewUrl = URL.createObjectURL(file);
+    setSpeakerImagePreviews(prev => ({ ...prev, [index]: previewUrl }));
+
+    // Start upload
+    setSpeakerImageUploading(prev => ({ ...prev, [index]: true }));
+    
+    try {
+      const uploadResult = await webinarsApi.uploadSpeakerImage(file);
+      
+      // Update the speaker's imageUrl in formData
+      setFormData(prev => {
+        const newSpeakers = [...prev.speakers];
+        newSpeakers[index] = { ...newSpeakers[index], imageUrl: uploadResult.url };
+        return { ...prev, speakers: newSpeakers };
+      });
+      
+      console.log('Speaker image uploaded successfully:', uploadResult);
+    } catch (error) {
+      console.error('Error uploading speaker image:', error);
+      // Remove the preview on error
+      setSpeakerImagePreviews(prev => {
+        const updated = { ...prev };
+        delete updated[index];
+        return updated;
+      });
+      setErrors(prev => ({
+        ...prev,
+        [`speakerImage_${index}`]: 'Failed to upload speaker image'
+      }));
+    } finally {
+      setSpeakerImageUploading(prev => ({ ...prev, [index]: false }));
+    }
+  };
+
+  const removeSpeakerImage = (index: number) => {
+    // Clean up preview URL
+    if (speakerImagePreviews[index]) {
+      URL.revokeObjectURL(speakerImagePreviews[index]!);
+    }
+    
+    // Remove from state
+    setSpeakerImagePreviews(prev => {
+      const updated = { ...prev };
+      delete updated[index];
+      return updated;
+    });
+    
+    // Clear the imageUrl in formData
+    setFormData(prev => {
+      const newSpeakers = [...prev.speakers];
+      newSpeakers[index] = { ...newSpeakers[index], imageUrl: '' };
+      return { ...prev, speakers: newSpeakers };
+    });
+  };
+
   const addSpeaker = () => {
     setFormData(prev => ({
       ...prev,
-      speakers: [...prev.speakers, { name: '', credentials: '', affiliation: '' }]
+      speakers: [...prev.speakers, { name: '', credentials: '', affiliation: '', bio: '', imageUrl: '' }]
     }));
   };
 
   const removeSpeaker = (index: number) => {
     if (formData.speakers.length > 1) {
+      // Clean up any image preview for this speaker
+      if (speakerImagePreviews[index]) {
+        URL.revokeObjectURL(speakerImagePreviews[index]!);
+      }
+      
+      // Remove speaker from formData
       setFormData(prev => ({
         ...prev,
         speakers: prev.speakers.filter((_, i) => i !== index)
       }));
+      
+      // Clean up image states
+      setSpeakerImagePreviews(prev => {
+        const updated = { ...prev };
+        delete updated[index];
+        return updated;
+      });
+      
+      setSpeakerImageUploading(prev => {
+        const updated = { ...prev };
+        delete updated[index];
+        return updated;
+      });
+      
+      // Clear ref
+      if (speakerFileInputRefs.current[index]) {
+        delete speakerFileInputRefs.current[index];
+      }
     }
   };
 
@@ -306,8 +344,12 @@ const CreateWebinarModal: React.FC<CreateWebinarModalProps> = ({
       if (imagePreview) {
         URL.revokeObjectURL(imagePreview);
       }
+      // Clean up speaker image previews
+      Object.values(speakerImagePreviews).forEach(url => {
+        if (url) URL.revokeObjectURL(url);
+      });
     };
-  }, [imagePreview]);
+  }, [imagePreview, speakerImagePreviews]);
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => ({
@@ -339,12 +381,7 @@ const CreateWebinarModal: React.FC<CreateWebinarModalProps> = ({
       newErrors.objectives = 'At least one learning objective is required';
     }
     
-    // For new items, require image file. For edits, require either file or existing URL
-    if (!initialData) {
-      if (!imageFile) newErrors.image = 'Featured image is required';
-    } else {
-      if (!imageFile && !formData.imageUrl) newErrors.image = 'Featured image is required';
-    }
+    if (!imageFile && !formData.imageUrl) newErrors.image = 'Featured image is required';
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -353,14 +390,53 @@ const CreateWebinarModal: React.FC<CreateWebinarModalProps> = ({
   const uploadImage = async (): Promise<string> => {
     if (!imageFile) return formData.imageUrl;
     
+    setImageUploading(true);
     try {
       const uploadResult = await webinarsApi.uploadImage(imageFile);
       return uploadResult.url;
     } catch (error) {
       console.error('Error uploading image:', error);
       throw new Error('Failed to upload image');
+    } finally {
+      setImageUploading(false);
     }
   };
+
+  
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        title: initialData.title || '',
+        description: initialData.description || '',
+        category: initialData.category || '',
+        date: initialData.date || new Date().toISOString().split('T')[0],
+        time: initialData.time || '14:00',
+        duration: initialData.duration || '60 min',
+        speakers: initialData.speakers?.length > 0 
+          ? initialData.speakers 
+          : [{ name: '', credentials: '', affiliation: '', bio: '', imageUrl: '' }],
+        status: initialData.status || 'Planning',
+        type: initialData.type || 'Live',
+        isFeatured: initialData.isFeatured || false,
+        capacity: initialData.capacity || 200,
+        registrationLink: initialData.registrationLink || '',
+        recordingLink: initialData.recordingLink || '',
+        slidesLink: initialData.slidesLink || '',
+        imageUrl: initialData.imageUrl || '',
+        tags: initialData.tags || [],
+        languages: initialData.languages || ['English'],
+        targetAudience: initialData.targetAudience || [],
+        learningObjectives: initialData.learningObjectives?.length > 0 
+          ? initialData.learningObjectives 
+          : ['']
+      });
+      
+      // Set image preview if there's an existing image
+      if (initialData.imageUrl) {
+        setImagePreview(initialData.imageUrl);
+      }
+    }
+  }, [initialData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -385,10 +461,9 @@ const CreateWebinarModal: React.FC<CreateWebinarModalProps> = ({
       );
       const validObjectives = formData.learningObjectives.filter(obj => obj.trim());
       
-      // Prepare the webinar data
+      // Prepare the webinar data - return Webinar type instead of CreateWebinarInput
       const webinarData: Webinar = {
-        ...(initialData || {}),
-        id: initialData?.id || Date.now(), // Mock ID generation
+        id: initialData?.id || Date.now(), // Use existing ID or generate new one
         title: formData.title,
         description: formData.description,
         category: formData.category,
@@ -398,6 +473,7 @@ const CreateWebinarModal: React.FC<CreateWebinarModalProps> = ({
         speakers: validSpeakers,
         status: formData.status,
         type: formData.type,
+        isUpcoming: ['Planning', 'Registration Open', 'Live'].includes(formData.status),
         isFeatured: formData.isFeatured,
         capacity: formData.capacity,
         registrationLink: formData.registrationLink,
@@ -408,53 +484,26 @@ const CreateWebinarModal: React.FC<CreateWebinarModalProps> = ({
         languages: formData.languages,
         targetAudience: formData.targetAudience,
         learningObjectives: validObjectives,
-        isUpcoming: ['Planning', 'Registration Open', 'Live'].includes(formData.status),
         registrationCount: initialData?.registrationCount || 0,
         createdAt: initialData?.createdAt || new Date().toISOString().split('T')[0],
         updatedAt: new Date().toISOString().split('T')[0]
       };
       
+      // Call onSave with the Webinar object
       onSave(webinarData);
-      handleClose();
+      
+      console.log('Webinar saved:', webinarData);
+      
     } catch (error: any) {
       console.error('Error saving webinar:', error);
       setErrors({
         ...errors,
-        form: 'Failed to save webinar. Please try again.'
+        form: error.message || 'Failed to save webinar. Please try again.'
       });
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  const handleClose = () => {
-    // Reset form
-    setFormData({
-      title: '',
-      description: '',
-      category: '',
-      date: new Date().toISOString().split('T')[0],
-      time: '14:00',
-      duration: '60 min',
-      speakers: [{ name: '', credentials: '', affiliation: '' }],
-      status: 'Planning',
-      type: 'Live',
-      isFeatured: false,
-      capacity: 200,
-      imageUrl: '',
-      tags: [],
-      languages: ['English'],
-      targetAudience: [],
-      learningObjectives: ['']
-    });
-    setImageFile(null);
-    setImagePreview(null);
-    setExpandedSections({ speakers: true, objectives: false, advanced: false });
-    setErrors({});
-    onClose();
-  };
-
-  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -464,12 +513,12 @@ const CreateWebinarModal: React.FC<CreateWebinarModalProps> = ({
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold flex items-center">
                 <Video className="w-6 h-6 mr-2 text-purple-600" />
-                {initialData ? 'Edit Webinar' : 'Create New Webinar'}
+                Create New Webinar
               </h2>
               <button 
                 type="button"
-                onClick={handleClose}
                 className="text-gray-500 hover:text-gray-700"
+                onClick={onClose}
               >
                 <X className="w-6 h-6" />
               </button>
@@ -636,18 +685,28 @@ const CreateWebinarModal: React.FC<CreateWebinarModalProps> = ({
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
                       className={`w-full px-4 py-3 border ${errors.image ? 'border-red-300' : 'border-gray-300'} rounded-md bg-white hover:bg-gray-50 flex items-center justify-center transition-colors`}
+                      disabled={imageUploading}
                     >
-                      <Upload className="w-5 h-5 mr-2 text-gray-600" />
-                      <span>{imageFile ? `Selected: ${imageFile.name}` : initialData ? 'Change Featured Image' : 'Choose Featured Image'}</span>
+                      {imageUploading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600 mr-2"></div>
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-5 h-5 mr-2 text-gray-600" />
+                          <span>{imageFile ? `Selected: ${imageFile.name}` : 'Choose Featured Image'}</span>
+                        </>
+                      )}
                     </button>
                   </div>
                   
-                  {(imagePreview || formData.imageUrl) && (
+                  {imagePreview && (
                     <div>
                       <h4 className="text-sm font-medium text-gray-700 mb-2">Preview</h4>
                       <div className="relative w-full h-48 overflow-hidden rounded-md border border-gray-200">
                         <img
-                          src={imagePreview || formData.imageUrl}
+                          src={imagePreview}
                           alt="Featured image preview"
                           className="w-full h-full object-cover"
                         />
@@ -678,46 +737,127 @@ const CreateWebinarModal: React.FC<CreateWebinarModalProps> = ({
                 {expandedSections.speakers && (
                   <div className="p-4 space-y-4">
                     {formData.speakers.map((speaker, index) => (
-                      <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border border-gray-200 rounded-lg">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Speaker Name</label>
-                          <input
-                            type="text"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                            value={speaker.name}
-                            onChange={(e) => handleSpeakerChange(index, 'name', e.target.value)}
-                            placeholder="Dr. Jane Smith"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Credentials</label>
-                          <input
-                            type="text"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                            value={speaker.credentials}
-                            onChange={(e) => handleSpeakerChange(index, 'credentials', e.target.value)}
-                            placeholder="MD, PhD"
-                          />
-                        </div>
-                        <div className="flex gap-2">
-                          <div className="flex-1">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Affiliation</label>
+                      <div key={index} className="p-4 border border-gray-200 rounded-lg space-y-4">
+                        {/* Speaker Image Upload */}
+                        <div className="flex items-start space-x-4">
+                          <div className="flex-shrink-0">
+                            <div className="w-24 h-24 bg-gray-100 border border-gray-300 rounded-lg overflow-hidden relative">
+                              {(speakerImagePreviews[index] || speaker.imageUrl) ? (
+                                <>
+                                  <img
+                                    src={speakerImagePreviews[index] || speaker.imageUrl}
+                                    alt={`Speaker ${index + 1}`}
+                                    className="w-full h-full object-cover"
+                                  />
+                                  {speakerImageUploading[index] && (
+                                    <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                                    </div>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => removeSpeakerImage(index)}
+                                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600"
+                                  >
+                                    ×
+                                  </button>
+                                </>
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                  <Camera className="w-8 h-8" />
+                                </div>
+                              )}
+                            </div>
                             <input
-                              type="text"
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                              value={speaker.affiliation}
-                              onChange={(e) => handleSpeakerChange(index, 'affiliation', e.target.value)}
-                              placeholder="University Hospital"
+                              type="file"
+                              ref={el => speakerFileInputRefs.current[index] = el}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  handleSpeakerImageChange(index, file);
+                                }
+                              }}
+                              accept="image/*"
+                              className="hidden"
                             />
-                          </div>
-                          {formData.speakers.length > 1 && (
                             <button
                               type="button"
-                              onClick={() => removeSpeaker(index)}
-                              className="mt-6 p-2 text-red-600 hover:text-red-800"
+                              onClick={() => speakerFileInputRefs.current[index]?.click()}
+                              className="mt-2 text-xs text-purple-600 hover:text-purple-800 flex items-center"
+                              disabled={speakerImageUploading[index]}
                             >
-                              <Trash2 className="w-4 h-4" />
+                              {speakerImageUploading[index] ? (
+                                <>
+                                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-purple-600 mr-1"></div>
+                                  Uploading...
+                                </>
+                              ) : (
+                                <>
+                                  <Upload className="w-3 h-3 mr-1" />
+                                  Add Photo
+                                </>
+                              )}
                             </button>
+                          </div>
+                          
+                          <div className="flex-1 space-y-3">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Speaker Name</label>
+                                <input
+                                  type="text"
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                  value={speaker.name}
+                                  onChange={(e) => handleSpeakerChange(index, 'name', e.target.value)}
+                                  placeholder="Dr. Jane Smith"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Credentials</label>
+                                <input
+                                  type="text"
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                  value={speaker.credentials}
+                                  onChange={(e) => handleSpeakerChange(index, 'credentials', e.target.value)}
+                                  placeholder="MD, PhD"
+                                />
+                              </div>
+                            </div>
+                            
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Affiliation</label>
+                              <input
+                                type="text"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                value={speaker.affiliation}
+                                onChange={(e) => handleSpeakerChange(index, 'affiliation', e.target.value)}
+                                placeholder="University Hospital"
+                              />
+                            </div>
+                            
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Bio (Optional)</label>
+                              <textarea
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                rows={2}
+                                value={speaker.bio || ''}
+                                onChange={(e) => handleSpeakerChange(index, 'bio', e.target.value)}
+                                placeholder="Brief biography of the speaker..."
+                              />
+                            </div>
+                          </div>
+                          
+                          {formData.speakers.length > 1 && (
+                            <div className="flex-shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => removeSpeaker(index)}
+                                className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md"
+                                title="Remove speaker"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           )}
                         </div>
                       </div>
@@ -995,7 +1135,6 @@ const CreateWebinarModal: React.FC<CreateWebinarModalProps> = ({
               <div className="flex justify-end gap-3 pt-6 border-t border-gray-200">
                 <button
                   type="button"
-                  onClick={handleClose}
                   className="px-6 py-2 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50"
                   disabled={isSubmitting}
                 >
@@ -1004,7 +1143,7 @@ const CreateWebinarModal: React.FC<CreateWebinarModalProps> = ({
                 <button
                   type="submit"
                   className="px-6 py-2 bg-purple-600 text-white rounded-md text-sm font-medium hover:bg-purple-700 flex items-center justify-center min-w-32 disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={isSubmitting || !formData.title || !formData.category || !formData.description || (!imageFile && !initialData)}
+                  disabled={isSubmitting || imageUploading || Object.values(speakerImageUploading).some(status => status)}
                 >
                   {isSubmitting ? (
                     <>
@@ -1014,7 +1153,7 @@ const CreateWebinarModal: React.FC<CreateWebinarModalProps> = ({
                   ) : (
                     <>
                       <Check className="w-4 h-4 mr-2" />
-                      {initialData ? 'Update' : 'Create'} Webinar
+                      Create Webinar
                     </>
                   )}
                 </button>
