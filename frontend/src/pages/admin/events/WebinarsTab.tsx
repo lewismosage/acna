@@ -22,7 +22,12 @@ import {
   Languages,
   Target,
   Tag,
-  Phone
+  Phone,
+  TrendingUp,
+  DollarSign,
+  Eye as EyeIcon,
+  Download,
+  FileText
 } from 'lucide-react';
 
 type WebinarStatus = 'Planning' | 'Registration Open' | 'Live' | 'Completed' | 'Cancelled';
@@ -74,6 +79,30 @@ export interface Registration {
   country?: string;
 }
 
+export interface WebinarAnalytics {
+  total: number;
+  planning: number;
+  registrationOpen: number; 
+  live: number;
+  completed: number;
+  cancelled: number;
+  totalRegistrations: number;
+  monthlyRegistrations: number;
+  featured: number;
+  totalViews: number;
+  webinarsByType?: {
+    Live: number;
+    Recorded: number;
+    Hybrid: number;
+  };
+  topWebinars?: Array<{
+    id: number;
+    title: string;
+    date: string;
+    registrationCount: number;
+  }>;
+}
+
 interface WebinarsTabProps {
   webinars?: Webinar[];
 }
@@ -86,16 +115,24 @@ import LoadingSpinner from '../../../components/common/LoadingSpinner';
 const WebinarsTab: React.FC<WebinarsTabProps> = ({ webinars: initialWebinars = [] }) => {
   const [webinars, setWebinars] = useState<Webinar[]>(initialWebinars);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
-  const [selectedTab, setSelectedTab] = useState<'all' | 'upcoming' | 'live' | 'completed' | 'planning' | 'registrations'>('all');
+  const [selectedTab, setSelectedTab] = useState<'all' | 'upcoming' | 'live' | 'completed' | 'planning' | 'registrations' | 'analytics'>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingWebinar, setEditingWebinar] = useState<Webinar | undefined>(undefined);
   const [loading, setLoading] = useState(true);
+  const [analyticsData, setAnalyticsData] = useState<WebinarAnalytics | null>(null);
 
   // Load webinars on component mount
   useEffect(() => {
     loadWebinars();
     loadRegistrations();
   }, []);
+
+  // Load analytics when tab changes
+  useEffect(() => {
+    if (selectedTab === 'analytics') {
+      loadAnalytics();
+    }
+  }, [selectedTab]);
 
   const loadWebinars = async () => {
     try {
@@ -117,6 +154,19 @@ const WebinarsTab: React.FC<WebinarsTabProps> = ({ webinars: initialWebinars = [
     } catch (err) {
       console.error('Error loading registrations:', err);
       setRegistrations([]); // Set empty array on error
+    }
+  };
+
+  const loadAnalytics = async () => {
+    try {
+      setLoading(true);
+      const data = await webinarsApi.getAnalytics();
+      setAnalyticsData(data);
+    } catch (err) {
+      console.error('Error loading analytics:', err);
+      setAnalyticsData(null);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -310,6 +360,171 @@ const WebinarsTab: React.FC<WebinarsTabProps> = ({ webinars: initialWebinars = [
     }
   });
 
+  const renderAnalyticsTab = () => {
+    if (!analyticsData) return null;
+
+    return (
+      <div className="space-y-6">
+        {/* Key Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="bg-purple-50 border border-purple-200 rounded-lg p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-purple-600 text-sm font-medium">Total Webinars</p>
+                <p className="text-3xl font-bold text-purple-900">{analyticsData.total}</p>
+              </div>
+              <Video className="w-8 h-8 text-purple-600" />
+            </div>
+            <p className="text-purple-600 text-sm mt-2">All time</p>
+          </div>
+
+          <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-green-600 text-sm font-medium">Total Registrations</p>
+                <p className="text-3xl font-bold text-green-900">{analyticsData.totalRegistrations.toLocaleString()}</p>
+              </div>
+              <Users className="w-8 h-8 text-green-600" />
+            </div>
+            <p className="text-green-600 text-sm mt-2">Across all webinars</p>
+          </div>
+
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-blue-600 text-sm font-medium">Monthly Registrations</p>
+                <p className="text-3xl font-bold text-blue-900">{analyticsData.monthlyRegistrations.toLocaleString()}</p>
+              </div>
+              <TrendingUp className="w-8 h-8 text-blue-600" />
+            </div>
+            <p className="text-blue-600 text-sm mt-2">Last 30 days</p>
+          </div>
+
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-orange-600 text-sm font-medium">Total Views</p>
+                <p className="text-3xl font-bold text-orange-900">{analyticsData.totalViews.toLocaleString()}</p>
+              </div>
+              <EyeIcon className="w-8 h-8 text-orange-600" />
+            </div>
+            <p className="text-orange-600 text-sm mt-2">All webinar views</p>
+          </div>
+        </div>
+
+        {/* Status Breakdown */}
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Webinar Status Breakdown</h3>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="text-center p-4 rounded-lg bg-blue-50">
+              <div className="text-2xl font-bold text-blue-800">{analyticsData.planning}</div>
+              <div className="text-sm text-blue-600">Planning</div>
+            </div>
+            <div className="text-center p-4 rounded-lg bg-green-50">
+              <div className="text-2xl font-bold text-green-800">{analyticsData.registrationOpen}</div>
+              <div className="text-sm text-green-600">Registration Open</div>
+            </div>
+            <div className="text-center p-4 rounded-lg bg-red-50">
+              <div className="text-2xl font-bold text-red-800">{analyticsData.live}</div>
+              <div className="text-sm text-red-600">Live</div>
+            </div>
+            <div className="text-center p-4 rounded-lg bg-gray-50">
+              <div className="text-2xl font-bold text-gray-800">{analyticsData.completed}</div>
+              <div className="text-sm text-gray-600">Completed</div>
+            </div>
+            <div className="text-center p-4 rounded-lg bg-red-50">
+              <div className="text-2xl font-bold text-red-800">{analyticsData.cancelled}</div>
+              <div className="text-sm text-red-600">Cancelled</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Webinar Types */}
+        {analyticsData.webinarsByType && (
+          <div className="bg-white border border-gray-200 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Webinar Types</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <span className="text-blue-800 font-medium">Live</span>
+                  <span className="text-blue-600 font-bold">{analyticsData.webinarsByType.Live || 0}</span>
+                </div>
+              </div>
+              <div className="bg-green-50 p-4 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <span className="text-green-800 font-medium">Recorded</span>
+                  <span className="text-green-600 font-bold">{analyticsData.webinarsByType.Recorded || 0}</span>
+                </div>
+              </div>
+              <div className="bg-purple-50 p-4 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <span className="text-purple-800 font-medium">Hybrid</span>
+                  <span className="text-purple-600 font-bold">{analyticsData.webinarsByType.Hybrid || 0}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Top Webinars */}
+        {analyticsData.topWebinars && analyticsData.topWebinars.length > 0 && (
+          <div className="bg-white border border-gray-200 rounded-lg p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Top Webinars by Registration</h3>
+              <button className="flex items-center text-sm text-purple-600 hover:text-purple-800">
+                <Download className="w-4 h-4 mr-1" />
+                Export Report
+              </button>
+            </div>
+            <div className="space-y-3">
+              {analyticsData.topWebinars.map((webinar) => (
+                <div key={webinar.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-900">{webinar.title}</p>
+                    <p className="text-xs text-gray-500">{webinar.date}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-purple-600">{webinar.registrationCount} registrations</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Additional Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white border border-gray-200 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Featured Webinars</h3>
+            <div className="text-center py-8">
+              <Star className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+              <div className="text-3xl font-bold text-gray-900">{analyticsData.featured}</div>
+              <p className="text-gray-600">Featured webinars</p>
+            </div>
+          </div>
+
+          <div className="bg-white border border-gray-200 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+            <div className="space-y-3">
+              <button className="w-full flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+                <span className="text-sm font-medium">Export All Data</span>
+                <FileText className="w-4 h-4 text-gray-400" />
+              </button>
+              <button className="w-full flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+                <span className="text-sm font-medium">Generate Report</span>
+                <BarChart3 className="w-4 h-4 text-gray-400" />
+              </button>
+              <button className="w-full flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+                <span className="text-sm font-medium">Email Summary</span>
+                <Mail className="w-4 h-4 text-gray-400" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -336,10 +551,12 @@ const WebinarsTab: React.FC<WebinarsTabProps> = ({ webinars: initialWebinars = [
                 onClick={() => setShowCreateModal(true)}
                 className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 flex items-center font-medium transition-colors"
               >
-                <Plus className="w-5 h-5 mr-2" />
                 Create Webinar
               </button>
-              <button className="border border-purple-600 text-purple-600 px-6 py-2 rounded-lg hover:bg-purple-50 flex items-center font-medium transition-colors">
+              <button 
+                onClick={() => setSelectedTab('analytics')}
+                className="border border-purple-600 text-purple-600 px-6 py-2 rounded-lg hover:bg-purple-50 flex items-center font-medium transition-colors"
+              >
                 <BarChart3 className="w-5 h-5 mr-2" />
                 Analytics
               </button>
@@ -349,25 +566,26 @@ const WebinarsTab: React.FC<WebinarsTabProps> = ({ webinars: initialWebinars = [
 
         {/* Tab Navigation */}
         <div className="px-6 py-4 border-b border-gray-200">
-          <nav className="flex space-x-8">
+          <nav className="flex space-x-8 overflow-x-auto">
             {[
               { id: 'all', label: 'All Webinars', count: webinars.length },
               { id: 'upcoming', label: 'Upcoming', count: webinars.filter(w => ['Registration Open'].includes(w.status)).length },
               { id: 'live', label: 'Live Now', count: webinars.filter(w => w.status === 'Live').length },
               { id: 'completed', label: 'Completed', count: webinars.filter(w => w.status === 'Completed').length },
               { id: 'planning', label: 'Planning', count: webinars.filter(w => w.status === 'Planning').length },
-              { id: 'registrations', label: 'Registrations', count: registrations.length }
+              { id: 'registrations', label: 'Registrations', count: registrations.length },
+              { id: 'analytics', label: 'Analytics', count: 0 }
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setSelectedTab(tab.id as any)}
-                className={`py-2 border-b-2 font-medium text-sm transition-colors ${
+                className={`py-2 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
                   selectedTab === tab.id
                     ? 'border-purple-600 text-purple-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >
-                {tab.label} ({tab.count})
+                {tab.label} {tab.count > 0 && `(${tab.count})`}
               </button>
             ))}
           </nav>
@@ -379,8 +597,8 @@ const WebinarsTab: React.FC<WebinarsTabProps> = ({ webinars: initialWebinars = [
             /* Registrations Table */
             <div>
               <div className="mb-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Conference Registrations</h3>
-                <p className="text-gray-600">Manage attendee registrations for all conferences</p>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Webinar Registrations</h3>
+                <p className="text-gray-600">Manage attendee registrations for all webinars</p>
               </div>
 
               {registrations.length > 0 ? (
@@ -466,7 +684,24 @@ const WebinarsTab: React.FC<WebinarsTabProps> = ({ webinars: initialWebinars = [
                   <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">No registrations found</h3>
                   <p className="text-gray-500">
-                    No attendees have registered for any conferences yet.
+                    No attendees have registered for any webinars yet.
+                  </p>
+                </div>
+              )}
+            </div>
+          ) : selectedTab === 'analytics' ? (
+            /* Analytics Tab */
+            <div>
+              <div className="mb-6">
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Webinar Analytics</h3>
+                <p className="text-gray-600">Comprehensive analytics and insights about your webinars</p>
+              </div>
+              {analyticsData ? renderAnalyticsTab() : (
+                <div className="text-center py-12">
+                  <BarChart3 className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No analytics data available</h3>
+                  <p className="text-gray-500">
+                    Analytics data will appear once you have webinars with registrations.
                   </p>
                 </div>
               )}

@@ -74,7 +74,8 @@ import AdminProtectedRoute from "./components/common/AdminProtectedRoute";
 import AwardNominationPage from "./pages/eventsandnews/AwardNominationPage";
 import AbstractSubmissionForm from "./pages/eventsandnews/AbstractSubmissionForm";
 import NewsDetailPage from './pages/eventsandnews/NewsDetailPage';
-import ConferenceDetailPage from "./pages/eventsandnews/conferencedetailpage";
+import ConferenceDetailPage from "./pages/eventsandnews/ConferenceDetailPage";
+import WebinarDetailPage from "./pages/education/WebinarDetailPage";
 
 // Layout component
 const Layout = ({ children }: { children: React.ReactNode }) => (
@@ -131,6 +132,7 @@ function App() {
             <Route path="/journal-watch" element={<JournalWatch />} />
             <Route path="/e-booklets" element={<EBooklets />} />
             <Route path="/webinars" element={<Webinars />} />
+            <Route path="/webinars/:id" element={<WebinarDetailPage />} />
             <Route path="/collaboration-opportunities" element={<WorkshopsSymposiums />} />
             {/* Membership */}
             <Route path="/register" element={<Register />} />

@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Video,
   Calendar,
@@ -13,192 +14,104 @@ import {
   Bookmark,
   Share2,
   AlertCircle,
+  ArrowRight,
 } from "lucide-react";
 import ScrollToTop from "../../components/common/ScrollToTop";
-
-interface Webinar {
-  id: number;
-  title: string;
-  description: string;
-  category: string;
-  date: string;
-  time: string;
-  duration: string;
-  speakers: {
-    name: string;
-    credentials: string;
-    affiliation: string;
-  }[];
-  isLive: boolean;
-  isUpcoming: boolean;
-  isFeatured?: boolean;
-  registrationLink?: string;
-  recordingLink?: string;
-  slidesLink?: string;
-  imageUrl: string;
-  tags: string[];
-  languages: string[];
-  targetAudience: string[];
-  learningObjectives: string[];
-}
+import { Webinar, webinarsApi, 
+  getAllWebinars,
+  getFeaturedWebinars, 
+  getWebinarCategories, 
+  getWebinarTargetAudiences } from "../../services/webinarsApi";
+import LoadingSpinner from "../../components/common/LoadingSpinner";
 
 const Webinars = () => {
+  const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedAudience, setSelectedAudience] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [expandedWebinar, setExpandedWebinar] = useState<number | null>(null);
+  const [webinars, setWebinars] = useState<Webinar[]>([]);
+  const [featuredWebinars, setFeaturedWebinars] = useState<Webinar[]>([]);
+  const [categories, setCategories] = useState<string[]>(["all"]);
+  const [audiences, setAudiences] = useState<string[]>(["all"]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showAllFeatured, setShowAllFeatured] = useState(false);
 
-  const webinars: Webinar[] = [
-    {
-      id: 1,
-      title: "Advances in Pediatric Epilepsy Management in Africa",
-      description: "Expert panel discussion on the latest treatment approaches and challenges specific to African contexts.",
-      category: "Epilepsy",
-      date: "June 15, 2025",
-      time: "14:00 GMT",
-      duration: "90 min",
-      speakers: [
-        {
-          name: "Dr. Amina Diallo",
-          credentials: "MD, PhD",
-          affiliation: "University of Dakar, Senegal"
-        },
-        {
-          name: "Prof. Kwame Osei",
-          credentials: "FRCP",
-          affiliation: "Korle Bu Teaching Hospital, Ghana"
-        }
-      ],
-      isLive: false,
-      isUpcoming: true,
-      isFeatured: true,
-      registrationLink: "https://acna.org/webinars/register/1",
-      imageUrl: "https://images.pexels.com/photos/5721876/pexels-photo-5721876.jpeg",
-      tags: ["Epilepsy", "Treatment", "Panel"],
-      languages: ["English", "French"],
-      targetAudience: ["Neurologists", "Pediatricians", "Residents"],
-      learningObjectives: [
-        "Understand current treatment guidelines for pediatric epilepsy in Africa",
-        "Learn about challenges in medication access and adherence",
-        "Discuss culturally appropriate counseling approaches"
-      ]
-    },
-    {
-      id: 2,
-      title: "Cerebral Palsy: Early Identification in Community Settings",
-      description: "Training on recognizing early signs of cerebral palsy and initiating interventions in low-resource settings.",
-      category: "Cerebral Palsy",
-      date: "May 28, 2025",
-      time: "12:00 GMT",
-      duration: "60 min",
-      speakers: [
-        {
-          name: "Dr. Fatima Nkosi",
-          credentials: "PT, PhD",
-          affiliation: "University of Cape Town, South Africa"
-        }
-      ],
-      isLive: false,
-      isUpcoming: true,
-      registrationLink: "https://acna.org/webinars/register/2",
-      imageUrl: "https://images.pexels.com/photos/4260323/pexels-photo-4260323.jpeg",
-      tags: ["Cerebral Palsy", "Early Intervention", "Rehabilitation"],
-      languages: ["English", "Portuguese"],
-      targetAudience: ["Community Health Workers", "Physical Therapists"],
-      learningObjectives: [
-        "Learn to identify early signs of cerebral palsy",
-        "Understand basic intervention strategies",
-        "Know when to refer for specialist care"
-      ]
-    },
-    {
-      id: 3,
-      title: "Autism Spectrum Disorders: Cultural Perspectives in Africa",
-      description: "Exploring cultural interpretations of autism and strategies for improving diagnosis and support.",
-      category: "Autism",
-      date: "April 10, 2025",
-      time: "15:00 GMT",
-      duration: "75 min",
-      speakers: [
-        {
-          name: "Dr. Ngozi Eze",
-          credentials: "MD, MPH",
-          affiliation: "University of Nigeria Teaching Hospital"
-        },
-        {
-          name: "Dr. Hassan Abdi",
-          credentials: "PhD",
-          affiliation: "Kenya Autism Research Center"
-        }
-      ],
-      isLive: false,
-      isUpcoming: false,
-      recordingLink: "https://acna.org/webinars/recordings/3",
-      slidesLink: "https://acna.org/webinars/slides/3",
-      imageUrl: "https://images.pexels.com/photos/5212359/pexels-photo-5212359.jpeg",
-      tags: ["Autism", "Culture", "Diagnosis"],
-      languages: ["English"],
-      targetAudience: ["Clinicians", "Researchers", "Educators"],
-      learningObjectives: [
-        "Understand cultural beliefs about autism in different African communities",
-        "Learn culturally sensitive diagnostic approaches",
-        "Explore community-based support strategies"
-      ]
-    },
-    {
-      id: 4,
-      title: "Live Q&A: Childhood Headache Disorders in Africa",
-      description: "Interactive session on diagnosing and managing common childhood headache disorders.",
-      category: "Headache",
-      date: "July 5, 2025",
-      time: "13:00 GMT",
-      duration: "60 min",
-      speakers: [
-        {
-          name: "Dr. Tendai Moyo",
-          credentials: "MD",
-          affiliation: "Harare Children's Hospital, Zimbabwe"
-        }
-      ],
-      isLive: true,
-      isUpcoming: true,
-      isFeatured: true,
-      registrationLink: "https://acna.org/webinars/register/4",
-      imageUrl: "https://images.pexels.com/photos/8376181/pexels-photo-8376181.jpeg",
-      tags: ["Headache", "Q&A", "Diagnosis"],
-      languages: ["English", "French"],
-      targetAudience: ["General Practitioners", "Pediatricians"],
-      learningObjectives: [
-        "Learn to differentiate primary and secondary headaches",
-        "Understand when to investigate further",
-        "Discuss treatment options available in Africa"
-      ]
-    },
-    
-  ];
-
-  const categories = ["all", "Epilepsy", "Cerebral Palsy", "Autism", "Headache", "Infectious Disease", "Neuromuscular"];
-  const audiences = ["all", "Neurologists", "Pediatricians", "General Practitioners", "Community Health Workers", "Researchers", "Educators"];
   const statuses = ["all", "upcoming", "recorded", "live"];
 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [webinarsData, featuredData, categoriesData, audiencesData] = await Promise.all([
+          getAllWebinars(),
+          getFeaturedWebinars(),
+          getWebinarCategories(),
+          getWebinarTargetAudiences()
+        ]);
+
+        setWebinars(webinarsData);
+        setFeaturedWebinars(featuredData);
+        setCategories(["all", ...categoriesData]);
+        setAudiences(["all", ...audiencesData]);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load webinars");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const getIsUpcoming = (webinar: Webinar): boolean => {
+    if (webinar.status === 'Completed' || webinar.status === 'Cancelled') return false;
+    if (webinar.status === 'Live') return false;
+    
+    // For other statuses, check if the date is in the future
+    if (webinar.date) {
+      const webinarDate = new Date(webinar.date);
+      const today = new Date();
+      return webinarDate > today;
+    }
+    
+    return webinar.status === 'Registration Open' || webinar.status === 'Planning';
+  };
+
+  const getIsLive = (webinar: Webinar): boolean => {
+    return webinar.status === 'Live';
+  };
+
   const filteredWebinars = webinars.filter((webinar) => {
+    const isUpcoming = getIsUpcoming(webinar);
+    const isLive = getIsLive(webinar);
+    
     const matchesCategory = selectedCategory === "all" || webinar.category === selectedCategory;
     const matchesAudience = selectedAudience === "all" || webinar.targetAudience.some(aud => aud === selectedAudience);
     const matchesStatus = 
       selectedStatus === "all" ||
-      (selectedStatus === "upcoming" && webinar.isUpcoming && !webinar.isLive) ||
-      (selectedStatus === "recorded" && !webinar.isUpcoming) ||
-      (selectedStatus === "live" && webinar.isLive);
+      (selectedStatus === "upcoming" && isUpcoming && !isLive) ||
+      (selectedStatus === "recorded" && !isUpcoming && !isLive) ||
+      (selectedStatus === "live" && isLive);
     const matchesSearch =
       webinar.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       webinar.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       webinar.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+    
     return matchesCategory && matchesAudience && matchesStatus && matchesSearch;
   });
 
+  const displayedFeaturedWebinars = showAllFeatured 
+    ? featuredWebinars 
+    : featuredWebinars.slice(0, 2);
+
   const getStatusBadge = (webinar: Webinar) => {
-    if (webinar.isLive) {
+    const isLive = getIsLive(webinar);
+    const isUpcoming = getIsUpcoming(webinar);
+
+    if (isLive) {
       return (
         <span className="bg-red-600 text-white px-2 py-1 text-xs font-bold rounded-full flex items-center">
           <span className="w-2 h-2 bg-white rounded-full mr-1"></span>
@@ -206,7 +119,7 @@ const Webinars = () => {
         </span>
       );
     }
-    if (webinar.isUpcoming) {
+    if (isUpcoming) {
       return (
         <span className="bg-blue-600 text-white px-2 py-1 text-xs font-bold rounded-full">
           UPCOMING
@@ -219,6 +132,36 @@ const Webinars = () => {
       </span>
     );
   };
+
+  const handleWebinarClick = (webinarId: number) => {
+    navigate(`/webinars/${webinarId}`);
+  };
+
+  if (loading) {
+    return (
+      <div className="bg-white min-h-screen flex items-center justify-center">
+        < LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-white min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <AlertCircle className="w-16 h-16 text-red-600 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Webinars</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white min-h-screen">
@@ -240,13 +183,13 @@ const Webinars = () => {
             <div className="flex items-center">
               <User className="w-5 h-5 mr-2 text-red-600" />
               <span>
-                {webinars.filter(w => w.isUpcoming).length} Upcoming Events
+                {webinars.filter(w => getIsUpcoming(w)).length} Upcoming Events
               </span>
             </div>
             <div className="flex items-center">
               <Play className="w-5 h-5 mr-2 text-red-600" />
               <span>
-                {webinars.filter(w => !w.isUpcoming).length} Recordings Available
+                {webinars.filter(w => !getIsUpcoming(w) && !getIsLive(w)).length} Recordings Available
               </span>
             </div>
           </div>
@@ -348,14 +291,14 @@ const Webinars = () => {
       <section className="py-16">
         <div className="max-w-6xl mx-auto px-4">
           {/* Featured Webinars */}
-          {filteredWebinars.filter(w => w.isFeatured).length > 0 && (
+          {featuredWebinars.length > 0 && (
             <div className="mb-12">
               <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
                 <Bookmark className="w-6 h-6 text-red-600 mr-2" />
                 Featured Webinars
               </h2>
               <div className="grid md:grid-cols-2 gap-8">
-                {filteredWebinars.filter(w => w.isFeatured).map((webinar) => (
+                {displayedFeaturedWebinars.map((webinar) => (
                   <div key={webinar.id} className="bg-white rounded-xl shadow-lg overflow-hidden border-2 border-red-200 hover:border-red-300 transition-colors">
                     <div className="relative">
                       <img 
@@ -369,7 +312,7 @@ const Webinars = () => {
                     </div>
                     <div className="p-6">
                       <h3 className="text-xl font-bold text-gray-900 mb-2">{webinar.title}</h3>
-                      <p className="text-gray-600 mb-4">{webinar.description}</p>
+                      <p className="text-gray-600 mb-4 line-clamp-2">{webinar.description}</p>
                       
                       <div className="flex items-center text-sm text-gray-500 gap-4 mb-4">
                         <div className="flex items-center">
@@ -393,22 +336,25 @@ const Webinars = () => {
                         ))}
                       </div>
                       
-                      <div className="space-y-2">
-                        {webinar.speakers.map((speaker, index) => (
+                      <div className="space-y-2 mb-4">
+                        {webinar.speakers.slice(0, 2).map((speaker, index) => (
                           <div key={index} className="text-sm">
                             <p className="font-medium text-gray-900">{speaker.name}, {speaker.credentials}</p>
                             <p className="text-gray-600">{speaker.affiliation}</p>
                           </div>
                         ))}
+                        {webinar.speakers.length > 2 && (
+                          <p className="text-xs text-gray-500">+{webinar.speakers.length - 2} more speakers</p>
+                        )}
                       </div>
                       
-                      <div className="mt-6">
-                        {webinar.isUpcoming ? (
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        {getIsUpcoming(webinar) ? (
                           <a
                             href={webinar.registrationLink}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="block w-full bg-red-600 text-white text-center py-3 rounded-md hover:bg-red-700 transition-colors font-medium"
+                            className="flex-1 bg-red-600 text-white text-center py-2 rounded-md hover:bg-red-700 transition-colors font-medium"
                           >
                             Register Now
                           </a>
@@ -417,16 +363,35 @@ const Webinars = () => {
                             href={webinar.recordingLink}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="block w-full bg-red-600 text-white text-center py-3 rounded-md hover:bg-red-700 transition-colors font-medium"
+                            className="flex-1 bg-red-600 text-white text-center py-2 rounded-md hover:bg-red-700 transition-colors font-medium"
                           >
                             Watch Recording
                           </a>
                         )}
+                        <button 
+                          onClick={() => handleWebinarClick(webinar.id)}
+                          className="flex items-center justify-center text-red-600 hover:text-red-700 font-medium py-2 px-4 border border-red-200 rounded-md hover:bg-red-50"
+                        >
+                          Read More
+                          <ArrowRight className="w-4 h-4 ml-1" />
+                        </button>
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
+              
+              {featuredWebinars.length > 2 && (
+                <div className="text-center mt-6">
+                  <button
+                    onClick={() => setShowAllFeatured(!showAllFeatured)}
+                    className="text-red-600 hover:text-red-700 font-medium flex items-center justify-center mx-auto"
+                  >
+                    {showAllFeatured ? 'Show Less' : `View All ${featuredWebinars.length} Featured Webinars`}
+                    <ChevronDown className={`w-4 h-4 ml-1 transition-transform ${showAllFeatured ? 'rotate-180' : ''}`} />
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -435,11 +400,14 @@ const Webinars = () => {
             {selectedStatus === "all" ? "All Webinars" : 
              selectedStatus === "upcoming" ? "Upcoming Webinars" :
              selectedStatus === "recorded" ? "Recorded Webinars" : "Live Webinars"}
+            <span className="text-gray-500 text-lg font-normal ml-2">
+              ({filteredWebinars.length})
+            </span>
           </h2>
           
           {filteredWebinars.length > 0 ? (
             <div className="space-y-8">
-              {filteredWebinars.filter(w => !w.isFeatured).map((webinar) => (
+              {filteredWebinars.map((webinar) => (
                 <div key={webinar.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden border border-gray-200">
                   <div className="flex flex-col md:flex-row">
                     <div className="md:w-1/3 relative">
@@ -454,8 +422,8 @@ const Webinars = () => {
                     </div>
                     
                     <div className="md:w-2/3 p-6">
-                      <div className="flex justify-between items-start">
-                        <h3 className="text-lg font-bold text-gray-900 mb-2">{webinar.title}</h3>
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="text-lg font-bold text-gray-900">{webinar.title}</h3>
                         <button 
                           onClick={() => setExpandedWebinar(expandedWebinar === webinar.id ? null : webinar.id)}
                           className="text-red-600 hover:text-red-700 text-sm font-medium flex items-center"
@@ -530,8 +498,8 @@ const Webinars = () => {
                             </div>
                           </div>
                           
-                          <div className="flex gap-3">
-                            {webinar.isUpcoming ? (
+                          <div className="flex flex-col sm:flex-row gap-3">
+                            {getIsUpcoming(webinar) ? (
                               <a
                                 href={webinar.registrationLink}
                                 target="_blank"
@@ -551,12 +519,20 @@ const Webinars = () => {
                               </a>
                             )}
                             
+                            <button 
+                              onClick={() => handleWebinarClick(webinar.id)}
+                              className="flex items-center justify-center text-red-600 hover:text-red-700 font-medium py-2 px-4 border border-red-200 rounded-md hover:bg-red-50"
+                            >
+                              Full Details
+                              <ArrowRight className="w-4 h-4 ml-1" />
+                            </button>
+                            
                             {webinar.slidesLink && (
                               <a
                                 href={webinar.slidesLink}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors font-medium"
+                                className="flex items-center justify-center border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors font-medium"
                               >
                                 <Download className="w-4 h-4 mr-2" />
                                 Slides

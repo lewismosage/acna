@@ -9,7 +9,7 @@ from django.core.files.base import ContentFile
 from datetime import timedelta
 import os
 import uuid
-from .models import Webinar, Speaker, Registration, WebinarView
+from .models import Webinar, Speaker, Registration, WebinarView, WebinarAudience, WebinarLanguage
 from .serializers import (
     WebinarSerializer, CreateWebinarSerializer, 
     RegistrationSerializer, SpeakerSerializer
@@ -305,7 +305,10 @@ class WebinarViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['get'])
     def analytics(self, request):
-        """Get webinar analytics data"""
+        """Get comprehensive webinar analytics data"""
+        from django.db.models import Count, Sum
+        from datetime import timedelta
+        
         # Basic counts
         total_webinars = Webinar.objects.count()
         planning_count = Webinar.objects.filter(status='Planning').count()
@@ -320,12 +323,33 @@ class WebinarViewSet(viewsets.ModelViewSet):
         # Monthly registrations (registrations from webinars in the last 30 days)
         thirty_days_ago = timezone.now() - timedelta(days=30)
         monthly_registrations = Registration.objects.filter(
-            webinar__date__gte=thirty_days_ago
+            registration_date__gte=thirty_days_ago
         ).count()
         
         # Additional analytics
         featured_count = Webinar.objects.filter(is_featured=True).count()
         total_views = WebinarView.objects.count()
+        
+        # Webinars by type
+        webinars_by_type = {
+            'Live': Webinar.objects.filter(type='Live').count(),
+            'Recorded': Webinar.objects.filter(type='Recorded').count(),
+            'Hybrid': Webinar.objects.filter(type='Hybrid').count(),
+        }
+        
+        # Top webinars by registration count
+        top_webinars = []
+        webinars_with_counts = Webinar.objects.annotate(
+            reg_count=Count('registrations')
+        ).filter(reg_count__gt=0).order_by('-reg_count')[:5]
+        
+        for webinar in webinars_with_counts:
+            top_webinars.append({
+                'id': webinar.id,
+                'title': webinar.title,
+                'date': webinar.date.strftime('%Y-%m-%d') if webinar.date else '',
+                'registrationCount': webinar.reg_count
+            })
         
         return Response({
             'total': total_webinars,
@@ -338,6 +362,8 @@ class WebinarViewSet(viewsets.ModelViewSet):
             'monthlyRegistrations': monthly_registrations,
             'featured': featured_count,
             'totalViews': total_views,
+            'webinarsByType': webinars_by_type,
+            'topWebinars': top_webinars,
         })
     
     @action(detail=False, methods=['get'])

@@ -54,7 +54,7 @@ export interface Registration {
 export interface WebinarAnalytics {
   total: number;
   planning: number;
-  registrationOpen: number;
+  registrationOpen: number; 
   live: number;
   completed: number;
   cancelled: number;
@@ -62,6 +62,17 @@ export interface WebinarAnalytics {
   monthlyRegistrations: number;
   featured: number;
   totalViews: number;
+  webinarsByType?: {
+    Live: number;
+    Recorded: number;
+    Hybrid: number;
+  };
+  topWebinars?: Array<{
+    id: number;
+    title: string;
+    date: string;
+    registrationCount: number;
+  }>;
 }
 
 export interface CreateWebinarInput {
@@ -317,7 +328,27 @@ export const webinarsApi = {
       headers: getAuthHeaders(),
     });
     
-    return handleResponse(response);
+    const data = await handleResponse(response);
+    
+    // Normalize the response to match our interface
+    return {
+      total: data.total || 0,
+      planning: data.planning || 0,
+      registrationOpen: data.registrationOpen || 0,
+      live: data.live || 0,
+      completed: data.completed || 0,
+      cancelled: data.cancelled || 0,
+      totalRegistrations: data.totalRegistrations || 0,
+      monthlyRegistrations: data.monthlyRegistrations || 0,
+      featured: data.featured || 0,
+      totalViews: data.totalViews || 0,
+      webinarsByType: data.webinarsByType || {
+        Live: 0,
+        Recorded: 0,
+        Hybrid: 0
+      },
+      topWebinars: data.topWebinars || []
+    };
   },
 
   toggleFeatured: async (id: number): Promise<Webinar> => {
