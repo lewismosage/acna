@@ -17,7 +17,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import ScrollToTop from "../../components/common/ScrollToTop";
-import { Webinar, webinarsApi, 
+import { Webinar, 
   getAllWebinars,
   getFeaturedWebinars, 
   getWebinarCategories, 
@@ -31,13 +31,14 @@ const Webinars = () => {
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [expandedWebinar, setExpandedWebinar] = useState<number | null>(null);
-  const [webinars, setWebinars] = useState<Webinar[]>([]);
+  const [allWebinars, setAllWebinars] = useState<Webinar[]>([]);
   const [featuredWebinars, setFeaturedWebinars] = useState<Webinar[]>([]);
   const [categories, setCategories] = useState<string[]>(["all"]);
   const [audiences, setAudiences] = useState<string[]>(["all"]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAllFeatured, setShowAllFeatured] = useState(false);
+  const [visibleWebinars, setVisibleWebinars] = useState(4);
 
   const statuses = ["all", "upcoming", "recorded", "live"];
 
@@ -52,7 +53,7 @@ const Webinars = () => {
           getWebinarTargetAudiences()
         ]);
 
-        setWebinars(webinarsData);
+        setAllWebinars(webinarsData);
         setFeaturedWebinars(featuredData);
         setCategories(["all", ...categoriesData]);
         setAudiences(["all", ...audiencesData]);
@@ -66,34 +67,30 @@ const Webinars = () => {
     fetchData();
   }, []);
 
+  // FIXED: Correct status detection functions
   const getIsUpcoming = (webinar: Webinar): boolean => {
-    if (webinar.status === 'Completed' || webinar.status === 'Cancelled') return false;
-    if (webinar.status === 'Live') return false;
-    
-    // For other statuses, check if the date is in the future
-    if (webinar.date) {
-      const webinarDate = new Date(webinar.date);
-      const today = new Date();
-      return webinarDate > today;
-    }
-    
-    return webinar.status === 'Registration Open' || webinar.status === 'Planning';
+    return webinar.status === 'Planning' || webinar.status === 'Registration Open';
   };
 
   const getIsLive = (webinar: Webinar): boolean => {
     return webinar.status === 'Live';
   };
 
-  const filteredWebinars = webinars.filter((webinar) => {
+  const getIsRecorded = (webinar: Webinar): boolean => {
+    return webinar.status === 'Completed' || webinar.status === 'Cancelled';
+  };
+
+  const filteredWebinars = allWebinars.filter((webinar) => {
     const isUpcoming = getIsUpcoming(webinar);
     const isLive = getIsLive(webinar);
+    const isRecorded = getIsRecorded(webinar);
     
     const matchesCategory = selectedCategory === "all" || webinar.category === selectedCategory;
     const matchesAudience = selectedAudience === "all" || webinar.targetAudience.some(aud => aud === selectedAudience);
     const matchesStatus = 
       selectedStatus === "all" ||
-      (selectedStatus === "upcoming" && isUpcoming && !isLive) ||
-      (selectedStatus === "recorded" && !isUpcoming && !isLive) ||
+      (selectedStatus === "upcoming" && isUpcoming) ||
+      (selectedStatus === "recorded" && isRecorded) ||
       (selectedStatus === "live" && isLive);
     const matchesSearch =
       webinar.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -103,6 +100,13 @@ const Webinars = () => {
     return matchesCategory && matchesAudience && matchesStatus && matchesSearch;
   });
 
+  const displayedWebinars = filteredWebinars.slice(0, visibleWebinars);
+  const hasMoreWebinars = visibleWebinars < filteredWebinars.length;
+
+  const loadMoreWebinars = () => {
+    setVisibleWebinars(prev => prev + 4);
+  };
+
   const displayedFeaturedWebinars = showAllFeatured 
     ? featuredWebinars 
     : featuredWebinars.slice(0, 2);
@@ -110,6 +114,7 @@ const Webinars = () => {
   const getStatusBadge = (webinar: Webinar) => {
     const isLive = getIsLive(webinar);
     const isUpcoming = getIsUpcoming(webinar);
+    const isRecorded = getIsRecorded(webinar);
 
     if (isLive) {
       return (
@@ -126,11 +131,54 @@ const Webinars = () => {
         </span>
       );
     }
-    return (
-      <span className="bg-gray-600 text-white px-2 py-1 text-xs font-bold rounded-full">
-        RECORDED
-      </span>
-    );
+    if (isRecorded) {
+      return (
+        <span className="bg-gray-600 text-white px-2 py-1 text-xs font-bold rounded-full">
+          RECORDED
+        </span>
+      );
+    }
+    return null;
+  };
+
+  const getActionButton = (webinar: Webinar) => {
+    const isUpcoming = getIsUpcoming(webinar);
+    const isLive = getIsLive(webinar);
+    const isRecorded = getIsRecorded(webinar);
+
+    if (isUpcoming) {
+      return (
+        <button 
+          onClick={() => navigate(`/webinars/${webinar.id}?tab=registration`)}
+          className="flex-1 bg-red-600 text-white text-center py-2 rounded-md hover:bg-red-700 transition-colors font-medium"
+        >
+          Register Now
+        </button>
+      );
+    } else if (isLive && webinar.registrationLink) {
+      return (
+        <a
+          href={webinar.registrationLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex-1 bg-red-600 text-white text-center py-2 rounded-md hover:bg-red-700 transition-colors font-medium"
+        >
+          Join Live
+        </a>
+      );
+    } else if (isRecorded && webinar.recordingLink) {
+      return (
+        <a
+          href={webinar.recordingLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex-1 bg-red-600 text-white text-center py-2 rounded-md hover:bg-red-700 transition-colors font-medium"
+        >
+          Watch Recording
+        </a>
+      );
+    }
+    return null;
   };
 
   const handleWebinarClick = (webinarId: number) => {
@@ -140,7 +188,7 @@ const Webinars = () => {
   if (loading) {
     return (
       <div className="bg-white min-h-screen flex items-center justify-center">
-        < LoadingSpinner />
+        <LoadingSpinner />
       </div>
     );
   }
@@ -178,18 +226,18 @@ const Webinars = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center text-gray-600">
             <div className="flex items-center">
               <Video className="w-5 h-5 mr-2 text-red-600" />
-              <span>{webinars.length} Webinars Available</span>
+              <span>{allWebinars.length} Webinars Available</span>
             </div>
             <div className="flex items-center">
               <User className="w-5 h-5 mr-2 text-red-600" />
               <span>
-                {webinars.filter(w => getIsUpcoming(w)).length} Upcoming Events
+                {allWebinars.filter(w => getIsUpcoming(w)).length} Upcoming Events
               </span>
             </div>
             <div className="flex items-center">
               <Play className="w-5 h-5 mr-2 text-red-600" />
               <span>
-                {webinars.filter(w => !getIsUpcoming(w) && !getIsLive(w)).length} Recordings Available
+                {allWebinars.filter(w => getIsRecorded(w)).length} Recordings Available
               </span>
             </div>
           </div>
@@ -349,25 +397,7 @@ const Webinars = () => {
                       </div>
                       
                       <div className="flex flex-col sm:flex-row gap-2">
-                        {getIsUpcoming(webinar) ? (
-                          <a
-                            href={webinar.registrationLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex-1 bg-red-600 text-white text-center py-2 rounded-md hover:bg-red-700 transition-colors font-medium"
-                          >
-                            Register Now
-                          </a>
-                        ) : (
-                          <a
-                            href={webinar.recordingLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex-1 bg-red-600 text-white text-center py-2 rounded-md hover:bg-red-700 transition-colors font-medium"
-                          >
-                            Watch Recording
-                          </a>
-                        )}
+                        {getActionButton(webinar)}
                         <button 
                           onClick={() => handleWebinarClick(webinar.id)}
                           className="flex items-center justify-center text-red-600 hover:text-red-700 font-medium py-2 px-4 border border-red-200 rounded-md hover:bg-red-50"
@@ -405,9 +435,9 @@ const Webinars = () => {
             </span>
           </h2>
           
-          {filteredWebinars.length > 0 ? (
+          {displayedWebinars.length > 0 ? (
             <div className="space-y-8">
-              {filteredWebinars.map((webinar) => (
+              {displayedWebinars.map((webinar) => (
                 <div key={webinar.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden border border-gray-200">
                   <div className="flex flex-col md:flex-row">
                     <div className="md:w-1/3 relative">
@@ -499,25 +529,7 @@ const Webinars = () => {
                           </div>
                           
                           <div className="flex flex-col sm:flex-row gap-3">
-                            {getIsUpcoming(webinar) ? (
-                              <a
-                                href={webinar.registrationLink}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex-1 bg-red-600 text-white py-2 rounded-md hover:bg-red-700 transition-colors font-medium text-center"
-                              >
-                                Register Now
-                              </a>
-                            ) : (
-                              <a
-                                href={webinar.recordingLink}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex-1 bg-red-600 text-white py-2 rounded-md hover:bg-red-700 transition-colors font-medium text-center"
-                              >
-                                Watch Recording
-                              </a>
-                            )}
+                            {getActionButton(webinar)}
                             
                             <button 
                               onClick={() => handleWebinarClick(webinar.id)}
@@ -549,6 +561,21 @@ const Webinars = () => {
                   </div>
                 </div>
               ))}
+              
+              {/* Load More Button */}
+              {hasMoreWebinars && (
+                <div className="text-center mt-8">
+                  <button
+                    onClick={loadMoreWebinars}
+                    className="bg-red-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors"
+                  >
+                    Load More Webinars
+                  </button>
+                  <p className="text-sm text-gray-500 mt-2">
+                    Showing {displayedWebinars.length} of {filteredWebinars.length} webinars
+                  </p>
+                </div>
+              )}
             </div>
           ) : (
             <div className="text-center py-12">
