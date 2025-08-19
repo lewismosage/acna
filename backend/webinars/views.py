@@ -7,6 +7,9 @@ from django.utils import timezone
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from datetime import timedelta
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.conf import settings
 import os
 import uuid
 from .models import Webinar, Speaker, Registration, WebinarView, WebinarAudience, WebinarLanguage
@@ -14,6 +17,10 @@ from .serializers import (
     WebinarSerializer, CreateWebinarSerializer, 
     RegistrationSerializer, SpeakerSerializer
 )
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 class WebinarViewSet(viewsets.ModelViewSet):
     queryset = Webinar.objects.all()
@@ -465,7 +472,7 @@ class WebinarViewSet(viewsets.ModelViewSet):
         serializer = RegistrationSerializer(registrations, many=True)
         return Response(serializer.data)
     
-    @action(detail=False, methods=['post'])
+    @action(detail=True, methods=['post'])
     def email_registrants(self, request, pk=None):
         """Email registrants for a webinar"""
         webinar = self.get_object()
@@ -496,14 +503,61 @@ class WebinarViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # In a real implementation, you would send emails here
-        # For now, we'll just return the count of recipients
+        sent_count = 0
+        failed_emails = []
         
-        return Response({
+        for recipient in recipients:
+            try:
+                self.send_custom_email(recipient, email_data['subject'], email_data['message'])
+                sent_count += 1
+            except Exception as e:
+                logger.error(f"Failed to send email to {recipient.email}: {str(e)}")
+                failed_emails.append(recipient.email)
+        
+        response_data = {
             'success': True,
-            'sent': recipients.count(),
-            'recipients': [r.email for r in recipients]
-        })
+            'sent': sent_count,
+            'failed': len(failed_emails),
+            'total_recipients': recipients.count()
+        }
+        
+        if failed_emails:
+            response_data['failed_emails'] = failed_emails
+        
+        return Response(response_data)
+
+    def send_custom_email(self, registration, subject, message_content):
+        """Send custom email to a registrant"""
+        from_email = settings.DEFAULT_FROM_EMAIL
+        to = [registration.email]
+
+        context = {
+            'registration': registration,
+            'webinar': registration.webinar,
+            'message_content': message_content,
+            'company_name': settings.COMPANY_NAME,
+            'frontend_url': settings.FRONTEND_URL
+        }
+
+        try:
+            # HTML version
+            html_content = render_to_string("webinars/emails/custom_message.html", context)
+            
+            # Text version
+            text_content = f"""Dear {registration.attendee_name},
+{message_content}
+
+Best regards,
+The {settings.COMPANY_NAME} Team
+    """
+
+            msg = EmailMultiAlternatives(subject, text_content, from_email, to)
+            msg.attach_alternative(html_content, "text/html")
+            msg.send()
+            
+        except Exception as e:
+            logger.error(f"Failed to send custom email to {registration.email}: {str(e)}")
+            raise
     
     @action(detail=False, methods=['get'])
     def categories(self, request):
@@ -526,7 +580,7 @@ class WebinarViewSet(viewsets.ModelViewSet):
 class RegistrationViewSet(viewsets.ModelViewSet):
     queryset = Registration.objects.all()
     serializer_class = RegistrationSerializer
-    
+
     def get_queryset(self):
         queryset = super().get_queryset()
         
@@ -555,19 +609,76 @@ class RegistrationViewSet(viewsets.ModelViewSet):
             )
         
         return queryset.order_by('-registration_date')
-    
+
+    def perform_create(self, serializer):
+        """Override create to send confirmation email"""
+        registration = serializer.save()
+        
+        # Send confirmation email
+        self.send_registration_confirmation(registration)
+
+    def send_registration_confirmation(self, registration):
+        """Send registration confirmation email"""
+        subject = f"Registration Confirmation: {registration.webinar.title}"
+        from_email = settings.DEFAULT_FROM_EMAIL
+        to = [registration.email]
+
+        context = {
+            'registration': registration,
+            'webinar': registration.webinar,
+            'company_name': settings.COMPANY_NAME,
+            'frontend_url': settings.FRONTEND_URL,
+            'contact_email': settings.CONTACT_EMAIL
+        }
+
+        try:
+            # HTML version
+            html_content = render_to_string("webinars/emails/registration_confirmation.html", context)
+            
+            # Text version
+            text_content = f"""Dear {registration.attendee_name},
+
+Thank you for registering for the webinar: {registration.webinar.title}
+
+Webinar Details:
+- Date: {registration.webinar.date}
+- Time: {registration.webinar.time}
+- Duration: {registration.webinar.duration}
+
+Your registration has been confirmed. You will receive the joining details closer to the webinar date.
+
+If you have any questions, please contact us at {settings.CONTACT_EMAIL}.
+
+Best regards,
+The {settings.COMPANY_NAME} Team
+"""
+
+            msg = EmailMultiAlternatives(subject, text_content, from_email, to)
+            msg.attach_alternative(html_content, "text/html")
+            msg.send()
+            
+            logger.info(f"Registration confirmation sent to {registration.email}")
+            
+        except Exception as e:
+            logger.error(f"Failed to send registration confirmation to {registration.email}: {str(e)}")
+
     @action(detail=True, methods=['post'])
     def send_confirmation(self, request, pk=None):
         """Send registration confirmation email"""
         registration = self.get_object()
         
-        # In a real implementation, you would send an email here
-        # For now, we'll just return a success response
-        
-        return Response({
-            'success': True,
-            'message': f'Confirmation email would be sent to {registration.email}'
-        })
+        try:
+            self.send_registration_confirmation(registration)
+            return Response({
+                'success': True,
+                'message': f'Confirmation email sent to {registration.email}'
+            })
+        except Exception as e:
+            logger.error(f"Failed to send confirmation email: {str(e)}")
+            return Response({
+                'success': False,
+                'error': 'Failed to send confirmation email'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     @action(detail=True, methods=['patch'])
     def update_payment_status(self, request, pk=None):
