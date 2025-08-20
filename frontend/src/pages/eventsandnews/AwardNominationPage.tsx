@@ -1,21 +1,8 @@
-import { useState } from 'react';
-import { ArrowLeft, CheckCircle, UserPlus, Users, Award } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ArrowLeft, CheckCircle, UserPlus, Users, Award, Loader } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import ScrollToTop from '../../components/common/ScrollToTop';
-
-// Define types for our data structures
-type Nominee = {
-  id: number;
-  name: string;
-  institution: string;
-  specialty: string;
-  category: string;
-};
-
-type AwardCategory = {
-  id: string;
-  name: string;
-};
+import { awardsApi, AwardCategory, Nominee } from '../../services/awardsApi';
 
 type FormData = {
   awardCategory: string;
@@ -23,6 +10,7 @@ type FormData = {
   nomineeEmail: string;
   nomineeInstitution: string;
   nomineeLocation: string;
+  nomineeSpecialty: string;
   nominatorName: string;
   nominatorEmail: string;
   nominatorRelationship: string;
@@ -38,6 +26,7 @@ const AwardNominationPage = () => {
     nomineeEmail: '',
     nomineeInstitution: '',
     nomineeLocation: '',
+    nomineeSpecialty: '',
     nominatorName: '',
     nominatorEmail: '',
     nominatorRelationship: '',
@@ -49,52 +38,33 @@ const AwardNominationPage = () => {
   const [step, setStep] = useState(1);
   const [selectedNominee, setSelectedNominee] = useState<Nominee | null>(null);
   const [isCustomNominee, setIsCustomNominee] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  const awardCategories: AwardCategory[] = [
-    { id: 'excellence', name: "Excellence in Child Neurology" },
-    { id: 'innovation', name: "Healthcare Innovation Award" },
-    { id: 'advocacy', name: "Child Neurology Advocacy Award" },
-    { id: 'education', name: "Medical Education Excellence" },
-    { id: 'service', name: "Lifetime Service Award" }
-  ];
+  const [awardCategories, setAwardCategories] = useState<AwardCategory[]>([]);
+  const [suggestedNominees, setSuggestedNominees] = useState<Nominee[]>([]);
 
-  const suggestedNominees: Nominee[] = [
-    {
-      id: 1,
-      name: "Dr. Fatima Bello",
-      institution: "University Teaching Hospital, Lagos",
-      specialty: "Pediatric Epilepsy Specialist",
-      category: 'excellence'
-    },
-    {
-      id: 2,
-      name: "Dr. Kwame Mensah",
-      institution: "Accra Children's Hospital",
-      specialty: "Neurodevelopmental Disorders",
-      category: 'education'
-    },
-    {
-      id: 3,
-      name: "Dr. Amina Diop",
-      institution: "Dakar Neurological Institute",
-      specialty: "Community Neurology Programs",
-      category: 'advocacy'
-    },
-    {
-      id: 4,
-      name: "Dr. Samuel Okonjo",
-      institution: "Nairobi Pediatric Center",
-      specialty: "Telemedicine for Rural Care",
-      category: 'innovation'
-    },
-    {
-      id: 5,
-      name: "Prof. Grace Mbeki",
-      institution: "Cape Town University Hospital",
-      specialty: "40+ years in Pediatric Neurology",
-      category: 'service'
-    }
-  ];
+  // Fetch award categories and suggested nominees
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [categoriesData, nomineesData] = await Promise.all([
+          awardsApi.getCategories({ active: true }),
+          awardsApi.getNominees({ status: 'Approved' })
+        ]);
+        setAwardCategories(categoriesData);
+        setSuggestedNominees(nomineesData);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -113,28 +83,79 @@ const AwardNominationPage = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleNominateNew = () => {
+    if (!formData.awardCategory) {
+      setError('Please select an award category first');
+      return;
+    }
+    setStep(3);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Here you would typically send the form data to your backend
-    console.log('Form submitted:', formData);
-    // Move to confirmation step
-    setStep(4);
+    setSubmitting(true);
+    setError(null);
+  
+    if (!formData.awardCategory) {
+      setError('Please select an award category');
+      setSubmitting(false);
+      return;
+    }
+  
+    try {
+      // Determine the source based on whether it's a suggested nominee or new nomination
+      const source = selectedNominee ? 'suggested' : 'new';
+      
+      await awardsApi.createNomination({
+        nomineeName: formData.nomineeName,
+        nomineeEmail: formData.nomineeEmail,
+        nomineeInstitution: formData.nomineeInstitution,
+        nomineeLocation: formData.nomineeLocation,
+        nomineeSpecialty: formData.nomineeSpecialty,
+        awardCategory: parseInt(formData.awardCategory),
+        nominatorName: formData.nominatorName,
+        nominatorEmail: formData.nominatorEmail,
+        nominatorRelationship: formData.nominatorRelationship,
+        achievementSummary: formData.achievementSummary,
+        additionalInfo: formData.additionalInfo,
+        supportingDocuments: formData.supportingDocuments || undefined,
+        source: source  // Make sure this is included
+      });
+  
+      setStep(4);
+    } catch (err) {
+      console.error('Nomination submission error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to submit nomination');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleNomineeSelect = (nominee: Nominee) => {
     setSelectedNominee(nominee);
     setFormData(prev => ({
       ...prev,
-      awardCategory: nominee.category,
+      awardCategory: nominee.category.toString(),
       nomineeName: nominee.name,
-      nomineeInstitution: nominee.institution
+      nomineeInstitution: nominee.institution,
+      nomineeSpecialty: nominee.specialty,
+      nomineeEmail: nominee.email || '',
+      nomineeLocation: nominee.location || ''
     }));
-    setStep(2);
+    setStep(3); // Skip to details step since we have nominee info
   };
 
   const filteredNominees = formData.awardCategory 
-    ? suggestedNominees.filter(nominee => nominee.category === formData.awardCategory)
+    ? suggestedNominees.filter(nominee => nominee.category.toString() === formData.awardCategory)
     : suggestedNominees;
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader className="w-8 h-8 animate-spin text-orange-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white min-h-screen">
@@ -165,6 +186,21 @@ const AwardNominationPage = () => {
 
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12">
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <div className="flex items-center">
+              <div className="text-red-600 font-medium">{error}</div>
+              <button 
+                onClick={() => setError(null)}
+                className="ml-auto text-red-600 hover:text-red-800"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Progress Steps */}
         <div className="mb-12">
           <div className="flex justify-between relative">
@@ -205,28 +241,27 @@ const AwardNominationPage = () => {
                 <div 
                   key={category.id}
                   onClick={() => {
-                    setFormData(prev => ({ ...prev, awardCategory: category.id }));
+                    setFormData(prev => ({ ...prev, awardCategory: category.id.toString() }));
                     setStep(2);
                   }}
                   className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
-                    formData.awardCategory === category.id 
+                    formData.awardCategory === category.id.toString() 
                       ? 'border-orange-500 bg-orange-50' 
                       : 'border-gray-200 hover:border-orange-300'
                   }`}
                 >
                   <div className="flex items-start">
                     <Award className={`w-6 h-6 mt-1 mr-4 ${
-                      formData.awardCategory === category.id ? 'text-orange-600' : 'text-gray-500'
+                      formData.awardCategory === category.id.toString() ? 'text-orange-600' : 'text-gray-500'
                     }`} />
                     <div>
-                      <h3 className="font-bold text-gray-900">{category.name}</h3>
-                      <p className="text-sm text-gray-600 mt-1">
-                        {category.id === 'excellence' && "Recognizing outstanding clinical care and research"}
-                        {category.id === 'innovation' && "Honoring innovative approaches to neurological care"}
-                        {category.id === 'advocacy' && "Celebrating awareness and policy champions"}
-                        {category.id === 'education' && "Acknowledging exceptional educators and mentors"}
-                        {category.id === 'service' && "Honoring lifetime dedication to the field"}
-                      </p>
+                      <h3 className="font-bold text-gray-900">{category.title}</h3>
+                      <p className="text-sm text-gray-600 mt-1">{category.description}</p>
+                      {category.criteria && (
+                        <p className="text-xs text-gray-500 mt-2">
+                          <strong>Criteria:</strong> {category.criteria}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -286,6 +321,9 @@ const AwardNominationPage = () => {
                             <h3 className="font-bold text-gray-900">{nominee.name}</h3>
                             <p className="text-sm text-gray-600">{nominee.institution}</p>
                             <p className="text-xs text-gray-500 mt-1">{nominee.specialty}</p>
+                            {nominee.location && (
+                              <p className="text-xs text-gray-500">{nominee.location}</p>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -311,7 +349,7 @@ const AwardNominationPage = () => {
                       Know someone deserving who isn't on our list? Tell us about them!
                     </p>
                     <button
-                      onClick={() => setStep(3)}
+                      onClick={handleNominateNew}
                       className="bg-orange-600 text-white px-6 py-2 rounded-md font-medium hover:bg-orange-700"
                     >
                       Continue with New Nominee
@@ -350,7 +388,7 @@ const AwardNominationPage = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Award Category</label>
                 <div className="p-3 bg-gray-50 rounded-md border border-gray-200">
-                  {awardCategories.find(c => c.id === formData.awardCategory)?.name}
+                  {awardCategories.find(c => c.id.toString() === formData.awardCategory)?.title}
                 </div>
               </div>
 
@@ -389,7 +427,7 @@ const AwardNominationPage = () => {
                   </div>
                   <div>
                     <label htmlFor="nomineeInstitution" className="block text-sm font-medium text-gray-700 mb-1">
-                      Institution/Organization
+                      Institution/Organization <span className="text-red-600">*</span>
                     </label>
                     <input
                       type="text"
@@ -397,23 +435,40 @@ const AwardNominationPage = () => {
                       name="nomineeInstitution"
                       value={formData.nomineeInstitution}
                       onChange={handleChange}
+                      required
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                     />
                   </div>
                 </div>
 
-                <div>
-                  <label htmlFor="nomineeLocation" className="block text-sm font-medium text-gray-700 mb-1">
-                    Location (City, Country)
-                  </label>
-                  <input
-                    type="text"
-                    id="nomineeLocation"
-                    name="nomineeLocation"
-                    value={formData.nomineeLocation}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  />
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="nomineeSpecialty" className="block text-sm font-medium text-gray-700 mb-1">
+                      Specialty <span className="text-red-600">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      id="nomineeSpecialty"
+                      name="nomineeSpecialty"
+                      value={formData.nomineeSpecialty}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="nomineeLocation" className="block text-sm font-medium text-gray-700 mb-1">
+                      Location (City, Country)
+                    </label>
+                    <input
+                      type="text"
+                      id="nomineeLocation"
+                      name="nomineeLocation"
+                      value={formData.nomineeLocation}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -494,7 +549,7 @@ const AwardNominationPage = () => {
                     type="file"
                     id="supportingDocuments"
                     name="supportingDocuments"
-                    onChange={handleChange}
+                    onChange={handleFileChange}
                     className="block w-full text-sm text-gray-500
                       file:mr-4 file:py-2 file:px-4
                       file:rounded-md file:border-0
@@ -535,9 +590,17 @@ const AwardNominationPage = () => {
               </button>
               <button
                 type="submit"
-                className="bg-orange-600 text-white px-6 py-2 rounded-md font-medium hover:bg-orange-700"
+                disabled={submitting}
+                className="bg-orange-600 text-white px-6 py-2 rounded-md font-medium hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Submit Nomination
+                {submitting ? (
+                  <>
+                    <Loader className="w-4 h-4 mr-2 animate-spin inline" />
+                    Submitting...
+                  </>
+                ) : (
+                  'Submit Nomination'
+                )}
               </button>
             </div>
           </form>

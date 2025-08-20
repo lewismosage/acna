@@ -12,6 +12,7 @@ urlpatterns = [
     path('gallery/', include('gallery.urls')),
     path('api/', include('conferences.urls')),
     path('api/', include('webinars.urls')),
+    path('api/awards/', include('awards.urls')),
 ]
 
 if settings.DEBUG:

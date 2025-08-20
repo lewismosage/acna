@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'gallery',
     'conferences',
     'webinars',
+    'awards',
 ]
 
 MIDDLEWARE = [

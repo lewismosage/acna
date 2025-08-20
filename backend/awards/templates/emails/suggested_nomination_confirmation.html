@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #059669; color: white; padding: 20px; text-align: center; }
+        .content { background-color: #f9fafb; padding: 30px; }
+        .footer { background-color: #f3f4f6; padding: 20px; text-align: center; font-size: 14px; }
+        .nominee-info { background-color: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>ACNA Awards - Suggested Nominee Submission</h1>
+        </div>
+        
+        <div class="content">
+            <h2>Thank you for suggesting {{ nomination.nominee_name }}!</h2>
+            
+            <p>Your suggested nominee has been automatically approved and added to our awards consideration list.</p>
+            
+            <div class="nominee-info">
+                <h3>Nomination Details:</h3>
+                <p><strong>Nominee:</strong> {{ nomination.nominee_name }}</p>
+                <p><strong>Award Category:</strong> {{ nomination.award_category.title }}</p>
+                <p><strong>Status:</strong> <span style="color: #059669;">Approved</span></p>
+            </div>
+
+            <p>The selection committee will now review all nominees and winners will be announced at our annual conference.</p>
+
+            <p>If you have any questions, please contact us at 
+               <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>.</p>
+        </div>
+        
+        <div class="footer">
+            <p>&copy; {% now "Y" %} {{ company_name }}. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

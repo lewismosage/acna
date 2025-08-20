@@ -1,0 +1,23 @@
+ACNA AWARDS NOMINATION CONFIRMATION
+
+Thank you for your nomination, {{ nomination.nominator_name }}!
+
+Your nomination has been successfully received and will be reviewed by our selection committee.
+
+NOMINATION DETAILS:
+Nominee: {{ nomination.nominee_name }}
+Award Category: {{ nomination.award_category.title }}
+Submitted: {{ nomination.submission_date|date:"F j, Y" }}
+Reference ID: #{{ nomination.id }}
+
+WHAT HAPPENS NEXT:
+- Our committee will review all nominations
+- You may be contacted for additional information
+- Finalists will be notified within 4-6 weeks
+- Winners will be announced at our annual conference
+
+If you have any questions about your nomination, please contact us at {{ contact_email }}.
+
+---
+© {% now "Y" %} {{ company_name }}. All rights reserved.
+Contact: {{ contact_email }}

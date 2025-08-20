@@ -1,279 +1,244 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Award, Trophy, Users, Calendar, FileText, CheckCircle, Star, Medal,
   Plus, Edit, Eye, Trash, Download, BarChart, Settings, Mail, 
-  UserPlus, UserCheck, UserX, Search, ArrowLeft
+  UserPlus, UserCheck, UserX, Search, ArrowLeft, Loader
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { awardsApi, AwardCategory, AwardWinner, Nominee, AwardNomination } from '../../../services/awardsApi';
 
 type AwardStatus = 'Active' | 'Draft' | 'Archived';
-type AwardWinner = {
-  id: number;
-  name: string;
-  title: string;
-  location: string;
-  achievement: string;
-  image: string;
-  category: string;
-  year: number;
-  status: AwardStatus;
-  createdAt: string;
-  updatedAt: string;
-};
-
-type SuggestedNominee = {
-  id: number;
-  name: string;
-  institution: string;
-  specialty: string;
-  category: string;
-  suggestedBy: string;
-  suggestedDate: string;
-  status: 'Pending' | 'Approved' | 'Rejected';
-};
-
-type AwardCategory = {
-  id: string;
-  title: string;
-  description: string;
-  nominees: Nominee[];
-  active: boolean;
-};
-
-type Nominee = {
-  id: number;
-  name: string;
-  institution: string;
-  specialty: string;
-  image?: string;
-  achievement: string;
-  addedBy: string;
-  addedDate: string;
-};
 
 const AdminAwardsManagement = () => {
   const [selectedTab, setSelectedTab] = useState<'winners' | 'nominees' | 'categories' | 'nominations'>('winners');
-  const [showCreateModal, setShowCreateModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddNomineeModal, setShowAddNomineeModal] = useState(false);
-  const [currentCategory, setCurrentCategory] = useState<string | null>(null);
-  const [newNominee, setNewNominee] = useState<Omit<Nominee, 'id' | 'addedDate'>>({ 
+  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+  const [currentCategory, setCurrentCategory] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // State for data from API
+  const [awardWinners, setAwardWinners] = useState<AwardWinner[]>([]);
+  const [nominees, setNominees] = useState<Nominee[]>([]);
+  const [awardCategories, setAwardCategories] = useState<AwardCategory[]>([]);
+  const [nominations, setNominations] = useState<AwardNomination[]>([]);
+
+  const [newNominee, setNewNominee] = useState({
     name: '',
     institution: '',
     specialty: '',
     achievement: '',
-    addedBy: 'Admin'
+    email: '',
+    phone: '',
+    location: '',
+    category: 0,
+    suggested_by: 'Admin'
   });
 
-  // Sample data for admin view
-  const [awardWinners, setAwardWinners] = useState<AwardWinner[]>([
-    {
-      id: 1,
-      name: "Dr. Amina Hassan",
-      title: "Excellence in Child Neurology - 2024",
-      location: "Lagos, Nigeria",
-      achievement: "Pioneered community-based epilepsy care programs reaching over 5,000 children across West Africa",
-      image: "https://images.pexels.com/photos/5214907/pexels-photo-5214907.jpeg?auto=compress&cs=tinysrgb&w=400",
-      category: "excellence",
-      year: 2024,
-      status: "Active",
-      createdAt: "2024-03-15",
-      updatedAt: "2024-03-15"
-    },
-    {
-      id: 2,
-      name: "Dr. Joseph Mutamba",
-      title: "Healthcare Innovation Award - 2024",
-      location: "Kampala, Uganda",
-      achievement: "Developed mobile diagnostic units that increased early detection rates by 70% in rural communities",
-      image: "https://images.pexels.com/photos/5452293/pexels-photo-5452293.jpeg?auto=compress&cs=tinysrgb&w=400",
-      category: "innovation",
-      year: 2024,
-      status: "Active",
-      createdAt: "2024-03-15",
-      updatedAt: "2024-03-15"
-    },
-    {
-      id: 3,
-      name: "Dr. Fatima El-Rashid",
-      title: "Child Neurology Advocacy Award - 2024",
-      location: "Cairo, Egypt",
-      achievement: "Led policy reforms that mandated neurological screening in all primary schools across North Africa",
-      image: "https://images.pexels.com/photos/3952048/pexels-photo-3952048.jpeg?auto=compress&cs=tinysrgb&w=400",
-      category: "advocacy",
-      year: 2024,
-      status: "Active",
-      createdAt: "2024-03-15",
-      updatedAt: "2024-03-15"
-    }
-  ]);
+  const [newCategory, setNewCategory] = useState({
+    title: '',
+    description: '',
+    criteria: '',
+    active: true,
+    order: 0
+  });
 
-  const [suggestedNominees, setSuggestedNominees] = useState<SuggestedNominee[]>([
-    {
-      id: 1,
-      name: "Dr. Fatima Bello",
-      institution: "University Teaching Hospital, Lagos",
-      specialty: "Pediatric Epilepsy Specialist",
-      category: "excellence",
-      suggestedBy: "Dr. John Smith",
-      suggestedDate: "2024-10-15",
-      status: "Approved"
-    },
-    {
-      id: 2,
-      name: "Dr. Kwame Mensah",
-      institution: "Accra Children's Hospital",
-      specialty: "Neurodevelopmental Disorders",
-      category: "education",
-      suggestedBy: "Dr. Sarah Johnson",
-      suggestedDate: "2024-10-12",
-      status: "Pending"
-    },
-    {
-      id: 3,
-      name: "Dr. Amina Diop",
-      institution: "Dakar Neurological Institute",
-      specialty: "Community Neurology Programs",
-      category: "advocacy",
-      suggestedBy: "Dr. Michael Chen",
-      suggestedDate: "2024-10-10",
-      status: "Approved"
-    }
-  ]);
+  // Initialize default categories if none exist
+  const initializeDefaultCategories = async () => {
+    try {
+      const existingCategories = await awardsApi.getCategories();
+      if (existingCategories.length === 0) {
+        const defaultCategories = [
+          {
+            title: "Excellence in Child Neurology",
+            description: "Recognizing outstanding contributions to pediatric neurological care and research across Africa",
+            criteria: "Minimum 10 years experience, Published research contributions, Community impact demonstration",
+            active: true,
+            order: 1
+          },
+          {
+            title: "Healthcare Innovation Award",
+            description: "Honoring innovative approaches to addressing neurological care challenges in African communities",
+            criteria: "Novel treatment approaches, Technology implementation, Measurable patient outcomes",
+            active: true,
+            order: 2
+          },
+          {
+            title: "Child Neurology Advocacy Award",
+            description: "Celebrating individuals who champion neurological health awareness and policy changes",
+            criteria: "Policy influence, Community engagement, Awareness campaign leadership",
+            active: true,
+            order: 3
+          },
+          {
+            title: "Medical Education Excellence",
+            description: "Recognizing exceptional contributions to training and educating healthcare professionals",
+            criteria: "Training program development, Curriculum innovation, Mentorship excellence",
+            active: true,
+            order: 4
+          },
+          {
+            title: "Lifetime Service Award",
+            description: "Honoring sustained dedication to improving child neurological health across Africa",
+            criteria: "25+ years of service, Cross-continental impact, Mentorship legacy",
+            active: true,
+            order: 5
+          }
+        ];
 
-  const [awardCategories, setAwardCategories] = useState<AwardCategory[]>([
-    {
-      id: 'excellence',
-      title: "Excellence in Child Neurology",
-      description: "Recognizing outstanding contributions to pediatric neurological care and research across Africa",
-      nominees: [
-        {
-          id: 1,
-          name: "Dr. Fatima Bello",
-          institution: "University Teaching Hospital, Lagos",
-          specialty: "Pediatric Epilepsy Specialist",
-          achievement: "Developed new treatment protocols for childhood epilepsy",
-          addedBy: "Admin",
-          addedDate: "2024-03-10"
-        },
-        {
-          id: 2,
-          name: "Dr. Samuel Okafor",
-          institution: "Nairobi Children's Hospital",
-          specialty: "Pediatric Neurosurgery",
-          achievement: "Pioneered minimally invasive techniques for pediatric brain tumors",
-          addedBy: "Admin",
-          addedDate: "2024-03-15"
+        for (const category of defaultCategories) {
+          await awardsApi.createCategory(category);
         }
-      ],
-      active: true
-    },
-    {
-      id: 'innovation',
-      title: "Healthcare Innovation Award",
-      description: "Honoring innovative approaches to addressing neurological care challenges in African communities",
-      nominees: [
-        {
-          id: 1,
-          name: "Dr. Joseph Mutamba",
-          institution: "Kampala Medical Center",
-          specialty: "Telemedicine",
-          achievement: "Developed mobile diagnostic units for rural areas",
-          addedBy: "Admin",
-          addedDate: "2024-02-20"
-        }
-      ],
-      active: true
-    },
-    {
-      id: 'advocacy',
-      title: "Child Neurology Advocacy Award",
-      description: "Celebrating individuals who champion neurological health awareness and policy changes",
-      nominees: [
-        {
-          id: 1,
-          name: "Dr. Amina Diop",
-          institution: "Dakar Neurological Institute",
-          specialty: "Community Health",
-          achievement: "Led policy reforms for school neurological screenings",
-          addedBy: "Admin",
-          addedDate: "2024-01-15"
-        }
-      ],
-      active: true
-    },
-    {
-      id: 'education',
-      title: "Medical Education Excellence",
-      description: "Recognizing exceptional contributions to training and educating healthcare professionals",
-      nominees: [],
-      active: true
-    },
-    {
-      id: 'service',
-      title: "Lifetime Service Award",
-      description: "Honoring sustained dedication to improving child neurological health across Africa",
-      nominees: [],
-      active: true
+      }
+    } catch (err) {
+      console.error('Failed to initialize default categories:', err);
     }
-  ]);
-
-  const [nominations, setNominations] = useState<any[]>([]); // Would be populated with actual nomination data
-
-  const handleStatusChange = (id: number, newStatus: AwardStatus) => {
-    setAwardWinners(prev => 
-      prev.map(winner => 
-        winner.id === id 
-          ? { ...winner, status: newStatus, updatedAt: new Date().toISOString().split('T')[0] }
-          : winner
-      )
-    );
   };
 
-  const handleNomineeStatusChange = (id: number, newStatus: 'Pending' | 'Approved' | 'Rejected') => {
-    setSuggestedNominees(prev => 
-      prev.map(nominee => 
-        nominee.id === id 
-          ? { ...nominee, status: newStatus }
-          : nominee
-      )
-    );
+  // Fetch data based on selected tab
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        switch (selectedTab) {
+          case 'winners':
+            const winnersData = await awardsApi.getWinners({ search: searchTerm });
+            setAwardWinners(winnersData);
+            break;
+          case 'nominees':
+            // Only show nominees from public nominations (not admin-added)
+            const nomineesData = await awardsApi.getNominees({ 
+              search: searchTerm,
+              source: 'nomination'
+            });
+            setNominees(nomineesData);
+            break;
+          case 'categories':
+            const categoriesData = await awardsApi.getCategories({ search: searchTerm });
+            setAwardCategories(categoriesData);
+            break;
+          case 'nominations':
+            // Show ALL nominations (both suggested and new)
+            const nominationsData = await awardsApi.getNominations({ search: searchTerm });
+            setNominations(nominationsData);
+            break;
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [selectedTab, searchTerm]);
+
+  // Initialize categories on component mount
+  useEffect(() => {
+    const initializeData = async () => {
+      await initializeDefaultCategories();
+      const categories = await awardsApi.getCategories({ active: true });
+      setAwardCategories(categories);
+    };
+
+    initializeData();
+  }, []);
+
+  const handleWinnerStatusChange = async (id: number, newStatus: AwardStatus) => {
+    try {
+      const updatedWinner = await awardsApi.updateWinnerStatus(id, newStatus);
+      setAwardWinners(prev => 
+        prev.map(winner => winner.id === id ? updatedWinner : winner)
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update status');
+    }
   };
 
-  const handleAddNominee = (categoryId: string) => {
+  const handleNomineeStatusChange = async (id: number, newStatus: 'Pending' | 'Approved' | 'Rejected') => {
+    try {
+      const updatedNominee = await awardsApi.updateNomineeStatus(id, newStatus);
+      setNominees(prev => 
+        prev.map(nominee => nominee.id === id ? updatedNominee : nominee)
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update status');
+    }
+  };
+
+  const handleAddNominee = (categoryId: number) => {
     setCurrentCategory(categoryId);
+    setNewNominee(prev => ({ ...prev, category: categoryId }));
     setShowAddNomineeModal(true);
   };
 
-  const handleSubmitNominee = () => {
-    if (!currentCategory) return;
+  const handleSubmitNominee = async () => {
+    try {
+      const createdNominee = await awardsApi.createNominee({
+        name: newNominee.name,
+        institution: newNominee.institution,
+        specialty: newNominee.specialty,
+        category: newNominee.category,
+        achievement: newNominee.achievement,
+        email: newNominee.email,
+        phone: newNominee.phone,
+        location: newNominee.location,
+        suggestedBy: newNominee.suggested_by,
+        status: 'Approved',
+        imageUrl: ''
+      });
 
-    const newNomineeWithId: Nominee = {
-      ...newNominee,
-      id: Date.now(),
-      addedDate: new Date().toISOString().split('T')[0]
-    };
+      setNominees(prev => [...prev, createdNominee]);
+      
+      // Reset form
+      setNewNominee({
+        name: '',
+        institution: '',
+        specialty: '',
+        achievement: '',
+        email: '',
+        phone: '',
+        location: '',
+        category: 0,
+        suggested_by: 'Admin'
+      });
+      setShowAddNomineeModal(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create nominee');
+    }
+  };
 
-    setAwardCategories(prev =>
-      prev.map(category =>
-        category.id === currentCategory
-          ? {
-              ...category,
-              nominees: [...category.nominees, newNomineeWithId]
-            }
-          : category
-      )
-    );
+  const handleSubmitCategory = async () => {
+    try {
+      const createdCategory = await awardsApi.createCategory(newCategory);
+      setAwardCategories(prev => [...prev, createdCategory]);
+      
+      // Reset form
+      setNewCategory({
+        title: '',
+        description: '',
+        criteria: '',
+        active: true,
+        order: awardCategories.length + 1
+      });
+      setShowAddCategoryModal(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create category');
+    }
+  };
 
-    // Reset form
-    setNewNominee({
-      name: '',
-      institution: '',
-      specialty: '',
-      achievement: '',
-      addedBy: 'Admin'
-    });
-    setShowAddNomineeModal(false);
+  const handleNominationStatusChange = async (id: number, newStatus: string) => {
+    try {
+      const updatedNomination = await awardsApi.updateNominationStatus(id, newStatus);
+      setNominations(prev => 
+        prev.map(nomination => nomination.id === id ? updatedNomination : nomination)
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update status');
+    }
   };
 
   const filteredWinners = awardWinners.filter(winner => 
@@ -281,7 +246,7 @@ const AdminAwardsManagement = () => {
     winner.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const filteredNominees = suggestedNominees.filter(nominee => 
+  const filteredNominees = nominees.filter(nominee => 
     nominee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     nominee.institution.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -292,8 +257,32 @@ const AdminAwardsManagement = () => {
 
   const filteredNominations = nominations.filter(nomination => 
     nomination.nomineeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    nomination.awardCategory.toLowerCase().includes(searchTerm.toLowerCase())
+    nomination.awardCategoryTitle.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader className="w-8 h-8 animate-spin text-red-600" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="flex items-center">
+          <div className="text-red-600 font-medium">Error: {error}</div>
+          <button 
+            onClick={() => setError(null)}
+            className="ml-auto text-red-600 hover:text-red-800"
+          >
+            Dismiss
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -309,13 +298,6 @@ const AdminAwardsManagement = () => {
               <p className="text-gray-600 mt-1">Manage awards, nominees, and recognition programs</p>
             </div>
             <div className="flex gap-3">
-              <button 
-                onClick={() => setShowCreateModal(true)}
-                className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 flex items-center font-medium transition-colors"
-              >
-                <Plus className="w-5 h-5 mr-2" />
-                Add Winner
-              </button>
               <button className="border border-red-600 text-red-600 px-6 py-2 rounded-lg hover:bg-red-50 flex items-center font-medium transition-colors">
                 <BarChart className="w-5 h-5 mr-2" />
                 Analytics
@@ -330,7 +312,7 @@ const AdminAwardsManagement = () => {
             <nav className="flex space-x-8">
               {[
                 { id: 'winners', label: 'Award Winners', count: awardWinners.length, icon: Trophy },
-                { id: 'nominees', label: 'Suggested Nominees', count: suggestedNominees.length, icon: UserPlus },
+                { id: 'nominees', label: 'Nominees', count: nominees.length, icon: UserPlus },
                 { id: 'categories', label: 'Categories', count: awardCategories.length, icon: Award },
                 { id: 'nominations', label: 'Nominations', count: nominations.length, icon: FileText }
               ].map((tab) => (
@@ -377,7 +359,7 @@ const AdminAwardsManagement = () => {
                       <div className="lg:w-1/4">
                         <div className="relative">
                           <img
-                            src={winner.image}
+                            src={winner.imageUrl || '/api/placeholder/400/250'}
                             alt={winner.name}
                             className="w-full h-48 lg:h-full object-cover rounded-t-lg lg:rounded-l-lg lg:rounded-t-none"
                           />
@@ -406,7 +388,7 @@ const AdminAwardsManagement = () => {
                               {winner.title}
                             </p>
                             <p className="text-gray-600 text-sm mb-3">
-                              {winner.location}
+                              {winner.location} • {winner.year}
                             </p>
                             <p className="text-gray-700 text-sm leading-relaxed">
                               {winner.achievement}
@@ -420,7 +402,16 @@ const AdminAwardsManagement = () => {
                             <Edit className="w-4 h-4 mr-2" />
                             Edit Winner
                           </button>
-                          
+
+                          <select
+                            value={winner.status}
+                            onChange={(e) => handleWinnerStatusChange(winner.id, e.target.value as AwardStatus)}
+                            className="border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 text-sm font-medium"
+                          >
+                            <option value="Active">Active</option>
+                            <option value="Draft">Draft</option>
+                            <option value="Archived">Archived</option>
+                          </select>
 
                           <button className="border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center text-sm font-medium transition-colors">
                             <Mail className="w-4 h-4 mr-2" />
@@ -436,9 +427,9 @@ const AdminAwardsManagement = () => {
                         {/* Metadata */}
                         <div className="mt-4 pt-4 border-t border-gray-200">
                           <div className="flex flex-wrap gap-4 text-xs text-gray-500">
-                            <span>Created: {winner.createdAt}</span>
-                            <span>Last Updated: {winner.updatedAt}</span>
-                            <span>ID: #{winner.id}</span>
+                            <span>Created: {new Date(winner.createdAt).toLocaleDateString()}</span>
+                            <span>Last Updated: {new Date(winner.updatedAt).toLocaleDateString()}</span>
+                            <span>Category: {winner.categoryTitle}</span>
                           </div>
                         </div>
                       </div>
@@ -454,10 +445,7 @@ const AdminAwardsManagement = () => {
                       ? "No winners match your search criteria." 
                       : "You haven't added any award winners yet."}
                   </p>
-                  <button 
-                    onClick={() => setShowCreateModal(true)}
-                    className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 font-medium"
-                  >
+                  <button className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 font-medium">
                     Add First Winner
                   </button>
                 </div>
@@ -477,17 +465,17 @@ const AdminAwardsManagement = () => {
                           {nominee.institution} • {nominee.specialty}
                         </p>
                         <div className="flex items-center gap-4 text-sm text-gray-600 mb-2">
-                        <div className="flex items-center">
-                          <Award className="w-4 h-4 mr-1" />
-                          {awardCategories.find(c => c.id === nominee.category)?.title || nominee.category}
-                        </div>
+                          <div className="flex items-center">
+                            <Award className="w-4 h-4 mr-1" />
+                            {nominee.categoryTitle}
+                          </div>
                           <div className="flex items-center">
                             <UserCheck className="w-4 h-4 mr-1" />
                             Suggested by: {nominee.suggestedBy}
                           </div>
                           <div className="flex items-center">
                             <Calendar className="w-4 h-4 mr-1" />
-                            {nominee.suggestedDate}
+                            {new Date(nominee.suggestedDate).toLocaleDateString()}
                           </div>
                         </div>
                       </div>
@@ -505,27 +493,23 @@ const AdminAwardsManagement = () => {
                     {/* Admin Actions */}
                     <div className="flex flex-wrap gap-3">
                       <button className="border border-red-600 text-red-600 px-4 py-2 rounded-lg hover:bg-red-50 flex items-center text-sm font-medium transition-colors">
-                      <Eye className="w-4 h-4 mr-2" />
-                       Nominee Information
-                      </button>
-                      <button 
-                        onClick={() => handleNomineeStatusChange(nominee.id, 'Approved')}
-                        className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center text-sm font-medium transition-colors"
-                      >
-                        <UserCheck className="w-4 h-4 mr-2" />
-                        Approve
+                        <Eye className="w-4 h-4 mr-2" />
+                        Nominee Information
                       </button>
                       
-                      <button 
-                        onClick={() => handleNomineeStatusChange(nominee.id, 'Rejected')}
-                        className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex items-center text-sm font-medium transition-colors"
+                      <select
+                        value={nominee.status}
+                        onChange={(e) => handleNomineeStatusChange(nominee.id, e.target.value as any)}
+                        className="border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 text-sm font-medium"
                       >
-                        <UserX className="w-4 h-4 mr-2" />
-                        Reject
-                      </button>
+                        <option value="Pending">Pending</option>
+                        <option value="Approved">Approve</option>
+                        <option value="Rejected">Reject</option>
+                      </select>
+
                       <button className="border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center text-sm font-medium transition-colors">
                         <Mail className="w-4 h-4 mr-2" />
-                        Contact Nominator
+                        Contact
                       </button>
                     </div>
                   </div>
@@ -533,17 +517,28 @@ const AdminAwardsManagement = () => {
               ) : (
                 <div className="text-center py-12">
                   <UserPlus className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No suggested nominees found</h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No nominees found</h3>
                   <p className="text-gray-500">
                     {searchTerm 
                       ? "No nominees match your search criteria." 
-                      : "No nominees have been suggested yet."}
+                      : "No nominees have been added yet."}
                   </p>
                 </div>
               )}
             </div>
           ) : selectedTab === 'categories' ? (
             <div className="space-y-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-bold">Award Categories</h3>
+                <button 
+                  onClick={() => setShowAddCategoryModal(true)}
+                  className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex items-center text-sm font-medium transition-colors"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Category
+                </button>
+              </div>
+
               {filteredCategories.length > 0 ? (
                 filteredCategories.map((category) => (
                   <div key={category.id} className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
@@ -551,43 +546,28 @@ const AdminAwardsManagement = () => {
                       <div className="flex-1">
                         <div className="flex items-center mb-2">
                           <Award className={`w-5 h-5 mr-3 ${category.active ? 'text-red-600' : 'text-gray-400'}`} />
-                          <h3 className="text-xl font-bold text-gray-900 leading-tight">
-                            {category.title}
-                          </h3>
+                          <div>
+                            <h3 className="text-xl font-bold text-gray-900 leading-tight">
+                              {category.title}
+                            </h3>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              category.active 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-gray-100 text-gray-800'
+                            }`}>
+                              {category.active ? 'Active' : 'Inactive'}
+                            </span>
+                          </div>
                         </div>
                         <p className="text-gray-600 text-sm mb-4 leading-relaxed">
                           {category.description}
                         </p>
                         
-                        {/* Nominees List */}
-                        {category.nominees.length > 0 ? (
+                        {/* Criteria */}
+                        {category.criteria && (
                           <div className="mt-4">
-                            <h4 className="font-medium text-gray-900 text-sm mb-2">Nominees ({category.nominees.length}):</h4>
-                            <div className="space-y-3">
-                              {category.nominees.map((nominee) => (
-                                <div key={nominee.id} className="bg-gray-50 p-3 rounded-lg">
-                                  <div className="flex justify-between items-start">
-                                    <div>
-                                      <p className="font-medium text-gray-900">{nominee.name}</p>
-                                      <p className="text-sm text-gray-600">{nominee.institution} • {nominee.specialty}</p>
-                                      <p className="text-xs text-gray-500 mt-1">{nominee.achievement}</p>
-                                    </div>
-                                    <div className="flex gap-2">
-                                      <button className="text-gray-500 hover:text-red-600">
-                                        <Edit className="w-4 h-4" />
-                                      </button>
-                                      <button className="text-gray-500 hover:text-red-600">
-                                        <Trash className="w-4 h-4" />
-                                      </button>
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="mt-4 bg-gray-50 p-4 rounded-lg text-center">
-                            <p className="text-gray-500 text-sm">No nominees added yet for this category</p>
+                            <h4 className="font-medium text-gray-900 text-sm mb-2">Criteria:</h4>
+                            <p className="text-sm text-gray-600">{category.criteria}</p>
                           </div>
                         )}
                       </div>
@@ -602,6 +582,10 @@ const AdminAwardsManagement = () => {
                         <UserPlus className="w-4 h-4 mr-2" />
                         Add Nominee
                       </button>
+                      <button className="border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center text-sm font-medium transition-colors">
+                        <Edit className="w-4 h-4 mr-2" />
+                        Edit Category
+                      </button>
                     </div>
                   </div>
                 ))
@@ -614,6 +598,12 @@ const AdminAwardsManagement = () => {
                       ? "No categories match your search criteria." 
                       : "No award categories have been created yet."}
                   </p>
+                  <button 
+                    onClick={() => setShowAddCategoryModal(true)}
+                    className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 font-medium mt-4"
+                  >
+                    Create First Category
+                  </button>
                 </div>
               )}
             </div>
@@ -628,7 +618,7 @@ const AdminAwardsManagement = () => {
                           {nomination.nomineeName}
                         </h3>
                         <p className="text-gray-600 text-sm mb-3">
-                          Nominated for: {nomination.awardCategory}
+                          Nominated for: {nomination.awardCategoryTitle}
                         </p>
                         <p className="text-gray-600 text-sm mb-3">
                           Nominated by: {nomination.nominatorName} ({nomination.nominatorEmail})
@@ -650,10 +640,16 @@ const AdminAwardsManagement = () => {
 
                     {/* Admin Actions */}
                     <div className="flex flex-wrap gap-3">
-                      <button className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex items-center text-sm font-medium transition-colors">
-                        <Edit className="w-4 h-4 mr-2" />
-                        Review Nomination
-                      </button>
+                      <select
+                        value={nomination.status}
+                        onChange={(e) => handleNominationStatusChange(nomination.id, e.target.value)}
+                        className="border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 text-sm font-medium"
+                      >
+                        <option value="Pending">Pending</option>
+                        <option value="Under Review">Under Review</option>
+                        <option value="Approved">Approve</option>
+                        <option value="Rejected">Reject</option>
+                      </select>
                       
                       <button className="border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center text-sm font-medium transition-colors">
                         <Eye className="w-4 h-4 mr-2" />
@@ -665,10 +661,17 @@ const AdminAwardsManagement = () => {
                         Contact Nominator
                       </button>
 
-                      <button className="border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center text-sm font-medium transition-colors">
-                        <Download className="w-4 h-4 mr-2" />
-                        Download Documents
-                      </button>
+                      {nomination.supportingDocuments && (
+                        <a 
+                          href={nomination.supportingDocuments}
+                          className="border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center text-sm font-medium transition-colors"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          Download Documents
+                        </a>
+                      )}
                     </div>
                   </div>
                 ))
@@ -694,7 +697,9 @@ const AdminAwardsManagement = () => {
           <div className="bg-white rounded-lg w-full max-w-md">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-bold">Add Nominee to {awardCategories.find(c => c.id === currentCategory)?.title}</h3>
+                <h3 className="text-lg font-bold">
+                  Add Nominee to {awardCategories.find(c => c.id === currentCategory)?.title}
+                </h3>
                 <button 
                   onClick={() => setShowAddNomineeModal(false)}
                   className="text-gray-500 hover:text-gray-700"
@@ -705,42 +710,66 @@ const AdminAwardsManagement = () => {
               
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nominee Name</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nominee Name *</label>
                   <input
                     type="text"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
                     value={newNominee.name}
                     onChange={(e) => setNewNominee({...newNominee, name: e.target.value})}
+                    required
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Institution</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Institution *</label>
                   <input
                     type="text"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
                     value={newNominee.institution}
                     onChange={(e) => setNewNominee({...newNominee, institution: e.target.value})}
+                    required
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Specialty</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Specialty *</label>
                   <input
                     type="text"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
                     value={newNominee.specialty}
                     onChange={(e) => setNewNominee({...newNominee, specialty: e.target.value})}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <input
+                    type="email"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    value={newNominee.email}
+                    onChange={(e) => setNewNominee({...newNominee, email: e.target.value})}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    value={newNominee.location}
+                    onChange={(e) => setNewNominee({...newNominee, location: e.target.value})}
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Achievement</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Achievement *</label>
                   <textarea
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
                     rows={3}
                     value={newNominee.achievement}
                     onChange={(e) => setNewNominee({...newNominee, achievement: e.target.value})}
+                    required
                   />
                 </div>
               </div>
@@ -755,8 +784,91 @@ const AdminAwardsManagement = () => {
                 <button
                   onClick={handleSubmitNominee}
                   className="px-4 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700"
+                  disabled={!newNominee.name || !newNominee.institution || !newNominee.specialty || !newNominee.achievement}
                 >
                   Add Nominee
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Category Modal */}
+      {showAddCategoryModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg w-full max-w-md">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-bold">Add Award Category</h3>
+                <button 
+                  onClick={() => setShowAddCategoryModal(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  &times;
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Category Title *</label>
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    value={newCategory.title}
+                    onChange={(e) => setNewCategory({...newCategory, title: e.target.value})}
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Description *</label>
+                  <textarea
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    rows={3}
+                    value={newCategory.description}
+                    onChange={(e) => setNewCategory({...newCategory, description: e.target.value})}
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Criteria</label>
+                  <textarea
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    rows={3}
+                    value={newCategory.criteria}
+                    onChange={(e) => setNewCategory({...newCategory, criteria: e.target.value})}
+                  />
+                </div>
+
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="categoryActive"
+                    checked={newCategory.active}
+                    onChange={(e) => setNewCategory({...newCategory, active: e.target.checked})}
+                    className="mr-2"
+                  />
+                  <label htmlFor="categoryActive" className="text-sm font-medium text-gray-700">
+                    Active Category
+                  </label>
+                </div>
+              </div>
+              
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  onClick={() => setShowAddCategoryModal(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSubmitCategory}
+                  className="px-4 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700"
+                  disabled={!newCategory.title || !newCategory.description}
+                >
+                  Add Category
                 </button>
               </div>
             </div>
