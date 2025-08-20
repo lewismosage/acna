@@ -126,6 +126,23 @@ class NomineeViewSet(viewsets.ModelViewSet):
         if self.action in ['create', 'update', 'partial_update']:
             return CreateNomineeSerializer
         return NomineeSerializer
+
+    @action(detail=True, methods=['patch'])
+    def approve(self, request, pk=None):
+        """Approve a nominee and add to poll"""
+        nominee = self.get_object()
+        nominee.status = 'Approved'
+        nominee.save()
+        
+        serializer = self.get_serializer(nominee)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def for_verification(self, request):
+        """Get nominees that need verification"""
+        nominees = Nominee.objects.filter(status='Pending', source='new')
+        serializer = self.get_serializer(nominees, many=True)
+        return Response(serializer.data)
     
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -307,11 +324,17 @@ class AwardNominationViewSet(viewsets.ModelViewSet):
         """Override create to handle different nomination sources"""
         nomination = serializer.save()
         
-        # Auto-approve ALL nominations and create nominees
-        nomination.status = 'Approved'
-        nomination.save()
-        self.create_nominee_from_nomination(nomination)
-
+        # Handle different sources
+        if nomination.source == 'suggested':
+            # Directly approve and add to poll
+            nomination.status = 'Approved'
+            nomination.save()
+            self.create_nominee_from_nomination(nomination)
+        else:
+            # New nominations stay pending for verification
+            nomination.status = 'pending'
+            nomination.save()
+        
         # Send confirmation email
         try:
             self.send_nomination_confirmation(nomination)

@@ -79,6 +79,7 @@ class Nominee(models.Model):
         ('Pending', 'Pending'),
         ('Approved', 'Approved'),
         ('Rejected', 'Rejected'),
+        ('Winner', 'Winner'),
     ]
     
     name = models.CharField(max_length=200)
