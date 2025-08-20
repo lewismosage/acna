@@ -73,9 +73,7 @@ class Nominee(models.Model):
     SOURCE_CHOICES = [
         ('admin', 'Admin Added'),
         ('suggested', 'Suggested Nominee'),
-        ('new', 'New Nomination'),
-        ('nomination', 'Public Nomination'),
-    ] 
+    ]
 
     STATUS_CHOICES = [
         ('Pending', 'Pending'),
@@ -100,7 +98,7 @@ class Nominee(models.Model):
     image_url = models.URLField(blank=True, null=True)
     
     # Status and metadata
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='Pending')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='Approved')
     suggested_by = models.CharField(max_length=200, blank=True)
     suggested_date = models.DateTimeField(default=timezone.now)
     source = models.CharField(max_length=20, choices=SOURCE_CHOICES, default='admin')
@@ -129,7 +127,6 @@ class Nominee(models.Model):
 class AwardNomination(models.Model):
     SOURCE_CHOICES = [
         ('suggested', 'From Suggested Nominee'),
-        ('new', 'New Nomination'),
     ]
 
     STATUS_CHOICES = [
@@ -162,9 +159,9 @@ class AwardNomination(models.Model):
     supporting_documents = models.FileField(upload_to='nominations/documents/', blank=True, null=True)
     
     # Status and metadata
-    status = models.CharField(max_length=12, choices=STATUS_CHOICES, default='Pending')
+    status = models.CharField(max_length=12, choices=STATUS_CHOICES, default='Approved')
     submission_date = models.DateTimeField(default=timezone.now)
-    source = models.CharField(max_length=10, choices=SOURCE_CHOICES, default='new')
+    source = models.CharField(max_length=10, choices=SOURCE_CHOICES, default='suggested')
     
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)

@@ -36,12 +36,12 @@ export interface Nominee {
   phone: string;
   location: string;
   imageUrl: string;
-  status: 'Pending' | 'Approved' | 'Rejected' | 'Winner';
+  status: 'Approved' | 'Rejected' | 'Winner'; // Removed 'Pending' status
   suggestedBy: string;
   suggestedDate: string;
   createdAt: string;
   updatedAt: string;
-  source: string;
+  source: 'admin' | 'suggested'; // Removed 'new' and 'nomination' sources
 }
 
 export interface AwardNomination {
@@ -59,11 +59,11 @@ export interface AwardNomination {
   achievementSummary: string;
   additionalInfo: string;
   supportingDocuments: string;
-  status: 'Pending' | 'Under Review' | 'Approved' | 'Rejected';
+  status: 'Approved' | 'Rejected'; // Removed 'Pending' and 'Under Review' statuses
   submissionDate: string;
   createdAt: string;
   updatedAt: string;
-  source: string;
+  source: 'suggested'; // Removed 'new' source
 }
 
 export interface CreateAwardWinnerInput {
@@ -87,9 +87,9 @@ export interface CreateNomineeInput {
   phone: string;
   location: string;
   imageUrl: string;
-  status: 'Pending' | 'Approved' | 'Rejected' | 'Winner';
+  status: 'Approved' | 'Rejected' | 'Winner'; // Removed 'Pending' status
   suggestedBy: string;
-  source?: string;
+  source: 'admin' | 'suggested'; // Removed 'new' and 'nomination' sources
 }
 
 export interface CreateAwardNominationInput {
@@ -196,7 +196,7 @@ const normalizeNominee = (data: any): Nominee => ({
   phone: data.phone || '',
   location: data.location || '',
   imageUrl: data.imageUrl || data.image_url || '',
-  status: data.status || 'Pending',
+  status: data.status || 'Approved', // Default to 'Approved' instead of 'Pending'
   suggestedBy: data.suggestedBy || data.suggested_by || '',
   suggestedDate: data.suggestedDate || data.suggested_date || '',
   createdAt: data.createdAt || data.created_at || '',
@@ -219,11 +219,11 @@ const normalizeAwardNomination = (data: any): AwardNomination => ({
   achievementSummary: data.achievementSummary || data.achievement_summary || '',
   additionalInfo: data.additionalInfo || data.additional_info || '',
   supportingDocuments: data.supportingDocuments || data.supporting_documents || '',
-  status: data.status || 'Pending',
+  status: data.status || 'Approved', // Default to 'Approved' instead of 'Pending'
   submissionDate: data.submissionDate || data.submission_date || '',
   createdAt: data.createdAt || data.created_at || '',
   updatedAt: data.updatedAt || data.updated_at || '',
-  source: data.source || 'admin',
+  source: data.source || 'suggested', // Default to 'suggested' instead of 'admin'
 });
 
 export const awardsApi = {
@@ -503,7 +503,7 @@ export const awardsApi = {
     return normalizeAwardNomination(data);
   },
 
-  createNomination: async (data: CreateAwardNominationInput & { source?: string }): Promise<AwardNomination> => {
+  createNomination: async (data: CreateAwardNominationInput): Promise<AwardNomination> => {
     const formData = new FormData();
     
     // Convert camelCase to snake_case for Django backend
@@ -520,7 +520,6 @@ export const awardsApi = {
       achievementSummary: 'achievement_summary',
       additionalInfo: 'additional_info',
       supportingDocuments: 'supporting_documents',
-      source: 'source'
     };
     
     // Append all fields to formData with correct field names
@@ -530,7 +529,7 @@ export const awardsApi = {
         
         if (fieldName === 'supporting_documents' && value instanceof File) {
           formData.append(fieldName, value);
-        } else if (fieldName === 'award_category' || fieldName === 'source') {
+        } else if (fieldName === 'award_category') {
           formData.append(fieldName, value.toString());
         } else {
           formData.append(fieldName, value.toString());
@@ -587,27 +586,6 @@ export const awardsApi = {
     
     return handleResponse(response);
   },
-
-  // Add method to get nominees by verification status
-  getNomineesForVerification: async (): Promise<Nominee[]> => {
-    const response = await fetch(`${API_BASE_URL}/awards/nominees/?status=Pending&source=new`, {
-      headers: getAuthHeaders(),
-    });
-    
-    const data = await handleResponse(response);
-    return Array.isArray(data) ? data.map(normalizeNominee) : [];
-  },
-
-  // Add method to approve nominee and add to poll
-  approveNominee: async (id: number): Promise<Nominee> => {
-    const response = await fetch(`${API_BASE_URL}/awards/nominees/${id}/approve/`, {
-      method: 'PATCH',
-      headers: getAuthHeaders(),
-    });
-    
-    const result = await handleResponse(response);
-    return normalizeNominee(result);
-  },
 };
 
 // Export individual functions for convenience
@@ -639,6 +617,4 @@ export const {
   deleteNomination,
   updateNominationStatus,
   sendNominationConfirmation,
-  getNomineesForVerification,
-  approveNominee,
 } = awardsApi;

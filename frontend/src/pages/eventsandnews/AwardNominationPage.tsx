@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, CheckCircle, UserPlus, Users, Award, Loader, Info } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Users, Award, Loader, Info } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import ScrollToTop from '../../components/common/ScrollToTop';
 import { awardsApi, AwardCategory, Nominee } from '../../services/awardsApi';
@@ -37,7 +37,6 @@ const AwardNominationPage = () => {
 
   const [step, setStep] = useState(1);
   const [selectedNominee, setSelectedNominee] = useState<Nominee | null>(null);
-  const [isCustomNominee, setIsCustomNominee] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -83,52 +82,41 @@ const AwardNominationPage = () => {
     }
   };
 
-  const handleNominateNew = () => {
-    setSelectedNominee(null); 
-    setIsCustomNominee(true);
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
+
     if (!formData.awardCategory) {
-      setError('Please select an award category first');
+      setError('Please select an award category');
+      setSubmitting(false);
       return;
     }
-    setStep(3);
+
+    try {
+      await awardsApi.createNomination({
+        nomineeName: formData.nomineeName,
+        nomineeEmail: formData.nomineeEmail,
+        nomineeInstitution: formData.nomineeInstitution,
+        nomineeLocation: formData.nomineeLocation,
+        nomineeSpecialty: formData.nomineeSpecialty,
+        awardCategory: parseInt(formData.awardCategory),
+        nominatorName: formData.nominatorName,
+        nominatorEmail: formData.nominatorEmail,
+        nominatorRelationship: formData.nominatorRelationship,
+        achievementSummary: formData.achievementSummary,
+        additionalInfo: formData.additionalInfo,
+        supportingDocuments: formData.supportingDocuments || undefined,
+      });
+
+      setStep(4);
+    } catch (err) {
+      console.error('Nomination submission error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to submit nomination');
+    } finally {
+      setSubmitting(false);
+    }
   };
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-  e.preventDefault();
-  setSubmitting(true);
-  setError(null);
-
-  if (!formData.awardCategory) {
-    setError('Please select an award category');
-    setSubmitting(false);
-    return;
-  }
-
-  try {
-    // Remove the source parameter - backend will determine it automatically
-    await awardsApi.createNomination({
-      nomineeName: formData.nomineeName,
-      nomineeEmail: formData.nomineeEmail,
-      nomineeInstitution: formData.nomineeInstitution,
-      nomineeLocation: formData.nomineeLocation,
-      nomineeSpecialty: formData.nomineeSpecialty,
-      awardCategory: parseInt(formData.awardCategory),
-      nominatorName: formData.nominatorName,
-      nominatorEmail: formData.nominatorEmail,
-      nominatorRelationship: formData.nominatorRelationship,
-      achievementSummary: formData.achievementSummary,
-      additionalInfo: formData.additionalInfo,
-      supportingDocuments: formData.supportingDocuments || undefined,
-    });
-
-    setStep(4);
-  } catch (err) {
-    console.error('Nomination submission error:', err);
-    setError(err instanceof Error ? err.message : 'Failed to submit nomination');
-  } finally {
-    setSubmitting(false);
-  }
-};
 
   const handleNomineeSelect = (nominee: Nominee) => {
     setSelectedNominee(nominee);
@@ -207,7 +195,7 @@ const AwardNominationPage = () => {
             <div className="absolute top-4 left-0 right-0 h-1 bg-gray-200 z-0"></div>
             <div 
               className="absolute top-4 left-0 h-1 bg-orange-600 z-10 transition-all duration-300" 
-              style={{ width: `${(step - 1) * 33.33}%` }}
+              style={{ width: `${(step - 1) * 50}%` }}
             ></div>
             
             {[1, 2, 3, 4].map((stepNumber) => (
@@ -301,88 +289,41 @@ const AwardNominationPage = () => {
           <div className="bg-white border border-gray-200 rounded-lg p-6 md:p-8 shadow-sm">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Select Nominee</h2>
             <p className="text-gray-600 mb-6">
-              You can either select from our pre-approved nominees (votes count immediately) or suggest someone new (requires verification first).
+              Select from our pre-approved nominees for this award category.
             </p>
 
             <div className="mb-6">
-              <div className="flex space-x-4 mb-6">
-                <button
-                  onClick={() => setIsCustomNominee(false)}
-                  className={`px-4 py-2 rounded-md font-medium ${
-                    !isCustomNominee 
-                      ? 'bg-orange-600 text-white' 
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  Suggested Nominees
-                </button>
-                <button
-                  onClick={() => setIsCustomNominee(true)}
-                  className={`px-4 py-2 rounded-md font-medium ${
-                    isCustomNominee 
-                      ? 'bg-orange-600 text-white' 
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  Nominate Someone New
-                </button>
-              </div>
-
-              {!isCustomNominee ? (
-                <div className="space-y-4">
-                  {filteredNominees.length > 0 ? (
-                    filteredNominees.map(nominee => (
-                      <div 
-                        key={nominee.id}
-                        onClick={() => handleNomineeSelect(nominee)}
-                        className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
-                          selectedNominee?.id === nominee.id 
-                            ? 'border-orange-500 bg-orange-50' 
-                            : 'border-gray-200 hover:border-orange-300'
-                        }`}
-                      >
-                        <div className="flex items-start">
-                          <Users className="w-5 h-5 mt-1 mr-4 text-gray-500" />
-                          <div>
-                            <h3 className="font-bold text-gray-900">{nominee.name}</h3>
-                            <p className="text-sm text-gray-600">{nominee.institution}</p>
-                            <p className="text-xs text-gray-500 mt-1">{nominee.specialty}</p>
-                            {nominee.location && (
-                              <p className="text-xs text-gray-500">{nominee.location}</p>
-                            )}
-                          </div>
+              <div className="space-y-4">
+                {filteredNominees.length > 0 ? (
+                  filteredNominees.map(nominee => (
+                    <div 
+                      key={nominee.id}
+                      onClick={() => handleNomineeSelect(nominee)}
+                      className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
+                        selectedNominee?.id === nominee.id 
+                          ? 'border-orange-500 bg-orange-50' 
+                          : 'border-gray-200 hover:border-orange-300'
+                      }`}
+                    >
+                      <div className="flex items-start">
+                        <Users className="w-5 h-5 mt-1 mr-4 text-gray-500" />
+                        <div>
+                          <h3 className="font-bold text-gray-900">{nominee.name}</h3>
+                          <p className="text-sm text-gray-600">{nominee.institution}</p>
+                          <p className="text-xs text-gray-500 mt-1">{nominee.specialty}</p>
+                          {nominee.location && (
+                            <p className="text-xs text-gray-500">{nominee.location}</p>
+                          )}
                         </div>
                       </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-8 text-gray-500">
-                      <p>No suggested nominees available for this category.</p>
-                      <button 
-                        onClick={() => setIsCustomNominee(true)}
-                        className="mt-4 text-orange-600 font-medium"
-                      >
-                        Nominate someone new instead
-                      </button>
                     </div>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="p-6 border-2 border-dashed border-gray-300 rounded-lg text-center">
-                    <UserPlus className="w-10 h-10 mx-auto text-gray-400 mb-4" />
-                    <h3 className="font-bold text-gray-900 mb-2">Nominate Someone New</h3>
-                    <p className="text-gray-600 mb-4">
-                      Know someone deserving who isn't on our list? Tell us about them!
-                    </p>
-                    <button
-                      onClick={handleNominateNew}
-                      className="bg-orange-600 text-white px-6 py-2 rounded-md font-medium hover:bg-orange-700"
-                    >
-                      Continue with New Nominee
-                    </button>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <p>No suggested nominees available for this category.</p>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
             <div className="flex justify-between">
@@ -634,44 +575,30 @@ const AwardNominationPage = () => {
 
         {/* Step 4: Confirmation */}
         {step === 4 && (
-        <div className="bg-white border border-gray-200 rounded-lg p-6 md:p-8 shadow-sm text-center">
-          <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
-            <CheckCircle className="h-6 w-6 text-green-600" />
+          <div className="bg-white border border-gray-200 rounded-lg p-6 md:p-8 shadow-sm text-center">
+            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+              <CheckCircle className="h-6 w-6 text-green-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Nomination Submitted!</h2>
+            <p className="text-gray-600 mb-6">
+              Thank you for nominating a candidate. Your nomination has been added to the poll and a confirmation has been sent to your email.
+            </p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-left">
+              <h3 className="font-medium text-gray-900 mb-2">Next Steps:</h3>
+              <ul className="list-disc pl-5 space-y-1 text-sm text-gray-600">
+                <li>Your vote has been counted in the category poll</li>
+                <li>You can track the progress of nominees</li>
+                <li>Winners will be announced at our annual conference</li>
+              </ul>
+            </div>
+            <Link 
+              to="/awards" 
+              className="inline-flex items-center bg-orange-600 text-white px-6 py-2 rounded-md font-medium hover:bg-orange-700"
+            >
+              Back to Awards
+            </Link>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Nomination Submitted!</h2>
-          <p className="text-gray-600 mb-6">
-            {selectedNominee 
-              ? "Thank you for nominating a suggested candidate. Your nomination has been added to the poll and a confirmation has been sent to your email."
-              : "Thank you for suggesting a new nominee. Your submission will be reviewed by our committee before being added to the poll. We've sent a confirmation to your email."
-            }
-          </p>
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-left">
-            <h3 className="font-medium text-gray-900 mb-2">Next Steps:</h3>
-            <ul className="list-disc pl-5 space-y-1 text-sm text-gray-600">
-              {selectedNominee ? (
-                <>
-                  <li>Your vote has been counted in the category poll</li>
-                  <li>You can track the progress of nominees</li>
-                  <li>Winners will be announced at our annual conference</li>
-                </>
-              ) : (
-                <>
-                  <li>Our committee will review the new nominee submission</li>
-                  <li>You may be contacted for additional information</li>
-                  <li>If approved, the nominee will be added to the poll</li>
-                  <li>Winners will be announced at our annual conference</li>
-                </>
-              )}
-            </ul>
-          </div>
-          <Link 
-            to="/awards" 
-            className="inline-flex items-center bg-orange-600 text-white px-6 py-2 rounded-md font-medium hover:bg-orange-700"
-          >
-            Back to Awards
-          </Link>
-        </div>
-      )}
+        )}
       </div>
     </div>
   );

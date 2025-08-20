@@ -136,13 +136,6 @@ class NomineeViewSet(viewsets.ModelViewSet):
         
         serializer = self.get_serializer(nominee)
         return Response(serializer.data)
-
-    @action(detail=False, methods=['get'])
-    def for_verification(self, request):
-        """Get nominees that need verification"""
-        nominees = Nominee.objects.filter(status='Pending', source='new')
-        serializer = self.get_serializer(nominees, many=True)
-        return Response(serializer.data)
     
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -157,7 +150,7 @@ class NomineeViewSet(viewsets.ModelViewSet):
         if category_filter:
             queryset = queryset.filter(category_id=category_filter)
         
-        # Filter by source if provided - FIX THIS FILTER
+        # Filter by source if provided
         source_filter = self.request.query_params.get('source')
         if source_filter:
             # Handle multiple source values (comma-separated)
@@ -269,7 +262,7 @@ class AwardNominationViewSet(viewsets.ModelViewSet):
         if category_filter:
             queryset = queryset.filter(category_id=category_filter)
         
-        # Filter by source if provided - ADD THIS FILTER
+        # Filter by source if provided
         source_filter = self.request.query_params.get('source')
         if source_filter:
             queryset = queryset.filter(source=source_filter)
@@ -300,97 +293,19 @@ class AwardNominationViewSet(viewsets.ModelViewSet):
         nomination.status = new_status
         nomination.save()
         
-        # If approved, create a nominee record
-        if new_status == 'Approved':
-            self.create_nominee_from_nomination(nomination)
-        
         serializer = self.get_serializer(nomination)
         return Response(serializer.data)
     
-    def create_nominee_from_nomination(self, nomination):
-        """Create a nominee record from an approved nomination"""
-        # For suggested nominations, find the existing nominee
-        if nomination.source == 'suggested':
-            try:
-                # Find existing nominee by name and category
-                nominee = Nominee.objects.get(
-                    name__iexact=nomination.nominee_name,
-                    category=nomination.award_category,
-                    source__in=['admin', 'suggested']
-                )
-                return nominee
-            except Nominee.DoesNotExist:
-                # Create if doesn't exist (shouldn't happen)
-                return Nominee.objects.create(
-                    name=nomination.nominee_name,
-                    category=nomination.award_category,
-                    institution=nomination.nominee_institution,
-                    specialty=nomination.nominee_specialty or '',
-                    achievement=nomination.achievement_summary,
-                    email=nomination.nominee_email,
-                    location=nomination.nominee_location or '',
-                    suggested_by=f"{nomination.nominator_name} ({nomination.nominator_email})",
-                    status='Approved',
-                    source='suggested',
-                )
-        else:
-            # For new nominations, create for verification
-            nominee, created = Nominee.objects.get_or_create(
-                name=nomination.nominee_name,
-                category=nomination.award_category,
-                source='new',
-                defaults={
-                    'institution': nomination.nominee_institution,
-                    'specialty': nomination.nominee_specialty or '',
-                    'achievement': nomination.achievement_summary,
-                    'email': nomination.nominee_email,
-                    'location': nomination.nominee_location or '',
-                    'suggested_by': f"{nomination.nominator_name} ({nomination.nominator_email})",
-                    'status': 'Pending',
-                }
-            )
-            return nominee
-    
     def perform_create(self, serializer):
-        """Override create to automatically determine source based on existing nominees"""
+        """Override create to handle nomination for suggested nominees"""
         nomination = serializer.save()
         
-        # Check if this nominee already exists in the suggested list
-        existing_nominees = Nominee.objects.filter(
-            name__iexact=nomination.nominee_name,
-            category=nomination.award_category,
-            source__in=['admin', 'suggested'],
-            status='Approved'
-        )
+        # All nominations are for suggested nominees - go directly to poll
+        nomination.source = 'suggested'
+        nomination.status = 'Approved'
+        nomination.save()
         
-        if existing_nominees.exists():
-            # This is a vote for a suggested nominee - go directly to poll
-            nomination.source = 'suggested'
-            nomination.status = 'Approved'
-            nomination.save()
-            
-            # No need to create a new nominee, just count the vote
-            print(f"Vote counted for existing nominee: {nomination.nominee_name}")
-        else:
-            # This is a new nomination - needs verification
-            nomination.source = 'new'
-            nomination.status = 'Pending'
-            nomination.save()
-            
-            # Create a Nominee object for verification queue
-            Nominee.objects.create(
-                name=nomination.nominee_name,
-                institution=nomination.nominee_institution,
-                specialty=nomination.nominee_specialty or '',
-                category=nomination.award_category,
-                achievement=nomination.achievement_summary,
-                email=nomination.nominee_email,
-                location=nomination.nominee_location or '',
-                suggested_by=nomination.nominator_name,
-                status='Pending',
-                source='new'
-            )
-            print(f"New nominee created for verification: {nomination.nominee_name}")
+        print(f"Vote counted for nominee: {nomination.nominee_name}")
 
         # Send confirmation email
         try:
@@ -399,8 +314,8 @@ class AwardNominationViewSet(viewsets.ModelViewSet):
             logger.error(f"Failed to send confirmation email: {str(e)}")
 
     def send_nomination_confirmation(self, nomination):
-        """Send nomination confirmation email with appropriate message based on source"""
-        subject = f"Nomination Confirmation: {nomination.nominee_name}"
+        """Send nomination confirmation email"""
+        subject = f"Nomination Submitted: {nomination.nominee_name}"
         from_email = settings.DEFAULT_FROM_EMAIL
         to = [nomination.nominator_email]
 
@@ -412,13 +327,8 @@ class AwardNominationViewSet(viewsets.ModelViewSet):
 
         try:
             # Use correct template paths based on your file structure
-            if nomination.source == 'suggested':
-                subject = f"Nomination Submitted: {nomination.nominee_name}"
-                html_template = "emails/suggested_nomination_confirmation.html"
-                text_template = "emails/suggested_nomination_confirmation.txt"
-            else:
-                html_template = "emails/nomination_confirmation.html"
-                text_template = "emails/nomination_confirmation.txt"
+            html_template = "emails/suggested_nomination_confirmation.html"
+            text_template = "emails/suggested_nomination_confirmation.txt"
 
             # HTML version
             html_content = render_to_string(html_template, context)

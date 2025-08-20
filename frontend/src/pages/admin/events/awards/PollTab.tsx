@@ -39,75 +39,85 @@ const PollTab: React.FC<PollTabProps> = ({
   const [selectedNominee, setSelectedNominee] = useState<Nominee | null>(null);
 
   useEffect(() => {
-  const processedData: CategoryPollData[] = categories.map(category => {
-    console.log(`\nProcessing category: ${category.title} (ID: ${category.id})`);
-    
-    // Only get approved nominees for this category from 'admin' or 'suggested' sources
-    const categoryNominees = nominees.filter(nominee => {
-      const isMatch = nominee.category === category.id &&
-        nominee.status === 'Approved' &&
-        (nominee.source === 'admin' || nominee.source === 'suggested');
-      
-      if (isMatch) {
-        console.log(`✅ Approved nominee: ${nominee.name} (Source: ${nominee.source})`);
-      }
-      
-      return isMatch;
-    });
+    const processedData: CategoryPollData[] = categories.map(category => {
+      // Get approved nominees for this category (from both sources)
+      const categoryNominees = nominees.filter(nominee => 
+        nominee.category === category.id && nominee.status === 'Approved'
+      );
 
-    // Get APPROVED nominations for this category from ALL sources
-    const categoryNominations = nominations.filter(nomination => {
-      const isMatch = nomination.awardCategory === category.id &&
-        nomination.status === 'Approved';
-      
-      if (isMatch) {
-        console.log(`✅ Approved nomination: ${nomination.nomineeName} (Source: ${nomination.source})`);
-      }
-      
-      return isMatch;
-    });
+      // Get nominations for this category
+      const categoryNominations = nominations.filter(nomination => 
+        nomination.awardCategory === category.id
+      );
 
-    console.log(`Category ${category.title}: ${categoryNominations.length} approved nominations`);
+      // Process polls data
+      const nomineeVoteMap = new Map<number, { nominee: Nominee; nominations: AwardNomination[] }>();
 
-    // Process polls data
-    const polls: PollData[] = categoryNominees.map(nominee => {
-      const nomineeNominations = categoryNominations.filter(nomination => {
-        // Trim and case-insensitive comparison
-        const nomName = nomination.nomineeName.trim().toLowerCase();
-        const nomineeName = nominee.name.trim().toLowerCase();
-        const isMatch = nomName === nomineeName;
-        
-        if (isMatch) {
-          console.log(`🎯 MATCH: Nomination "${nomination.nomineeName}" -> Nominee "${nominee.name}"`);
-        }
-        
-        return isMatch;
+      // Initialize with nominees
+      categoryNominees.forEach(nominee => {
+        nomineeVoteMap.set(nominee.id, { nominee, nominations: [] });
       });
-      
-      const voteCount = nomineeNominations.length;
-      console.log(`📊 ${nominee.name}: ${voteCount} votes`);
-      
+
+      // Add nominations and count votes
+      categoryNominations.forEach(nomination => {
+        // Find matching nominee by name (for cases where nominee might not be in nominees list yet)
+        const matchingNominee = Array.from(nomineeVoteMap.values()).find(item => 
+          item.nominee.name.toLowerCase() === nomination.nomineeName.toLowerCase()
+        );
+
+        if (matchingNominee) {
+          matchingNominee.nominations.push(nomination);
+        } else {
+          // Create virtual nominee from nomination data if not found
+          const virtualNominee: Nominee = {
+            id: -nomination.id, // Negative ID to avoid conflicts
+            name: nomination.nomineeName,
+            institution: nomination.nomineeInstitution,
+            specialty: nomination.nomineeSpecialty,
+            category: nomination.awardCategory,
+            categoryTitle: category.title,
+            achievement: nomination.achievementSummary,
+            email: nomination.nomineeEmail,
+            phone: '',
+            location: nomination.nomineeLocation,
+            imageUrl: '',
+            status: 'Approved',
+            suggestedBy: nomination.nominatorName,
+            suggestedDate: nomination.submissionDate,
+            createdAt: nomination.createdAt,
+            updatedAt: nomination.updatedAt,
+            source: 'nomination'
+          };
+          
+          nomineeVoteMap.set(virtualNominee.id, { 
+            nominee: virtualNominee, 
+            nominations: [nomination] 
+          });
+        }
+      });
+
+      const totalVotes = Array.from(nomineeVoteMap.values()).reduce((sum, item) => 
+        sum + item.nominations.length, 0
+      );
+
+      const polls: PollData[] = Array.from(nomineeVoteMap.values()).map(item => ({
+        nominee: item.nominee,
+        voteCount: item.nominations.length,
+        nominations: item.nominations,
+        percentage: totalVotes > 0 ? (item.nominations.length / totalVotes) * 100 : 0
+      })).sort((a, b) => b.voteCount - a.voteCount);
+
       return {
-        nominee,
-        voteCount,
-        nominations: nomineeNominations,
-        percentage: categoryNominations.length > 0 ? (voteCount / categoryNominations.length) * 100 : 0
+        category,
+        polls,
+        totalVotes
       };
-    }).sort((a, b) => b.voteCount - a.voteCount);
+    }).filter(categoryData => categoryData.polls.length > 0 || searchTerm);
 
-    return {
-      category,
-      polls,
-      totalVotes: categoryNominations.length
-    };
-  }).filter(categoryData => categoryData.polls.length > 0 || searchTerm);
+    setCategoryPollData(processedData);
+  }, [categories, nominees, nominations, searchTerm]);
 
-  console.log('Final processed data:', processedData);
-  setCategoryPollData(processedData);
-}, [categories, nominees, nominations, searchTerm]);
-
-
-  function toggleCategory(categoryId: number) {
+  const toggleCategory = (categoryId: number) => {
     const newExpanded = new Set(expandedCategories);
     if (newExpanded.has(categoryId)) {
       newExpanded.delete(categoryId);
@@ -115,7 +125,7 @@ const PollTab: React.FC<PollTabProps> = ({
       newExpanded.add(categoryId);
     }
     setExpandedCategories(newExpanded);
-  }
+  };
 
   const handleDeclareWinner = async (poll: PollData, category: AwardCategory) => {
     if (window.confirm(`Declare ${poll.nominee.name} as the winner of ${category.title}?`)) {

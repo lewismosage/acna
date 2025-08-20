@@ -4,7 +4,6 @@ import {
   Award, Trophy, UserCheck, BarChart, Search, Loader
 } from 'lucide-react';
 import { awardsApi, AwardCategory, AwardWinner, Nominee, AwardNomination } from '../../../../services/awardsApi';
-import NomineesTab from './NomineesTab';
 import PollTab from './PollTab';
 import CategoriesTab from './CategoriesTab';
 
@@ -71,20 +70,6 @@ const AdminAwardsManagement = () => {
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update status');
-    }
-  };
-
-  // Handle adding nominee to poll (move from nominees to poll)
-  const handleAddToPoll = async (nominee: Nominee) => {
-    try {
-      await awardsApi.updateNominee(nominee.id, { 
-        status: 'Approved',
-      });
-      
-      await fetchAllData();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to add nominee to poll');
-      throw err;
     }
   };
 
@@ -173,7 +158,6 @@ const AdminAwardsManagement = () => {
             <nav className="flex space-x-8">
               {[
                 { id: 'winners', label: 'Award Winners', count: awardWinners.length, icon: Trophy },
-                { id: 'nominees', label: 'Verification Queue', count: unverifiedNomineesCount, icon: UserCheck },
                 { id: 'poll', label: 'Category Polls', count: pollNomineesCount, icon: BarChart },
                 { id: 'categories', label: 'Categories', count: awardCategories.length, icon: Award }
               ].map((tab) => (
@@ -230,16 +214,6 @@ const AdminAwardsManagement = () => {
                 </div>
               )}
             </div>
-          )}
-
-          {selectedTab === 'nominees' && (
-            <NomineesTab
-              nominees={nominees}
-              searchTerm={searchTerm}
-              loading={loading}
-              onAddToPoll={handleAddToPoll}
-              onRefresh={fetchAllData}
-            />
           )}
 
           {selectedTab === 'poll' && (
