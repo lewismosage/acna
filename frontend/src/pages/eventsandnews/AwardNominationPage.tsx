@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, CheckCircle, UserPlus, Users, Award, Loader } from 'lucide-react';
+import { ArrowLeft, CheckCircle, UserPlus, Users, Award, Loader, Info } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import ScrollToTop from '../../components/common/ScrollToTop';
 import { awardsApi, AwardCategory, Nominee } from '../../services/awardsApi';
@@ -84,6 +84,8 @@ const AwardNominationPage = () => {
   };
 
   const handleNominateNew = () => {
+    setSelectedNominee(null); 
+    setIsCustomNominee(true);
     if (!formData.awardCategory) {
       setError('Please select an award category first');
       return;
@@ -91,45 +93,42 @@ const AwardNominationPage = () => {
     setStep(3);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setError(null);
-  
-    if (!formData.awardCategory) {
-      setError('Please select an award category');
-      setSubmitting(false);
-      return;
-    }
-  
-    try {
-      // Determine the source based on whether it's a suggested nominee or new nomination
-      const source = selectedNominee ? 'suggested' : 'new';
-      
-      await awardsApi.createNomination({
-        nomineeName: formData.nomineeName,
-        nomineeEmail: formData.nomineeEmail,
-        nomineeInstitution: formData.nomineeInstitution,
-        nomineeLocation: formData.nomineeLocation,
-        nomineeSpecialty: formData.nomineeSpecialty,
-        awardCategory: parseInt(formData.awardCategory),
-        nominatorName: formData.nominatorName,
-        nominatorEmail: formData.nominatorEmail,
-        nominatorRelationship: formData.nominatorRelationship,
-        achievementSummary: formData.achievementSummary,
-        additionalInfo: formData.additionalInfo,
-        supportingDocuments: formData.supportingDocuments || undefined,
-        source: source  // Make sure this is included
-      });
-  
-      setStep(4);
-    } catch (err) {
-      console.error('Nomination submission error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to submit nomination');
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+  setSubmitting(true);
+  setError(null);
+
+  if (!formData.awardCategory) {
+    setError('Please select an award category');
+    setSubmitting(false);
+    return;
+  }
+
+  try {
+    // Remove the source parameter - backend will determine it automatically
+    await awardsApi.createNomination({
+      nomineeName: formData.nomineeName,
+      nomineeEmail: formData.nomineeEmail,
+      nomineeInstitution: formData.nomineeInstitution,
+      nomineeLocation: formData.nomineeLocation,
+      nomineeSpecialty: formData.nomineeSpecialty,
+      awardCategory: parseInt(formData.awardCategory),
+      nominatorName: formData.nominatorName,
+      nominatorEmail: formData.nominatorEmail,
+      nominatorRelationship: formData.nominatorRelationship,
+      achievementSummary: formData.achievementSummary,
+      additionalInfo: formData.additionalInfo,
+      supportingDocuments: formData.supportingDocuments || undefined,
+    });
+
+    setStep(4);
+  } catch (err) {
+    console.error('Nomination submission error:', err);
+    setError(err instanceof Error ? err.message : 'Failed to submit nomination');
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   const handleNomineeSelect = (nominee: Nominee) => {
     setSelectedNominee(nominee);
@@ -236,37 +235,64 @@ const AwardNominationPage = () => {
           <div className="bg-white border border-gray-200 rounded-lg p-6 md:p-8 shadow-sm">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Select Award Category</h2>
             
-            <div className="space-y-4 mb-8">
-              {awardCategories.map((category) => (
-                <div 
-                  key={category.id}
-                  onClick={() => {
-                    setFormData(prev => ({ ...prev, awardCategory: category.id.toString() }));
-                    setStep(2);
-                  }}
-                  className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
-                    formData.awardCategory === category.id.toString() 
-                      ? 'border-orange-500 bg-orange-50' 
-                      : 'border-gray-200 hover:border-orange-300'
-                  }`}
-                >
+            {awardCategories.length > 0 ? (
+              <div className="space-y-4 mb-8">
+                {awardCategories.map((category) => (
+                  <div 
+                    key={category.id}
+                    onClick={() => {
+                      setFormData(prev => ({ ...prev, awardCategory: category.id.toString() }));
+                      setStep(2);
+                    }}
+                    className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
+                      formData.awardCategory === category.id.toString() 
+                        ? 'border-orange-500 bg-orange-50' 
+                        : 'border-gray-200 hover:border-orange-300'
+                    }`}
+                  >
+                    <div className="flex items-start">
+                      <Award className={`w-6 h-6 mt-1 mr-4 ${
+                        formData.awardCategory === category.id.toString() ? 'text-orange-600' : 'text-gray-500'
+                      }`} />
+                      <div>
+                        <h3 className="font-bold text-gray-900">{category.title}</h3>
+                        <p className="text-sm text-gray-600 mt-1">{category.description}</p>
+                        {category.criteria && (
+                          <div className="mt-2">
+                            <strong className="text-xs text-gray-500">Criteria:</strong>
+                            <ul className="text-xs text-gray-500 mt-1 list-disc list-inside space-y-1">
+                              {category.criteria.split('\n').filter(criterion => criterion.trim() !== '').map((criterion, index) => (
+                                <li key={index}>{criterion.trim()}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <Award className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No award categories found</h3>
+                <p className="text-gray-500 mb-4">
+                  No award categories have been created yet. Please check back later or contact the administrator.
+                </p>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6 text-left">
                   <div className="flex items-start">
-                    <Award className={`w-6 h-6 mt-1 mr-4 ${
-                      formData.awardCategory === category.id.toString() ? 'text-orange-600' : 'text-gray-500'
-                    }`} />
+                    <Info className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
                     <div>
-                      <h3 className="font-bold text-gray-900">{category.title}</h3>
-                      <p className="text-sm text-gray-600 mt-1">{category.description}</p>
-                      {category.criteria && (
-                        <p className="text-xs text-gray-500 mt-2">
-                          <strong>Criteria:</strong> {category.criteria}
-                        </p>
-                      )}
+                      <h4 className="font-medium text-blue-900 mb-1">What does this mean?</h4>
+                      <p className="text-sm text-blue-700">
+                        Award categories need to be set up by the administration before nominations can be submitted. 
+                        Once categories are created, you'll be able to nominate deserving individuals for each award.
+                      </p>
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -275,7 +301,7 @@ const AwardNominationPage = () => {
           <div className="bg-white border border-gray-200 rounded-lg p-6 md:p-8 shadow-sm">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Select Nominee</h2>
             <p className="text-gray-600 mb-6">
-              You can either select from our suggested nominees or nominate someone new.
+              You can either select from our pre-approved nominees (votes count immediately) or suggest someone new (requires verification first).
             </p>
 
             <div className="mb-6">
@@ -608,30 +634,44 @@ const AwardNominationPage = () => {
 
         {/* Step 4: Confirmation */}
         {step === 4 && (
-          <div className="bg-white border border-gray-200 rounded-lg p-6 md:p-8 shadow-sm text-center">
-            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
-              <CheckCircle className="h-6 w-6 text-green-600" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Nomination Submitted!</h2>
-            <p className="text-gray-600 mb-6">
-              Thank you for submitting your nomination for the ACNA Awards. We've sent a confirmation to your email.
-            </p>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-left">
-              <h3 className="font-medium text-gray-900 mb-2">Next Steps:</h3>
-              <ul className="list-disc pl-5 space-y-1 text-sm text-gray-600">
-                <li>Our committee will review all nominations</li>
-                <li>You may be contacted for additional information</li>
-                <li>Winners will be announced at our annual conference</li>
-              </ul>
-            </div>
-            <Link 
-              to="/awards" 
-              className="inline-flex items-center bg-orange-600 text-white px-6 py-2 rounded-md font-medium hover:bg-orange-700"
-            >
-              Back to Awards
-            </Link>
+        <div className="bg-white border border-gray-200 rounded-lg p-6 md:p-8 shadow-sm text-center">
+          <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+            <CheckCircle className="h-6 w-6 text-green-600" />
           </div>
-        )}
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Nomination Submitted!</h2>
+          <p className="text-gray-600 mb-6">
+            {selectedNominee 
+              ? "Thank you for nominating a suggested candidate. Your nomination has been added to the poll and a confirmation has been sent to your email."
+              : "Thank you for suggesting a new nominee. Your submission will be reviewed by our committee before being added to the poll. We've sent a confirmation to your email."
+            }
+          </p>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-left">
+            <h3 className="font-medium text-gray-900 mb-2">Next Steps:</h3>
+            <ul className="list-disc pl-5 space-y-1 text-sm text-gray-600">
+              {selectedNominee ? (
+                <>
+                  <li>Your vote has been counted in the category poll</li>
+                  <li>You can track the progress of nominees</li>
+                  <li>Winners will be announced at our annual conference</li>
+                </>
+              ) : (
+                <>
+                  <li>Our committee will review the new nominee submission</li>
+                  <li>You may be contacted for additional information</li>
+                  <li>If approved, the nominee will be added to the poll</li>
+                  <li>Winners will be announced at our annual conference</li>
+                </>
+              )}
+            </ul>
+          </div>
+          <Link 
+            to="/awards" 
+            className="inline-flex items-center bg-orange-600 text-white px-6 py-2 rounded-md font-medium hover:bg-orange-700"
+          >
+            Back to Awards
+          </Link>
+        </div>
+      )}
       </div>
     </div>
   );

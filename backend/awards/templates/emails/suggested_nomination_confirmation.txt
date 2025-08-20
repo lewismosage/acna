@@ -1,0 +1,8 @@
+Nomination Confirmation
+
+Thank you for nominating {{ nomination.nominee_name }} for the {{ nomination.award_category.title }} award.
+
+Your nomination has been successfully submitted and counted in the poll.
+
+Best regards,
+{{ company_name }}

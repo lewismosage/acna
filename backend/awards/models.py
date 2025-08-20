@@ -72,6 +72,8 @@ class AwardWinner(models.Model):
 class Nominee(models.Model):
     SOURCE_CHOICES = [
         ('admin', 'Admin Added'),
+        ('suggested', 'Suggested Nominee'),
+        ('new', 'New Nomination'),
         ('nomination', 'Public Nomination'),
     ] 
 

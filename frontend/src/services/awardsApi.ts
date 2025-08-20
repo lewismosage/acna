@@ -36,7 +36,7 @@ export interface Nominee {
   phone: string;
   location: string;
   imageUrl: string;
-  status: 'Pending' | 'Approved' | 'Rejected';
+  status: 'Pending' | 'Approved' | 'Rejected' | 'Winner';
   suggestedBy: string;
   suggestedDate: string;
   createdAt: string;
@@ -63,6 +63,7 @@ export interface AwardNomination {
   submissionDate: string;
   createdAt: string;
   updatedAt: string;
+  source: string;
 }
 
 export interface CreateAwardWinnerInput {
@@ -86,8 +87,9 @@ export interface CreateNomineeInput {
   phone: string;
   location: string;
   imageUrl: string;
-  status: 'Pending' | 'Approved' | 'Rejected';
+  status: 'Pending' | 'Approved' | 'Rejected' | 'Winner';
   suggestedBy: string;
+  source?: string;
 }
 
 export interface CreateAwardNominationInput {
@@ -179,7 +181,7 @@ const normalizeAwardWinner = (data: any): AwardWinner => ({
   status: data.status || 'Active',
   imageUrl: data.imageUrl || data.image_url || '',
   createdAt: data.createdAt || data.created_at || '',
-  updatedAt: data.updatedAt || data.updated_at || '',
+  updatedAt: data.UpdatedAt || data.updated_at || '',
 });
 
 const normalizeNominee = (data: any): Nominee => ({
@@ -221,6 +223,7 @@ const normalizeAwardNomination = (data: any): AwardNomination => ({
   submissionDate: data.submissionDate || data.submission_date || '',
   createdAt: data.createdAt || data.created_at || '',
   updatedAt: data.updatedAt || data.updated_at || '',
+  source: data.source || 'admin',
 });
 
 export const awardsApi = {
@@ -584,6 +587,27 @@ export const awardsApi = {
     
     return handleResponse(response);
   },
+
+  // Add method to get nominees by verification status
+  getNomineesForVerification: async (): Promise<Nominee[]> => {
+    const response = await fetch(`${API_BASE_URL}/awards/nominees/?status=Pending&source=new`, {
+      headers: getAuthHeaders(),
+    });
+    
+    const data = await handleResponse(response);
+    return Array.isArray(data) ? data.map(normalizeNominee) : [];
+  },
+
+  // Add method to approve nominee and add to poll
+  approveNominee: async (id: number): Promise<Nominee> => {
+    const response = await fetch(`${API_BASE_URL}/awards/nominees/${id}/approve/`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+    });
+    
+    const result = await handleResponse(response);
+    return normalizeNominee(result);
+  },
 };
 
 // Export individual functions for convenience
@@ -615,4 +639,6 @@ export const {
   deleteNomination,
   updateNominationStatus,
   sendNominationConfirmation,
+  getNomineesForVerification,
+  approveNominee,
 } = awardsApi;
