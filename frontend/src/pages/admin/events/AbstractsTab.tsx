@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   FileText, 
   Plus, 
@@ -20,52 +20,20 @@ import {
   FileCheck,
   XCircle,
   MessageCircle,
-  Phone
+  Phone,
+  Loader
 } from 'lucide-react';
+import { abstractApi, Abstract, AbstractStatus, Author } from '../../../services/abstractApi';
+import LoadingSpinner from '../../../components/common/LoadingSpinner';
 
-type AbstractStatus = 'Under Review' | 'Accepted' | 'Revision Required' | 'Rejected';
 type PresentationType = 'Oral Presentation' | 'Poster Presentation' | 'E-Poster' | 'No Preference';
 type AbstractCategory = 'Clinical Research' | 'Basic Science & Translational Research' | 'Healthcare Technology & Innovation' | 'Medical Education & Training' | 'Public Health & Policy' | 'Case Reports';
 
-export interface Author {
-  firstName: string;
-  lastName: string;
-  email: string;
-  institution: string;
-  country: string;
-  isPresenter: boolean;
-  isCorresponding: boolean;
-}
-
-export interface Abstract {
-  id: number;
-  title: string;
-  authors: Author[];
-  category: AbstractCategory;
-  presentationPreference: PresentationType;
-  keywords: string[];
-  background: string;
-  methods: string;
-  results: string;
-  conclusions: string;
-  conflictOfInterest: string;
-  status: AbstractStatus;
-  submittedDate: string;
-  lastUpdated: string;
-  abstractFileUrl?: string;
-  ethicalApprovalUrl?: string;
-  supplementaryFilesUrl?: string;
-  reviewerComments?: string;
-  assignedReviewer?: string;
-  rating?: number;
-  isFeatured?: boolean;
-}
-
 interface AbstractsTabProps {
-  abstracts: Abstract[];
+  abstracts?: Abstract[];
 }
 
-const AbstractsTab: React.FC<AbstractsTabProps> = ({ abstracts: initialAbstracts }) => {
+const AbstractsTab: React.FC<AbstractsTabProps> = ({ abstracts: initialAbstracts = [] }) => {
   const [abstracts, setAbstracts] = useState<Abstract[]>(initialAbstracts);
   const [selectedTab, setSelectedTab] = useState<'all' | 'review' | 'accepted' | 'revision' | 'rejected'>('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -73,148 +41,44 @@ const AbstractsTab: React.FC<AbstractsTabProps> = ({ abstracts: initialAbstracts
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [currentAbstract, setCurrentAbstract] = useState<Abstract | null>(null);
   const [reviewerComments, setReviewerComments] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState<number | null>(null);
+  const [stats, setStats] = useState({
+    total: 0,
+    underReview: 0,
+    accepted: 0,
+    revisionRequired: 0,
+    rejected: 0,
+  });
 
-  // Sample data for admin view
-  const [allAbstracts, setAllAbstracts] = useState<Abstract[]>([
-    {
-      id: 1,
-      title: "Novel Biomarkers for Early Detection of Pediatric Epilepsy in African Populations",
-      authors: [
-        {
-          firstName: "Amina",
-          lastName: "Diallo",
-          email: "a.diallo@university.edu",
-          institution: "University of Dakar",
-          country: "Senegal",
-          isPresenter: true,
-          isCorresponding: true
-        },
-        {
-          firstName: "Kwame",
-          lastName: "Osei",
-          email: "k.osei@hospital.org",
-          institution: "Korle Bu Teaching Hospital",
-          country: "Ghana",
-          isPresenter: false,
-          isCorresponding: false
-        }
-      ],
-      category: "Clinical Research",
-      presentationPreference: "Oral Presentation",
-      keywords: ["epilepsy", "biomarkers", "pediatric", "Africa"],
-      background: "Early detection of pediatric epilepsy in resource-limited settings remains a significant challenge...",
-      methods: "We conducted a prospective cohort study of 500 children presenting with seizure-like symptoms...",
-      results: "Preliminary results identified three novel biomarkers with sensitivity of 92% and specificity of 88%...",
-      conclusions: "These biomarkers show promise for early detection of pediatric epilepsy in African populations...",
-      conflictOfInterest: "None declared",
-      status: "Under Review",
-      submittedDate: "2025-03-15",
-      lastUpdated: "2025-03-15",
-      abstractFileUrl: "/abstracts/1.pdf",
-      ethicalApprovalUrl: "/ethics/1.pdf",
-      rating: 4.5,
-      isFeatured: true
-    },
-    {
-      id: 2,
-      title: "Community-Based Rehabilitation for Children with Cerebral Palsy in Rural Tanzania",
-      authors: [
-        {
-          firstName: "Fatima",
-          lastName: "Nkosi",
-          email: "f.nkosi@rehab.org",
-          institution: "University of Cape Town",
-          country: "South Africa",
-          isPresenter: true,
-          isCorresponding: true
-        }
-      ],
-      category: "Public Health & Policy",
-      presentationPreference: "Poster Presentation",
-      keywords: ["cerebral palsy", "rehabilitation", "community health", "Tanzania"],
-      background: "Access to rehabilitation services for children with cerebral palsy in rural Africa is extremely limited...",
-      methods: "We trained 50 community health workers in basic rehabilitation techniques and followed 120 children...",
-      results: "After 12 months, 78% of children showed improved motor function compared to baseline...",
-      conclusions: "Community-based rehabilitation is a feasible and effective approach in resource-limited settings...",
-      conflictOfInterest: "None declared",
-      status: "Accepted",
-      submittedDate: "2025-02-28",
-      lastUpdated: "2025-03-20",
-      abstractFileUrl: "/abstracts/2.pdf",
-      ethicalApprovalUrl: "/ethics/2.pdf",
-      supplementaryFilesUrl: "/supplementary/2.zip",
-      rating: 4.2
-    },
-    {
-      id: 3,
-      title: "Machine Learning Algorithm for EEG Interpretation in Neonatal Seizures",
-      authors: [
-        {
-          firstName: "Michael",
-          lastName: "Chen",
-          email: "m.chen@tech.edu",
-          institution: "African Institute of Technology",
-          country: "Kenya",
-          isPresenter: true,
-          isCorresponding: true
-        },
-        {
-          firstName: "Sarah",
-          lastName: "Johnson",
-          email: "s.johnson@tech.edu",
-          institution: "African Institute of Technology",
-          country: "Kenya",
-          isPresenter: false,
-          isCorresponding: false
-        }
-      ],
-      category: "Healthcare Technology & Innovation",
-      presentationPreference: "Oral Presentation",
-      keywords: ["machine learning", "EEG", "neonatal", "seizures"],
-      background: "Interpretation of neonatal EEG requires specialized training that is often unavailable in Africa...",
-      methods: "We developed a convolutional neural network trained on 10,000 EEG samples from neonates...",
-      results: "The algorithm achieved 94% accuracy in detecting seizure activity compared to expert review...",
-      conclusions: "This tool could significantly improve access to EEG interpretation in resource-limited settings...",
-      conflictOfInterest: "Patent pending for the algorithm",
-      status: "Revision Required",
-      submittedDate: "2025-03-10",
-      lastUpdated: "2025-03-25",
-      abstractFileUrl: "/abstracts/3.pdf",
-      reviewerComments: "Please provide more details on the training dataset and validation methods.",
-      assignedReviewer: "Dr. James Ochieng",
-      rating: 3.8
-    },
-    {
-      id: 4,
-      title: "Impact of Maternal Nutrition on Neurodevelopmental Outcomes in Nigerian Infants",
-      authors: [
-        {
-          firstName: "Ngozi",
-          lastName: "Eze",
-          email: "n.eze@hospital.org",
-          institution: "University of Nigeria Teaching Hospital",
-          country: "Nigeria",
-          isPresenter: true,
-          isCorresponding: true
-        }
-      ],
-      category: "Basic Science & Translational Research",
-      presentationPreference: "No Preference",
-      keywords: ["maternal nutrition", "neurodevelopment", "infants", "Nigeria"],
-      background: "Maternal malnutrition remains prevalent in sub-Saharan Africa with potential impacts on neurodevelopment...",
-      methods: "Prospective cohort study of 1,200 mother-infant pairs assessing nutritional status and developmental outcomes...",
-      results: "Significant correlations found between maternal micronutrient levels and infant cognitive scores at 12 months...",
-      conclusions: "Nutritional interventions during pregnancy may improve neurodevelopmental outcomes...",
-      conflictOfInterest: "None declared",
-      status: "Rejected",
-      submittedDate: "2025-01-20",
-      lastUpdated: "2025-02-15",
-      abstractFileUrl: "/abstracts/4.pdf",
-      reviewerComments: "Study design lacks adequate control for confounding socioeconomic factors.",
-      assignedReviewer: "Dr. Fatima Bello",
-      rating: 2.5
+  // Load abstracts on component mount
+  useEffect(() => {
+    loadAbstracts();
+  }, []);
+
+  const loadAbstracts = async () => {
+    try {
+      setLoading(true);
+      const fetchedAbstracts = await abstractApi.getAbstracts();
+      setAbstracts(fetchedAbstracts);
+      updateStats(fetchedAbstracts);
+    } catch (err) {
+      console.error('Error loading abstracts:', err);
+      setAbstracts([]);
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
+
+  const updateStats = (abstractsList: Abstract[]) => {
+    setStats({
+      total: abstractsList.length,
+      underReview: abstractsList.filter(a => a.status === 'Under Review').length,
+      accepted: abstractsList.filter(a => a.status === 'Accepted').length,
+      revisionRequired: abstractsList.filter(a => a.status === 'Revision Required').length,
+      rejected: abstractsList.filter(a => a.status === 'Rejected').length,
+    });
+  };
 
   const getStatusColor = (status: AbstractStatus) => {
     switch (status) {
@@ -246,18 +110,23 @@ const AbstractsTab: React.FC<AbstractsTabProps> = ({ abstracts: initialAbstracts
     }
   };
 
-  const handleStatusChange = (abstractId: number, newStatus: AbstractStatus) => {
-    setAllAbstracts(prev => 
-      prev.map(abstract => 
-        abstract.id === abstractId 
-          ? { 
-              ...abstract, 
-              status: newStatus,
-              lastUpdated: new Date().toISOString().split('T')[0] 
-            } 
-          : abstract
-      )
-    );
+  const handleStatusChange = async (abstractId: number, newStatus: AbstractStatus) => {
+    try {
+      setUpdating(abstractId);
+      const updatedAbstract = await abstractApi.updateAbstractStatus(abstractId, newStatus);
+      setAbstracts(prev => 
+        prev.map(abstract => 
+          abstract.id === abstractId 
+            ? { ...updatedAbstract, lastUpdated: new Date().toISOString().split('T')[0] }
+            : abstract
+        )
+      );
+      updateStats(abstracts.map(a => a.id === abstractId ? updatedAbstract : a));
+    } catch (err) {
+      console.error('Error updating abstract status:', err);
+    } finally {
+      setUpdating(null);
+    }
   };
 
   const handleReviewAbstract = (abstract: Abstract) => {
@@ -266,38 +135,52 @@ const AbstractsTab: React.FC<AbstractsTabProps> = ({ abstracts: initialAbstracts
     setShowReviewModal(true);
   };
 
-  const handleSubmitReview = () => {
+  const handleSubmitReview = async () => {
     if (!currentAbstract) return;
 
-    setAllAbstracts(prev => 
-      prev.map(abstract => 
-        abstract.id === currentAbstract.id
-          ? { 
-              ...abstract, 
-              reviewerComments,
-              lastUpdated: new Date().toISOString().split('T')[0] 
-            }
-          : abstract
-      )
-    );
-    setShowReviewModal(false);
+    try {
+      setUpdating(currentAbstract.id);
+      const updatedAbstract = await abstractApi.updateAbstract(currentAbstract.id, {
+        reviewerComments,
+        status: currentAbstract.status,
+      });
+      
+      setAbstracts(prev => 
+        prev.map(abstract => 
+          abstract.id === currentAbstract.id
+            ? { ...updatedAbstract, lastUpdated: new Date().toISOString().split('T')[0] }
+            : abstract
+        )
+      );
+      setShowReviewModal(false);
+    } catch (err) {
+      console.error('Error submitting review:', err);
+    } finally {
+      setUpdating(null);
+    }
   };
 
-  const toggleFeatured = (abstractId: number) => {
-    setAllAbstracts(prev => 
-      prev.map(abstract => 
-        abstract.id === abstractId 
-          ? { ...abstract, isFeatured: !abstract.isFeatured }
-          : abstract
-      )
-    );
+  const toggleFeatured = async (abstractId: number) => {
+    try {
+      setUpdating(abstractId);
+      const updatedAbstract = await abstractApi.toggleFeatured(abstractId);
+      setAbstracts(prev => 
+        prev.map(abstract => 
+          abstract.id === abstractId ? updatedAbstract : abstract
+        )
+      );
+    } catch (err) {
+      console.error('Error toggling featured status:', err);
+    } finally {
+      setUpdating(null);
+    }
   };
 
   const toggleExpand = (abstractId: number) => {
     setExpandedAbstract(expandedAbstract === abstractId ? null : abstractId);
   };
 
-  const filteredAbstracts = allAbstracts.filter(abstract => {
+  const filteredAbstracts = abstracts.filter(abstract => {
     // Filter by selected tab
     const statusMatch = 
       selectedTab === 'all' ||
@@ -319,13 +202,47 @@ const AbstractsTab: React.FC<AbstractsTabProps> = ({ abstracts: initialAbstracts
     return statusMatch && searchMatch;
   });
 
-  const stats = {
-    total: allAbstracts.length,
-    underReview: allAbstracts.filter(a => a.status === 'Under Review').length,
-    accepted: allAbstracts.filter(a => a.status === 'Accepted').length,
-    revisionRequired: allAbstracts.filter(a => a.status === 'Revision Required').length,
-    rejected: allAbstracts.filter(a => a.status === 'Rejected').length,
+  const handleExport = async () => {
+    try {
+      const blob = await abstractApi.exportAbstracts('csv');
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = 'abstracts.csv';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error('Error exporting abstracts:', err);
+    }
   };
+
+  const handleSendNotification = async (abstractId: number) => {
+    try {
+      setUpdating(abstractId);
+      const result = await abstractApi.sendStatusNotification(abstractId);
+      if (result.success) {
+        alert('Notification sent successfully!');
+      } else {
+        alert('Failed to send notification: ' + result.error);
+      }
+    } catch (err) {
+      console.error('Error sending notification:', err);
+      alert('Failed to send notification');
+    } finally {
+      setUpdating(null);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <LoadingSpinner />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -341,7 +258,10 @@ const AbstractsTab: React.FC<AbstractsTabProps> = ({ abstracts: initialAbstracts
               <p className="text-gray-600 mt-1">Manage and review submitted abstracts for the conference</p>
             </div>
             <div className="flex gap-3">
-              <button className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 flex items-center font-medium transition-colors">
+              <button 
+                onClick={handleExport}
+                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 flex items-center font-medium transition-colors"
+              >
                 <Download className="w-5 h-5 mr-2" />
                 Export All
               </button>
@@ -433,17 +353,11 @@ const AbstractsTab: React.FC<AbstractsTabProps> = ({ abstracts: initialAbstracts
                             </span>
                           </div>
                           <div className="flex items-center">
-                            <span className="font-medium">Submitted:</span> {abstract.submittedDate}
+                            <span className="font-medium">Submitted:</span> {new Date(abstract.submittedDate).toLocaleDateString()}
                           </div>
                           <div className="flex items-center">
-                            <span className="font-medium">Last Updated:</span> {abstract.lastUpdated}
+                            <span className="font-medium">Last Updated:</span> {new Date(abstract.lastUpdated).toLocaleDateString()}
                           </div>
-                          {abstract.rating && (
-                            <div className="flex items-center">
-                              <Star className="w-4 h-4 text-yellow-400 mr-1 fill-current" />
-                              <span className="font-medium">{abstract.rating}/5</span>
-                            </div>
-                          )}
                         </div>
 
                         {/* Keywords */}
@@ -599,13 +513,18 @@ const AbstractsTab: React.FC<AbstractsTabProps> = ({ abstracts: initialAbstracts
 
                       <button 
                         onClick={() => toggleFeatured(abstract.id)}
+                        disabled={updating === abstract.id}
                         className={`border px-4 py-2 rounded-lg flex items-center text-sm font-medium transition-colors ${
                           abstract.isFeatured 
                             ? 'border-yellow-300 bg-yellow-50 text-yellow-800 hover:bg-yellow-100' 
                             : 'border-gray-300 hover:bg-gray-50'
-                        }`}
+                        } ${updating === abstract.id ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
-                        <Star className={`w-4 h-4 mr-2 ${abstract.isFeatured ? 'fill-current' : ''}`} />
+                        {updating === abstract.id ? (
+                          <Loader className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <Star className={`w-4 h-4 mr-2 ${abstract.isFeatured ? 'fill-current' : ''}`} />
+                        )}
                         {abstract.isFeatured ? 'Unfeature' : 'Feature'}
                       </button>
 
@@ -613,18 +532,32 @@ const AbstractsTab: React.FC<AbstractsTabProps> = ({ abstracts: initialAbstracts
                         <select
                           value={abstract.status}
                           onChange={(e) => handleStatusChange(abstract.id, e.target.value as AbstractStatus)}
-                          className="border border-gray-300 px-3 py-2 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          disabled={updating === abstract.id}
+                          className="border border-gray-300 px-3 py-2 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
                         >
                           <option value="Under Review">Under Review</option>
                           <option value="Accepted">Accept</option>
                           <option value="Revision Required">Request Revision</option>
                           <option value="Rejected">Reject</option>
                         </select>
+                        {updating === abstract.id && (
+                          <div className="absolute inset-0 bg-white bg-opacity-50 flex items-center justify-center">
+                            <Loader className="w-4 h-4 animate-spin" />
+                          </div>
+                        )}
                       </div>
 
-                      <button className="border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center text-sm font-medium transition-colors">
-                        <Mail className="w-4 h-4 mr-2" />
-                        Contact Author
+                      <button 
+                        onClick={() => handleSendNotification(abstract.id)}
+                        disabled={updating === abstract.id}
+                        className="border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center text-sm font-medium transition-colors disabled:opacity-50"
+                      >
+                        {updating === abstract.id ? (
+                          <Loader className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <Mail className="w-4 h-4 mr-2" />
+                        )}
+                        Notify Author
                       </button>
                     </div>
                   </div>
@@ -680,38 +613,21 @@ const AbstractsTab: React.FC<AbstractsTabProps> = ({ abstracts: initialAbstracts
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Rating (1-5)</label>
-                    <select
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                      value={currentAbstract.rating || 3}
-                      onChange={(e) => setCurrentAbstract({
-                        ...currentAbstract,
-                        rating: Number(e.target.value)
-                      })}
-                    >
-                      {[1, 2, 3, 4, 5].map(num => (
-                        <option key={num} value={num}>{num}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                    <select
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                      value={currentAbstract.status}
-                      onChange={(e) => setCurrentAbstract({
-                        ...currentAbstract,
-                        status: e.target.value as AbstractStatus
-                      })}
-                    >
-                      <option value="Under Review">Under Review</option>
-                      <option value="Accepted">Accepted</option>
-                      <option value="Revision Required">Revision Required</option>
-                      <option value="Rejected">Rejected</option>
-                    </select>
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                  <select
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    value={currentAbstract.status}
+                    onChange={(e) => setCurrentAbstract({
+                      ...currentAbstract,
+                      status: e.target.value as AbstractStatus
+                    })}
+                  >
+                    <option value="Under Review">Under Review</option>
+                    <option value="Accepted">Accepted</option>
+                    <option value="Revision Required">Revision Required</option>
+                    <option value="Rejected">Rejected</option>
+                  </select>
                 </div>
               </div>
               
@@ -724,8 +640,12 @@ const AbstractsTab: React.FC<AbstractsTabProps> = ({ abstracts: initialAbstracts
                 </button>
                 <button
                   onClick={handleSubmitReview}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700"
+                  disabled={updating === currentAbstract.id}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50 flex items-center"
                 >
+                  {updating === currentAbstract.id && (
+                    <Loader className="w-4 h-4 mr-2 animate-spin" />
+                  )}
                   Submit Review
                 </button>
               </div>

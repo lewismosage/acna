@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'conferences',
     'webinars',
     'awards',
+    'abstracts',
 ]
 
 MIDDLEWARE = [

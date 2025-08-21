@@ -7,8 +7,13 @@ import {
   AlertCircle,
   Upload,
   Check,
+  Loader,
 } from "lucide-react";
 import ScrollToTop from "../../components/common/ScrollToTop";
+import { abstractApi,
+   CreateAbstractInput,
+   AbstractCategory, 
+   PresentationType } from '../../services/abstractApi';
 
 type FileField = "abstractFile" | "ethicalApproval" | "supplementary";
 
@@ -40,10 +45,11 @@ const AbstractSubmissionForm = () => {
   const [step, setStep] = useState<number>(1);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [submissionSuccess, setSubmissionSuccess] = useState<boolean>(false);
-  const [fileNames, setFileNames] = useState<{
-    abstractFile: string | null;
-    ethicalApproval: string | null;
-    supplementary: string | null;
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [files, setFiles] = useState<{
+    abstractFile: File | null;
+    ethicalApproval: File | null;
+    supplementary: File | null;
   }>({
     abstractFile: null,
     ethicalApproval: null,
@@ -56,6 +62,7 @@ const AbstractSubmissionForm = () => {
     formState: { errors },
     watch,
     reset,
+    setValue,
   } = useForm<FormData>({
     defaultValues: {
       title: "",
@@ -73,8 +80,8 @@ const AbstractSubmissionForm = () => {
           email: "",
           institution: "",
           country: "",
-          isPresenter: false,
-          isCorresponding: false,
+          isPresenter: true,
+          isCorresponding: true,
         },
       ],
       conflictOfInterest: "",
@@ -103,55 +110,109 @@ const AbstractSubmissionForm = () => {
     fieldName: FileField
   ) => {
     if (e.target.files && e.target.files.length > 0) {
-      setFileNames((prev) => ({
+      const file = e.target.files[0];
+      setFiles(prev => ({
         ...prev,
-        [fieldName]: e.target.files?.[0]?.name || null,
+        [fieldName]: file
       }));
     }
   };
 
-  const onSubmit = (data: FormData) => {
+  const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
-    // Simulate API call
-    setTimeout(() => {
-      console.log("Submitted data:", data);
-      setIsSubmitting(false);
+    setSubmissionError(null);
+
+    try {
+      // Prepare authors data with order
+      const authorsWithOrder = data.authors.map((author, index) => ({
+        firstName: author.firstName,
+        lastName: author.lastName,
+        email: author.email,
+        institution: author.institution,
+        country: author.country,
+        isPresenter: author.isPresenter,
+        isCorresponding: author.isCorresponding,
+        order: index
+      }));
+
+      // Prepare the abstract data for API
+      const abstractData: CreateAbstractInput = {
+        title: data.title,
+        category: data.category as AbstractCategory,
+        presentationPreference: data.presentationPreference as PresentationType,
+        keywords: data.keywords.split(',').map(k => k.trim()).filter(k => k.length > 0),
+        background: data.background,
+        methods: data.methods,
+        results: data.results,
+        conclusions: data.conclusions,
+        conflictOfInterest: data.conflictOfInterest,
+        authors: authorsWithOrder,
+        abstractFile: files.abstractFile || undefined,
+        ethicalApprovalFile: files.ethicalApproval || undefined,
+        supplementaryFiles: files.supplementary ? [files.supplementary] : undefined
+      };
+
+      // Submit to API
+      const result = await abstractApi.createAbstract(abstractData);
+      
       setSubmissionSuccess(true);
       reset();
-      setFileNames({
+      setFiles({
         abstractFile: null,
         ethicalApproval: null,
         supplementary: null,
       });
-    }, 2000);
+
+    } catch (error: any) {
+      console.error('Submission failed:', error);
+      setSubmissionError(
+        error.message || 'Failed to submit abstract. Please try again.'
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const addAuthor = () => {
     const currentAuthors = watch("authors");
-    reset({
-      ...watch(),
-      authors: [
-        ...currentAuthors,
-        {
-          firstName: "",
-          lastName: "",
-          email: "",
-          institution: "",
-          country: "",
-          isPresenter: false,
-          isCorresponding: false,
-        },
-      ],
-    });
+    const newAuthors = [
+      ...currentAuthors,
+      {
+        firstName: "",
+        lastName: "",
+        email: "",
+        institution: "",
+        country: "",
+        isPresenter: false,
+        isCorresponding: false,
+      },
+    ];
+    setValue("authors", newAuthors);
   };
 
   const removeAuthor = (index: number) => {
     const currentAuthors = [...watch("authors")];
+    
+    // Don't remove the last author
+    if (currentAuthors.length <= 1) return;
+    
     currentAuthors.splice(index, 1);
-    reset({
-      ...watch(),
-      authors: currentAuthors,
-    });
+    
+    // Ensure at least one author is presenter and corresponding
+    if (!currentAuthors.some(a => a.isPresenter)) {
+      currentAuthors[0].isPresenter = true;
+    }
+    if (!currentAuthors.some(a => a.isCorresponding)) {
+      currentAuthors[0].isCorresponding = true;
+    }
+    
+    setValue("authors", currentAuthors);
+  };
+
+  const handleAuthorFieldChange = (index: number, field: keyof Author, value: any) => {
+    const currentAuthors = [...watch("authors")];
+    currentAuthors[index] = { ...currentAuthors[index], [field]: value };
+    setValue("authors", currentAuthors);
   };
 
   const handlePrevious = () => {
@@ -190,7 +251,10 @@ const AbstractSubmissionForm = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
-              onClick={() => setSubmissionSuccess(false)}
+              onClick={() => {
+                setSubmissionSuccess(false);
+                setStep(1);
+              }}
               className="bg-orange-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-orange-700 transition-colors"
             >
               Submit Another Abstract
@@ -263,6 +327,15 @@ const AbstractSubmissionForm = () => {
 
         {/* Form Content */}
         <form onSubmit={handleSubmit(onSubmit)} className="p-6 sm:p-8">
+          {submissionError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+              <div className="flex items-center">
+                <AlertCircle className="w-5 h-5 text-red-600 mr-2" />
+                <p className="text-red-600">{submissionError}</p>
+              </div>
+            </div>
+          )}
+
           {step === 1 && (
             <div className="space-y-6">
               <h2 className="text-xl font-bold text-gray-900 mb-6">
@@ -457,7 +530,7 @@ const AbstractSubmissionForm = () => {
                     placeholder="Present key findings with supporting data"
                   />
                   {errors.results && (
-                    <p className="mt-1 text-sm text-red-600 flex items-center">
+                    <p className="mt-1 text-sm text red-600 flex items-center">
                       <AlertCircle className="w-4 h-4 mr-1" />
                       {errors.results.message}
                     </p>
@@ -500,12 +573,12 @@ const AbstractSubmissionForm = () => {
               </h2>
 
               <div className="space-y-4">
-                {watch("authors").map((_, index: number) => (
+                {watch("authors").map((author, index: number) => (
                   <div
                     key={index}
                     className="border border-gray-200 rounded-lg p-4 relative"
                   >
-                    {index > 0 && (
+                    {watch("authors").length > 1 && (
                       <button
                         type="button"
                         onClick={() => removeAuthor(index)}
@@ -521,174 +594,94 @@ const AbstractSubmissionForm = () => {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label
-                          htmlFor={`authors[${index}].firstName`}
-                          className="block text-sm font-medium text-gray-700 mb-1"
-                        >
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
                           First Name *
                         </label>
                         <input
-                          id={`authors[${index}].firstName`}
                           type="text"
-                          {...register(`authors.${index}.firstName`, {
-                            required: "First name is required",
-                          })}
-                          className={`w-full px-4 py-2 border rounded-lg focus:ring-orange-500 focus:border-orange-500 ${
-                            errors.authors?.[index]?.firstName
-                              ? "border-red-500"
-                              : "border-gray-300"
-                          }`}
+                          value={author.firstName}
+                          onChange={(e) => handleAuthorFieldChange(index, 'firstName', e.target.value)}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-orange-500 focus:border-orange-500"
+                          required
                         />
-                        {errors.authors?.[index]?.firstName && (
-                          <p className="mt-1 text-sm text-red-600 flex items-center">
-                            <AlertCircle className="w-4 h-4 mr-1" />
-                            {errors.authors[index].firstName.message}
-                          </p>
-                        )}
                       </div>
 
                       <div>
-                        <label
-                          htmlFor={`authors[${index}].lastName`}
-                          className="block text-sm font-medium text-gray-700 mb-1"
-                        >
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
                           Last Name *
                         </label>
                         <input
-                          id={`authors[${index}].lastName`}
                           type="text"
-                          {...register(`authors.${index}.lastName`, {
-                            required: "Last name is required",
-                          })}
-                          className={`w-full px-4 py-2 border rounded-lg focus:ring-orange-500 focus:border-orange-500 ${
-                            errors.authors?.[index]?.lastName
-                              ? "border-red-500"
-                              : "border-gray-300"
-                          }`}
+                          value={author.lastName}
+                          onChange={(e) => handleAuthorFieldChange(index, 'lastName', e.target.value)}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-orange-500 focus:border-orange-500"
+                          required
                         />
-                        {errors.authors?.[index]?.lastName && (
-                          <p className="mt-1 text-sm text-red-600 flex items-center">
-                            <AlertCircle className="w-4 h-4 mr-1" />
-                            {errors.authors[index].lastName.message}
-                          </p>
-                        )}
                       </div>
                     </div>
 
                     <div className="mt-4">
-                      <label
-                        htmlFor={`authors[${index}].email`}
-                        className="block text-sm font-medium text-gray-700 mb-1"
-                      >
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
                         Email *
                       </label>
                       <input
-                        id={`authors[${index}].email`}
                         type="email"
-                        {...register(`authors.${index}.email`, {
-                          required: "Email is required",
-                          pattern: {
-                            value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                            message: "Invalid email address",
-                          },
-                        })}
-                        className={`w-full px-4 py-2 border rounded-lg focus:ring-orange-500 focus:border-orange-500 ${
-                          errors.authors?.[index]?.email
-                            ? "border-red-500"
-                            : "border-gray-300"
-                        }`}
+                        value={author.email}
+                        onChange={(e) => handleAuthorFieldChange(index, 'email', e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-orange-500 focus:border-orange-500"
+                        required
                       />
-                      {errors.authors?.[index]?.email && (
-                        <p className="mt-1 text-sm text-red-600 flex items-center">
-                          <AlertCircle className="w-4 h-4 mr-1" />
-                          {errors.authors[index].email.message}
-                        </p>
-                      )}
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                       <div>
-                        <label
-                          htmlFor={`authors[${index}].institution`}
-                          className="block text-sm font-medium text-gray-700 mb-1"
-                        >
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
                           Institution *
                         </label>
                         <input
-                          id={`authors[${index}].institution`}
                           type="text"
-                          {...register(`authors.${index}.institution`, {
-                            required: "Institution is required",
-                          })}
-                          className={`w-full px-4 py-2 border rounded-lg focus:ring-orange-500 focus:border-orange-500 ${
-                            errors.authors?.[index]?.institution
-                              ? "border-red-500"
-                              : "border-gray-300"
-                          }`}
+                          value={author.institution}
+                          onChange={(e) => handleAuthorFieldChange(index, 'institution', e.target.value)}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-orange-500 focus:border-orange-500"
+                          required
                         />
-                        {errors.authors?.[index]?.institution && (
-                          <p className="mt-1 text-sm text-red-600 flex items-center">
-                            <AlertCircle className="w-4 h-4 mr-1" />
-                            {errors.authors[index].institution.message}
-                          </p>
-                        )}
                       </div>
 
                       <div>
-                        <label
-                          htmlFor={`authors[${index}].country`}
-                          className="block text-sm font-medium text-gray-700 mb-1"
-                        >
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
                           Country *
                         </label>
                         <input
-                          id={`authors[${index}].country`}
                           type="text"
-                          {...register(`authors.${index}.country`, {
-                            required: "Country is required",
-                          })}
-                          className={`w-full px-4 py-2 border rounded-lg focus:ring-orange-500 focus:border-orange-500 ${
-                            errors.authors?.[index]?.country
-                              ? "border-red-500"
-                              : "border-gray-300"
-                          }`}
+                          value={author.country}
+                          onChange={(e) => handleAuthorFieldChange(index, 'country', e.target.value)}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-orange-500 focus:border-orange-500"
+                          required
                         />
-                        {errors.authors?.[index]?.country && (
-                          <p className="mt-1 text-sm text-red-600 flex items-center">
-                            <AlertCircle className="w-4 h-4 mr-1" />
-                            {errors.authors[index].country.message}
-                          </p>
-                        )}
                       </div>
                     </div>
 
                     <div className="mt-4 flex flex-wrap gap-6">
                       <div className="flex items-center">
                         <input
-                          id={`authors[${index}].isPresenter`}
                           type="checkbox"
-                          {...register(`authors.${index}.isPresenter`)}
+                          checked={author.isPresenter}
+                          onChange={(e) => handleAuthorFieldChange(index, 'isPresenter', e.target.checked)}
                           className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
                         />
-                        <label
-                          htmlFor={`authors[${index}].isPresenter`}
-                          className="ml-2 block text-sm text-gray-700"
-                        >
+                        <label className="ml-2 block text-sm text-gray-700">
                           Presenting Author
                         </label>
                       </div>
 
                       <div className="flex items-center">
                         <input
-                          id={`authors[${index}].isCorresponding`}
                           type="checkbox"
-                          {...register(`authors.${index}.isCorresponding`)}
+                          checked={author.isCorresponding}
+                          onChange={(e) => handleAuthorFieldChange(index, 'isCorresponding', e.target.checked)}
                           className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
                         />
-                        <label
-                          htmlFor={`authors[${index}].isCorresponding`}
-                          className="ml-2 block text-sm text-gray-700"
-                        >
+                        <label className="ml-2 block text-sm text-gray-700">
                           Corresponding Author
                         </label>
                       </div>
@@ -750,7 +743,7 @@ const AbstractSubmissionForm = () => {
                       Abstract Document
                     </h3>
                     <p className="text-sm text-gray-500 mb-4">
-                      Upload your abstract in Word or PDF format (max 5MB)
+                      Upload your abstract in Word or PDF format (max 10MB)
                     </p>
                     <label className="cursor-pointer bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors">
                       <input
@@ -761,9 +754,9 @@ const AbstractSubmissionForm = () => {
                       />
                       Choose File
                     </label>
-                    {fileNames.abstractFile && (
+                    {files.abstractFile && (
                       <p className="mt-2 text-sm text-gray-600">
-                        Selected: {fileNames.abstractFile}
+                        Selected: {files.abstractFile.name}
                       </p>
                     )}
                   </div>
@@ -776,7 +769,7 @@ const AbstractSubmissionForm = () => {
                       Ethical Approval Document
                     </h3>
                     <p className="text-sm text-gray-500 mb-4">
-                      Upload IRB/ethics committee approval (PDF, max 5MB)
+                      Upload IRB/ethics committee approval (PDF, max 10MB)
                     </p>
                     <label className="cursor-pointer bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors">
                       <input
@@ -787,9 +780,9 @@ const AbstractSubmissionForm = () => {
                       />
                       Choose File
                     </label>
-                    {fileNames.ethicalApproval && (
+                    {files.ethicalApproval && (
                       <p className="mt-2 text-sm text-gray-600">
-                        Selected: {fileNames.ethicalApproval}
+                        Selected: {files.ethicalApproval.name}
                       </p>
                     )}
                   </div>
@@ -802,7 +795,7 @@ const AbstractSubmissionForm = () => {
                       Supplementary Materials (Optional)
                     </h3>
                     <p className="text-sm text-gray-500 mb-4">
-                      Tables, figures, or additional documents (ZIP, max 10MB)
+                      Tables, figures, or additional documents (ZIP, PDF, DOCX - max 10MB)
                     </p>
                     <label className="cursor-pointer bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors">
                       <input
@@ -813,9 +806,9 @@ const AbstractSubmissionForm = () => {
                       />
                       Choose File
                     </label>
-                    {fileNames.supplementary && (
+                    {files.supplementary && (
                       <p className="mt-2 text-sm text-gray-600">
-                        Selected: {fileNames.supplementary}
+                        Selected: {files.supplementary.name}
                       </p>
                     )}
                   </div>
@@ -973,20 +966,20 @@ const AbstractSubmissionForm = () => {
                   <div className="flex items-center">
                     <FileText className="w-5 h-5 text-gray-400 mr-2" />
                     <span className="text-gray-700">
-                      {fileNames.abstractFile || "No file selected"}
+                      {files.abstractFile ? files.abstractFile.name : "No file selected"}
                     </span>
                   </div>
                   <div className="flex items-center">
                     <FileText className="w-5 h-5 text-gray-400 mr-2" />
                     <span className="text-gray-700">
-                      {fileNames.ethicalApproval || "No file selected"}
+                      {files.ethicalApproval ? files.ethicalApproval.name : "No file selected"}
                     </span>
                   </div>
-                  {fileNames.supplementary && (
+                  {files.supplementary && (
                     <div className="flex items-center">
                       <FileText className="w-5 h-5 text-gray-400 mr-2" />
                       <span className="text-gray-700">
-                        {fileNames.supplementary}
+                        {files.supplementary.name}
                       </span>
                     </div>
                   )}
@@ -1025,38 +1018,19 @@ const AbstractSubmissionForm = () => {
               </button>
             ) : (
               <button
-                type="submit"
-                disabled={isSubmitting}
-                className="ml-auto px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-              >
-                {isSubmitting ? (
-                  <>
-                    <svg
-                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    Submitting...
-                  </>
-                ) : (
-                  "Submit Abstract"
-                )}
-              </button>
+              type="submit"
+              disabled={isSubmitting}
+              className="bg-orange-600 text-white px-6 py-2 rounded-md font-medium hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmitting? (
+                <>
+                  <Loader className="w-4 h-4 mr-2 animate-spin inline" />
+                  Submitting...
+                </>
+              ) : (
+                'Submit Abstaract'
+              )}
+            </button>
             )}
           </div>
         </form>
