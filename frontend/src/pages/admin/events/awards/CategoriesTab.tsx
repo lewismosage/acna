@@ -1,6 +1,5 @@
-// CategoriesTab.tsx
 import React, { useState } from 'react';
-import { Award, Plus, Edit, Trash, UserPlus, Users, Eye } from 'lucide-react';
+import { Award, Plus, Edit, Trash, UserPlus, Users, Eye, Upload, User, X } from 'lucide-react';
 import { AwardCategory, Nominee, awardsApi } from '../../../../services/awardsApi';
 
 interface CategoriesTabProps {
@@ -36,13 +35,61 @@ const CategoriesTab: React.FC<CategoriesTabProps> = ({
     email: '',
     location: '',
     achievement: '',
-    suggestedBy: 'Admin'
+    suggestedBy: 'Admin',
+    imageUrl: ''
   });
   const [error, setError] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const filteredCategories = categories.filter(category => 
     category.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleImageUpload = async (file: File) => {
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      setError('Invalid file type. Please upload a JPEG, PNG, GIF, or WebP image.');
+      return;
+    }
+
+    // Validate file size (10MB limit)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      setError('File size too large. Please upload an image smaller than 10MB.');
+      return;
+    }
+
+    try {
+      setUploadingImage(true);
+      setError(null);
+      
+      const uploadResult = await awardsApi.uploadNomineeImage(file);
+      
+      // Update the nominee form with the uploaded image URL
+      setNewNominee(prev => ({ ...prev, imageUrl: uploadResult.url }));
+      
+      // Create preview URL for display
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreview(previewUrl);
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to upload image');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const removeImage = () => {
+    setNewNominee(prev => ({ ...prev, imageUrl: '' }));
+    setImagePreview(null);
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview);
+    }
+  };
 
   const handleSubmitCategory = async () => {
     try {
@@ -103,7 +150,7 @@ const CategoriesTab: React.FC<CategoriesTabProps> = ({
         email: newNominee.email,
         phone: '',
         location: newNominee.location,
-        imageUrl: '',
+        imageUrl: newNominee.imageUrl,
         status: 'Approved',
         suggestedBy: newNominee.suggestedBy,
         source: 'admin'
@@ -117,8 +164,10 @@ const CategoriesTab: React.FC<CategoriesTabProps> = ({
         email: '',
         location: '',
         achievement: '',
-        suggestedBy: 'Admin'
+        suggestedBy: 'Admin',
+        imageUrl: ''
       });
+      setImagePreview(null);
       setShowAddNomineeModal(false);
       setSelectedCategory(null);
       onRefresh();
@@ -164,6 +213,23 @@ const CategoriesTab: React.FC<CategoriesTabProps> = ({
       order: category.order
     });
     setShowEditCategoryModal(true);
+  };
+
+  const handleCloseAddNomineeModal = () => {
+    setShowAddNomineeModal(false);
+    setSelectedCategory(null);
+    setNewNominee({
+      name: '',
+      institution: '',
+      specialty: '',
+      email: '',
+      location: '',
+      achievement: '',
+      suggestedBy: 'Admin',
+      imageUrl: ''
+    });
+    setImagePreview(null);
+    setError(null);
   };
 
   if (loading) {
@@ -472,15 +538,12 @@ const CategoriesTab: React.FC<CategoriesTabProps> = ({
       {/* Add Suggested Nominee Modal */}
       {showAddNomineeModal && selectedCategory && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg w-full max-w-md">
+          <div className="bg-white rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-bold">Add Suggested Nominee to {selectedCategory.title}</h3>
                 <button 
-                  onClick={() => {
-                    setShowAddNomineeModal(false);
-                    setSelectedCategory(null);
-                  }}
+                  onClick={handleCloseAddNomineeModal}
                   className="text-gray-500 hover:text-gray-700"
                 >
                   &times;
@@ -488,6 +551,71 @@ const CategoriesTab: React.FC<CategoriesTabProps> = ({
               </div>
               
               <div className="space-y-4">
+                {/* Image Upload Section */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Nominee Photo</label>
+                  <div className="flex items-center space-x-4">
+                    {/* Image Preview */}
+                    <div className="flex-shrink-0">
+                      {imagePreview || newNominee.imageUrl ? (
+                        <div className="relative">
+                          <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-gray-200 bg-gray-50">
+                            <img 
+                              src={imagePreview || newNominee.imageUrl} 
+                              alt="Nominee preview" 
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={removeImage}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="w-16 h-16 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center">
+                          <User className="w-6 h-6 text-gray-400" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Upload Button */}
+                    <div className="flex-1">
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            handleImageUpload(file);
+                          }
+                        }}
+                        className="hidden"
+                        id="nominee-image-upload"
+                        disabled={uploadingImage}
+                      />
+                      <label
+                        htmlFor="nominee-image-upload"
+                        className={`cursor-pointer inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 ${
+                          uploadingImage ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                      >
+                        {uploadingImage ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></div>
+                        ) : (
+                          <Upload className="w-4 h-4 mr-2" />
+                        )}
+                        {uploadingImage ? 'Uploading...' : 'Upload Photo'}
+                      </label>
+                      <p className="text-xs text-gray-500 mt-1">
+                        JPEG, PNG, GIF, or WebP. Max 10MB.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Nominee Name *</label>
                   <input
@@ -557,10 +685,7 @@ const CategoriesTab: React.FC<CategoriesTabProps> = ({
               
               <div className="mt-6 flex justify-end gap-3">
                 <button
-                  onClick={() => {
-                    setShowAddNomineeModal(false);
-                    setSelectedCategory(null);
-                  }}
+                  onClick={handleCloseAddNomineeModal}
                   className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium"
                 >
                   Cancel
@@ -568,7 +693,7 @@ const CategoriesTab: React.FC<CategoriesTabProps> = ({
                 <button
                   onClick={handleSubmitNominee}
                   className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700"
-                  disabled={!newNominee.name || !newNominee.institution || !newNominee.specialty || !newNominee.achievement}
+                  disabled={!newNominee.name || !newNominee.institution || !newNominee.specialty || !newNominee.achievement || uploadingImage}
                 >
                   Add Nominee
                 </button>
@@ -601,32 +726,65 @@ const CategoriesTab: React.FC<CategoriesTabProps> = ({
                 <div className="space-y-4">
                   {categoryNominees.map((nominee) => (
                     <div key={nominee.id} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <h4 className="font-bold text-lg text-gray-900">{nominee.name}</h4>
-                          <p className="text-gray-600">{nominee.institution}</p>
-                          <p className="text-gray-500 text-sm">{nominee.specialty}</p>
-                          {nominee.location && (
-                            <p className="text-gray-500 text-sm">{nominee.location}</p>
-                          )}
-                          {nominee.email && (
-                            <p className="text-gray-500 text-sm">{nominee.email}</p>
-                          )}
-                          {nominee.achievement && (
-                            <div className="mt-2">
-                              <p className="text-gray-700 text-sm">{nominee.achievement}</p>
+                      <div className="flex items-start space-x-4">
+                        {/* Nominee Image */}
+                        <div className="flex-shrink-0">
+                          {nominee.imageUrl ? (
+                            <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-gray-200 bg-gray-50">
+                              <img 
+                                src={nominee.imageUrl} 
+                                alt={nominee.name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  const img = e.currentTarget;
+                                  const fallback = img.nextElementSibling as HTMLElement;
+                                  img.style.display = 'none';
+                                  if (fallback) {
+                                    fallback.style.display = 'flex';
+                                  }
+                                }}
+                              />
+                              <div className="w-full h-full bg-gray-100 flex items-center justify-center hidden">
+                                <User className="w-6 h-6 text-gray-400" />
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="w-12 h-12 rounded-full bg-gray-100 border-2 border-gray-200 flex items-center justify-center">
+                              <User className="w-6 h-6 text-gray-400" />
                             </div>
                           )}
                         </div>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          nominee.status === 'Approved' 
-                            ? 'bg-green-100 text-green-800' 
-                            : nominee.status === 'Pending'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-gray-100 text-gray-800'
-                        }`}>
-                          {nominee.status}
-                        </span>
+
+                        {/* Nominee Details */}
+                        <div className="flex-1">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h4 className="font-bold text-lg text-gray-900">{nominee.name}</h4>
+                              <p className="text-gray-600">{nominee.institution}</p>
+                              <p className="text-gray-500 text-sm">{nominee.specialty}</p>
+                              {nominee.location && (
+                                <p className="text-gray-500 text-sm">{nominee.location}</p>
+                              )}
+                              {nominee.email && (
+                                <p className="text-gray-500 text-sm">{nominee.email}</p>
+                              )}
+                              {nominee.achievement && (
+                                <div className="mt-2">
+                                  <p className="text-gray-700 text-sm">{nominee.achievement}</p>
+                                </div>
+                              )}
+                            </div>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              nominee.status === 'Approved' 
+                                ? 'bg-green-100 text-green-800' 
+                                : nominee.status === 'Winner'
+                                  ? 'bg-blue-100 text-blue-800'
+                                  : 'bg-red-100 text-red-800' 
+                            }`}>
+                              {nominee.status}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ))}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, CheckCircle, Users, Award, Loader, Info } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Users, Award, Loader, Info, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import ScrollToTop from '../../components/common/ScrollToTop';
 import { awardsApi, AwardCategory, Nominee } from '../../services/awardsApi';
@@ -305,14 +305,45 @@ const AwardNominationPage = () => {
                           : 'border-gray-200 hover:border-orange-300'
                       }`}
                     >
-                      <div className="flex items-start">
-                        <Users className="w-5 h-5 mt-1 mr-4 text-gray-500" />
-                        <div>
+                      <div className="flex items-start space-x-4">
+                        {/* Nominee Image */}
+                        <div className="flex-shrink-0">
+                          {nominee.imageUrl ? (
+                            <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-gray-200 bg-gray-50">
+                              <img 
+                                src={nominee.imageUrl} 
+                                alt={nominee.name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  const img = e.currentTarget;
+                                  const fallback = img.nextElementSibling as HTMLElement;
+                                  img.style.display = 'none';
+                                  if (fallback) {
+                                    fallback.style.display = 'flex';
+                                  }
+                                }}
+                              />
+                              <div className="w-full h-full bg-gray-100 flex items-center justify-center hidden">
+                                <User className="w-6 h-6 text-gray-400" />
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="w-12 h-12 rounded-full bg-gray-100 border-2 border-gray-200 flex items-center justify-center">
+                              <User className="w-6 h-6 text-gray-400" />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Nominee Details */}
+                        <div className="flex-1">
                           <h3 className="font-bold text-gray-900">{nominee.name}</h3>
                           <p className="text-sm text-gray-600">{nominee.institution}</p>
                           <p className="text-xs text-gray-500 mt-1">{nominee.specialty}</p>
                           {nominee.location && (
                             <p className="text-xs text-gray-500">{nominee.location}</p>
+                          )}
+                          {nominee.achievement && (
+                            <p className="text-xs text-gray-600 mt-2 line-clamp-2">{nominee.achievement}</p>
                           )}
                         </div>
                       </div>
@@ -320,6 +351,7 @@ const AwardNominationPage = () => {
                   ))
                 ) : (
                   <div className="text-center py-8 text-gray-500">
+                    <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                     <p>No suggested nominees available for this category.</p>
                   </div>
                 )}
@@ -359,82 +391,54 @@ const AwardNominationPage = () => {
                 </div>
               </div>
 
-              {/* Nominee Information */}
+              {/* Nominee Information (Read-only) */}
               <div className="space-y-4">
                 <h3 className="text-lg font-medium text-gray-900">Nominee Information</h3>
                 
                 <div>
-                  <label htmlFor="nomineeName" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Full Name <span className="text-red-600">*</span>
                   </label>
-                  <input
-                    type="text"
-                    id="nomineeName"
-                    name="nomineeName"
-                    value={formData.nomineeName}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  />
+                  <div className="p-3 bg-gray-50 rounded-md border border-gray-200">
+                    {formData.nomineeName}
+                  </div>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="nomineeEmail" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       Email Address
                     </label>
-                    <input
-                      type="email"
-                      id="nomineeEmail"
-                      name="nomineeEmail"
-                      value={formData.nomineeEmail}
-                      onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    />
+                    <div className="p-3 bg-gray-50 rounded-md border border-gray-200">
+                      {formData.nomineeEmail || 'Not provided'}
+                    </div>
                   </div>
                   <div>
-                    <label htmlFor="nomineeInstitution" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       Institution/Organization <span className="text-red-600">*</span>
                     </label>
-                    <input
-                      type="text"
-                      id="nomineeInstitution"
-                      name="nomineeInstitution"
-                      value={formData.nomineeInstitution}
-                      onChange={handleChange}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    />
+                    <div className="p-3 bg-gray-50 rounded-md border border-gray-200">
+                      {formData.nomineeInstitution}
+                    </div>
                   </div>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="nomineeSpecialty" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       Specialty <span className="text-red-600">*</span>
                     </label>
-                    <input
-                      type="text"
-                      id="nomineeSpecialty"
-                      name="nomineeSpecialty"
-                      value={formData.nomineeSpecialty}
-                      onChange={handleChange}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    />
+                    <div className="p-3 bg-gray-50 rounded-md border border-gray-200">
+                      {formData.nomineeSpecialty}
+                    </div>
                   </div>
                   <div>
-                    <label htmlFor="nomineeLocation" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       Location (City, Country)
                     </label>
-                    <input
-                      type="text"
-                      id="nomineeLocation"
-                      name="nomineeLocation"
-                      value={formData.nomineeLocation}
-                      onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    />
+                    <div className="p-3 bg-gray-50 rounded-md border border-gray-200">
+                      {formData.nomineeLocation || 'Not provided'}
+                    </div>
                   </div>
                 </div>
               </div>

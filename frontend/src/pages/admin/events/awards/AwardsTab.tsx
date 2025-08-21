@@ -103,7 +103,7 @@ const AdminAwardsManagement = () => {
   );
 
   // Get counts for tab display
-  const unverifiedNomineesCount = nominees.filter(n => n.source === 'new' || n.source === 'nomination').length;
+  
   const pollNomineesCount = approvedNominees.length;
 
   if (loading) {

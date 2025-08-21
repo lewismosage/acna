@@ -86,7 +86,7 @@ const PollTab: React.FC<PollTabProps> = ({
             suggestedDate: nomination.submissionDate,
             createdAt: nomination.createdAt,
             updatedAt: nomination.updatedAt,
-            source: 'nomination'
+            source: 'suggested'
           };
           
           nomineeVoteMap.set(virtualNominee.id, { 
@@ -246,6 +246,35 @@ const PollTab: React.FC<PollTabProps> = ({
                               <div className="flex-shrink-0">
                                 {getRankIcon(index)}
                               </div>
+                              
+                              {/* Nominee Image */}
+                              <div className="flex-shrink-0">
+                                {poll.nominee.imageUrl ? (
+                                  <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-gray-200 bg-gray-50">
+                                    <img 
+                                      src={poll.nominee.imageUrl} 
+                                      alt={poll.nominee.name}
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => {
+                                        const img = e.currentTarget;
+                                        const fallback = img.nextElementSibling as HTMLElement;
+                                        img.style.display = 'none';
+                                        if (fallback) {
+                                          fallback.style.display = 'flex';
+                                        }
+                                      }}
+                                    />
+                                    <div className="w-full h-full bg-gray-100 flex items-center justify-center hidden">
+                                      <User className="w-6 h-6 text-gray-400" />
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="w-12 h-12 rounded-full bg-gray-100 border-2 border-gray-200 flex items-center justify-center">
+                                    <User className="w-6 h-6 text-gray-400" />
+                                  </div>
+                                )}
+                              </div>
+
                               <div className="flex-1">
                                 <h5 className={`font-bold text-gray-900 ${index === 0 ? 'text-lg' : ''}`}>
                                   {poll.nominee.name}
@@ -349,9 +378,38 @@ const PollTab: React.FC<PollTabProps> = ({
           <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold">
-                  Nominations for {selectedNominee?.name}
-                </h3>
+                <div className="flex items-center space-x-3">
+                  {/* Nominee Image in Modal Header */}
+                  <div className="flex-shrink-0">
+                    {selectedNominee?.imageUrl ? (
+                      <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-gray-200 bg-gray-50">
+                        <img 
+                          src={selectedNominee.imageUrl} 
+                          alt={selectedNominee.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            const img = e.currentTarget;
+                            const fallback = img.nextElementSibling as HTMLElement;
+                            img.style.display = 'none';
+                            if (fallback) {
+                              fallback.style.display = 'flex';
+                            }
+                          }}
+                        />
+                        <div className="w-full h-full bg-gray-100 flex items-center justify-center hidden">
+                          <User className="w-6 h-6 text-gray-400" />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-gray-100 border-2 border-gray-200 flex items-center justify-center">
+                        <User className="w-6 h-6 text-gray-400" />
+                      </div>
+                    )}
+                  </div>
+                  <h3 className="text-xl font-bold">
+                    Nominations for {selectedNominee?.name}
+                  </h3>
+                </div>
                 <button 
                   onClick={() => {
                     setShowNominationsModal(false);
@@ -372,15 +430,6 @@ const PollTab: React.FC<PollTabProps> = ({
                         <h4 className="font-bold text-lg text-gray-900">
                           Nomination #{index + 1}
                         </h4>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          nomination.status === 'Approved' 
-                            ? 'bg-green-100 text-green-800' 
-                            : nomination.status === 'Pending'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-red-100 text-red-800'
-                        }`}>
-                          {nomination.status}
-                        </span>
                       </div>
                       
                       <div className="grid md:grid-cols-2 gap-6">
