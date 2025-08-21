@@ -1,0 +1,42 @@
+ACNA Conference 2026 - Abstract Status Update
+
+Dear {{ author.first_name }} {{ author.last_name }},
+
+We are writing to inform you about the status of your abstract submission.
+
+ABSTRACT DETAILS:
+Title: {{ abstract.title }}
+Submission ID: #{{ abstract.id }}
+Category: {{ abstract.category }}
+Status: {{ abstract.status }}
+Submitted Date: {{ abstract.submitted_date }}
+
+{% if abstract.reviewer_comments %}
+REVIEWER COMMENTS:
+{{ abstract.reviewer_comments }}
+{% endif %}
+
+{% if abstract.status == 'Accepted' %}
+Congratulations! Your abstract has been accepted for presentation at the ACNA Conference 2026. 
+Please log in to your account to view the complete details and next steps.
+{% elif abstract.status == 'Revision Required' %}
+The review committee has requested revisions to your abstract. Please review the comments above 
+and submit your revised abstract through the submission portal.
+{% elif abstract.status == 'Rejected' %}
+Thank you for your submission. Unfortunately, your abstract was not selected for presentation 
+at this time. We encourage you to consider submitting again for future conferences.
+{% else %}
+Your abstract is currently under review. We will notify you of any further updates.
+{% endif %}
+
+View your abstract details: {{ site_url }}
+
+If you have any questions, please contact our abstract committee at abstracts@acna.org.
+
+Best regards,
+ACNA Conference Committee
+abstracts@acna.org
+
+---
+© 2026 African Child Neurology Association. All rights reserved.
+This is an automated message. Please do not reply to this email.

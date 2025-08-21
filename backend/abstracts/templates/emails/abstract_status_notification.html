@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Abstract Status Update</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f9f9f9;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 30px;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        .status-under-review { background-color: #3b82f6; color: white; }
+        .status-accepted { background-color: #10b981; color: white; }
+        .status-revision { background-color: #f59e0b; color: white; }
+        .status-rejected { background-color: #ef4444; color: white; }
+        .abstract-details {
+            background-color: #f8fafc;
+            border-left: 4px solid #3b82f6;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .comments-section {
+            background-color: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .footer {
+            background-color: #f1f5f9;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #64748b;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #3b82f6;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            margin: 20px 0;
+        }
+        .button:hover {
+            background-color: #2563eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>ACNA Conference 2026</h1>
+            <p>Abstract Submission System</p>
+        </div>
+        
+        <div class="content">
+            <h2>Abstract Status Update</h2>
+            <p>Dear {{ author.first_name }} {{ author.last_name }},</p>
+            
+            <p>We are writing to inform you about the status of your abstract submission:</p>
+            
+            <div class="status-badge status-{{ abstract.status|slugify }}">
+                Status: {{ abstract.status }}
+            </div>
+            
+            <div class="abstract-details">
+                <h3>Abstract Details:</h3>
+                <p><strong>Title:</strong> {{ abstract.title }}</p>
+                <p><strong>Submission ID:</strong> #{{ abstract.id }}</p>
+                <p><strong>Category:</strong> {{ abstract.category }}</p>
+                <p><strong>Submitted Date:</strong> {{ abstract.submitted_date }}</p>
+            </div>
+
+            {% if abstract.reviewer_comments %}
+            <div class="comments-section">
+                <h3>Reviewer Comments:</h3>
+                <p>{{ abstract.reviewer_comments }}</p>
+            </div>
+            {% endif %}
+
+            <p>
+                {% if abstract.status == 'Accepted' %}
+                Congratulations! Your abstract has been accepted for presentation at the ACNA Conference 2026. 
+                Please log in to your account to view the complete details and next steps.
+                {% elif abstract.status == 'Revision Required' %}
+                The review committee has requested revisions to your abstract. Please review the comments above 
+                and submit your revised abstract through the submission portal.
+                {% elif abstract.status == 'Rejected' %}
+                Thank you for your submission. Unfortunately, your abstract was not selected for presentation 
+                at this time. We encourage you to consider submitting again for future conferences.
+                {% else %}
+                Your abstract is currently under review. We will notify you of any further updates.
+                {% endif %}
+            </p>
+
+            <div style="text-align: center;">
+                <a href="{{ site_url }}" class="button">View Abstract Details</a>
+            </div>
+
+            <p>If you have any questions, please contact our abstract committee at abstracts@acna.org.</p>
+            
+            <p>Best regards,<br>
+            ACNA Conference Committee<br>
+            abstracts@acna.org</p>
+        </div>
+        
+        <div class="footer">
+            <p>© 2026 African Child Neurology Association. All rights reserved.</p>
+            <p>This is an automated message. Please do not reply to this email.</p>
+        </div>
+    </div>
+</body>
+</html>

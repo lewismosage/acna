@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Abstract Review Assignment</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f9f9f9;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 30px;
+        }
+        .assignment-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            background-color: #10b981;
+            color: white;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        .abstract-details {
+            background-color: #f0fdf4;
+            border-left: 4px solid #10b981;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .authors-list {
+            background-color: #f8fafc;
+            border-left: 4px solid #3b82f6;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .footer {
+            background-color: #f1f5f9;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #64748b;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #10b981;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            margin: 20px 0;
+        }
+        .button:hover {
+            background-color: #059669;
+        }
+        .deadline {
+            background-color: #fef3c7;
+            border: 1px solid #f59e0b;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>ACNA Conference 2026</h1>
+            <p>Abstract Review System</p>
+        </div>
+        
+        <div class="content">
+            <h2>Abstract Review Assignment</h2>
+            <p>Dear Reviewer,</p>
+            
+            <p>You have been assigned to review the following abstract for the ACNA Conference 2026:</p>
+            
+            <div class="assignment-badge">
+                Review Assignment
+            </div>
+            
+            <div class="abstract-details">
+                <h3>Abstract Details:</h3>
+                <p><strong>Title:</strong> {{ abstract.title }}</p>
+                <p><strong>Submission ID:</strong> #{{ abstract.id }}</p>
+                <p><strong>Category:</strong> {{ abstract.category }}</p>
+                <p><strong>Presentation Preference:</strong> {{ abstract.presentation_preference }}</p>
+                <p><strong>Submitted Date:</strong> {{ abstract.submitted_date }}</p>
+                <p><strong>Keywords:</strong> {{ abstract.keywords|join:", " }}</p>
+            </div>
+
+            <div class="authors-list">
+                <h3>Authors:</h3>
+                <ul>
+                    {% for author in abstract.authors.all %}
+                    <li>
+                        {{ author.first_name }} {{ author.last_name }} - {{ author.institution }}, {{ author.country }}
+                        {% if author.is_corresponding %}(Corresponding Author){% endif %}
+                        {% if author.is_presenter %}(Presenting Author){% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <div class="deadline">
+                <h3>⏰ Review Deadline</h3>
+                <p>Please complete your review within <strong>7 days</strong> of receiving this assignment.</p>
+            </div>
+
+            <p>As a reviewer, we ask you to evaluate this abstract based on:</p>
+            <ul>
+                <li>Scientific merit and methodology</li>
+                <li>Relevance to pediatric neurology</li>
+                <li>Clarity of presentation</li>
+                <li>Statistical analysis appropriateness</li>
+                <li>Clinical or research significance</li>
+            </ul>
+
+            <div style="text-align: center;">
+                <a href="{{ review_portal_url }}" class="button">Access Review Portal</a>
+            </div>
+
+            <p>If you have any questions or concerns about this assignment, please contact the review coordinator at review-coordinator@acna.org.</p>
+            
+            <p>Thank you for your valuable contribution to the ACNA Conference 2026.</p>
+            
+            <p>Best regards,<br>
+            ACNA Review Committee<br>
+            review-coordinator@acna.org</p>
+        </div>
+        
+        <div class="footer">
+            <p>© 2026 African Child Neurology Association. All rights reserved.</p>
+            <p>This is an automated message. Please do not reply to this email.</p>
+        </div>
+    </div>
+</body>
+</html>

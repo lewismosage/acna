@@ -1,0 +1,45 @@
+ACNA Conference 2026 - Abstract Review Assignment
+
+Dear Reviewer,
+
+You have been assigned to review the following abstract for the ACNA Conference 2026:
+
+ABSTRACT DETAILS:
+Title: {{ abstract.title }}
+Submission ID: #{{ abstract.id }}
+Category: {{ abstract.category }}
+Presentation Preference: {{ abstract.presentation_preference }}
+Submitted Date: {{ abstract.submitted_date }}
+Keywords: {{ abstract.keywords|join:", " }}
+
+AUTHORS:
+{% for author in abstract.authors.all %}
+- {{ author.first_name }} {{ author.last_name }} - {{ author.institution }}, {{ author.country }}
+  {% if author.is_corresponding %}(Corresponding Author){% endif %}
+  {% if author.is_presenter %}(Presenting Author){% endif %}
+{% endfor %}
+
+⏰ REVIEW DEADLINE
+Please complete your review within 7 days of receiving this assignment.
+
+REVIEW CRITERIA:
+As a reviewer, we ask you to evaluate this abstract based on:
+- Scientific merit and methodology
+- Relevance to pediatric neurology
+- Clarity of presentation
+- Statistical analysis appropriateness
+- Clinical or research significance
+
+Access the review portal: {{ review_portal_url }}
+
+If you have any questions or concerns about this assignment, please contact the review coordinator at review-coordinator@acna.org.
+
+Thank you for your valuable contribution to the ACNA Conference 2026.
+
+Best regards,
+ACNA Review Committee
+review-coordinator@acna.org
+
+---
+© 2026 African Child Neurology Association. All rights reserved.
+This is an automated message. Please do not reply to this email.
