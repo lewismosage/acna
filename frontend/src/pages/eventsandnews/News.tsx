@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowRight, Mail } from 'lucide-react';
+import { ArrowRight, Mail, FileText, Newspaper } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { newsApi, NewsItem } from '../../services/newsApi';
@@ -10,7 +10,7 @@ interface SubscriptionStatus {
 }
 
 const LatestNewsPage = () => {
-  const navigate = useNavigate(); // Add navigation hook
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -22,15 +22,16 @@ const LatestNewsPage = () => {
   const [displayedNewsArticles, setDisplayedNewsArticles] = useState<NewsItem[]>([]);
   const [loadingMoreNews, setLoadingMoreNews] = useState(false);
   const [hasMoreNews, setHasMoreNews] = useState(false);
+  const [newsError, setNewsError] = useState<string | null>(null);
+  const [newsLoading, setNewsLoading] = useState(true);
   
   // Press Releases State
   const [pressReleases, setPressReleases] = useState<NewsItem[]>([]);
   const [displayedPressReleases, setDisplayedPressReleases] = useState<NewsItem[]>([]);
   const [loadingMorePress, setLoadingMorePress] = useState(false);
   const [hasMorePress, setHasMorePress] = useState(false);
-  
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [pressError, setPressError] = useState<string | null>(null);
+  const [pressLoading, setPressLoading] = useState(true);
 
   const ITEMS_PER_SECTION = 6;
 
@@ -55,8 +56,8 @@ const LatestNewsPage = () => {
   useEffect(() => {
     const fetchNewsData = async () => {
       try {
-        setLoading(true);
-        setError(null);
+        setNewsLoading(true);
+        setNewsError(null);
         
         // Fetch news articles (excluding press releases)
         const articles = await newsApi.getAll({ 
@@ -69,6 +70,24 @@ const LatestNewsPage = () => {
         const initialNewsItems = articles.slice(0, ITEMS_PER_SECTION);
         setDisplayedNewsArticles(initialNewsItems);
         setHasMoreNews(articles.length > ITEMS_PER_SECTION);
+        
+      } catch (err) {
+        console.error('Error fetching news data:', err);
+        setNewsError('Failed to load news articles. Please try again later.');
+      } finally {
+        setNewsLoading(false);
+      }
+    };
+
+    fetchNewsData();
+  }, []);
+
+  // Fetch press releases from API
+  useEffect(() => {
+    const fetchPressData = async () => {
+      try {
+        setPressLoading(true);
+        setPressError(null);
         
         // Fetch press releases
         const releases = await newsApi.getAll({
@@ -83,14 +102,14 @@ const LatestNewsPage = () => {
         setHasMorePress(releases.length > ITEMS_PER_SECTION);
         
       } catch (err) {
-        console.error('Error fetching news data:', err);
-        setError('Failed to load news data. Please try again later.');
+        console.error('Error fetching press releases:', err);
+        setPressError('Failed to load press releases. Please try again later.');
       } finally {
-        setLoading(false);
+        setPressLoading(false);
       }
     };
 
-    fetchNewsData();
+    fetchPressData();
   }, []);
 
   // Load more news articles
@@ -176,38 +195,46 @@ const LatestNewsPage = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-flex items-center px-4 py-2 font-semibold leading-6 text-sm shadow rounded-md text-gray-500 bg-white">
-            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            Loading news...
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // No Content Card Component
+  const NoContentCard = ({ type }: { type: 'news' | 'press' }) => (
+    <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center max-w-md mx-auto">
+      {type === 'news' ? (
+        <Newspaper className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+      ) : (
+        <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+      )}
+      <h3 className="text-lg font-medium text-gray-900 mb-2">
+        No {type === 'news' ? 'News Articles' : 'Press Releases'} Available
+      </h3>
+      <p className="text-gray-600 mb-4">
+        {type === 'news' 
+          ? 'Check back later for the latest news about ACNA.' 
+          : 'Check back later for the latest press releases.'}
+      </p>
+    </div>
+  );
 
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="bg-red-50 border border-red-200 rounded p-8 text-center max-w-md mx-auto">
-          <h3 className="text-lg font-medium text-red-900 mb-2">Error loading news</h3>
-          <p className="text-red-700 mb-4">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-          >
-            Reload Page
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // Error Card Component
+  const ErrorCard = ({ message, onRetry }: { message: string; onRetry: () => void }) => (
+    <div className="bg-red-50 border border-red-200 rounded-lg p-8 text-center max-w-md mx-auto">
+      <Newspaper className="w-16 h-16 text-red-400 mx-auto mb-4" />
+      <h3 className="text-lg font-medium text-red-800 mb-2">Error Loading Content</h3>
+      <p className="text-red-600 mb-6">{message}</p>
+      <button
+        onClick={onRetry}
+        className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-md font-medium transition-colors duration-300"
+      >
+        Try Again
+      </button>
+    </div>
+  );
+
+  // Loading Spinner Component
+  const LoadingSpinner = () => (
+    <div className="flex justify-center items-center py-12">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600"></div>
+    </div>
+  );
 
   return (
     <div className="bg-white min-h-screen">
@@ -233,14 +260,21 @@ const LatestNewsPage = () => {
               <p className="text-lg text-gray-600 max-w-3xl mx-auto">
                 Guest articles on other sources referencing our work to end hunger and poverty.
               </p>
-              {newsArticles.length > 0 && (
+              {newsArticles.length > 0 && !newsError && (
                 <p className="text-sm text-gray-500 mt-2">
                   Showing {displayedNewsArticles.length} of {newsArticles.length} articles
                 </p>
               )}
             </div>
 
-            {displayedNewsArticles.length > 0 ? (
+            {newsLoading ? (
+              <LoadingSpinner />
+            ) : newsError ? (
+              <ErrorCard 
+                message={newsError} 
+                onRetry={() => window.location.reload()} 
+              />
+            ) : displayedNewsArticles.length > 0 ? (
               <>
                 <div className="grid md:grid-cols-2 gap-8 mb-12">
                   {displayedNewsArticles.map((article) => (
@@ -319,9 +353,7 @@ const LatestNewsPage = () => {
                 )}
               </>
             ) : (
-              <div className="text-center py-8">
-                <p className="text-gray-600">No news articles available at the moment.</p>
-              </div>
+              <NoContentCard type="news" />
             )}
           </div>
 
@@ -333,14 +365,21 @@ const LatestNewsPage = () => {
               <p className="text-lg text-gray-600 max-w-3xl mx-auto">
                 Check out the latest press releases from African Child Neurology Association.
               </p>
-              {pressReleases.length > 0 && (
+              {pressReleases.length > 0 && !pressError && (
                 <p className="text-sm text-gray-500 mt-2">
                   Showing {displayedPressReleases.length} of {pressReleases.length} releases
                 </p>
               )}
             </div>
 
-            {displayedPressReleases.length > 0 ? (
+            {pressLoading ? (
+              <LoadingSpinner />
+            ) : pressError ? (
+              <ErrorCard 
+                message={pressError} 
+                onRetry={() => window.location.reload()} 
+              />
+            ) : displayedPressReleases.length > 0 ? (
               <>
                 <div className="grid md:grid-cols-2 gap-8 mb-12">
                   {displayedPressReleases.map((release) => (
@@ -403,9 +442,7 @@ const LatestNewsPage = () => {
                 )}
               </>
             ) : (
-              <div className="text-center py-8">
-                <p className="text-gray-600">No press releases available at the moment.</p>
-              </div>
+              <NoContentCard type="press" />
             )}
           </div>
         </div>
