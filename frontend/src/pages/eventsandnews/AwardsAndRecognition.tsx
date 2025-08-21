@@ -1,12 +1,19 @@
-import React, { useState } from 'react';
-import { Award, Trophy, Users, Calendar, FileText, CheckCircle, Star, Medal } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Award, Trophy, Users, Calendar, FileText, CheckCircle, Star, Medal, UserCheck } from 'lucide-react';
 import ScrollToTop from '../../components/common/ScrollToTop';
 import { Link } from 'react-router';
+import { awardsApi, AwardWinner, AwardCategory } from '../../services/awardsApi'; // Adjust import path as needed
 
 const AwardsPage = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [recentWinners, setRecentWinners] = useState<AwardWinner[]>([]);
+  const [awardCategories, setAwardCategories] = useState<AwardCategory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [displayedWinners, setDisplayedWinners] = useState(3); // Track how many winners to show
 
-  const awardCategories = [
+  // Default category data with icons for display purposes
+  const defaultCategories = [
     {
       id: 'excellence',
       title: "Excellence in Child Neurology",
@@ -17,7 +24,7 @@ const AwardsPage = () => {
     },
     {
       id: 'innovation',
-      title: "Healthcare Innovation Award",
+      title: "Healthcare Innovation Award", 
       description: "Honoring innovative approaches to addressing neurological care challenges in African communities",
       icon: Star,
       color: "bg-purple-600",
@@ -49,49 +56,6 @@ const AwardsPage = () => {
     }
   ];
 
-  const recentWinners = [
-    {
-      name: "Dr. Amina Hassan",
-      title: "Excellence in Child Neurology - 2024",
-      location: "Lagos, Nigeria",
-      achievement: "Pioneered community-based epilepsy care programs reaching over 5,000 children across West Africa",
-      image: "https://images.pexels.com/photos/5214907/pexels-photo-5214907.jpeg?auto=compress&cs=tinysrgb&w=400",
-      category: "excellence"
-    },
-    {
-      name: "Dr. Joseph Mutamba",
-      title: "Healthcare Innovation Award - 2024",
-      location: "Kampala, Uganda",
-      achievement: "Developed mobile diagnostic units that increased early detection rates by 70% in rural communities",
-      image: "https://images.pexels.com/photos/5452293/pexels-photo-5452293.jpeg?auto=compress&cs=tinysrgb&w=400",
-      category: "innovation"
-    },
-    {
-      name: "Dr. Fatima El-Rashid",
-      title: "Child Neurology Advocacy Award - 2024",
-      location: "Cairo, Egypt",
-      achievement: "Led policy reforms that mandated neurological screening in all primary schools across North Africa",
-      image: "https://images.pexels.com/photos/3952048/pexels-photo-3952048.jpeg?auto=compress&cs=tinysrgb&w=400",
-      category: "advocacy"
-    },
-    {
-      name: "Prof. Samuel Ochieng",
-      title: "Medical Education Excellence - 2024",
-      location: "Nairobi, Kenya",
-      achievement: "Established training centers that have graduated 200+ pediatric neurologists across East Africa",
-      image: "https://images.pexels.com/photos/5215024/pexels-photo-5215024.jpeg?auto=compress&cs=tinysrgb&w=400",
-      category: "education"
-    },
-    {
-      name: "Dr. Grace Mthembu",
-      title: "Lifetime Service Award - 2024",
-      location: "Cape Town, South Africa",
-      achievement: "40 years of dedicated service, founding three specialized pediatric neurology centers",
-      image: "https://images.pexels.com/photos/4260323/pexels-photo-4260323.jpeg?auto=compress&cs=tinysrgb&w=400",
-      category: "service"
-    }
-  ];
-
   const nominationSteps = [
     {
       step: 1,
@@ -101,7 +65,7 @@ const AwardsPage = () => {
     },
     {
       step: 2,
-      title: "Gather Required Documentation",
+      title: "Gather Required Documentation", 
       description: "Collect CV, supporting letters, and evidence of achievements",
       icon: Users
     },
@@ -119,9 +83,73 @@ const AwardsPage = () => {
     }
   ];
 
+  // Fetch data from API
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [winners, categories] = await Promise.all([
+          awardsApi.getWinners({ status: 'Active' }), // Only get active winners
+          awardsApi.getCategories({ active: true }) // Only get active categories
+        ]);
+        
+        setRecentWinners(winners);
+        setAwardCategories(categories);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch data');
+        console.error('Error fetching awards data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // Reset displayed winners when category changes
+  useEffect(() => {
+    setDisplayedWinners(3);
+  }, [selectedCategory]);
+
+  // Merge API categories with default display data
+  const displayCategories = awardCategories.length > 0 
+    ? awardCategories.map(apiCategory => {
+        const defaultCategory = defaultCategories.find(dc => 
+          dc.title.toLowerCase().includes(apiCategory.title.toLowerCase().split(' ')[0]) ||
+          apiCategory.title.toLowerCase().includes(dc.title.toLowerCase().split(' ')[0])
+        );
+        return {
+          ...apiCategory,
+          icon: defaultCategory?.icon || Award,
+          color: defaultCategory?.color || "bg-blue-600",
+          criteria: defaultCategory?.criteria || ["Excellence in field", "Significant contributions", "Community impact"]
+        };
+      })
+    : defaultCategories;
+
   const filteredWinners = selectedCategory === 'all' 
     ? recentWinners 
-    : recentWinners.filter(winner => winner.category === selectedCategory);
+    : recentWinners.filter(winner => {
+        // Try to match by category ID first, then by category title
+        const category = awardCategories.find(cat => cat.id === winner.category);
+        return category?.title.toLowerCase().includes(selectedCategory) || 
+               winner.categoryTitle?.toLowerCase().includes(selectedCategory);
+      });
+
+  // Get winners to display based on pagination
+  const winnersToShow = filteredWinners.slice(0, displayedWinners);
+  const hasMoreWinners = filteredWinners.length > displayedWinners;
+  const showViewMoreButton = filteredWinners.length > 3;
+
+  // Handle view more winners
+  const handleViewMoreWinners = () => {
+    setDisplayedWinners(prev => prev + 3);
+  };
+
+  // Handle view less winners (reset to 3)
+  const handleViewLessWinners = () => {
+    setDisplayedWinners(3);
+  };
 
   return (
     <div className="bg-white min-h-screen">
@@ -171,8 +199,7 @@ const AwardsPage = () => {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {awardCategories.map((category) => {
-             
+            {displayCategories.map((category) => {
               return (
                 <div key={category.id} className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow duration-300">
                   <h3 className="text-xl font-bold text-gray-900 mb-3">
@@ -184,12 +211,17 @@ const AwardsPage = () => {
                   <div className="space-y-2">
                     <h4 className="font-medium text-gray-900 text-sm">Key Criteria:</h4>
                     <ul className="space-y-1">
-                      {category.criteria.map((criterion, index) => (
+                      {category.criteria?.map((criterion, index) => (
                         <li key={index} className="text-sm text-gray-600 flex items-start">
-                        <CheckCircle className="w-4 h-4 text-orange-600 mr-2 mt-0.5 flex-shrink-0" />
-                        {criterion}
-                      </li>
-                      ))}
+                          <CheckCircle className="w-4 h-4 text-orange-600 mr-2 mt-0.5 flex-shrink-0" />
+                          {criterion}
+                        </li>
+                      )) || (
+                        <li className="text-sm text-gray-600 flex items-start">
+                          <CheckCircle className="w-4 h-4 text-orange-600 mr-2 mt-0.5 flex-shrink-0" />
+                          Excellence in field of expertise
+                        </li>
+                      )}
                     </ul>
                   </div>
                 </div>
@@ -208,75 +240,133 @@ const AwardsPage = () => {
             </h2>
             <div className="w-20 h-1 bg-red-600 mx-auto mb-6"></div>
             <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-              Celebrating the 2024 recipients who have made extraordinary contributions to child neurology across Africa
+              Celebrating recent recipients who have made extraordinary contributions to child neurology across Africa
             </p>
           </div>
 
           {/* Filter Buttons */}
-          <div className="flex flex-wrap justify-center gap-2 mb-8">
-            <button
-              onClick={() => setSelectedCategory('all')}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                selectedCategory === 'all' 
-                  ? 'bg-orange-600 text-white' 
-                  : 'bg-white text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              All Winners
-            </button>
-            {awardCategories.map((category) => (
+          {displayCategories.length > 0 && (
+            <div className="flex flex-wrap justify-center gap-2 mb-8">
               <button
-                key={category.id}
-                onClick={() => setSelectedCategory(category.id)}
+                onClick={() => setSelectedCategory('all')}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                  selectedCategory === category.id 
+                  selectedCategory === 'all' 
                     ? 'bg-orange-600 text-white' 
                     : 'bg-white text-gray-700 hover:bg-gray-100'
                 }`}
               >
-                {category.title.split(' ')[0]}
+                All Winners
               </button>
-            ))}
-          </div>
+              {displayCategories.map((category) => (
+                <button
+                  key={category.id}
+                  onClick={() => setSelectedCategory(category.title.toLowerCase().split(' ')[0])}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                    selectedCategory === category.title.toLowerCase().split(' ')[0]
+                      ? 'bg-orange-600 text-white' 
+                      : 'bg-white text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  {category.title.split(' ')[0]}
+                </button>
+              ))}
+            </div>
+          )}
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredWinners.map((winner, index) => (
-              <div key={index} className="bg-white rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
-                <div className="relative h-48">
-                  <img
-                    src={winner.image}
-                    alt={winner.name}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute top-4 left-4">
-                    <span className="bg-red-600 text-white px-3 py-1 text-xs font-bold uppercase tracking-wide rounded">
-                      2024 Winner
-                    </span>
+          {/* Winners Grid */}
+          {loading ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600"></div>
+            </div>
+          ) : error ? (
+            <div className="text-center py-12">
+              <div className="text-red-600 mb-4">Error loading winners: {error}</div>
+            </div>
+          ) : winnersToShow.length > 0 ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {winnersToShow.map((winner) => (
+                <div key={winner.id} className="bg-white rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
+                  <div className="relative h-48">
+                    {winner.imageUrl ? (
+                      <img
+                        src={winner.imageUrl}
+                        alt={winner.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          const img = e.currentTarget as HTMLImageElement;
+                          img.style.display = 'none';
+                          const fallback = img.nextElementSibling as HTMLElement;
+                          if (fallback) {
+                            fallback.style.display = 'flex';
+                          }
+                        }}
+                      />
+                    ) : null}
+                    {/* Fallback trophy icon for winners without images */}
+                    <div className={`w-full h-full bg-yellow-100 flex items-center justify-center ${winner.imageUrl ? 'hidden' : 'flex'}`}>
+                      <Trophy className="w-16 h-16 text-yellow-600" />
+                    </div>
+                    <div className="absolute top-4 left-4">
+                      <span className="bg-red-600 text-white px-3 py-1 text-xs font-bold uppercase tracking-wide rounded">
+                        {winner.year} Winner
+                      </span>
+                    </div>
+                  </div>
+                  <div className="p-6">
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">
+                      {winner.name}
+                    </h3>
+                    <p className="text-red-600 font-medium text-sm mb-2">
+                      {winner.title}
+                    </p>
+                    <p className="text-gray-600 text-sm mb-3">
+                      {winner.location}
+                    </p>
+                    <p className="text-gray-700 text-sm leading-relaxed">
+                      {winner.achievement}
+                    </p>
+                    {winner.categoryTitle && (
+                      <p className="text-blue-600 text-xs font-medium mt-3 uppercase tracking-wide">
+                        {winner.categoryTitle}
+                      </p>
+                    )}
                   </div>
                 </div>
-                <div className="p-6">
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">
-                    {winner.name}
-                  </h3>
-                  <p className="text-red-600 font-medium text-sm mb-2">
-                    {winner.title}
-                  </p>
-                  <p className="text-gray-600 text-sm mb-3">
-                    {winner.location}
-                  </p>
-                  <p className="text-gray-700 text-sm leading-relaxed">
-                    {winner.achievement}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <Trophy className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No Award Winners Found</h3>
+              <p className="text-gray-500">
+                {selectedCategory === 'all' 
+                  ? "No award winners have been announced yet." 
+                  : "No winners found for the selected category."}
+              </p>
+            </div>
+          )}
 
-          <div className="text-center mt-12">
-             <button className="border-2 border-orange-600 text-orange-600 px-6 py-2 sm:px-8 sm:py-3 font-medium hover:bg-orange-600 hover:text-white transition-all duration-300 uppercase tracking-wide rounded text-sm sm:text-base">
-              View All Past Winners
-            </button>
-          </div>
+          {/* View More/Less Winners Buttons */}
+          {showViewMoreButton && winnersToShow.length > 0 && (
+            <div className="text-center mt-12 space-x-4">
+              {hasMoreWinners && (
+                <button 
+                  onClick={handleViewMoreWinners}
+                  className="border-2 border-orange-600 text-orange-600 px-6 py-2 sm:px-8 sm:py-3 font-medium hover:bg-orange-600 hover:text-white transition-all duration-300 uppercase tracking-wide rounded text-sm sm:text-base"
+                >
+                  View More Winners
+                </button>
+              )}
+              {displayedWinners > 3 && (
+                <button 
+                  onClick={handleViewLessWinners}
+                  className="border-2 border-gray-400 text-gray-600 px-6 py-2 sm:px-8 sm:py-3 font-medium hover:bg-gray-400 hover:text-white transition-all duration-300 uppercase tracking-wide rounded text-sm sm:text-base"
+                >
+                  View Less
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </section>
 
@@ -299,7 +389,7 @@ const AwardsPage = () => {
                 <div key={step.step} className="text-center">
                   <div className="relative mb-6">
                     <div className="bg-orange-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-white text-2xl font-bold">{step.step}</span>
+                      <span className="text-white text-2xl font-bold">{step.step}</span>
                     </div>
                   </div>
                   <h3 className="text-lg font-bold text-gray-900 mb-3">

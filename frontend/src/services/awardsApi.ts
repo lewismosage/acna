@@ -36,12 +36,12 @@ export interface Nominee {
   phone: string;
   location: string;
   imageUrl: string;
-  status: 'Approved' | 'Rejected' | 'Winner'; // Removed 'Pending' status
+  status: 'Approved' | 'Rejected' | 'Winner'; 
   suggestedBy: string;
   suggestedDate: string;
   createdAt: string;
   updatedAt: string;
-  source: 'admin' | 'suggested'; // Removed 'new' and 'nomination' sources
+  source: 'admin' | 'suggested'; 
 }
 
 export interface AwardNomination {
@@ -59,11 +59,11 @@ export interface AwardNomination {
   achievementSummary: string;
   additionalInfo: string;
   supportingDocuments: string;
-  status: 'Approved' | 'Rejected'; // Removed 'Pending' and 'Under Review' statuses
+  status: 'Approved' | 'Rejected'; 
   submissionDate: string;
   createdAt: string;
   updatedAt: string;
-  source: 'suggested'; // Removed 'new' source
+  source: 'suggested'; 
 }
 
 export interface CreateAwardWinnerInput {

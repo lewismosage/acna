@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Trophy, ChevronDown, ChevronUp, Award, Users, BarChart3, Crown, Medal, X, FileText, Mail, User, Building, MapPin, Award as AwardIcon, Link as LinkIcon } from 'lucide-react';
-import { AwardCategory, Nominee, AwardNomination, awardsApi } from '../../../../services/awardsApi';
+import { AwardCategory, Nominee, AwardNomination, AwardWinner } from '../../../../services/awardsApi'; // Added AwardWinner import
 
 interface PollData {
   nominee: Nominee;
@@ -22,6 +22,7 @@ interface PollTabProps {
   searchTerm: string;
   loading: boolean;
   onDeclareWinner: (nominee: Nominee, category: AwardCategory) => void;
+  awardWinners: AwardWinner[];
 }
 
 const PollTab: React.FC<PollTabProps> = ({
@@ -30,7 +31,8 @@ const PollTab: React.FC<PollTabProps> = ({
   nominations,
   searchTerm,
   loading,
-  onDeclareWinner
+  onDeclareWinner,
+  awardWinners
 }) => {
   const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set());
   const [categoryPollData, setCategoryPollData] = useState<CategoryPollData[]>([]);
@@ -125,6 +127,14 @@ const PollTab: React.FC<PollTabProps> = ({
       newExpanded.add(categoryId);
     }
     setExpandedCategories(newExpanded);
+  };
+
+  const isAlreadyWinner = (nominee: Nominee, category: AwardCategory): boolean => {
+    return awardWinners.some(winner => 
+      winner.name.toLowerCase() === nominee.name.toLowerCase() && 
+      winner.category === category.id &&
+      winner.status === 'Active'
+    );
   };
 
   const handleDeclareWinner = async (poll: PollData, category: AwardCategory) => {
@@ -335,12 +345,23 @@ const PollTab: React.FC<PollTabProps> = ({
                                 View Nominations
                               </button>
                               {index === 0 && poll.voteCount > 0 && (
-                                <button
-                                  onClick={() => handleDeclareWinner(poll, categoryData.category)}
-                                  className="text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
-                                >
-                                  Declare Winner
-                                </button>
+                                <>
+                                  {isAlreadyWinner(poll.nominee, categoryData.category) ? (
+                                    <button
+                                      disabled
+                                      className="text-xs bg-green-100 text-green-600 px-3 py-1 rounded cursor-not-allowed opacity-75"
+                                    >
+                                      Already Winner
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={() => handleDeclareWinner(poll, categoryData.category)}
+                                      className="text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
+                                    >
+                                      Declare Winner
+                                    </button>
+                                  )}
+                                </>
                               )}
                             </div>
                           </div>
