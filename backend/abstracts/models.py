@@ -126,3 +126,93 @@ class Author(models.Model):
     @property
     def full_name(self):
         return f"{self.first_name} {self.last_name}"
+    
+class ImportantDates(models.Model):
+    """Model to store important dates for abstract submissions"""
+    
+    # Conference year
+    year = models.PositiveIntegerField(default=timezone.now().year + 1)
+    
+    # Important dates
+    abstract_submission_opens = models.CharField(
+        max_length=100, 
+        default="January 15",
+        help_text="Format: 'Month DD' or 'Month DD, YYYY'"
+    )
+    
+    abstract_submission_deadline = models.CharField(
+        max_length=100,
+        default="April 30", 
+        help_text="Format: 'Month DD' or 'Month DD, YYYY'"
+    )
+    
+    abstract_review_completion = models.CharField(
+        max_length=100,
+        default="June 15",
+        help_text="Format: 'Month DD' or 'Month DD, YYYY'"
+    )
+    
+    acceptance_notifications = models.CharField(
+        max_length=100,
+        default="July 1",
+        help_text="Format: 'Month DD' or 'Month DD, YYYY'"
+    )
+    
+    final_abstract_submission = models.CharField(
+        max_length=100,
+        default="August 15",
+        help_text="Format: 'Month DD' or 'Month DD, YYYY'"
+    )
+    
+    conference_presentation = models.CharField(
+        max_length=100,
+        default="March 15-17",
+        help_text="Format: 'Month DD-DD' or 'Month DD-DD, YYYY'"
+    )
+    
+    # Metadata
+    is_active = models.BooleanField(default=True, help_text="Only one set of dates can be active at a time")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.CharField(max_length=255, blank=True, null=True, help_text="Admin who created/updated these dates")
+    
+    class Meta:
+        ordering = ['-year', '-created_at']
+        verbose_name = "Important Dates"
+        verbose_name_plural = "Important Dates"
+    
+    def save(self, *args, **kwargs):
+        # Ensure only one set of dates is active at a time
+        if self.is_active:
+            ImportantDates.objects.filter(is_active=True).exclude(pk=self.pk).update(is_active=False)
+        super().save(*args, **kwargs)
+    
+    def __str__(self):
+        return f"Important Dates {self.year} {'(Active)' if self.is_active else ''}"
+    
+    @classmethod
+    def get_current_dates(cls):
+        """Get the currently active important dates"""
+        return cls.objects.filter(is_active=True).first()
+    
+    @property
+    def formatted_dates(self):
+        """Return dates with year appended if not present"""
+        def format_date(date_str):
+            if str(self.year) not in date_str:
+                # Check if it's a date range (contains dash)
+                if '-' in date_str and not date_str.endswith(str(self.year)):
+                    return f"{date_str}, {self.year}"
+                elif not date_str.endswith(str(self.year)):
+                    return f"{date_str}, {self.year}"
+            return date_str
+        
+        return {
+            'year': self.year,
+            'abstractSubmissionOpens': format_date(self.abstract_submission_opens),
+            'abstractSubmissionDeadline': format_date(self.abstract_submission_deadline),
+            'abstractReviewCompletion': format_date(self.abstract_review_completion),
+            'acceptanceNotifications': format_date(self.acceptance_notifications),
+            'finalAbstractSubmission': format_date(self.final_abstract_submission),
+            'conferencePresentation': format_date(self.conference_presentation),
+        }

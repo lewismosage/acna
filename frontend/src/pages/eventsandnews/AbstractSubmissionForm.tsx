@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import {
   FileText,
@@ -14,6 +14,7 @@ import { abstractApi,
    CreateAbstractInput,
    AbstractCategory, 
    PresentationType } from '../../services/abstractApi';
+import { getCurrentImportantDates, ImportantDates } from "../../services/abstractApi";
 
 type FileField = "abstractFile" | "ethicalApproval" | "supplementary";
 
@@ -46,6 +47,9 @@ const AbstractSubmissionForm = () => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [submissionSuccess, setSubmissionSuccess] = useState<boolean>(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [importantDates, setImportantDates] = useState<ImportantDates | null>(null);
+  const [datesLoading, setDatesLoading] = useState<boolean>(true);
+  const [datesError, setDatesError] = useState<string | null>(null);
   const [files, setFiles] = useState<{
     abstractFile: File | null;
     ethicalApproval: File | null;
@@ -88,6 +92,35 @@ const AbstractSubmissionForm = () => {
       consent: false,
     },
   });
+
+  // Fetch important dates on component mount
+  useEffect(() => {
+    const fetchImportantDates = async () => {
+      try {
+        setDatesLoading(true);
+        setDatesError(null);
+        const dates = await getCurrentImportantDates();
+        setImportantDates(dates);
+      } catch (err) {
+        console.error("Failed to fetch important dates:", err);
+        setDatesError("Failed to load important dates");
+        // Fallback to hardcoded dates if API fails
+        setImportantDates({
+          year: 2026,
+          abstractSubmissionOpens: "January 15, 2026",
+          abstractSubmissionDeadline: "April 30, 2026",
+          abstractReviewCompletion: "June 15, 2026",
+          acceptanceNotifications: "July 1, 2026",
+          finalAbstractSubmission: "August 15, 2026",
+          conferencePresentation: "March 15-17, 2026",
+        });
+      } finally {
+        setDatesLoading(false);
+      }
+    };
+
+    fetchImportantDates();
+  }, []);
 
   const categories = [
     "Clinical Research",
@@ -234,7 +267,7 @@ const AbstractSubmissionForm = () => {
             Submission Successful!
           </h2>
           <p className="text-lg text-gray-600 mb-6">
-            Thank you for submitting your abstract to ACNA 2026. Your submission
+            Thank you for submitting your abstract to ACNA {importantDates?.year || 2026}. Your submission
             has been received and is currently under review.
           </p>
           <p className="text-gray-600 mb-8">
@@ -279,9 +312,22 @@ const AbstractSubmissionForm = () => {
               <h1 className="text-2xl sm:text-3xl font-bold mb-2">
                 Abstract Submission
               </h1>
-              <p className="opacity-90">
-                ACNA Annual Conference 2026 | Deadline: April 30, 2026
-              </p>
+              {datesLoading ? (
+                <div className="flex items-center opacity-90">
+                  <Loader className="w-4 h-4 animate-spin mr-2" />
+                  <p className="text-sm">Loading submission details...</p>
+                </div>
+              ) : (
+                <p className="opacity-90">
+                  ACNA Annual Conference {importantDates?.year || 2026} | Deadline: {importantDates?.abstractSubmissionDeadline || "April 30, 2026"}
+                </p>
+              )}
+              {datesError && (
+                <p className="text-xs text-orange-200 mt-1">
+                  <AlertCircle className="w-3 h-3 inline mr-1" />
+                  {datesError} - Using fallback dates
+                </p>
+              )}
             </div>
             <div className="bg-white bg-opacity-20 px-4 py-2 rounded-full text-sm font-medium">
               Step {step} of 4
@@ -1028,7 +1074,7 @@ const AbstractSubmissionForm = () => {
                   Submitting...
                 </>
               ) : (
-                'Submit Abstaract'
+                'Submit Abstract'
               )}
             </button>
             )}

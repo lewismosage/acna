@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://127.0.0.1:8000/api';
+const API_BASE_URL = 'http://127.0.0.1:8000';
 
 export interface Author {
   id?: number;
@@ -88,6 +88,29 @@ export interface AbstractAnalytics {
   featured: number;
   totalAuthors: number;
   countries: string[];
+}
+
+export interface ImportantDates {
+  id?: number;
+  year: number;
+  abstractSubmissionOpens: string;
+  abstractSubmissionDeadline: string;
+  abstractReviewCompletion: string;
+  acceptanceNotifications: string;
+  finalAbstractSubmission: string;
+  conferencePresentation: string;
+  isActive?: boolean;
+}
+
+export interface CreateImportantDatesInput {
+  year: number;
+  abstractSubmissionOpens: string;
+  abstractSubmissionDeadline: string;
+  abstractReviewCompletion: string;
+  acceptanceNotifications: string;
+  finalAbstractSubmission: string;
+  conferencePresentation: string;
+  isActive?: boolean;
 }
 
 // Helper function to get authentication headers
@@ -202,7 +225,7 @@ export const abstractApi = {
       });
     }
     
-    const response = await fetch(`${API_BASE_URL}/abstracts/?${searchParams.toString()}`, {
+    const response = await fetch(`${API_BASE_URL}/api/abstracts/?${searchParams.toString()}`, {
       headers: getAuthHeaders(),
     });
     
@@ -211,7 +234,7 @@ export const abstractApi = {
   },
 
   getAbstractById: async (id: number): Promise<Abstract> => {
-    const response = await fetch(`${API_BASE_URL}/abstracts/${id}/`, {
+    const response = await fetch(`${API_BASE_URL}/api/abstracts/${id}/`, {
       headers: getAuthHeaders(),
     });
     
@@ -273,12 +296,12 @@ export const abstractApi = {
     }
     
     if (data.supplementaryFiles && data.supplementaryFiles.length > 0) {
-      data.supplementaryFiles.forEach((file, index) => {
+      data.supplementaryFiles.forEach((file) => {
         formData.append(`supplementary_files`, file);
       });
     }
     
-    const response = await fetch(`${API_BASE_URL}/abstracts/`, {
+    const response = await fetch(`${API_BASE_URL}/api/abstracts/`, {
       method: 'POST',
       headers: getAuthHeadersWithoutContentType(),
       body: formData,
@@ -347,12 +370,12 @@ export const abstractApi = {
     }
     
     if (data.supplementaryFiles && data.supplementaryFiles.length > 0) {
-      data.supplementaryFiles.forEach((file, index) => {
+      data.supplementaryFiles.forEach((file) => {
         formData.append(`supplementary_files`, file);
       });
     }
     
-    const response = await fetch(`${API_BASE_URL}/abstracts/${id}/`, {
+    const response = await fetch(`${API_BASE_URL}/api/abstracts/${id}/`, {
       method: 'PATCH',
       headers: getAuthHeadersWithoutContentType(),
       body: formData,
@@ -363,7 +386,7 @@ export const abstractApi = {
   },
 
   deleteAbstract: async (id: number): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/abstracts/${id}/`, {
+    const response = await fetch(`${API_BASE_URL}/api/abstracts/${id}/`, {
       method: 'DELETE',
       headers: getAuthHeadersWithoutContentType(),
     });
@@ -372,7 +395,7 @@ export const abstractApi = {
   },
 
   updateAbstractStatus: async (id: number, status: AbstractStatus): Promise<Abstract> => {
-    const response = await fetch(`${API_BASE_URL}/abstracts/${id}/update_status/`, {
+    const response = await fetch(`${API_BASE_URL}/api/abstracts/${id}/update_status/`, {
       method: 'PATCH',
       headers: getAuthHeaders(),
       body: JSON.stringify({ status }),
@@ -383,7 +406,7 @@ export const abstractApi = {
   },
 
   toggleFeatured: async (id: number): Promise<Abstract> => {
-    const response = await fetch(`${API_BASE_URL}/abstracts/${id}/toggle_featured/`, {
+    const response = await fetch(`${API_BASE_URL}/api/abstracts/${id}/toggle_featured/`, {
       method: 'PATCH',
       headers: getAuthHeaders(),
     });
@@ -397,7 +420,7 @@ export const abstractApi = {
     const formData = new FormData();
     formData.append('abstract_file', file);
     
-    const response = await fetch(`${API_BASE_URL}/abstracts/upload_abstract_file/`, {
+    const response = await fetch(`${API_BASE_URL}/api/abstracts/upload_abstract_file/`, {
       method: 'POST',
       headers: getAuthHeadersWithoutContentType(),
       body: formData,
@@ -410,7 +433,7 @@ export const abstractApi = {
     const formData = new FormData();
     formData.append('ethical_approval_file', file);
     
-    const response = await fetch(`${API_BASE_URL}/abstracts/upload_ethical_approval/`, {
+    const response = await fetch(`${API_BASE_URL}/api/abstracts/upload_ethical_approval/`, {
       method: 'POST',
       headers: getAuthHeadersWithoutContentType(),
       body: formData,
@@ -423,7 +446,7 @@ export const abstractApi = {
     const formData = new FormData();
     formData.append('supplementary_file', file);
     
-    const response = await fetch(`${API_BASE_URL}/abstracts/upload_supplementary_file/`, {
+    const response = await fetch(`${API_BASE_URL}/api/abstracts/upload_supplementary_file/`, {
       method: 'POST',
       headers: getAuthHeadersWithoutContentType(),
       body: formData,
@@ -434,7 +457,7 @@ export const abstractApi = {
 
   // ========== ANALYTICS AND METADATA ==========
   getAnalytics: async (): Promise<AbstractAnalytics> => {
-    const response = await fetch(`${API_BASE_URL}/abstracts/analytics/`, {
+    const response = await fetch(`${API_BASE_URL}/api/abstracts/analytics/`, {
       headers: getAuthHeaders(),
     });
     
@@ -443,7 +466,7 @@ export const abstractApi = {
   },
 
   getCategories: async (): Promise<string[]> => {
-    const response = await fetch(`${API_BASE_URL}/abstracts/categories/`, {
+    const response = await fetch(`${API_BASE_URL}/api/abstracts/categories/`, {
       headers: getAuthHeaders(),
     });
     
@@ -452,7 +475,7 @@ export const abstractApi = {
   },
 
   getPresentationTypes: async (): Promise<string[]> => {
-    const response = await fetch(`${API_BASE_URL}/abstracts/presentation_types/`, {
+    const response = await fetch(`${API_BASE_URL}/api/abstracts/presentation_types/`, {
       headers: getAuthHeaders(),
     });
     
@@ -462,7 +485,7 @@ export const abstractApi = {
 
   // ========== EMAIL OPERATIONS ==========
   sendStatusNotification: async (abstractId: number): Promise<{ success: boolean; message: string }> => {
-    const response = await fetch(`${API_BASE_URL}/abstracts/${abstractId}/send_status_notification/`, {
+    const response = await fetch(`${API_BASE_URL}/api/abstracts/${abstractId}/send_status_notification/`, {
       method: 'POST',
       headers: getAuthHeaders(),
     });
@@ -470,16 +493,91 @@ export const abstractApi = {
     return handleResponse(response);
   },
 
-  sendReviewerAssignment: async (abstractId: number, reviewerEmail: string): Promise<{ success: boolean; message: string }> => {
-    const response = await fetch(`${API_BASE_URL}/abstracts/${abstractId}/assign_reviewer/`, {
+  addCommentsAndNotify: async (abstractId: number, reviewerComments: string): Promise<{ success: boolean; message: string; abstract: Abstract }> => {
+    const response = await fetch(`${API_BASE_URL}/api/abstracts/${abstractId}/add_comments_and_notify/`, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ reviewer_email: reviewerEmail }),
+      body: JSON.stringify({
+        reviewer_comments: reviewerComments
+      })
     });
-    
+
     return handleResponse(response);
   },
 
+  updateComments: async (abstractId: number, reviewerComments: string): Promise<Abstract> => {
+    const response = await fetch(`${API_BASE_URL}/api/abstracts/${abstractId}/update_comments/`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        reviewer_comments: reviewerComments
+      })
+    });
+
+    const result = await handleResponse(response);
+    return normalizeAbstract(result);
+  },
+
+  // ========== IMPORTANT DATES OPERATIONS ==========
+  getImportantDates: async (): Promise<ImportantDates> => {
+    const response = await fetch(`${API_BASE_URL}/api/abstracts/important_dates/`, {
+      headers: getAuthHeaders(),
+    });
+    
+    const data = await handleResponse(response);
+    return data;
+  },
+
+  getCurrentImportantDates: async (): Promise<ImportantDates> => {
+    const response = await fetch(`${API_BASE_URL}/api/important-dates/current/`, {
+      headers: getAuthHeaders(),
+    });
+    
+    const data = await handleResponse(response);
+    return data;
+  },
+
+  updateImportantDates: async (dates: Partial<ImportantDates>): Promise<ImportantDates> => {
+    const response = await fetch(`${API_BASE_URL}/api/abstracts/update_important_dates/`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(dates),
+    });
+    
+    const result = await handleResponse(response);
+    return result.data || result;
+  },
+
+  createImportantDates: async (dates: CreateImportantDatesInput): Promise<ImportantDates> => {
+    const response = await fetch(`${API_BASE_URL}/api/important-dates/`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        year: dates.year,
+        abstract_submission_opens: dates.abstractSubmissionOpens.replace(`, ${dates.year}`, ''),
+        abstract_submission_deadline: dates.abstractSubmissionDeadline.replace(`, ${dates.year}`, ''),
+        abstract_review_completion: dates.abstractReviewCompletion.replace(`, ${dates.year}`, ''),
+        acceptance_notifications: dates.acceptanceNotifications.replace(`, ${dates.year}`, ''),
+        final_abstract_submission: dates.finalAbstractSubmission.replace(`, ${dates.year}`, ''),
+        conference_presentation: dates.conferencePresentation.replace(`, ${dates.year}`, ''),
+        is_active: dates.isActive || true,
+      }),
+    });
+    
+    const result = await handleResponse(response);
+    return result.data || result;
+  },
+
+  setActiveImportantDates: async (id: number): Promise<ImportantDates> => {
+    const response = await fetch(`${API_BASE_URL}/api/important-dates/${id}/set_active/`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+    });
+    
+    const result = await handleResponse(response);
+    return result.data || result;
+  },
+  
   // ========== EXPORT OPERATIONS ==========
   exportAbstracts: async (format: 'csv' | 'xlsx' = 'csv', params?: {
     status?: AbstractStatus;
@@ -500,7 +598,7 @@ export const abstractApi = {
       });
     }
     
-    const response = await fetch(`${API_BASE_URL}/abstracts/export/?${searchParams.toString()}`, {
+    const response = await fetch(`${API_BASE_URL}/api/abstracts/export/?${searchParams.toString()}`, {
       headers: getAuthHeadersWithoutContentType(),
     });
     
@@ -528,6 +626,10 @@ export const {
   getCategories,
   getPresentationTypes,
   sendStatusNotification,
-  sendReviewerAssignment,
+  getImportantDates,
+  getCurrentImportantDates,
+  updateImportantDates,
+  createImportantDates,
+  setActiveImportantDates,
   exportAbstracts,
 } = abstractApi;

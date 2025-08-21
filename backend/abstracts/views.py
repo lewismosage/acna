@@ -8,6 +8,7 @@ from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
+from .models import Abstract, Author, ImportantDates
 from django.conf import settings
 import os
 import uuid
@@ -17,7 +18,9 @@ import json
 from .models import Abstract, Author
 from .serializers import (
     AbstractSerializer, CreateAbstractSerializer, 
-    UpdateAbstractSerializer, AuthorSerializer
+    UpdateAbstractSerializer, AuthorSerializer,
+    ImportantDatesSerializer, ImportantDatesFormattedSerializer,
+    CreateUpdateImportantDatesSerializer
 )
 
 logger = logging.getLogger(__name__)
@@ -109,6 +112,72 @@ class AbstractViewSet(viewsets.ModelViewSet):
         
         serializer = self.get_serializer(abstract)
         return Response(serializer.data)
+    
+    @action(detail=True, methods=['patch'])
+    def update_comments(self, request, pk=None):
+        """Update reviewer comments for an abstract"""
+        abstract = self.get_object()
+        comments = request.data.get('reviewer_comments', '')
+        
+        abstract.reviewer_comments = comments
+        abstract.save()
+        
+        serializer = self.get_serializer(abstract)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'])
+    def add_comments_and_notify(self, request, pk=None):
+        """Add comments and send notification to author"""
+        abstract = self.get_object()
+        comments = request.data.get('reviewer_comments', '')
+        
+        # Update comments if provided
+        if comments.strip():
+            abstract.reviewer_comments = comments
+            abstract.save()
+        
+        try:
+            # Find corresponding author
+            corresponding_author = abstract.authors.filter(is_corresponding=True).first()
+            if not corresponding_author:
+                return Response({
+                    'success': False,
+                    'error': 'No corresponding author found'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Send email
+            subject = f"Abstract Status Update: {abstract.title}"
+            from_email = settings.DEFAULT_FROM_EMAIL
+            to = [corresponding_author.email]
+            
+            context = {
+                'abstract': abstract,
+                'author': corresponding_author,
+                'status': abstract.status,
+                'reviewer_comments': abstract.reviewer_comments,
+            }
+            
+            html_content = render_to_string('emails/abstract_status_notification.html', context)
+            text_content = render_to_string('emails/abstract_status_notification.txt', context)
+            
+            msg = EmailMultiAlternatives(subject, text_content, from_email, to)
+            msg.attach_alternative(html_content, "text/html")
+            msg.send()
+            
+            # Return updated abstract data
+            serializer = self.get_serializer(abstract)
+            return Response({
+                'success': True,
+                'message': f'Comments updated and notification sent to {corresponding_author.email}',
+                'abstract': serializer.data
+            })
+            
+        except Exception as e:
+            logger.error(f"Failed to send notification: {str(e)}")
+            return Response({
+                'success': False,
+                'error': 'Failed to send notification'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     @action(detail=False, methods=['get'])
     def analytics(self, request):
@@ -336,3 +405,151 @@ class AbstractViewSet(viewsets.ModelViewSet):
                 {'error': f'Failed to upload file: {str(e)}'}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+        
+    @action(detail=False, methods=['get'])
+    def important_dates(self, request):
+        """Get current important dates for abstracts"""
+        current_dates = ImportantDates.get_current_dates()
+        
+        if current_dates:
+            serializer = ImportantDatesFormattedSerializer(current_dates, context=self.get_serializer_context())
+            return Response(serializer.data)
+        else:
+            # Return default dates if none exist
+            default_year = timezone.now().year + 1
+            default_data = {
+                'year': default_year,
+                'abstractSubmissionOpens': f'January 15, {default_year}',
+                'abstractSubmissionDeadline': f'April 30, {default_year}',
+                'abstractReviewCompletion': f'June 15, {default_year}',
+                'acceptanceNotifications': f'July 1, {default_year}',
+                'finalAbstractSubmission': f'August 15, {default_year}',
+                'conferencePresentation': f'March 15-17, {default_year}',
+                'is_active': False
+            }
+            return Response(default_data)
+
+    @action(detail=False, methods=['post', 'put'])
+    def update_important_dates(self, request):
+        """Update important dates (no permissions required)"""
+        data = request.data
+        year = data.get('year', timezone.now().year + 1)
+        
+        # Try to get existing dates for this year
+        dates, created = ImportantDates.objects.get_or_create(
+            year=year,
+            defaults={
+                'abstract_submission_opens': data.get('abstractSubmissionOpens', f'January 15'),
+                'abstract_submission_deadline': data.get('abstractSubmissionDeadline', f'April 30'),
+                'abstract_review_completion': data.get('abstractReviewCompletion', f'June 15'),
+                'acceptance_notifications': data.get('acceptanceNotifications', f'July 1'),
+                'final_abstract_submission': data.get('finalAbstractSubmission', f'August 15'),
+                'conference_presentation': data.get('conferencePresentation', f'March 15-17'),
+                'is_active': True,
+                # no need to set created_by from user
+            }
+        )
+        
+        if not created:
+            # Update existing dates
+            dates.abstract_submission_opens = data.get('abstractSubmissionOpens', dates.abstract_submission_opens)
+            dates.abstract_submission_deadline = data.get('abstractSubmissionDeadline', dates.abstract_submission_deadline)
+            dates.abstract_review_completion = data.get('abstractReviewCompletion', dates.abstract_review_completion)
+            dates.acceptance_notifications = data.get('acceptanceNotifications', dates.acceptance_notifications)
+            dates.final_abstract_submission = data.get('finalAbstractSubmission', dates.final_abstract_submission)
+            dates.conference_presentation = data.get('conferencePresentation', dates.conference_presentation)
+            dates.is_active = True
+            dates.save()
+        
+        serializer = ImportantDatesFormattedSerializer(dates, context=self.get_serializer_context())
+        
+        return Response({
+            'message': f'Important dates for {year} {"created" if created else "updated"} successfully',
+            'data': serializer.data
+        })
+
+        
+class ImportantDatesViewSet(viewsets.ModelViewSet):
+    """ViewSet for managing important dates"""
+    queryset = ImportantDates.objects.all().order_by('-year', '-created_at')
+    
+    def get_serializer_class(self):
+        if self.action in ['create', 'update', 'partial_update']:
+            return CreateUpdateImportantDatesSerializer
+        elif self.action == 'list' or self.action == 'retrieve':
+            return ImportantDatesFormattedSerializer
+        return ImportantDatesSerializer
+    
+    @action(detail=False, methods=['get'])
+    def current(self, request):
+        """Get the currently active important dates"""
+        current_dates = ImportantDates.get_current_dates()
+        
+        if current_dates:
+            serializer = ImportantDatesFormattedSerializer(current_dates, context=self.get_serializer_context())
+            return Response(serializer.data)
+        else:
+            # Return default dates if none exist
+            default_year = timezone.now().year + 1
+            default_data = {
+                'year': default_year,
+                'abstractSubmissionOpens': f'January 15, {default_year}',
+                'abstractSubmissionDeadline': f'April 30, {default_year}',
+                'abstractReviewCompletion': f'June 15, {default_year}',
+                'acceptanceNotifications': f'July 1, {default_year}',
+                'finalAbstractSubmission': f'August 15, {default_year}',
+                'conferencePresentation': f'March 15-17, {default_year}',
+                'is_active': False
+            }
+            return Response(default_data)
+    
+    @action(detail=True, methods=['patch'])
+    def set_active(self, request, pk=None):
+        """Set specific important dates as active"""
+        dates = self.get_object()
+        
+        # Deactivate all other dates
+        ImportantDates.objects.filter(is_active=True).update(is_active=False)
+        
+        # Activate this one
+        dates.is_active = True
+        dates.save()
+        
+        serializer = self.get_serializer(dates)
+        return Response({
+            'message': f'Important dates for {dates.year} set as active',
+            'data': serializer.data
+        })
+    
+    def create(self, request, *args, **kwargs):
+        """Create new important dates"""
+        serializer = self.get_serializer(data=request.data, context=self.get_serializer_context())
+        serializer.is_valid(raise_exception=True)
+        instance = serializer.save()
+        
+        return Response(
+            {
+                'message': f'Important dates for {instance.year} created successfully',
+                'data': serializer.data
+            },
+            status=status.HTTP_201_CREATED
+        )
+    
+    def update(self, request, *args, **kwargs):
+        """Update existing important dates"""
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        
+        serializer = self.get_serializer(
+            instance, 
+            data=request.data, 
+            partial=partial,
+            context=self.get_serializer_context()
+        )
+        serializer.is_valid(raise_exception=True)
+        updated_instance = serializer.save()
+        
+        return Response({
+            'message': f'Important dates for {updated_instance.year} updated successfully',
+            'data': serializer.data
+        })

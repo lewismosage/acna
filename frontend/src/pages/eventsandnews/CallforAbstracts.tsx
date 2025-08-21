@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Calendar,
   FileText,
@@ -12,13 +12,90 @@ import {
   Search,
   Filter,
   Link,
+  Loader,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import ScrollToTop from "../../components/common/ScrollToTop";
+import { getCurrentImportantDates, ImportantDates } from "../../services/abstractApi";
 
 const CallForAbstracts = () => {
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [importantDates, setImportantDates] = useState<ImportantDates | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+
+  // Fetch important dates on component mount
+  useEffect(() => {
+    const fetchImportantDates = async () => {
+      try {
+        setLoading(true);
+        const dates = await getCurrentImportantDates();
+        setImportantDates(dates);
+      } catch (err) {
+        console.error("Failed to fetch important dates:", err);
+        setError("Failed to load important dates");
+        // Fallback to hardcoded dates if API fails
+        setImportantDates({
+          year: 2026,
+          abstractSubmissionOpens: "January 15, 2026",
+          abstractSubmissionDeadline: "April 30, 2026",
+          abstractReviewCompletion: "June 15, 2026",
+          acceptanceNotifications: "July 1, 2026",
+          finalAbstractSubmission: "August 15, 2026",
+          conferencePresentation: "March 15-17, 2026",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchImportantDates();
+  }, []);
+
+  // Generate important dates array from API data
+  const generateImportantDatesArray = (dates: ImportantDates) => {
+    if (!dates) return [];
+
+    return [
+      {
+        date: dates.abstractSubmissionOpens,
+        event: "Abstract Submission Opens",
+        status: "upcoming",
+        description: "Online submission platform goes live",
+      },
+      {
+        date: dates.abstractSubmissionDeadline,
+        event: "Abstract Submission Deadline",
+        status: "deadline",
+        description: "Final deadline for all abstract submissions",
+      },
+      {
+        date: dates.abstractReviewCompletion,
+        event: "Abstract Review Completion",
+        status: "upcoming",
+        description: "All reviews completed by scientific committee",
+      },
+      {
+        date: dates.acceptanceNotifications,
+        event: "Acceptance Notifications",
+        status: "upcoming",
+        description: "Authors notified of acceptance decisions",
+      },
+      {
+        date: dates.finalAbstractSubmission,
+        event: "Final Abstract Submission",
+        status: "upcoming",
+        description: "Revised abstracts due for publication",
+      },
+      {
+        date: dates.conferencePresentation,
+        event: "Conference Presentation",
+        status: "conference",
+        description: `Abstract presentations at ACNA ${dates.year}`,
+      },
+    ];
+  };
 
   const abstractCategories = [
     {
@@ -103,45 +180,6 @@ const CallForAbstracts = () => {
         "Novel treatment approaches",
         "Diagnostic challenges",
       ],
-    },
-  ];
-
-  const importantDates = [
-    {
-      date: "January 15, 2026",
-      event: "Abstract Submission Opens",
-      status: "upcoming",
-      description: "Online submission platform goes live",
-    },
-    {
-      date: "April 30, 2026",
-      event: "Abstract Submission Deadline",
-      status: "deadline",
-      description: "Final deadline for all abstract submissions",
-    },
-    {
-      date: "June 15, 2026",
-      event: "Abstract Review Completion",
-      status: "upcoming",
-      description: "All reviews completed by scientific committee",
-    },
-    {
-      date: "July 1, 2026",
-      event: "Acceptance Notifications",
-      status: "upcoming",
-      description: "Authors notified of acceptance decisions",
-    },
-    {
-      date: "August 15, 2026",
-      event: "Final Abstract Submission",
-      status: "upcoming",
-      description: "Revised abstracts due for publication",
-    },
-    {
-      date: "March 15-17, 2026",
-      event: "Conference Presentation",
-      status: "conference",
-      description: "Abstract presentations at ACNA 2026",
     },
   ];
 
@@ -277,6 +315,10 @@ const CallForAbstracts = () => {
     navigate("/abstract-submission");
   };
 
+
+
+  const importantDatesArray = importantDates ? generateImportantDatesArray(importantDates) : [];
+
   return (
     <div className="bg-white min-h-screen">
       <ScrollToTop />
@@ -288,7 +330,7 @@ const CallForAbstracts = () => {
           </h1>
           <p className="text-lg sm:text-xl md:text-2xl text-gray-700 font-light max-w-3xl mx-auto mb-8">
             Share your research, innovations, and clinical experiences at ACNA
-            Annual Conference 2026. We invite submissions across all areas of
+            Annual Conference {importantDates?.year || 2026}. We invite submissions across all areas of
             pediatric neurology.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -314,21 +356,48 @@ const CallForAbstracts = () => {
             <h2 className="text-2xl md:text-3xl font-bold mb-2">
               Important Dates
             </h2>
-            <p className="text-lg opacity-100">
-              Mark your calendar - Abstract submission deadline: April 30, 2026
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 text-center text-white">
-            {importantDates.map((date, index) => (
-              <div
-                key={index}
-                className="bg-white bg-opacity-10 rounded-lg p-3"
-              >
-                <div className="text-sm font-bold mb-1">{date.date}</div>
-                <div className="text-xs opacity-100">{date.event}</div>
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader className="w-8 h-8 animate-spin text-white-600" />
+                <p className="text-lg">Loading important dates...</p>
               </div>
-            ))}
+            ) : (
+              <p className="text-xl mb-8 max-w-2xl mx-auto">
+                Mark your calendar - Abstract submission deadline: {importantDates?.abstractSubmissionDeadline || "April 30, 2026"}
+              </p>
+            )}
           </div>
+          
+          {!loading && (
+            <>
+              {error && (
+                <div className="text-center text-white mb-4">
+                  <div className="bg-white bg-opacity-10 rounded p-2 text-sm">
+                    <AlertCircle className="w-4 h-4 inline mr-2" />
+                    {error} - Showing fallback dates
+                  </div>
+                </div>
+              )}
+              
+              {importantDatesArray.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 text-center text-white">
+                  {importantDatesArray.map((date, index) => (
+                    <div
+                      key={index}
+                      className="bg-white bg-opacity-10 rounded-lg p-3"
+                    >
+                      <div className="text-sm font-bold mb-1">{date.date}</div>
+                      <div className="text-xs opacity-100">{date.event}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center text-white">
+                  <p className="text-lg">Important dates will be available soon.</p>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </section>
 
@@ -375,7 +444,6 @@ const CallForAbstracts = () => {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredCategories.map((category) => {
-              
               return (
                 <div
                   key={category.id}
@@ -454,12 +522,14 @@ const CallForAbstracts = () => {
                   Important Notice
                 </h3>
                 <p className="text-gray-700 mb-4">
-                  All abstracts must be submitted through our online portal.
+                  All abstracts must be submitted through our online form.
                   Email submissions will not be accepted. Ensure all co-authors
                   have approved the submission before finalizing.
                 </p>
                 <div className="flex flex-wrap gap-4">
-                  <button className="bg-blue-600 text-white px-4 py-2 text-sm font-medium hover:bg-blue-700 transition-colors rounded">
+                  <button 
+                   onClick={handleSubmitClick}
+                   className="bg-blue-600 text-white px-4 py-2 text-sm font-medium hover:bg-blue-700 transition-colors rounded">
                     Access Submission Portal
                   </button>
                   <button className="border border-blue-600 text-blue-600 px-4 py-2 text-sm font-medium hover:bg-blue-600 hover:text-white transition-colors rounded">
@@ -583,7 +653,7 @@ const CallForAbstracts = () => {
           </h2>
           <p className="text-xl mb-8 max-w-2xl mx-auto">
             Join leading researchers and clinicians in sharing your work at ACNA
-            Annual Conference 2026. Don't miss this opportunity to contribute to
+            Annual Conference {importantDates?.year || 2026}. Don't miss this opportunity to contribute to
             advancing pediatric neurology across Africa.
           </p>
 

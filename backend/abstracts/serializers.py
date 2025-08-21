@@ -1,6 +1,6 @@
 # serializers.py
 from rest_framework import serializers
-from .models import Abstract, Author
+from .models import Abstract, Author, ImportantDates
 
 class AuthorSerializer(serializers.ModelSerializer):
     class Meta:
@@ -116,3 +116,95 @@ class UpdateAbstractSerializer(serializers.ModelSerializer):
                 Author.objects.create(abstract=instance, **author_data)
 
         return instance
+    
+    def to_representation(self, instance):
+        # Use the main AbstractSerializer for the response
+        return AbstractSerializer(instance, context=self.context).data
+    
+class ImportantDatesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ImportantDates
+        fields = [
+            'id', 'year', 'abstract_submission_opens', 'abstract_submission_deadline',
+            'abstract_review_completion', 'acceptance_notifications', 
+            'final_abstract_submission', 'conference_presentation',
+            'is_active', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['created_at', 'updated_at']
+
+class ImportantDatesFormattedSerializer(serializers.ModelSerializer):
+    """Serializer that returns formatted dates with proper structure"""
+    
+    abstractSubmissionOpens = serializers.SerializerMethodField()
+    abstractSubmissionDeadline = serializers.SerializerMethodField()
+    abstractReviewCompletion = serializers.SerializerMethodField()
+    acceptanceNotifications = serializers.SerializerMethodField()
+    finalAbstractSubmission = serializers.SerializerMethodField()
+    conferencePresentation = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = ImportantDates
+        fields = [
+            'id', 'year', 'abstractSubmissionOpens', 'abstractSubmissionDeadline',
+            'abstractReviewCompletion', 'acceptanceNotifications',
+            'finalAbstractSubmission', 'conferencePresentation', 'is_active'
+        ]
+    
+    def _format_date_with_year(self, date_str, year):
+        """Helper method to format date with year"""
+        if str(year) not in date_str:
+            if '-' in date_str and not date_str.endswith(str(year)):
+                return f"{date_str}, {year}"
+            elif not date_str.endswith(str(year)):
+                return f"{date_str}, {year}"
+        return date_str
+    
+    def get_abstractSubmissionOpens(self, obj):
+        return self._format_date_with_year(obj.abstract_submission_opens, obj.year)
+    
+    def get_abstractSubmissionDeadline(self, obj):
+        return self._format_date_with_year(obj.abstract_submission_deadline, obj.year)
+    
+    def get_abstractReviewCompletion(self, obj):
+        return self._format_date_with_year(obj.abstract_review_completion, obj.year)
+    
+    def get_acceptanceNotifications(self, obj):
+        return self._format_date_with_year(obj.acceptance_notifications, obj.year)
+    
+    def get_finalAbstractSubmission(self, obj):
+        return self._format_date_with_year(obj.final_abstract_submission, obj.year)
+    
+    def get_conferencePresentation(self, obj):
+        return self._format_date_with_year(obj.conference_presentation, obj.year)
+
+class CreateUpdateImportantDatesSerializer(serializers.ModelSerializer):
+    """Serializer for creating and updating important dates"""
+    
+    class Meta:
+        model = ImportantDates
+        fields = [
+            'year', 'abstract_submission_opens', 'abstract_submission_deadline',
+            'abstract_review_completion', 'acceptance_notifications',
+            'final_abstract_submission', 'conference_presentation',
+            'is_active'
+        ]
+    
+    def create(self, validated_data):
+        # Set created_by if user is available in context
+        request = self.context.get('request')
+        if request and hasattr(request, 'user') and request.user.is_authenticated:
+            validated_data['created_by'] = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username
+        
+        return super().create(validated_data)
+    
+    def update(self, instance, validated_data):
+        # Update created_by field when updating
+        request = self.context.get('request')
+        if request and hasattr(request, 'user') and request.user.is_authenticated:
+            validated_data['created_by'] = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username
+        
+        return super().update(instance, validated_data)
+    
+    def to_representation(self, instance):
+        # Use the formatted serializer for response
+        return ImportantDatesFormattedSerializer(instance, context=self.context).data
