@@ -46,6 +46,7 @@ const Webinars = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
+        setError(null);
         const [webinarsData, featuredData, categoriesData, audiencesData] = await Promise.all([
           getAllWebinars(),
           getFeaturedWebinars(),
@@ -185,31 +186,35 @@ const Webinars = () => {
     navigate(`/webinars/${webinarId}`);
   };
 
-  if (loading) {
-    return (
-      <div className="bg-white min-h-screen flex items-center justify-center">
-        <LoadingSpinner />
-      </div>
-    );
-  }
+  // Error Card Component (similar to News page)
+  const ErrorCard = ({ message, onRetry }: { message: string; onRetry: () => void }) => (
+    <div className="bg-red-50 border border-red-200 rounded-lg p-8 text-center max-w-md mx-auto">
+      <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
+      <h3 className="text-lg font-medium text-red-800 mb-2">Error Loading Content</h3>
+      <p className="text-red-600 mb-6">{message}</p>
+      <button
+        onClick={onRetry}
+        className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-md font-medium transition-colors duration-300"
+      >
+        Try Again
+      </button>
+    </div>
+  );
 
-  if (error) {
-    return (
-      <div className="bg-white min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <AlertCircle className="w-16 h-16 text-red-600 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Webinars</h2>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
-          >
-            Try Again
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // No Content Card Component
+  const NoContentCard = ({ type }: { type: 'featured' | 'all' }) => (
+    <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center max-w-md mx-auto">
+      <Video className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+      <h3 className="text-lg font-medium text-gray-900 mb-2">
+        No {type === 'featured' ? 'Featured Webinars' : 'Webinars'} Available
+      </h3>
+      <p className="text-gray-600 mb-4">
+        {type === 'featured' 
+          ? 'Check back later for featured webinars.' 
+          : 'Try adjusting your search or filter criteria.'}
+      </p>
+    </div>
+  );
 
   return (
     <div className="bg-white min-h-screen">
@@ -339,255 +344,268 @@ const Webinars = () => {
       <section className="py-16">
         <div className="max-w-6xl mx-auto px-4">
           {/* Featured Webinars */}
-          {featuredWebinars.length > 0 && (
-            <div className="mb-12">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-                <Bookmark className="w-6 h-6 text-red-600 mr-2" />
-                Featured Webinars
-              </h2>
-              <div className="grid md:grid-cols-2 gap-8">
-                {displayedFeaturedWebinars.map((webinar) => (
-                  <div key={webinar.id} className="bg-white rounded-xl shadow-lg overflow-hidden border-2 border-red-200 hover:border-red-300 transition-colors">
-                    <div className="relative">
-                      <img 
-                        src={webinar.imageUrl} 
-                        alt={webinar.title}
-                        className="w-full h-48 object-cover"
-                      />
-                      <div className="absolute top-3 left-3">
-                        {getStatusBadge(webinar)}
+          <div className="mb-12">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+              <Bookmark className="w-6 h-6 text-red-600 mr-2" />
+              Featured Webinars
+            </h2>
+            
+            {loading ? (
+              <LoadingSpinner />
+            ) : error ? (
+              <ErrorCard 
+                message={error} 
+                onRetry={() => window.location.reload()} 
+              />
+            ) : featuredWebinars.length > 0 ? (
+              <>
+                <div className="grid md:grid-cols-2 gap-8">
+                  {displayedFeaturedWebinars.map((webinar) => (
+                    <div key={webinar.id} className="bg-white rounded-xl shadow-lg overflow-hidden border-2 border-red-200 hover:border-red-300 transition-colors">
+                      <div className="relative">
+                        <img 
+                          src={webinar.imageUrl} 
+                          alt={webinar.title}
+                          className="w-full h-48 object-cover"
+                        />
+                        <div className="absolute top-3 left-3">
+                          {getStatusBadge(webinar)}
+                        </div>
+                      </div>
+                      <div className="p-6">
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">{webinar.title}</h3>
+                        <p className="text-gray-600 mb-4 line-clamp-2">{webinar.description}</p>
+                        
+                        <div className="flex items-center text-sm text-gray-500 gap-4 mb-4">
+                          <div className="flex items-center">
+                            <Calendar className="w-4 h-4 mr-1" />
+                            {webinar.date}
+                          </div>
+                          <div className="flex items-center">
+                            <Clock className="w-4 h-4 mr-1" />
+                            {webinar.time} ({webinar.duration})
+                          </div>
+                        </div>
+                        
+                        <div className="flex flex-wrap gap-2 mb-4">
+                          <span className="bg-blue-100 text-blue-800 px-2 py-1 text-xs rounded">
+                            {webinar.category}
+                          </span>
+                          {webinar.tags.slice(0, 2).map((tag, index) => (
+                            <span key={index} className="bg-purple-100 text-purple-800 px-2 py-1 text-xs rounded">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                        
+                        <div className="space-y-2 mb-4">
+                          {webinar.speakers.slice(0, 2).map((speaker, index) => (
+                            <div key={index} className="text-sm">
+                              <p className="font-medium text-gray-900">{speaker.name}, {speaker.credentials}</p>
+                              <p className="text-gray-600">{speaker.affiliation}</p>
+                            </div>
+                          ))}
+                          {webinar.speakers.length > 2 && (
+                            <p className="text-xs text-gray-500">+{webinar.speakers.length - 2} more speakers</p>
+                          )}
+                        </div>
+                        
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          {getActionButton(webinar)}
+                          <button 
+                            onClick={() => handleWebinarClick(webinar.id)}
+                            className="flex items-center justify-center text-red-600 hover:text-red-700 font-medium py-2 px-4 border border-red-200 rounded-md hover:bg-red-50"
+                          >
+                            Read More
+                            <ArrowRight className="w-4 h-4 ml-1" />
+                          </button>
+                        </div>
                       </div>
                     </div>
-                    <div className="p-6">
-                      <h3 className="text-xl font-bold text-gray-900 mb-2">{webinar.title}</h3>
-                      <p className="text-gray-600 mb-4 line-clamp-2">{webinar.description}</p>
-                      
-                      <div className="flex items-center text-sm text-gray-500 gap-4 mb-4">
-                        <div className="flex items-center">
-                          <Calendar className="w-4 h-4 mr-1" />
-                          {webinar.date}
-                        </div>
-                        <div className="flex items-center">
-                          <Clock className="w-4 h-4 mr-1" />
-                          {webinar.time} ({webinar.duration})
+                  ))}
+                </div>
+                
+                {featuredWebinars.length > 2 && (
+                  <div className="text-center mt-6">
+                    <button
+                      onClick={() => setShowAllFeatured(!showAllFeatured)}
+                      className="text-red-600 hover:text-red-700 font-medium flex items-center justify-center mx-auto"
+                    >
+                      {showAllFeatured ? 'Show Less' : `View All ${featuredWebinars.length} Featured Webinars`}
+                      <ChevronDown className={`w-4 h-4 ml-1 transition-transform ${showAllFeatured ? 'rotate-180' : ''}`} />
+                    </button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <NoContentCard type="featured" />
+            )}
+          </div>
+
+          {/* All Webinars */}
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+              {selectedStatus === "all" ? "All Webinars" : 
+              selectedStatus === "upcoming" ? "Upcoming Webinars" :
+              selectedStatus === "recorded" ? "Recorded Webinars" : "Live Webinars"}
+              <span className="text-gray-500 text-lg font-normal ml-2">
+                ({filteredWebinars.length})
+              </span>
+            </h2>
+            
+            {loading ? (
+              <LoadingSpinner />
+            ) : error ? (
+              <ErrorCard 
+                message={error} 
+                onRetry={() => window.location.reload()} 
+              />
+            ) : displayedWebinars.length > 0 ? (
+              <div className="space-y-8">
+                {displayedWebinars.map((webinar) => (
+                  <div key={webinar.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden border border-gray-200">
+                    <div className="flex flex-col md:flex-row">
+                      <div className="md:w-1/3 relative">
+                        <img 
+                          src={webinar.imageUrl} 
+                          alt={webinar.title}
+                          className="w-full h-48 md:h-full object-cover"
+                        />
+                        <div className="absolute top-3 left-3">
+                          {getStatusBadge(webinar)}
                         </div>
                       </div>
                       
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        <span className="bg-blue-100 text-blue-800 px-2 py-1 text-xs rounded">
-                          {webinar.category}
-                        </span>
-                        {webinar.tags.slice(0, 2).map((tag, index) => (
-                          <span key={index} className="bg-purple-100 text-purple-800 px-2 py-1 text-xs rounded">
-                            {tag}
+                      <div className="md:w-2/3 p-6">
+                        <div className="flex justify-between items-start mb-2">
+                          <h3 className="text-lg font-bold text-gray-900">{webinar.title}</h3>
+                          <button 
+                            onClick={() => setExpandedWebinar(expandedWebinar === webinar.id ? null : webinar.id)}
+                            className="text-red-600 hover:text-red-700 text-sm font-medium flex items-center"
+                          >
+                            {expandedWebinar === webinar.id ? 'Less Details' : 'More Details'}
+                            {expandedWebinar === webinar.id ? (
+                              <ChevronUp className="ml-1 w-4 h-4" />
+                            ) : (
+                              <ChevronDown className="ml-1 w-4 h-4" />
+                            )}
+                          </button>
+                        </div>
+                        
+                        <p className="text-gray-600 text-sm mb-4">{webinar.description}</p>
+                        
+                        <div className="flex flex-wrap gap-2 mb-4">
+                          <span className="bg-blue-100 text-blue-800 px-2 py-1 text-xs rounded">
+                            {webinar.category}
                           </span>
-                        ))}
-                      </div>
-                      
-                      <div className="space-y-2 mb-4">
-                        {webinar.speakers.slice(0, 2).map((speaker, index) => (
-                          <div key={index} className="text-sm">
-                            <p className="font-medium text-gray-900">{speaker.name}, {speaker.credentials}</p>
-                            <p className="text-gray-600">{speaker.affiliation}</p>
+                          {webinar.tags.slice(0, 2).map((tag, index) => (
+                            <span key={index} className="bg-purple-100 text-purple-800 px-2 py-1 text-xs rounded">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                        
+                        <div className="flex items-center text-sm text-gray-500 gap-4 mb-4">
+                          <div className="flex items-center">
+                            <Calendar className="w-4 h-4 mr-1" />
+                            {webinar.date}
                           </div>
-                        ))}
-                        {webinar.speakers.length > 2 && (
-                          <p className="text-xs text-gray-500">+{webinar.speakers.length - 2} more speakers</p>
+                          <div className="flex items-center">
+                            <Clock className="w-4 h-4 mr-1" />
+                            {webinar.time} ({webinar.duration})
+                          </div>
+                        </div>
+                        
+                        {expandedWebinar === webinar.id && (
+                          <div className="mt-4 pt-4 border-t border-gray-200">
+                            <div className="mb-4">
+                              <h4 className="font-semibold text-gray-900 text-sm mb-2">Learning Objectives:</h4>
+                              <ul className="space-y-1 text-sm text-gray-600">
+                                {webinar.learningObjectives.map((obj, index) => (
+                                  <li key={index} className="flex items-start">
+                                    <span className="text-red-600 mr-2">•</span>
+                                    {obj}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                            
+                            <div className="mb-4">
+                              <h4 className="font-semibold text-gray-900 text-sm mb-2">Speakers:</h4>
+                              <div className="space-y-2">
+                                {webinar.speakers.map((speaker, index) => (
+                                  <div key={index} className="text-sm">
+                                    <p className="font-medium text-gray-900">{speaker.name}, {speaker.credentials}</p>
+                                    <p className="text-gray-600">{speaker.affiliation}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                            
+                            <div className="mb-4">
+                              <h4 className="font-semibold text-gray-900 text-sm mb-2">For:</h4>
+                              <div className="flex flex-wrap gap-1">
+                                {webinar.targetAudience.map((audience, index) => (
+                                  <span key={index} className="bg-gray-100 text-gray-700 px-2 py-1 text-xs rounded">
+                                    {audience}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                            
+                            <div className="flex flex-col sm:flex-row gap-3">
+                              {getActionButton(webinar)}
+                              
+                              <button 
+                                onClick={() => handleWebinarClick(webinar.id)}
+                                className="flex items-center justify-center text-red-600 hover:text-red-700 font-medium py-2 px-4 border border-red-200 rounded-md hover:bg-red-50"
+                              >
+                                Full Details
+                                <ArrowRight className="w-4 h-4 ml-1" />
+                              </button>
+                              
+                              {webinar.slidesLink && (
+                                <a
+                                  href={webinar.slidesLink}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center justify-center border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors font-medium"
+                                >
+                                  <Download className="w-4 h-4 mr-2" />
+                                  Slides
+                                </a>
+                              )}
+                              
+                              <button className="p-2 border border-gray-300 rounded-md hover:bg-gray-50">
+                                <Share2 className="w-4 h-4 text-gray-600" />
+                              </button>
+                            </div>
+                          </div>
                         )}
-                      </div>
-                      
-                      <div className="flex flex-col sm:flex-row gap-2">
-                        {getActionButton(webinar)}
-                        <button 
-                          onClick={() => handleWebinarClick(webinar.id)}
-                          className="flex items-center justify-center text-red-600 hover:text-red-700 font-medium py-2 px-4 border border-red-200 rounded-md hover:bg-red-50"
-                        >
-                          Read More
-                          <ArrowRight className="w-4 h-4 ml-1" />
-                        </button>
                       </div>
                     </div>
                   </div>
                 ))}
-              </div>
-              
-              {featuredWebinars.length > 2 && (
-                <div className="text-center mt-6">
-                  <button
-                    onClick={() => setShowAllFeatured(!showAllFeatured)}
-                    className="text-red-600 hover:text-red-700 font-medium flex items-center justify-center mx-auto"
-                  >
-                    {showAllFeatured ? 'Show Less' : `View All ${featuredWebinars.length} Featured Webinars`}
-                    <ChevronDown className={`w-4 h-4 ml-1 transition-transform ${showAllFeatured ? 'rotate-180' : ''}`} />
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* All Webinars */}
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">
-            {selectedStatus === "all" ? "All Webinars" : 
-             selectedStatus === "upcoming" ? "Upcoming Webinars" :
-             selectedStatus === "recorded" ? "Recorded Webinars" : "Live Webinars"}
-            <span className="text-gray-500 text-lg font-normal ml-2">
-              ({filteredWebinars.length})
-            </span>
-          </h2>
-          
-          {displayedWebinars.length > 0 ? (
-            <div className="space-y-8">
-              {displayedWebinars.map((webinar) => (
-                <div key={webinar.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden border border-gray-200">
-                  <div className="flex flex-col md:flex-row">
-                    <div className="md:w-1/3 relative">
-                      <img 
-                        src={webinar.imageUrl} 
-                        alt={webinar.title}
-                        className="w-full h-48 md:h-full object-cover"
-                      />
-                      <div className="absolute top-3 left-3">
-                        {getStatusBadge(webinar)}
-                      </div>
-                    </div>
-                    
-                    <div className="md:w-2/3 p-6">
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="text-lg font-bold text-gray-900">{webinar.title}</h3>
-                        <button 
-                          onClick={() => setExpandedWebinar(expandedWebinar === webinar.id ? null : webinar.id)}
-                          className="text-red-600 hover:text-red-700 text-sm font-medium flex items-center"
-                        >
-                          {expandedWebinar === webinar.id ? 'Less Details' : 'More Details'}
-                          {expandedWebinar === webinar.id ? (
-                            <ChevronUp className="ml-1 w-4 h-4" />
-                          ) : (
-                            <ChevronDown className="ml-1 w-4 h-4" />
-                          )}
-                        </button>
-                      </div>
-                      
-                      <p className="text-gray-600 text-sm mb-4">{webinar.description}</p>
-                      
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        <span className="bg-blue-100 text-blue-800 px-2 py-1 text-xs rounded">
-                          {webinar.category}
-                        </span>
-                        {webinar.tags.slice(0, 2).map((tag, index) => (
-                          <span key={index} className="bg-purple-100 text-purple-800 px-2 py-1 text-xs rounded">
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                      
-                      <div className="flex items-center text-sm text-gray-500 gap-4 mb-4">
-                        <div className="flex items-center">
-                          <Calendar className="w-4 h-4 mr-1" />
-                          {webinar.date}
-                        </div>
-                        <div className="flex items-center">
-                          <Clock className="w-4 h-4 mr-1" />
-                          {webinar.time} ({webinar.duration})
-                        </div>
-                      </div>
-                      
-                      {expandedWebinar === webinar.id && (
-                        <div className="mt-4 pt-4 border-t border-gray-200">
-                          <div className="mb-4">
-                            <h4 className="font-semibold text-gray-900 text-sm mb-2">Learning Objectives:</h4>
-                            <ul className="space-y-1 text-sm text-gray-600">
-                              {webinar.learningObjectives.map((obj, index) => (
-                                <li key={index} className="flex items-start">
-                                  <span className="text-red-600 mr-2">•</span>
-                                  {obj}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                          
-                          <div className="mb-4">
-                            <h4 className="font-semibold text-gray-900 text-sm mb-2">Speakers:</h4>
-                            <div className="space-y-2">
-                              {webinar.speakers.map((speaker, index) => (
-                                <div key={index} className="text-sm">
-                                  <p className="font-medium text-gray-900">{speaker.name}, {speaker.credentials}</p>
-                                  <p className="text-gray-600">{speaker.affiliation}</p>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                          
-                          <div className="mb-4">
-                            <h4 className="font-semibold text-gray-900 text-sm mb-2">For:</h4>
-                            <div className="flex flex-wrap gap-1">
-                              {webinar.targetAudience.map((audience, index) => (
-                                <span key={index} className="bg-gray-100 text-gray-700 px-2 py-1 text-xs rounded">
-                                  {audience}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                          
-                          <div className="flex flex-col sm:flex-row gap-3">
-                            {getActionButton(webinar)}
-                            
-                            <button 
-                              onClick={() => handleWebinarClick(webinar.id)}
-                              className="flex items-center justify-center text-red-600 hover:text-red-700 font-medium py-2 px-4 border border-red-200 rounded-md hover:bg-red-50"
-                            >
-                              Full Details
-                              <ArrowRight className="w-4 h-4 ml-1" />
-                            </button>
-                            
-                            {webinar.slidesLink && (
-                              <a
-                                href={webinar.slidesLink}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center justify-center border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors font-medium"
-                              >
-                                <Download className="w-4 h-4 mr-2" />
-                                Slides
-                              </a>
-                            )}
-                            
-                            <button className="p-2 border border-gray-300 rounded-md hover:bg-gray-50">
-                              <Share2 className="w-4 h-4 text-gray-600" />
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                
+                {/* Load More Button */}
+                {hasMoreWebinars && (
+                  <div className="text-center mt-8">
+                    <button
+                      onClick={loadMoreWebinars}
+                      className="bg-red-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors"
+                    >
+                      Load More Webinars
+                    </button>
+                    <p className="text-sm text-gray-500 mt-2">
+                      Showing {displayedWebinars.length} of {filteredWebinars.length} webinars
+                    </p>
                   </div>
-                </div>
-              ))}
-              
-              {/* Load More Button */}
-              {hasMoreWebinars && (
-                <div className="text-center mt-8">
-                  <button
-                    onClick={loadMoreWebinars}
-                    className="bg-red-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors"
-                  >
-                    Load More Webinars
-                  </button>
-                  <p className="text-sm text-gray-500 mt-2">
-                    Showing {displayedWebinars.length} of {filteredWebinars.length} webinars
-                  </p>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <Video className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                No webinars found
-              </h3>
-              <p className="text-gray-600">
-                Try adjusting your search or filter criteria.
-              </p>
-            </div>
-          )}
+                )}
+              </div>
+            ) : (
+              <NoContentCard type="all" />
+            )}
+          </div>
         </div>
       </section>
 
