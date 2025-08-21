@@ -260,20 +260,22 @@ class AwardNominationViewSet(viewsets.ModelViewSet):
         # Filter by category if provided
         category_filter = self.request.query_params.get('category')
         if category_filter:
-            queryset = queryset.filter(category_id=category_filter)
+            queryset = queryset.filter(award_category_id=category_filter)
         
         # Filter by source if provided
         source_filter = self.request.query_params.get('source')
         if source_filter:
             queryset = queryset.filter(source=source_filter)
         
-        # Search functionality
+        # Search functionality - FIXED: Use correct field names
         search = self.request.query_params.get('search')
         if search:
             queryset = queryset.filter(
-                Q(name__icontains=search) |
-                Q(institution__icontains=search) |
-                Q(specialty__icontains=search)
+                Q(nominee_name__icontains=search) |
+                Q(nominee_institution__icontains=search) |
+                Q(nominee_specialty__icontains=search) |
+                Q(nominator_name__icontains=search) |
+                Q(nominator_email__icontains=search)
             )
         
         return queryset.order_by('-created_at')

@@ -280,12 +280,25 @@ const AwardsPage = () => {
             </div>
           ) : error ? (
             <div className="text-center py-12">
-              <div className="text-red-600 mb-4">Error loading winners: {error}</div>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-8 max-w-md mx-auto">
+                <Trophy className="w-16 h-16 text-red-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-red-800 mb-2">Error Loading Winners</h3>
+                <p className="text-red-600 mb-6">Failed to fetch award winners. Please try again later.</p>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-md font-medium transition-colors duration-300"
+                >
+                  Reload Page
+                </button>
+              </div>
             </div>
           ) : winnersToShow.length > 0 ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
               {winnersToShow.map((winner) => (
-                <div key={winner.id} className="bg-white rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <div
+                  key={winner.id}
+                  className="bg-white rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300"
+                >
                   <div className="relative h-48">
                     {winner.imageUrl ? (
                       <img
@@ -303,7 +316,11 @@ const AwardsPage = () => {
                       />
                     ) : null}
                     {/* Fallback trophy icon for winners without images */}
-                    <div className={`w-full h-full bg-yellow-100 flex items-center justify-center ${winner.imageUrl ? 'hidden' : 'flex'}`}>
+                    <div
+                      className={`w-full h-full bg-yellow-100 flex items-center justify-center ${
+                        winner.imageUrl ? 'hidden' : 'flex'
+                      }`}
+                    >
                       <Trophy className="w-16 h-16 text-yellow-600" />
                     </div>
                     <div className="absolute top-4 left-4">
@@ -313,18 +330,10 @@ const AwardsPage = () => {
                     </div>
                   </div>
                   <div className="p-6">
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">
-                      {winner.name}
-                    </h3>
-                    <p className="text-red-600 font-medium text-sm mb-2">
-                      {winner.title}
-                    </p>
-                    <p className="text-gray-600 text-sm mb-3">
-                      {winner.location}
-                    </p>
-                    <p className="text-gray-700 text-sm leading-relaxed">
-                      {winner.achievement}
-                    </p>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">{winner.name}</h3>
+                    <p className="text-red-600 font-medium text-sm mb-2">{winner.title}</p>
+                    <p className="text-gray-600 text-sm mb-3">{winner.location}</p>
+                    <p className="text-gray-700 text-sm leading-relaxed">{winner.achievement}</p>
                     {winner.categoryTitle && (
                       <p className="text-blue-600 text-xs font-medium mt-3 uppercase tracking-wide">
                         {winner.categoryTitle}
@@ -339,9 +348,9 @@ const AwardsPage = () => {
               <Trophy className="w-16 h-16 text-gray-300 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No Award Winners Found</h3>
               <p className="text-gray-500">
-                {selectedCategory === 'all' 
-                  ? "No award winners have been announced yet." 
-                  : "No winners found for the selected category."}
+                {selectedCategory === 'all'
+                  ? 'No award winners have been announced yet.'
+                  : 'No winners found for the selected category.'}
               </p>
             </div>
           )}

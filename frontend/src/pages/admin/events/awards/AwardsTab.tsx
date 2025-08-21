@@ -1,5 +1,5 @@
 // AdminAwardsManagement.tsx (fixed)
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   Award, Trophy, UserCheck, BarChart, Search, Loader
 } from 'lucide-react';
@@ -12,6 +12,7 @@ type AwardStatus = 'Active' | 'Draft' | 'Archived';
 const AdminAwardsManagement = () => {
   const [selectedTab, setSelectedTab] = useState<'winners' | 'nominees' | 'categories' | 'poll'>('winners');
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,17 +23,26 @@ const AdminAwardsManagement = () => {
   const [nominations, setNominations] = useState<AwardNomination[]>([]);
   const [approvedNominees, setApprovedNominees] = useState<Nominee[]>([]);
 
-  // Fetch all data
-  const fetchAllData = async () => {
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Fetch all data - memoized to prevent unnecessary re-creations
+  const fetchAllData = useCallback(async () => {
     setLoading(true);
     setError(null);
     
     try {
       const [winnersData, nomineesData, categoriesData, nominationsData, approvedNomineesData] = await Promise.all([
-        awardsApi.getWinners({ search: searchTerm }),
+        awardsApi.getWinners({ search: debouncedSearchTerm }),
         awardsApi.getNominees({ status: 'Approved', source: 'admin,suggested' }),
-        awardsApi.getCategories({ search: searchTerm }),
-        awardsApi.getNominations({ search: searchTerm }),
+        awardsApi.getCategories({ search: debouncedSearchTerm }),
+        awardsApi.getNominations({ search: debouncedSearchTerm }),
         // Add this line to fetch approved nominees for the poll
         awardsApi.getNominees({ status: 'Approved', source: 'admin,suggested' })
       ]);
@@ -48,19 +58,17 @@ const AdminAwardsManagement = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [debouncedSearchTerm]);
 
   // Fetch data on component mount
   useEffect(() => {
     fetchAllData();
-  }, []);
+  }, [fetchAllData]);
 
-  // Refetch data when search term changes
-  useEffect(() => {
-    if (searchTerm !== undefined) {
-      fetchAllData();
-    }
-  }, [searchTerm]);
+  // Handle search input change - no API calls here
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  }, []);
 
   const handleWinnerStatusChange = async (id: number, newStatus: AwardStatus) => {
     try {
@@ -118,15 +126,19 @@ const AdminAwardsManagement = () => {
     }
   };
 
-  const filteredWinners = awardWinners.filter(winner => 
-    winner.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    winner.title.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter winners client-side for immediate response
+  const filteredWinners = useMemo(() => {
+    if (!searchTerm) return awardWinners;
+    return awardWinners.filter(winner => 
+      winner.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      winner.title.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [awardWinners, searchTerm]);
 
   // Get counts for tab display
   const pollNomineesCount = approvedNominees.length;
 
-  if (loading) {
+  if (loading && debouncedSearchTerm === '') {
     return (
       <div className="flex justify-center items-center h-64">
         <Loader className="w-8 h-8 animate-spin text-red-600" />
@@ -163,7 +175,6 @@ const AdminAwardsManagement = () => {
               </h2>
               <p className="text-gray-600 mt-1">Manage awards, nominees, and recognition programs</p>
             </div>
-            
           </div>
         </div>
 
@@ -201,8 +212,13 @@ const AdminAwardsManagement = () => {
                 placeholder="Search..."
                 className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={handleSearchChange}
               />
+              {loading && debouncedSearchTerm !== '' && (
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                  <Loader className="h-4 w-4 animate-spin text-gray-400" />
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -316,7 +332,7 @@ const AdminAwardsManagement = () => {
               categories={awardCategories}
               nominees={approvedNominees} 
               nominations={nominations}
-              searchTerm={searchTerm}
+              searchTerm={debouncedSearchTerm}
               loading={loading}
               onDeclareWinner={handleDeclareWinner}
               awardWinners={awardWinners}
@@ -326,7 +342,7 @@ const AdminAwardsManagement = () => {
           {selectedTab === 'categories' && (
             <CategoriesTab
               categories={awardCategories}
-              searchTerm={searchTerm}
+              searchTerm={debouncedSearchTerm}
               loading={loading}
               onRefresh={fetchAllData}
             />
