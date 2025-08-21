@@ -1,35 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  FileText, 
-  Plus, 
-  Download, 
-  Eye, 
-  Edit3, 
-  CheckCircle, 
-  AlertCircle, 
-  Clock,
-  Mail,
-  Users,
-  BarChart3,
-  Search,
-  ChevronDown,
-  ChevronUp,
-  ExternalLink,
-  Star,
-  Award,
-  FileCheck,
-  XCircle,
-  MessageCircle,
-  Phone,
-  Loader,
-  Calendar,
-  TrendingUp,
-  Target,
-  DollarSign,
-  EyeIcon
+  FileText, Download, Calendar,
+  CheckCircle, AlertCircle, Clock,
+  Mail, Users, BarChart3, Search,
+  ChevronDown, ChevronUp,Star,
+  Award, XCircle,MessageCircle,Loader,
+
 } from 'lucide-react';
-import { abstractApi, Abstract, AbstractStatus, Author, AbstractAnalytics } from '../../../services/abstractApi';
+import { abstractApi, Abstract, AbstractStatus, AbstractAnalytics } from '../../../services/abstractApi';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
+import AlertModal from '../../../components/common/AlertModal';
 
 type PresentationType = 'Oral Presentation' | 'Poster Presentation' | 'E-Poster' | 'No Preference';
 type AbstractCategory = 'Clinical Research' | 'Basic Science & Translational Research' | 'Healthcare Technology & Innovation' | 'Medical Education & Training' | 'Public Health & Policy' | 'Case Reports';
@@ -60,6 +40,16 @@ const AbstractsTab: React.FC<AbstractsTabProps> = ({ abstracts: initialAbstracts
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<number | null>(null);
   const [analyticsData, setAnalyticsData] = useState<AbstractAnalytics | null>(null);
+  
+  // Alert modal state
+  const [alertModal, setAlertModal] = useState({
+    show: false,
+    title: '',
+    message: '',
+    type: 'info' as 'success' | 'error' | 'warning' | 'info',
+    onConfirm: () => {}
+  });
+
   const [importantDates, setImportantDates] = useState<ImportantDates>({
     year: 2026,
     abstractSubmissionOpens: 'January 15, 2026',
@@ -69,6 +59,7 @@ const AbstractsTab: React.FC<AbstractsTabProps> = ({ abstracts: initialAbstracts
     finalAbstractSubmission: 'August 15, 2026',
     conferencePresentation: 'March 15-17, 2026',
   });
+  
   const [stats, setStats] = useState({
     total: 0,
     underReview: 0,
@@ -80,6 +71,7 @@ const AbstractsTab: React.FC<AbstractsTabProps> = ({ abstracts: initialAbstracts
   // Load abstracts on component mount
   useEffect(() => {
     loadAbstracts();
+    loadImportantDates(); // Load saved dates when component mounts
   }, []);
 
   // Load analytics when tab changes
@@ -88,6 +80,33 @@ const AbstractsTab: React.FC<AbstractsTabProps> = ({ abstracts: initialAbstracts
       loadAnalytics();
     }
   }, [selectedTab]);
+
+  // Load saved important dates
+  const loadImportantDates = async () => {
+    try {
+      const savedDates = await abstractApi.getImportantDates();
+      if (savedDates) {
+        setImportantDates(savedDates);
+      }
+    } catch (err) {
+      console.error('Error loading important dates:', err);
+      // Keep default dates if loading fails
+    }
+  };
+
+  const showAlert = (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info', onConfirm?: () => void) => {
+    setAlertModal({
+      show: true,
+      title,
+      message,
+      type,
+      onConfirm: onConfirm || (() => {})
+    });
+  };
+
+  const hideAlert = () => {
+    setAlertModal(prev => ({ ...prev, show: false }));
+  };
 
   const loadAbstracts = async () => {
     try {
@@ -182,43 +201,41 @@ const AbstractsTab: React.FC<AbstractsTabProps> = ({ abstracts: initialAbstracts
   };
 
   const handleSendNotification = async () => {
-  if (!currentAbstract) return;
+    if (!currentAbstract) return;
 
-  try {
-    setUpdating(currentAbstract.id);
-    
-    // Use the new combined endpoint
-    const result = await abstractApi.addCommentsAndNotify(currentAbstract.id, notificationComments);
-    
-    if (result.success) {
-      // Update local state with the returned abstract data
-      setAbstracts(prev => 
-        prev.map(abstract => 
-          abstract.id === currentAbstract.id
-            ? { ...result.abstract, lastUpdated: new Date().toISOString().split('T')[0] }
-            : abstract
-        )
-      );
-      alert('Comments updated and notification sent successfully!');
-    } else {
-      alert('Failed to send notification: ' + result.message);
+    try {
+      setUpdating(currentAbstract.id);
+      
+      // Use the new combined endpoint
+      const result = await abstractApi.addCommentsAndNotify(currentAbstract.id, notificationComments);
+      
+      if (result.success) {
+        // Update local state with the returned abstract data
+        setAbstracts(prev => 
+          prev.map(abstract => 
+            abstract.id === currentAbstract.id
+              ? { ...result.abstract, lastUpdated: new Date().toISOString().split('T')[0] }
+              : abstract
+          )
+        );
+        showAlert('Success', 'Comments updated and notification sent successfully!', 'success');
+      } else {
+        showAlert('Error', 'Failed to send notification: ' + result.message, 'error');
+      }
+      setShowNotifyModal(false);
+    } catch (err) {
+      console.error('Error sending notification:', err);
+      
+      // Handle the error properly with type checking
+      const errorMessage = err instanceof Error 
+        ? err.message 
+        : 'An unexpected error occurred';
+      
+      showAlert('Error', 'Failed to send notification: ' + errorMessage, 'error');
+    } finally {
+      setUpdating(null);
     }
-    setShowNotifyModal(false);
-  } catch (err) {
-    console.error('Error sending notification:', err);
-    
-    // Handle the error properly with type checking
-    const errorMessage = err instanceof Error 
-      ? err.message 
-      : 'An unexpected error occurred';
-    
-    alert('Failed to send notification: ' + errorMessage);
-  } finally {
-    setUpdating(null);
-  }
-};
-
- 
+  };
 
   const toggleFeatured = async (abstractId: number) => {
     try {
@@ -284,94 +301,100 @@ const AbstractsTab: React.FC<AbstractsTabProps> = ({ abstracts: initialAbstracts
       setUpdating(abstractId);
       const result = await abstractApi.sendStatusNotification(abstractId);
       if (result.success) {
-        alert('Notification sent successfully!');
+        showAlert('Success', 'Notification sent successfully!', 'success');
       } else {
-        alert('Failed to send notification: ' + result.message);
+        showAlert('Error', 'Failed to send notification: ' + result.message, 'error');
       }
     } catch (err) {
       console.error('Error sending notification:', err);
-      alert('Failed to send notification');
+      showAlert('Error', 'Failed to send notification', 'error');
     } finally {
       setUpdating(null);
     }
   };
 
+  const handleShowDatesModal = async () => {
+    // Load the latest dates before showing the modal
+    await loadImportantDates();
+    setShowDatesModal(true);
+  };
+
   const handleSaveDates = async () => {
-  try {
-    setUpdating(-1);
-    
-    // Validate required fields with proper TypeScript typing
-    const requiredFields: (keyof ImportantDates)[] = [
-      'abstractSubmissionOpens',
-      'abstractSubmissionDeadline', 
-      'abstractReviewCompletion',
-      'acceptanceNotifications',
-      'finalAbstractSubmission',
-      'conferencePresentation'
-    ];
-    
-    const missingFields = requiredFields.filter(field => {
-      const value = importantDates[field];
-      return !value || (typeof value === 'string' && value.trim() === '');
-    });
-    
-    if (missingFields.length > 0) {
-      alert('Please fill in all date fields before saving.');
-      return;
-    }
-    
-    // Validate year
-    if (!importantDates.year || importantDates.year < new Date().getFullYear()) {
-      alert('Please enter a valid year (current year or future).');
-      return;
-    }
-    
-    const result = await abstractApi.updateImportantDates(importantDates);
-    
-    setShowDatesModal(false);
-    
-    // Show success message - handle potential response structure
-    let successMessage = `Important dates for ${importantDates.year} saved successfully!`;
-    if (result && typeof result === 'object' && 'message' in result) {
-      successMessage = (result as any).message || successMessage;
-    }
-    alert(successMessage);
-    
-    // Refresh data if needed
-    if (selectedTab === 'analytics') {
-      loadAnalytics();
-    }
-    
-  } catch (err: unknown) {
-    console.error('Error saving important dates:', err);
-    
-    // Better error handling with proper TypeScript error typing
-    let errorMessage = 'Failed to save important dates';
-    
-    if (err instanceof Error && err.message) {
-      try {
-        const parsedError = JSON.parse(err.message);
-        if (parsedError.details && typeof parsedError.details === 'object') {
-          // Handle Django validation errors
-          const fieldErrors = Object.entries(parsedError.details)
-            .map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`)
-            .join('\n');
-          errorMessage = `Validation errors:\n${fieldErrors}`;
-        } else {
-          errorMessage = parsedError.message || parsedError.error || errorMessage;
-        }
-      } catch {
-        errorMessage = err.message;
+    try {
+      setUpdating(-1);
+      
+      // Validate required fields with proper TypeScript typing
+      const requiredFields: (keyof ImportantDates)[] = [
+        'abstractSubmissionOpens',
+        'abstractSubmissionDeadline', 
+        'abstractReviewCompletion',
+        'acceptanceNotifications',
+        'finalAbstractSubmission',
+        'conferencePresentation'
+      ];
+      
+      const missingFields = requiredFields.filter(field => {
+        const value = importantDates[field];
+        return !value || (typeof value === 'string' && value.trim() === '');
+      });
+      
+      if (missingFields.length > 0) {
+        showAlert('Validation Error', 'Please fill in all date fields before saving.', 'warning');
+        return;
       }
-    } else if (typeof err === 'string') {
-      errorMessage = err;
+      
+      // Validate year
+      if (!importantDates.year || importantDates.year < new Date().getFullYear()) {
+        showAlert('Validation Error', 'Please enter a valid year (current year or future).', 'warning');
+        return;
+      }
+      
+      const result = await abstractApi.updateImportantDates(importantDates);
+      
+      setShowDatesModal(false);
+      
+      // Show success message - handle potential response structure
+      let successMessage = `Important dates for ${importantDates.year} saved successfully!`;
+      if (result && typeof result === 'object' && 'message' in result) {
+        successMessage = (result as any).message || successMessage;
+      }
+      showAlert('Success', successMessage, 'success');
+      
+      // Refresh data if needed
+      if (selectedTab === 'analytics') {
+        loadAnalytics();
+      }
+      
+    } catch (err: unknown) {
+      console.error('Error saving important dates:', err);
+      
+      // Better error handling with proper TypeScript error typing
+      let errorMessage = 'Failed to save important dates';
+      
+      if (err instanceof Error && err.message) {
+        try {
+          const parsedError = JSON.parse(err.message);
+          if (parsedError.details && typeof parsedError.details === 'object') {
+            // Handle Django validation errors
+            const fieldErrors = Object.entries(parsedError.details)
+              .map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`)
+              .join('\n');
+            errorMessage = `Validation errors:\n${fieldErrors}`;
+          } else {
+            errorMessage = parsedError.message || parsedError.error || errorMessage;
+          }
+        } catch {
+          errorMessage = err.message;
+        }
+      } else if (typeof err === 'string') {
+        errorMessage = err;
+      }
+      
+      showAlert('Error', errorMessage, 'error');
+    } finally {
+      setUpdating(null);
     }
-    
-    alert(`Error: ${errorMessage}`);
-  } finally {
-    setUpdating(null);
-  }
-};
+  };
 
   const renderAnalyticsTab = () => {
     if (!analyticsData) return null;
@@ -538,7 +561,7 @@ const AbstractsTab: React.FC<AbstractsTabProps> = ({ abstracts: initialAbstracts
             </div>
             <div className="flex gap-3">
               <button 
-                onClick={() => setShowDatesModal(true)}
+                onClick={handleShowDatesModal}
                 className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 flex items-center font-medium transition-colors"
               >
                 <Calendar className="w-5 h-5 mr-2" />
@@ -1051,6 +1074,20 @@ const AbstractsTab: React.FC<AbstractsTabProps> = ({ abstracts: initialAbstracts
             </div>
           </div>
         </div>
+      )}
+
+      {/* Alert Modal */}
+      {alertModal.show && (
+        <AlertModal
+          isOpen={alertModal.show}
+          onClose={() => {
+            alertModal.onConfirm();
+            hideAlert();
+          }}
+          title={alertModal.title}
+          message={alertModal.message}
+          type={alertModal.type}
+        />
       )}
     </div>
   );
