@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import CreateWorkshopModal from './CreateWorkshopModal';
 import CollaborationTab from './CollaborationTab';
+import RegistrationsTab from './RegistrationTab';
 import { workshopsApi, Workshop, WorkshopStatus, CreateWorkshopInput } from '../../../../services/workshopAPI';
 
 interface WorkshopsTabProps {
@@ -15,10 +16,11 @@ interface WorkshopsTabProps {
 
 const WorkshopsTab: React.FC<WorkshopsTabProps> = () => {
   const [workshops, setWorkshops] = useState<Workshop[]>([]);
-  const [selectedTab, setSelectedTab] = useState<'upcoming' | 'completed' | 'planning' | 'collaboration'>('upcoming');
+  const [selectedTab, setSelectedTab] = useState<'upcoming' | 'completed' | 'planning' | 'registrations' | 'collaboration'>('upcoming');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [registrationsCount, setRegistrationsCount] = useState(0);
   const [editingWorkshop, setEditingWorkshop] = useState<Workshop | null>(null);
 
   // Fetch workshops from backend
@@ -57,6 +59,19 @@ const WorkshopsTab: React.FC<WorkshopsTabProps> = () => {
     setError('Failed to save workshop. Please try again.');
   }
 };
+
+useEffect(() => {
+  const fetchRegistrationsCount = async () => {
+    try {
+      const registrations = await workshopsApi.getRegistrations();
+      setRegistrationsCount(registrations.length);
+    } catch (err) {
+      console.error('Error fetching registrations count:', err);
+    }
+  };
+
+  fetchRegistrationsCount();
+}, []);
 
   const handleEditWorkshop = (workshop: Workshop) => {
   setEditingWorkshop(workshop);
@@ -223,7 +238,8 @@ const WorkshopsTab: React.FC<WorkshopsTabProps> = () => {
               { id: 'upcoming', label: 'Upcoming', count: workshops.filter(w => ['Registration Open', 'In Progress'].includes(w.status)).length },
               { id: 'completed', label: 'Completed', count: workshops.filter(w => w.status === 'Completed').length },
               { id: 'planning', label: 'Planning', count: workshops.filter(w => w.status === 'Planning').length },
-              { id: 'collaboration', label: 'Collaboration Opportunities', count: 3 } // Will be dynamic from CollaborationTab
+              { id: 'registrations', label: 'Registrations', count: registrationsCount },
+              { id: 'collaboration', label: 'Collaboration Opportunities', count: 3 }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -244,6 +260,8 @@ const WorkshopsTab: React.FC<WorkshopsTabProps> = () => {
         <div className="p-6">
           {selectedTab === 'collaboration' ? (
             <CollaborationTab />
+          ) : selectedTab === 'registrations' ? (
+            <RegistrationsTab workshops={workshops} />
           ) : (
             <div className="space-y-6">
               {filteredWorkshops.map((workshop) => (

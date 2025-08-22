@@ -2,7 +2,7 @@
 from rest_framework import serializers
 from .models import (
     Workshop, WorkshopPrerequisite, WorkshopMaterial,
-    CollaborationSubmission, CollaborationSkill
+    CollaborationSubmission, CollaborationSkill, WorkshopRegistration
 )
 
 class WorkshopPrerequisiteSerializer(serializers.ModelSerializer):
@@ -178,6 +178,27 @@ class CreateCollaborationSerializer(serializers.ModelSerializer):
             'duration', 'additional_notes'
         ]
     
+    def to_internal_value(self, data):
+        # Convert camelCase field names to snake_case for the backend
+        field_mapping = {
+            'projectTitle': 'project_title',
+            'projectDescription': 'project_description',
+            'projectLead': 'project_lead',
+            'contactEmail': 'contact_email',
+            'skillsNeeded': 'skillsNeeded', 
+            'commitmentLevel': 'commitment_level',
+            'additionalNotes': 'additional_notes'
+        }
+        
+        new_data = {}
+        for key, value in data.items():
+            if key in field_mapping:
+                new_data[field_mapping[key]] = value
+            else:
+                new_data[key] = value
+        
+        return super().to_internal_value(new_data)
+    
     def create(self, validated_data):
         # Extract skills data
         skills_data = validated_data.pop('skillsNeeded', [])
@@ -209,7 +230,46 @@ class CreateCollaborationSerializer(serializers.ModelSerializer):
     
     def _create_skills(self, collaboration, skills_data):
         for skill in skills_data:
-            CollaborationSkill.objects.create(
-                collaboration=collaboration,
-                skill=skill
+            if skill.strip():  # Only create if not empty
+                CollaborationSkill.objects.create(
+                    collaboration=collaboration,
+                    skill=skill
+                )
+
+class WorkshopRegistrationSerializer(serializers.ModelSerializer):
+    workshopTitle = serializers.CharField(source='workshop.title', read_only=True)
+    workshopDate = serializers.DateField(source='workshop.date', read_only=True)
+    workshopLocation = serializers.CharField(source='workshop.location', read_only=True)
+    fullName = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = WorkshopRegistration
+        fields = [
+            'id', 'workshop', 'workshopTitle', 'workshopDate', 'workshopLocation',
+            'first_name', 'last_name', 'fullName', 'email', 'phone', 'organization',
+            'profession', 'registration_type', 'payment_status', 'amount', 'country',
+            'registered_at'
+        ]
+    
+    def get_fullName(self, obj):
+        return f"{obj.first_name} {obj.last_name}"
+
+class CreateWorkshopRegistrationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WorkshopRegistration
+        fields = [
+            'workshop', 'first_name', 'last_name', 'email', 'phone', 'organization',
+            'profession', 'registration_type', 'amount', 'country'
+        ]
+    
+    def validate(self, data):
+        # Check if email is already registered for this workshop
+        workshop = data['workshop']
+        email = data['email']
+        
+        if WorkshopRegistration.objects.filter(workshop=workshop, email=email).exists():
+            raise serializers.ValidationError(
+                "This email is already registered for this workshop."
             )
+        
+        return data

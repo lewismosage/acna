@@ -1,0 +1,201 @@
+<!-- workshops/templates/workshops/emails/registration_confirmation.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workshop Registration Confirmation</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f9f9f9;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 30px;
+        }
+        .workshop-details {
+            background-color: #f8fafc;
+            border-left: 4px solid #3b82f6;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .detail-item {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: flex-start;
+        }
+        .detail-icon {
+            width: 20px;
+            margin-right: 10px;
+            color: #3b82f6;
+        }
+        .registration-info {
+            background-color: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .footer {
+            background-color: #f1f5f9;
+            padding: 20px;
+            text-align: center;
+            font-size: 14px;
+            color: #64748b;
+        }
+        .button {
+            display: inline-block;
+            background-color: #3b82f6;
+            color: white;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            margin: 20px 0;
+            font-weight: 600;
+        }
+        .highlight {
+            color: #3b82f6;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎓 Workshop Registration Confirmed</h1>
+        </div>
+        
+        <div class="content">
+            <p>Dear <span class="highlight">{{ registration.first_name }} {{ registration.last_name }}</span>,</p>
+            
+            <p>Thank you for registering for our workshop! Your registration has been successfully confirmed.</p>
+            
+            <div class="workshop-details">
+                <h2 style="margin-top: 0; color: #1e40af;">{{ workshop.title }}</h2>
+                
+                <div class="detail-item">
+                    <span class="detail-icon">📅</span>
+                    <span><strong>Date:</strong> {{ workshop.date }}</span>
+                </div>
+                
+                <div class="detail-item">
+                    <span class="detail-icon">⏰</span>
+                    <span><strong>Time:</strong> {{ workshop.time }}</span>
+                </div>
+                
+                <div class="detail-item">
+                    <span class="detail-icon">⏱️</span>
+                    <span><strong>Duration:</strong> {{ workshop.duration }}</span>
+                </div>
+                
+                <div class="detail-item">
+                    <span class="detail-icon">📍</span>
+                    <span><strong>Location:</strong> {{ workshop.location }}</span>
+                </div>
+                
+                {% if workshop.venue %}
+                <div class="detail-item">
+                    <span class="detail-icon">🏢</span>
+                    <span><strong>Venue:</strong> {{ workshop.venue }}</span>
+                </div>
+                {% endif %}
+                
+                <div class="detail-item">
+                    <span class="detail-icon">👨‍🏫</span>
+                    <span><strong>Instructor:</strong> {{ workshop.instructor }}</span>
+                </div>
+            </div>
+
+            <div class="registration-info">
+                <h3 style="margin-top: 0; color: #0369a1;">Your Registration Details</h3>
+                
+                <div class="detail-item">
+                    <span class="detail-icon">📧</span>
+                    <span><strong>Email:</strong> {{ registration.email }}</span>
+                </div>
+                
+                {% if registration.organization %}
+                <div class="detail-item">
+                    <span class="detail-icon">🏢</span>
+                    <span><strong>Organization:</strong> {{ registration.organization }}</span>
+                </div>
+                {% endif %}
+                
+                {% if registration.profession %}
+                <div class="detail-item">
+                    <span class="detail-icon">💼</span>
+                    <span><strong>Profession:</strong> {{ registration.profession }}</span>
+                </div>
+                {% endif %}
+                
+                <div class="detail-item">
+                    <span class="detail-icon">🎫</span>
+                    <span><strong>Registration Type:</strong> {{ registration.registration_type }}</span>
+                </div>
+                
+                <div class="detail-item">
+                    <span class="detail-icon">📋</span>
+                    <span><strong>Registration ID:</strong> #{{ registration.id }}</span>
+                </div>
+            </div>
+
+            <h3>What to Expect Next:</h3>
+            <ul>
+                <li>You will receive a reminder email 24 hours before the workshop</li>
+                <li>Joining instructions will be sent closer to the workshop date</li>
+                <li>Workshop materials will be available for download after the session</li>
+            </ul>
+
+            <p style="text-align: center;">
+                <a href="{{ frontend_url }}/workshops/{{ workshop.id }}" class="button">
+                    View Workshop Details
+                </a>
+            </p>
+
+            <p><strong>Important Notes:</strong></p>
+            <ul>
+                <li>Please arrive 10 minutes early to get settled</li>
+                <li>Bring any required materials as specified in the workshop description</li>
+                <li>Contact us immediately if you need to cancel your registration</li>
+            </ul>
+
+            <p>If you have any questions or need to make changes to your registration, please don't hesitate to contact us at <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>.</p>
+
+            <p>We look forward to seeing you at the workshop!</p>
+
+            <p>Best regards,<br>
+            <strong>The {{ company_name }} Team</strong></p>
+        </div>
+        
+        <div class="footer">
+            <p>© {% now "Y" %} {{ company_name }}. All rights reserved.</p>
+            <p>This email was sent to {{ registration.email }} because you registered for a workshop on our platform.</p>
+            <p><a href="{{ frontend_url }}/preferences" style="color: #3b82f6;">Update email preferences</a> | <a href="{{ frontend_url }}/unsubscribe" style="color: #3b82f6;">Unsubscribe</a></p>
+        </div>
+    </div>
+</body>
+</html>

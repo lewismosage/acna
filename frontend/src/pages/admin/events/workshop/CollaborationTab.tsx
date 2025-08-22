@@ -1,70 +1,36 @@
-// src/pages/admin/events/workshop/CollaborationTab.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Calendar, User, Target, MessageCircle, FileCheck, 
-  XCircle, Mail, Phone
+  XCircle, Mail, Trash2, RefreshCw
 } from 'lucide-react';
-
-interface CollaborationSubmission {
-  id: number;
-  projectTitle: string;
-  projectDescription: string;
-  institution: string;
-  projectLead: string;
-  contactEmail: string;
-  skillsNeeded: string[];
-  commitmentLevel: string;
-  duration: string;
-  additionalNotes: string;
-  submittedAt: string;
-  status: 'Pending' | 'Approved' | 'Rejected' | 'Needs Info';
-}
+import { workshopsApi, CollaborationSubmission } from '../../../../services/workshopAPI';
+import LoadingSpinner from '../../../../components/common/LoadingSpinner';
 
 const CollaborationTab: React.FC = () => {
-  const [collaborationSubmissions, setCollaborationSubmissions] = useState<CollaborationSubmission[]>([
-    {
-      id: 1,
-      projectTitle: "Multi-center Study on Pediatric Epilepsy Outcomes",
-      projectDescription: "Looking for collaborators to participate in a longitudinal study examining treatment outcomes in pediatric epilepsy patients across East Africa. This study aims to analyze seizure control rates, medication adherence, and quality of life measures.",
-      institution: "University of Nairobi",
-      projectLead: "Dr. James Kiprotich",
-      contactEmail: "j.kiprotich@uon.ac.ke",
-      skillsNeeded: ["Clinical Research", "Data Analysis", "Patient Recruitment"],
-      commitmentLevel: "Moderate",
-      duration: "18 months",
-      additionalNotes: "Seeking partners with access to pediatric epilepsy patients and research infrastructure.",
-      submittedAt: "2025-01-15",
-      status: "Pending"
-    },
-    {
-      id: 2,
-      projectTitle: "Developing AI Tools for EEG Analysis",
-      projectDescription: "Seeking collaborators with machine learning expertise to develop automated EEG analysis tools for pediatric patients. The goal is to create diagnostic aids for under-resourced settings.",
-      institution: "Aga Khan University Hospital",
-      projectLead: "Dr. Fatima Al-Rashid",
-      contactEmail: "f.alrashid@aku.edu",
-      skillsNeeded: ["Machine Learning", "EEG Expertise", "Software Development"],
-      commitmentLevel: "High",
-      duration: "12 months",
-      additionalNotes: "We have preliminary datasets and are looking for technical partners.",
-      submittedAt: "2025-01-10",
-      status: "Approved"
-    },
-    {
-      id: 3,
-      projectTitle: "Community-based Cerebral Palsy Intervention Program",
-      projectDescription: "Developing community-based intervention strategies for children with cerebral palsy in rural areas. Looking for rehabilitation specialists and community health experts.",
-      institution: "Muhimbili University of Health",
-      projectLead: "Dr. Grace Mwangi",
-      contactEmail: "g.mwangi@muhas.ac.tz",
-      skillsNeeded: ["Physiotherapy", "Community Health", "Program Management"],
-      commitmentLevel: "Moderate",
-      duration: "24 months",
-      additionalNotes: "Project funded by local government with extension possibilities.",
-      submittedAt: "2025-01-08",
-      status: "Needs Info"
+  const [collaborationSubmissions, setCollaborationSubmissions] = useState<CollaborationSubmission[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [updatingStatus, setUpdatingStatus] = useState<number | null>(null);
+
+  // Fetch collaboration submissions when component mounts
+  useEffect(() => {
+    fetchCollaborationSubmissions();
+  }, []);
+
+  const fetchCollaborationSubmissions = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      // Use the correct method name: getCollaborations instead of getCollaborationSubmissions
+      const submissions = await workshopsApi.getCollaborations();
+      setCollaborationSubmissions(submissions);
+    } catch (err) {
+      setError('Failed to load collaboration submissions. Please try again later.');
+      console.error('Error fetching collaboration submissions:', err);
+    } finally {
+      setIsLoading(false);
     }
-  ]);
+  };
 
   const getCollaborationStatusColor = (status: CollaborationSubmission['status']) => {
     switch (status) {
@@ -81,18 +47,91 @@ const CollaborationTab: React.FC = () => {
     }
   };
 
-  const handleCollaborationStatusChange = (submissionId: number, newStatus: CollaborationSubmission['status']) => {
-    setCollaborationSubmissions(prev =>
-      prev.map(submission =>
-        submission.id === submissionId
-          ? { ...submission, status: newStatus }
-          : submission
-      )
-    );
+  const handleCollaborationStatusChange = async (submissionId: number, newStatus: CollaborationSubmission['status']) => {
+    setUpdatingStatus(submissionId);
+    try {
+      // Use the correct method name: updateCollaborationStatus instead of updateCollaborationSubmissionStatus
+      const updatedSubmission = await workshopsApi.updateCollaborationStatus(submissionId, newStatus);
+      
+      setCollaborationSubmissions(prev =>
+        prev.map(submission =>
+          submission.id === submissionId
+            ? updatedSubmission
+            : submission
+        )
+      );
+    } catch (err) {
+      setError(`Failed to update submission status: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      console.error('Error updating collaboration status:', err);
+    } finally {
+      setUpdatingStatus(null);
+    }
   };
+
+  const handleDeleteSubmission = async (submissionId: number) => {
+    if (!confirm('Are you sure you want to delete this collaboration submission? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      // Use the correct method name: deleteCollaboration instead of deleteCollaborationSubmission
+      await workshopsApi.deleteCollaboration(submissionId);
+      setCollaborationSubmissions(prev => prev.filter(sub => sub.id !== submissionId));
+    } catch (err) {
+      setError('Failed to delete submission.');
+      console.error('Error deleting collaboration submission:', err);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (error) {
+      return 'Invalid date';
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="p-6 text-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+        <span className="block sm:inline">{error}</span>
+        <button onClick={() => setError(null)} className="absolute top-0 bottom-0 right-0 px-4 py-3">
+          <svg className="fill-current h-6 w-6 text-red-500" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+            <title>Close</title>
+            <path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z"/>
+          </svg>
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
+      {/* Header with refresh button */}
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-gray-900">Collaboration Submissions</h2>
+        <button
+          onClick={fetchCollaborationSubmissions}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Refresh
+        </button>
+      </div>
+
       {collaborationSubmissions.map((submission) => (
         <div key={submission.id} className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
           <div className="flex justify-between items-start mb-4">
@@ -109,7 +148,7 @@ const CollaborationTab: React.FC = () => {
                 </div>
                 <div className="flex items-center">
                   <Calendar className="w-4 h-4 mr-1" />
-                  Submitted: {submission.submittedAt}
+                  Submitted: {formatDate(submission.submittedAt)}
                 </div>
               </div>
             </div>
@@ -154,25 +193,40 @@ const CollaborationTab: React.FC = () => {
           <div className="flex flex-wrap gap-3">
             <button 
               onClick={() => handleCollaborationStatusChange(submission.id, 'Approved')}
-              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center text-sm font-medium transition-colors"
+              disabled={updatingStatus === submission.id}
+              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center text-sm font-medium transition-colors disabled:opacity-50"
             >
-              <FileCheck className="w-4 h-4 mr-2" />
+              {updatingStatus === submission.id ? (
+                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <FileCheck className="w-4 h-4 mr-2" />
+              )}
               Approve & Post
             </button>
             
             <button 
               onClick={() => handleCollaborationStatusChange(submission.id, 'Rejected')}
-              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex items-center text-sm font-medium transition-colors"
+              disabled={updatingStatus === submission.id}
+              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex items-center text-sm font-medium transition-colors disabled:opacity-50"
             >
-              <XCircle className="w-4 h-4 mr-2" />
+              {updatingStatus === submission.id ? (
+                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <XCircle className="w-4 h-4 mr-2" />
+              )}
               Reject
             </button>
 
             <button 
               onClick={() => handleCollaborationStatusChange(submission.id, 'Needs Info')}
-              className="border border-blue-600 text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-50 flex items-center text-sm font-medium transition-colors"
+              disabled={updatingStatus === submission.id}
+              className="border border-blue-600 text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-50 flex items-center text-sm font-medium transition-colors disabled:opacity-50"
             >
-              <MessageCircle className="w-4 h-4 mr-2" />
+              {updatingStatus === submission.id ? (
+                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <MessageCircle className="w-4 h-4 mr-2" />
+              )}
               Request More Info
             </button>
 
@@ -184,9 +238,25 @@ const CollaborationTab: React.FC = () => {
               Contact Submitter
             </a>
 
-            <button className="border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center text-sm font-medium transition-colors">
-              <Phone className="w-4 h-4 mr-2" />
-              Schedule Call
+            <button 
+              onClick={() => handleCollaborationStatusChange(submission.id, 'Pending')}
+              disabled={updatingStatus === submission.id}
+              className="border border-orange-600 text-orange-600 px-4 py-2 rounded-lg hover:bg-orange-50 flex items-center text-sm font-medium transition-colors disabled:opacity-50"
+            >
+              {updatingStatus === submission.id ? (
+                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Trash2 className="w-4 h-4 mr-2" />
+              )}
+              Withdraw Post
+            </button>
+
+            <button 
+              onClick={() => handleDeleteSubmission(submission.id)}
+              className="border border-red-600 text-red-600 px-4 py-2 rounded-lg hover:bg-red-50 flex items-center text-sm font-medium transition-colors"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete
             </button>
           </div>
 
@@ -194,6 +264,7 @@ const CollaborationTab: React.FC = () => {
             <div className="flex flex-wrap gap-4 text-xs text-gray-500">
               <span>Submission ID: #{submission.id}</span>
               <span>Status: {submission.status}</span>
+              <span>Submitted: {formatDate(submission.submittedAt)}</span>
             </div>
           </div>
         </div>

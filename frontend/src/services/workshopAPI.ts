@@ -24,6 +24,7 @@ export interface Workshop {
   materials: string[];
   createdAt: string;
   updatedAt: string;
+  registrations?: WorkshopRegistration[];
 }
 
 export interface WorkshopAnalytics {
@@ -92,6 +93,39 @@ export interface CreateCollaborationInput {
   commitmentLevel: string;
   duration: string;
   additionalNotes: string;
+}
+
+export interface WorkshopRegistration {
+  id: number;
+  workshop: number;
+  workshopTitle: string;
+  workshopDate: string;
+  workshopLocation: string;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  organization: string;
+  profession: string;
+  registrationType: string;
+  paymentStatus: string;
+  amount?: number;
+  country?: string;
+  registeredAt: string;
+}
+
+export interface CreateWorkshopRegistrationInput {
+  workshop: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  organization?: string;
+  profession?: string;
+  registrationType: 'Free' | 'Paid' | 'Student' | 'Professional';
+  amount?: number;
+  country?: string;
 }
 
 // Helper function to get authentication headers
@@ -170,6 +204,29 @@ const normalizeWorkshop = (backendWorkshop: any): Workshop => {
     materials: safeArray(backendWorkshop.materials),
     createdAt: backendWorkshop.createdAt?.split('T')[0] || backendWorkshop.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
     updatedAt: backendWorkshop.updatedAt?.split('T')[0] || backendWorkshop.updated_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+  };
+};
+
+// Add this normalization function for workshop registrations
+const normalizeWorkshopRegistration = (backendRegistration: any): WorkshopRegistration => {
+  return {
+    id: backendRegistration.id || 0,
+    workshop: backendRegistration.workshop || 0,
+    workshopTitle: backendRegistration.workshopTitle || backendRegistration.workshop_title || '',
+    workshopDate: backendRegistration.workshopDate || backendRegistration.workshop_date || '',
+    workshopLocation: backendRegistration.workshopLocation || backendRegistration.workshop_location || '',
+    firstName: backendRegistration.first_name || backendRegistration.firstName || '',
+    lastName: backendRegistration.last_name || backendRegistration.lastName || '',
+    fullName: backendRegistration.full_name || backendRegistration.fullName || '',
+    email: backendRegistration.email || '',
+    phone: backendRegistration.phone || '',
+    organization: backendRegistration.organization || '',
+    profession: backendRegistration.profession || '',
+    registrationType: backendRegistration.registration_type || backendRegistration.registrationType || 'Free',
+    paymentStatus: backendRegistration.payment_status || backendRegistration.paymentStatus || 'Pending',
+    amount: backendRegistration.amount,
+    country: backendRegistration.country || '',
+    registeredAt: backendRegistration.registered_at || backendRegistration.registeredAt || new Date().toISOString(),
   };
 };
 
@@ -464,6 +521,162 @@ export const workshopsApi = {
 
   exportCollaborations: async (format: 'csv' | 'xlsx' = 'csv'): Promise<Blob> => {
     const response = await fetch(`${API_BASE_URL}/collaborations/export/?format=${format}`, {
+      headers: getAuthHeadersWithoutContentType(),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    return response.blob();
+  },
+
+  // ========== REGISTRATION MANAGEMENT ==========
+  
+  getRegistrations: async (params?: {
+    workshopId?: number;
+    registrationType?: string;
+    paymentStatus?: string;
+    search?: string;
+  }): Promise<WorkshopRegistration[]> => {
+    const searchParams = new URLSearchParams();
+    
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          // Convert camelCase to snake_case for backend
+          let backendKey = key;
+          if (key === 'workshopId') backendKey = 'workshop_id';
+          if (key === 'registrationType') backendKey = 'registration_type';
+          if (key === 'paymentStatus') backendKey = 'payment_status';
+          
+          searchParams.append(backendKey, value.toString());
+        }
+      });
+    }
+    
+    const response = await fetch(`${API_BASE_URL}/workshop-registrations/?${searchParams.toString()}`, {
+      headers: getAuthHeaders(),
+    });
+    
+    const data = await handleResponse(response);
+    return Array.isArray(data) ? data.map(normalizeWorkshopRegistration) : [];
+  },
+
+  getWorkshopRegistrations: async (workshopId: number, params?: {
+    registrationType?: string;
+    paymentStatus?: string;
+    search?: string;
+  }): Promise<WorkshopRegistration[]> => {
+    const searchParams = new URLSearchParams();
+    
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          let backendKey = key;
+          if (key === 'registrationType') backendKey = 'registration_type';
+          if (key === 'paymentStatus') backendKey = 'payment_status';
+          
+          searchParams.append(backendKey, value.toString());
+        }
+      });
+    }
+    
+    const response = await fetch(`${API_BASE_URL}/workshops/${workshopId}/registrations/?${searchParams.toString()}`, {
+      headers: getAuthHeaders(),
+    });
+    
+    const data = await handleResponse(response);
+    return Array.isArray(data) ? data.map(normalizeWorkshopRegistration) : [];
+  },
+
+  createRegistration: async (data: CreateWorkshopRegistrationInput): Promise<WorkshopRegistration> => {
+  // Convert camelCase to snake_case for backend
+  const backendData = {
+    workshop: data.workshop,
+    first_name: data.firstName,
+    last_name: data.lastName,
+    email: data.email,
+    phone: data.phone,
+    organization: data.organization,
+    profession: data.profession,
+    registration_type: data.registrationType,
+    amount: data.amount,
+    country: data.country,
+  };
+
+  // Use the workshop-registrations endpoint
+  const response = await fetch(`${API_BASE_URL}/workshop-registrations/`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(backendData),
+  });
+  
+  const result = await handleResponse(response);
+  return normalizeWorkshopRegistration(result);
+},
+
+  updateRegistration: async (id: number, data: Partial<CreateWorkshopRegistrationInput>): Promise<WorkshopRegistration> => {
+    // Convert camelCase to snake_case for backend
+    const backendData: any = {};
+    if (data.firstName !== undefined) backendData.first_name = data.firstName;
+    if (data.lastName !== undefined) backendData.last_name = data.lastName;
+    if (data.email !== undefined) backendData.email = data.email;
+    if (data.phone !== undefined) backendData.phone = data.phone;
+    if (data.organization !== undefined) backendData.organization = data.organization;
+    if (data.profession !== undefined) backendData.profession = data.profession;
+    if (data.registrationType !== undefined) backendData.registration_type = data.registrationType;
+    if (data.amount !== undefined) backendData.amount = data.amount;
+    if (data.country !== undefined) backendData.country = data.country;
+    if (data.workshop !== undefined) backendData.workshop = data.workshop;
+
+    const response = await fetch(`${API_BASE_URL}/workshop-registrations/${id}/`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(backendData),
+    });
+    
+    const result = await handleResponse(response);
+    return normalizeWorkshopRegistration(result);
+  },
+
+  deleteRegistration: async (id: number): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/workshop-registrations/${id}/`, {
+      method: 'DELETE',
+      headers: getAuthHeadersWithoutContentType(),
+    });
+    
+    return handleResponse(response);
+  },
+
+  updatePaymentStatus: async (id: number, paymentStatus: string): Promise<WorkshopRegistration> => {
+    const response = await fetch(`${API_BASE_URL}/workshop-registrations/${id}/update_payment_status/`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ payment_status: paymentStatus }),
+    });
+    
+    const result = await handleResponse(response);
+    return normalizeWorkshopRegistration(result);
+  },
+
+  sendRegistrationConfirmation: async (registrationId: number): Promise<{ success: boolean; message: string }> => {
+    const response = await fetch(`${API_BASE_URL}/workshop-registrations/${registrationId}/send_confirmation/`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+    
+    return handleResponse(response);
+  },
+
+  // ========== EXPORT OPERATIONS ==========
+  
+  exportRegistrations: async (workshopId?: number, format: 'csv' | 'xlsx' = 'csv'): Promise<Blob> => {
+    const params = new URLSearchParams();
+    if (workshopId) params.append('workshop_id', workshopId.toString());
+    params.append('format', format);
+    
+    const response = await fetch(`${API_BASE_URL}/workshop-registrations/export/?${params.toString()}`, {
       headers: getAuthHeadersWithoutContentType(),
     });
     

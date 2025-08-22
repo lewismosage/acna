@@ -2,22 +2,11 @@ import { useState } from 'react';
 import { 
   Users, BookOpen, Target, MessageCircle, CheckCircle, AlertCircle 
 } from 'lucide-react';
-
-interface CollaborationRequest {
-  projectTitle: string;
-  projectDescription: string;
-  institution: string;
-  projectLead: string;
-  contactEmail: string;
-  skillsNeeded: string[];
-  commitmentLevel: string;
-  duration: string;
-  additionalNotes: string;
-}
+import { workshopsApi, CreateCollaborationInput } from '../../../../services/workshopAPI';
 
 const RequestCollaborationTab = () => {
   // Collaboration request state
-  const [request, setRequest] = useState<CollaborationRequest>({
+  const [request, setRequest] = useState<CreateCollaborationInput>({
     projectTitle: '',
     projectDescription: '',
     institution: '',
@@ -32,6 +21,7 @@ const RequestCollaborationTab = () => {
   const [currentSkill, setCurrentSkill] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Collaboration form handlers
   const handleRequestChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -40,6 +30,8 @@ const RequestCollaborationTab = () => {
       ...prev,
       [name]: value
     }));
+    // Clear error when user starts typing
+    if (error) setError(null);
   };
 
   const handleAddSkill = () => {
@@ -59,14 +51,17 @@ const RequestCollaborationTab = () => {
     }));
   };
 
-  const handleSubmitRequest = (e: React.FormEvent) => {
+  const handleSubmitRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setError(null);
     
-    setTimeout(() => {
-      console.log('Submitted request:', request);
-      setIsSubmitting(false);
+    try {
+      // Submit the collaboration request to the backend
+      await workshopsApi.createCollaboration(request);
+      
       setSubmitSuccess(true);
+      // Reset form
       setRequest({
         projectTitle: '',
         projectDescription: '',
@@ -78,7 +73,20 @@ const RequestCollaborationTab = () => {
         duration: '',
         additionalNotes: ''
       });
-    }, 1500);
+    } catch (err) {
+      console.error('Error submitting collaboration request:', err);
+      setError(err instanceof Error ? err.message : 'Failed to submit request. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Handle Enter key press in skills input
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddSkill();
+    }
   };
 
   // Success state
@@ -114,6 +122,22 @@ const RequestCollaborationTab = () => {
           Your request will be reviewed and may be posted on our public collaboration opportunities page.
         </p>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="mb-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+          <span className="block sm:inline">{error}</span>
+          <button 
+            onClick={() => setError(null)}
+            className="absolute top-0 bottom-0 right-0 px-4 py-3"
+          >
+            <svg className="fill-current h-6 w-6 text-red-500" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+              <title>Close</title>
+              <path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z"/>
+            </svg>
+          </button>
+        </div>
+      )}
 
       <form onSubmit={handleSubmitRequest} className="space-y-6">
         {/* Project Information */}
@@ -222,6 +246,7 @@ const RequestCollaborationTab = () => {
                   id="skillsNeeded"
                   value={currentSkill}
                   onChange={(e) => setCurrentSkill(e.target.value)}
+                  onKeyPress={handleKeyPress}
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Add skills needed (e.g., Data Analysis, EEG Interpretation)"
                 />

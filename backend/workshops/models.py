@@ -166,3 +166,55 @@ class CollaborationSkill(models.Model):
     
     def __str__(self):
         return self.skill
+    
+
+class WorkshopRegistration(models.Model):
+    PAYMENT_STATUS_CHOICES = [
+        ('Pending', 'Pending'),
+        ('Paid', 'Paid'),
+        ('Free', 'Free'),
+        ('Failed', 'Failed'),
+    ]
+    
+    REGISTRATION_TYPE_CHOICES = [
+        ('Free', 'Free'),
+        ('Paid', 'Paid'),
+        ('Student', 'Student'),
+        ('Professional', 'Professional'),
+    ]
+    
+    workshop = models.ForeignKey(
+        Workshop, 
+        related_name='registrations', 
+        on_delete=models.CASCADE
+    )
+    first_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100)
+    email = models.EmailField()
+    phone = models.CharField(max_length=20, blank=True)
+    organization = models.CharField(max_length=150, blank=True)
+    profession = models.CharField(max_length=100, blank=True)
+    registration_type = models.CharField(
+        max_length=20, 
+        choices=REGISTRATION_TYPE_CHOICES,
+        default='Free'
+    )
+    payment_status = models.CharField(
+        max_length=10, 
+        choices=PAYMENT_STATUS_CHOICES,
+        default='Pending'
+    )
+    amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    country = models.CharField(max_length=100, blank=True)
+    registered_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-registered_at']
+        unique_together = ['workshop', 'email']  # Prevent duplicate registrations
+    
+    def __str__(self):
+        return f"{self.first_name} {self.last_name} - {self.workshop.title}"
+    
+    @property
+    def full_name(self):
+        return f"{self.first_name} {self.last_name}"
