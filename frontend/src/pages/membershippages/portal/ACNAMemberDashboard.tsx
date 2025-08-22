@@ -6,7 +6,7 @@ import {
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import CoursesTabContent from './CoursesTabContent';
-import WorkshopTapContent from './WorkshopTabContent';
+import WorkshopTapContent from './workshops/WorkshopMain';
 import DirectoryTabContent from './DirectoryTabContent';
 import ProfileTabContent from './ProfileTabContent';
 import ELearningDashboard from './ELearningDashboard';

@@ -109,8 +109,8 @@ interface WebinarsTabProps {
 
 // Import the CreateWebinarModal component and API
 import CreateWebinarModal from './CreateWebinarModal';
-import { webinarsApi } from '../../../services/webinarsApi';
-import LoadingSpinner from '../../../components/common/LoadingSpinner';
+import { webinarsApi } from '../../../../services/webinarsApi';
+import LoadingSpinner from '../../../../components/common/LoadingSpinner';
 
 const WebinarsTab: React.FC<WebinarsTabProps> = ({ webinars: initialWebinars = [] }) => {
   const [webinars, setWebinars] = useState<Webinar[]>(initialWebinars);

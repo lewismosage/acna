@@ -7,9 +7,9 @@ import {
   Award, XCircle,MessageCircle,Loader,
 
 } from 'lucide-react';
-import { abstractApi, Abstract, AbstractStatus, AbstractAnalytics } from '../../../services/abstractApi';
-import LoadingSpinner from '../../../components/common/LoadingSpinner';
-import AlertModal from '../../../components/common/AlertModal';
+import { abstractApi, Abstract, AbstractStatus, AbstractAnalytics } from '../../../../services/abstractApi';
+import LoadingSpinner from '../../../../components/common/LoadingSpinner';
+import AlertModal from '../../../../components/common/AlertModal';
 
 type PresentationType = 'Oral Presentation' | 'Poster Presentation' | 'E-Poster' | 'No Preference';
 type AbstractCategory = 'Clinical Research' | 'Basic Science & Translational Research' | 'Healthcare Technology & Innovation' | 'Medical Education & Training' | 'Public Health & Policy' | 'Case Reports';

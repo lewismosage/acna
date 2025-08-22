@@ -17,7 +17,7 @@ import {
   User,
   Camera
 } from 'lucide-react';
-import { webinarsApi } from '../../../services/webinarsApi'; 
+import { webinarsApi } from '../../../../services/webinarsApi'; 
 
 type WebinarStatus = 'Planning' | 'Registration Open' | 'Live' | 'Completed' | 'Cancelled';
 type WebinarType = 'Live' | 'Recorded' | 'Hybrid';

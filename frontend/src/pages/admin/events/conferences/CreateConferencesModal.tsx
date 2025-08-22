@@ -20,7 +20,7 @@ import type {
   ConferenceCreateUpdateData,
   SpeakerCreateData,
   SessionCreateData
-} from '../../../services/conferenceApi';
+} from '../../../../services/conferenceApi';
 
 interface CreateEventModalProps {
   isOpen: boolean;

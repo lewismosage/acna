@@ -14,15 +14,15 @@ import {
   User,
   Trash2
 } from 'lucide-react';
-import CreateEventModal from './CreateEventsModal';
-import { conferencesApi } from '../../../services/conferenceApi';
+import CreateEventModal from './CreateConferencesModal';
+import { conferencesApi } from '../../../../services/conferenceApi';
 import type { 
   Conference,
   Registration,
   ConferenceAnalytics,
   ConferenceCreateUpdateData
-} from '../../../services/conferenceApi';
-import LoadingSpinner from '../../../components/common/LoadingSpinner';
+} from '../../../../services/conferenceApi';
+import LoadingSpinner from '../../../../components/common/LoadingSpinner';
 
 interface ConferencesTabProps {
   conferences?: Conference[];
