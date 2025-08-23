@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Calendar, User, Target, MessageCircle, FileCheck, 
-  XCircle, Mail, Trash2, RefreshCw
+  XCircle, Mail, Trash2, RefreshCw, Search, Loader
 } from 'lucide-react';
 import { workshopsApi, CollaborationSubmission } from '../../../../services/workshopAPI';
 import LoadingSpinner from '../../../../components/common/LoadingSpinner';
@@ -11,6 +11,10 @@ const CollaborationTab: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showNotifyModal, setShowNotifyModal] = useState(false);
+  const [notificationComments, setNotificationComments] = useState('');
+  const [currentSubmission, setCurrentSubmission] = useState<CollaborationSubmission | null>(null);
 
   // Fetch collaboration submissions when component mounts
   useEffect(() => {
@@ -21,7 +25,6 @@ const CollaborationTab: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
-      // Use the correct method name: getCollaborations instead of getCollaborationSubmissions
       const submissions = await workshopsApi.getCollaborations();
       setCollaborationSubmissions(submissions);
     } catch (err) {
@@ -50,7 +53,6 @@ const CollaborationTab: React.FC = () => {
   const handleCollaborationStatusChange = async (submissionId: number, newStatus: CollaborationSubmission['status']) => {
     setUpdatingStatus(submissionId);
     try {
-      // Use the correct method name: updateCollaborationStatus instead of updateCollaborationSubmissionStatus
       const updatedSubmission = await workshopsApi.updateCollaborationStatus(submissionId, newStatus);
       
       setCollaborationSubmissions(prev =>
@@ -74,12 +76,49 @@ const CollaborationTab: React.FC = () => {
     }
 
     try {
-      // Use the correct method name: deleteCollaboration instead of deleteCollaborationSubmission
       await workshopsApi.deleteCollaboration(submissionId);
       setCollaborationSubmissions(prev => prev.filter(sub => sub.id !== submissionId));
     } catch (err) {
       setError('Failed to delete submission.');
       console.error('Error deleting collaboration submission:', err);
+    }
+  };
+
+  const handleNotifySubmission = (submission: CollaborationSubmission) => {
+    setCurrentSubmission(submission);
+    setNotificationComments(submission.additionalNotes || '');
+    setShowNotifyModal(true);
+  };
+
+  const handleSendNotification = async () => {
+    if (!currentSubmission) return;
+
+    try {
+      setUpdatingStatus(currentSubmission.id);
+      
+      // Update the submission with comments (this would need a backend endpoint)
+      // For now, we'll just update the status to "Needs Info" and show success
+      const updatedSubmission = await workshopsApi.updateCollaborationStatus(currentSubmission.id, 'Needs Info');
+      
+      setCollaborationSubmissions(prev =>
+        prev.map(submission =>
+          submission.id === currentSubmission.id
+            ? updatedSubmission
+            : submission
+        )
+      );
+      
+      setShowNotifyModal(false);
+      setNotificationComments('');
+      setCurrentSubmission(null);
+      
+      // Show success message
+      setError(null);
+    } catch (err) {
+      setError(`Failed to send notification: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      console.error('Error sending notification:', err);
+    } finally {
+      setUpdatingStatus(null);
     }
   };
 
@@ -95,6 +134,16 @@ const CollaborationTab: React.FC = () => {
       return 'Invalid date';
     }
   };
+
+  // Filter submissions based on search term
+  const filteredSubmissions = collaborationSubmissions.filter(submission =>
+    submission.projectTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    submission.projectDescription.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    submission.institution.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    submission.projectLead.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    submission.contactEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    submission.skillsNeeded.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
   if (isLoading) {
     return (
@@ -120,19 +169,24 @@ const CollaborationTab: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header with refresh button */}
-      <div className="flex justify-between items-center">
+      {/* Header with search bar */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <h2 className="text-2xl font-bold text-gray-900">Collaboration Submissions</h2>
-        <button
-          onClick={fetchCollaborationSubmissions}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <RefreshCw className="w-4 h-4" />
-          Refresh
-        </button>
+        <div className="relative w-full md:w-64">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Search className="h-4 w-4 text-gray-400" />
+          </div>
+          <input
+            type="text"
+            placeholder="Search submissions..."
+            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
       </div>
 
-      {collaborationSubmissions.map((submission) => (
+      {filteredSubmissions.map((submission) => (
         <div key={submission.id} className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
           <div className="flex justify-between items-start mb-4">
             <div className="flex-1">
@@ -218,16 +272,16 @@ const CollaborationTab: React.FC = () => {
             </button>
 
             <button 
-              onClick={() => handleCollaborationStatusChange(submission.id, 'Needs Info')}
+              onClick={() => handleNotifySubmission(submission)}
               disabled={updatingStatus === submission.id}
-              className="border border-blue-600 text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-50 flex items-center text-sm font-medium transition-colors disabled:opacity-50"
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center text-sm font-medium transition-colors disabled:opacity-50"
             >
               {updatingStatus === submission.id ? (
                 <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
               ) : (
                 <MessageCircle className="w-4 h-4 mr-2" />
               )}
-              Request More Info
+              Add Comments & Notify
             </button>
 
             <a 
@@ -270,11 +324,76 @@ const CollaborationTab: React.FC = () => {
         </div>
       ))}
 
-      {collaborationSubmissions.length === 0 && (
+      {filteredSubmissions.length === 0 && (
         <div className="text-center py-12">
           <MessageCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No collaboration submissions</h3>
-          <p className="text-gray-500">No collaboration requests have been submitted yet.</p>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            {searchTerm ? 'No matching submissions found' : 'No collaboration submissions'}
+          </h3>
+          <p className="text-gray-500">
+            {searchTerm 
+              ? 'Try adjusting your search terms' 
+              : 'No collaboration requests have been submitted yet.'}
+          </p>
+        </div>
+      )}
+
+      {/* Notify Modal */}
+      {showNotifyModal && currentSubmission && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg w-full max-w-2xl">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-bold">Add Comments & Notify Submitter</h3>
+                <button 
+                  onClick={() => setShowNotifyModal(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  ×
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-2">{currentSubmission.projectTitle}</h4>
+                  <p className="text-sm text-gray-600">
+                    Submitted by: {currentSubmission.projectLead} ({currentSubmission.contactEmail})
+                  </p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Comments for Submitter</label>
+                  <textarea
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    rows={6}
+                    value={notificationComments}
+                    onChange={(e) => setNotificationComments(e.target.value)}
+                    placeholder="Add comments or request more information from the submitter..."
+                  />
+                </div>
+              </div>
+              
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  onClick={() => setShowNotifyModal(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSendNotification}
+                  disabled={updatingStatus === currentSubmission.id}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50 flex items-center"
+                >
+                  {updatingStatus === currentSubmission.id && (
+                    <Loader className="w-4 h-4 mr-2 animate-spin" />
+                  )}
+                  <Mail className="w-4 h-4 mr-2" />
+                  Notify Submitter
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

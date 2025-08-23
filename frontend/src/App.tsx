@@ -51,7 +51,7 @@ import PolicyBriefs from "./pages/education/PolicyBriefs";
 import JournalWatch from "./pages/education/JournalWatch";
 import EBooklets from "./pages/education/EBooklets";
 import Webinars from "./pages/education/Webinars";
-import WorkshopsSymposiums from "./pages/education/WorkshopsandSymposiums";
+import WorkshopsSymposiums from "./pages/education/workshops/WorkshopsandSymposiums";
 import GeneralACNAFAQs from "./pages/about/ACNAFAQs";
 import TermsAndConditions from "./pages/privacy/TermsAndConditions";
 import PrivacyPolicy from "./pages/privacy/PrivacyPolicy";

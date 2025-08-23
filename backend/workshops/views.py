@@ -400,6 +400,49 @@ class CollaborationViewSet(viewsets.ModelViewSet):
         
         serializer = self.get_serializer(collaboration)
         return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    def add_comments_and_notify(self, request, pk=None):
+        """Add comments and send notification to submitter"""
+        collaboration = self.get_object()
+        comments = request.data.get('comments', '')
+        
+        # Update comments if provided
+        if comments.strip():
+            collaboration.additional_notes = comments
+            collaboration.save()
+        
+        try:
+            # Send email notification
+            subject = f"Collaboration Request Update: {collaboration.project_title}"
+            from_email = settings.DEFAULT_FROM_EMAIL
+            to = [collaboration.contact_email]
+            
+            context = {
+                'collaboration': collaboration,
+                'comments': comments,
+            }
+            
+            html_content = render_to_string('emails/collaboration_notification.html', context)
+            text_content = render_to_string('emails/collaboration_notification.txt', context)
+            
+            msg = EmailMultiAlternatives(subject, text_content, from_email, to)
+            msg.attach_alternative(html_content, "text/html")
+            msg.send()
+            
+            serializer = self.get_serializer(collaboration)
+            return Response({
+                'success': True,
+                'message': f'Comments updated and notification sent to {collaboration.contact_email}',
+                'data': serializer.data
+            })
+            
+        except Exception as e:
+            logger.error(f"Failed to send notification: {str(e)}")
+            return Response({
+                'success': False,
+                'error': 'Failed to send notification'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 
 class WorkshopRegistrationViewSet(viewsets.ModelViewSet):
