@@ -150,7 +150,7 @@ class CollaborationSkillSerializer(serializers.ModelSerializer):
         fields = ['id', 'skill']
 
 class CollaborationSubmissionSerializer(serializers.ModelSerializer):
-    skillsNeeded = CollaborationSkillSerializer(many=True, read_only=True)
+    skillsNeeded = serializers.SerializerMethodField()
     submittedAt = serializers.DateTimeField(source='submitted_at')
     updatedAt = serializers.DateTimeField(source='updated_at')
     
@@ -161,6 +161,10 @@ class CollaborationSubmissionSerializer(serializers.ModelSerializer):
             'project_lead', 'contact_email', 'skillsNeeded', 'commitment_level',
             'duration', 'additional_notes', 'status', 'submittedAt', 'updatedAt'
         ]
+    
+    def get_skillsNeeded(self, obj):
+        # Return array of skill names
+        return list(obj.skills_needed.values_list('skill', flat=True))
 
 class CreateCollaborationSerializer(serializers.ModelSerializer):
     skillsNeeded = serializers.ListField(
