@@ -1,14 +1,17 @@
-// src/pages/admin/events/workshop/WorkshopsTab.tsx
+// Updated WorkshopsTab.tsx with Analytics Implementation
+
 import React, { useState, useEffect } from 'react';
 import { 
   BookOpen, Plus, Calendar, Clock, Edit3, 
   MapPin, CheckCircle, AlertCircle, Archive,
-  Settings, BarChart3, Mail
+  Settings, BarChart3, Mail, TrendingUp,
+  DollarSign, Eye as EyeIcon, Download,
+  FileText, Users, Star
 } from 'lucide-react';
 import CreateWorkshopModal from './CreateWorkshopModal';
 import CollaborationTab from './CollaborationTab';
 import RegistrationsTab from './RegistrationTab';
-import { workshopsApi, Workshop, WorkshopStatus, CreateWorkshopInput } from '../../../../services/workshopAPI';
+import { workshopsApi, Workshop, WorkshopStatus, CreateWorkshopInput, WorkshopAnalytics } from '../../../../services/workshopAPI';
 
 interface WorkshopsTabProps {
   workshops?: Workshop[];
@@ -16,83 +19,87 @@ interface WorkshopsTabProps {
 
 const WorkshopsTab: React.FC<WorkshopsTabProps> = () => {
   const [workshops, setWorkshops] = useState<Workshop[]>([]);
-  const [selectedTab, setSelectedTab] = useState<'upcoming' | 'completed' | 'planning' | 'registrations' | 'collaboration'>('upcoming');
+  const [selectedTab, setSelectedTab] = useState<'upcoming' | 'completed' | 'planning' | 'registrations' | 'collaboration' | 'analytics'>('upcoming');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [registrationsCount, setRegistrationsCount] = useState(0);
-  const [collaborationsCount, setCollaborationsCount] = useState(0); 
+  const [collaborationsCount, setCollaborationsCount] = useState(0);
   const [editingWorkshop, setEditingWorkshop] = useState<Workshop | null>(null);
+  const [analyticsData, setAnalyticsData] = useState<WorkshopAnalytics | null>(null);
 
   // Fetch workshops from backend
   useEffect(() => {
-    const fetchWorkshops = async () => {
+    const fetchAllData = async () => {
       try {
         setLoading(true);
+        
+        // Fetch workshops
         const workshopsData = await workshopsApi.getAll();
         setWorkshops(workshopsData);
+        
+        // Fetch registrations count
+        const registrations = await workshopsApi.getRegistrations();
+        setRegistrationsCount(registrations.length);
+        
+        // Fetch collaborations count
+        const collaborations = await workshopsApi.getCollaborations();
+        setCollaborationsCount(collaborations.length);
+        
       } catch (err) {
-        setError('Failed to fetch workshops. Please try again later.');
-        console.error('Error fetching workshops:', err);
+        setError('Failed to fetch data. Please try again later.');
+        console.error('Error fetching data:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchWorkshops();
+    fetchAllData();
   }, []);
 
-  const handleSaveWorkshop = async (workshopData: CreateWorkshopInput) => {
-  try {
-    if (editingWorkshop) {
-      // Update existing workshop
-      const updatedWorkshop = await workshopsApi.update(editingWorkshop.id, workshopData);
-      setWorkshops(prev => prev.map(w => w.id === editingWorkshop.id ? updatedWorkshop : w));
-      setEditingWorkshop(null);
-    } else {
-      // Create new workshop
-      const newWorkshop = await workshopsApi.create(workshopData);
-      setWorkshops(prev => [...prev, newWorkshop]);
+  // Load analytics when tab changes to analytics
+  useEffect(() => {
+    if (selectedTab === 'analytics') {
+      loadAnalytics();
     }
-    setShowCreateModal(false);
-  } catch (err) {
-    console.error('Error saving workshop:', err);
-    setError('Failed to save workshop. Please try again.');
-  }
-};
+  }, [selectedTab]);
 
-useEffect(() => {
-  const fetchAllCounts = async () => {
+  const loadAnalytics = async () => {
     try {
       setLoading(true);
-      
-      // Fetch workshops
-      const workshopsData = await workshopsApi.getAll();
-      setWorkshops(workshopsData);
-      
-      // Fetch registrations count
-      const registrations = await workshopsApi.getRegistrations();
-      setRegistrationsCount(registrations.length);
-      
-      // Fetch collaborations count
-      const collaborations = await workshopsApi.getCollaborations();
-      setCollaborationsCount(collaborations.length);
-      
+      const data = await workshopsApi.getAnalytics();
+      setAnalyticsData(data);
     } catch (err) {
-      setError('Failed to fetch data. Please try again later.');
-      console.error('Error fetching data:', err);
+      console.error('Error loading analytics:', err);
+      setAnalyticsData(null);
     } finally {
       setLoading(false);
     }
   };
 
-  fetchAllCounts();
-}, []);
+  const handleSaveWorkshop = async (workshopData: CreateWorkshopInput) => {
+    try {
+      if (editingWorkshop) {
+        // Update existing workshop
+        const updatedWorkshop = await workshopsApi.update(editingWorkshop.id, workshopData);
+        setWorkshops(prev => prev.map(w => w.id === editingWorkshop.id ? updatedWorkshop : w));
+        setEditingWorkshop(null);
+      } else {
+        // Create new workshop
+        const newWorkshop = await workshopsApi.create(workshopData);
+        setWorkshops(prev => [...prev, newWorkshop]);
+      }
+      setShowCreateModal(false);
+    } catch (err) {
+      console.error('Error saving workshop:', err);
+      setError('Failed to save workshop. Please try again.');
+    }
+  };
 
   const handleEditWorkshop = (workshop: Workshop) => {
-  setEditingWorkshop(workshop);
-  setShowCreateModal(true);
-};
+    setEditingWorkshop(workshop);
+    setShowCreateModal(true);
+  };
 
   const getStatusColor = (status: WorkshopStatus) => {
     switch (status) {
@@ -161,8 +168,256 @@ useEffect(() => {
     }
   });
 
+  // Analytics Tab Component
+  const renderAnalyticsTab = () => {
+    if (!analyticsData) {
+      return (
+        <div className="text-center py-12">
+          <BarChart3 className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No analytics data available</h3>
+          <p className="text-gray-500">
+            Analytics data will appear once you have workshops with registrations.
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        {/* Key Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-green-600 text-sm font-medium">Total Workshops</p>
+                <p className="text-3xl font-bold text-green-900">{analyticsData.total}</p>
+              </div>
+              <BookOpen className="w-8 h-8 text-green-600" />
+            </div>
+            <p className="text-green-600 text-sm mt-2">All time</p>
+          </div>
+
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-blue-600 text-sm font-medium">Total Registrations</p>
+                <p className="text-3xl font-bold text-blue-900">{analyticsData.totalRegistrations.toLocaleString()}</p>
+              </div>
+              <Users className="w-8 h-8 text-blue-600" />
+            </div>
+            <p className="text-blue-600 text-sm mt-2">Across all workshops</p>
+          </div>
+
+          <div className="bg-purple-50 border border-purple-200 rounded-lg p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-purple-600 text-sm font-medium">Monthly Registrations</p>
+                <p className="text-3xl font-bold text-purple-900">{analyticsData.monthlyRegistrations.toLocaleString()}</p>
+              </div>
+              <TrendingUp className="w-8 h-8 text-purple-600" />
+            </div>
+            <p className="text-purple-600 text-sm mt-2">Last 30 days</p>
+          </div>
+
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-orange-600 text-sm font-medium">Total Revenue</p>
+                <p className="text-3xl font-bold text-orange-900">
+                  ${analyticsData.totalRevenue ? analyticsData.totalRevenue.toLocaleString() : '0'}
+                </p>
+              </div>
+              <DollarSign className="w-8 h-8 text-orange-600" />
+            </div>
+            <p className="text-orange-600 text-sm mt-2">From paid workshops</p>
+          </div>
+        </div>
+
+        {/* Status Breakdown */}
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Workshop Status Breakdown</h3>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="text-center p-4 rounded-lg bg-blue-50">
+              <div className="text-2xl font-bold text-blue-800">{analyticsData.planning}</div>
+              <div className="text-sm text-blue-600">Planning</div>
+            </div>
+            <div className="text-center p-4 rounded-lg bg-green-50">
+              <div className="text-2xl font-bold text-green-800">{analyticsData.registrationOpen}</div>
+              <div className="text-sm text-green-600">Registration Open</div>
+            </div>
+            <div className="text-center p-4 rounded-lg bg-yellow-50">
+              <div className="text-2xl font-bold text-yellow-800">{analyticsData.inProgress}</div>
+              <div className="text-sm text-yellow-600">In Progress</div>
+            </div>
+            <div className="text-center p-4 rounded-lg bg-gray-50">
+              <div className="text-2xl font-bold text-gray-800">{analyticsData.completed}</div>
+              <div className="text-sm text-gray-600">Completed</div>
+            </div>
+            <div className="text-center p-4 rounded-lg bg-red-50">
+              <div className="text-2xl font-bold text-red-800">{analyticsData.cancelled}</div>
+              <div className="text-sm text-red-600">Cancelled</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Workshop Types */}
+        {analyticsData.workshopsByType && (
+          <div className="bg-white border border-gray-200 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Workshop Types Distribution</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <span className="text-blue-800 font-medium">Online</span>
+                  <span className="text-blue-600 font-bold">{analyticsData.workshopsByType.Online || 0}</span>
+                </div>
+              </div>
+              <div className="bg-green-50 p-4 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <span className="text-green-800 font-medium">In-Person</span>
+                  <span className="text-green-600 font-bold">{analyticsData.workshopsByType['In-Person'] || 0}</span>
+                </div>
+              </div>
+              <div className="bg-purple-50 p-4 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <span className="text-purple-800 font-medium">Hybrid</span>
+                  <span className="text-purple-600 font-bold">{analyticsData.workshopsByType.Hybrid || 0}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Top Workshops */}
+        {analyticsData.topWorkshops && analyticsData.topWorkshops.length > 0 && (
+          <div className="bg-white border border-gray-200 rounded-lg p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Top Workshops by Registration</h3>
+              <button 
+                onClick={async () => {
+                  try {
+                    const blob = await workshopsApi.exportWorkshops('csv');
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `workshops-report-${new Date().toISOString().split('T')[0]}.csv`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                  } catch (error) {
+                    console.error('Error exporting workshops:', error);
+                  }
+                }}
+                className="flex items-center text-sm text-green-600 hover:text-green-800"
+              >
+                <Download className="w-4 h-4 mr-1" />
+                Export Report
+              </button>
+            </div>
+            <div className="space-y-3">
+              {analyticsData.topWorkshops.map((workshop) => (
+                <div key={workshop.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-900">{workshop.title}</p>
+                    <p className="text-xs text-gray-500">{workshop.date}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-green-600">{workshop.registered} registrations</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Revenue and Performance Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white border border-gray-200 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Registration Performance</h3>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Average per workshop</span>
+                <span className="font-bold text-gray-900">
+                  {analyticsData.total > 0 ? Math.round(analyticsData.totalRegistrations / analyticsData.total) : 0}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Completion rate</span>
+                <span className="font-bold text-green-600">
+                  {analyticsData.total > 0 ? Math.round((analyticsData.completed / analyticsData.total) * 100) : 0}%
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Active workshops</span>
+                <span className="font-bold text-blue-600">
+                  {analyticsData.registrationOpen + analyticsData.inProgress}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white border border-gray-200 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+            <div className="space-y-3">
+              <button 
+                onClick={async () => {
+                  try {
+                    const blob = await workshopsApi.exportRegistrations(undefined, 'csv');
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `workshop-registrations-${new Date().toISOString().split('T')[0]}.csv`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                  } catch (error) {
+                    console.error('Error exporting registrations:', error);
+                  }
+                }}
+                className="w-full flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <span className="text-sm font-medium">Export All Registrations</span>
+                <FileText className="w-4 h-4 text-gray-400" />
+              </button>
+              <button 
+                onClick={async () => {
+                  try {
+                    const blob = await workshopsApi.exportCollaborations('csv');
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `collaborations-${new Date().toISOString().split('T')[0]}.csv`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                  } catch (error) {
+                    console.error('Error exporting collaborations:', error);
+                  }
+                }}
+                className="w-full flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <span className="text-sm font-medium">Export Collaborations</span>
+                <Download className="w-4 h-4 text-gray-400" />
+              </button>
+              <button className="w-full flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                <span className="text-sm font-medium">Generate Monthly Report</span>
+                <BarChart3 className="w-4 h-4 text-gray-400" />
+              </button>
+              <button className="w-full flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                <span className="text-sm font-medium">Email Summary</span>
+                <Mail className="w-4 h-4 text-gray-400" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // Loading state
-  if (loading) {
+  if (loading && selectedTab !== 'analytics') {
     return (
       <div className="space-y-6">
         <div className="bg-white border border-gray-300 rounded-lg">
@@ -230,7 +485,7 @@ useEffect(() => {
               <p className="text-gray-600 mt-1">Manage workshops, instructors, and educational sessions</p>
             </div>
             <div className="flex gap-3">
-              {selectedTab !== 'collaboration' && (
+              {selectedTab !== 'collaboration' && selectedTab !== 'analytics' && (
                 <button 
                   onClick={() => setShowCreateModal(true)}
                   className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 flex items-center font-medium transition-colors"
@@ -239,7 +494,10 @@ useEffect(() => {
                   Create Workshop
                 </button>
               )}
-              <button className="border border-green-600 text-green-600 px-6 py-2 rounded-lg hover:bg-green-50 flex items-center font-medium transition-colors">
+              <button 
+                onClick={() => setSelectedTab('analytics')}
+                className="border border-green-600 text-green-600 px-6 py-2 rounded-lg hover:bg-green-50 flex items-center font-medium transition-colors"
+              >
                 <BarChart3 className="w-5 h-5 mr-2" />
                 Analytics
               </button>
@@ -249,24 +507,25 @@ useEffect(() => {
 
         {/* Tab Navigation */}
         <div className="px-6 py-4 border-b border-gray-200">
-          <nav className="flex space-x-8">
+          <nav className="flex space-x-8 overflow-x-auto">
             {[
               { id: 'upcoming', label: 'Upcoming', count: workshops.filter(w => ['Registration Open', 'In Progress'].includes(w.status)).length },
               { id: 'completed', label: 'Completed', count: workshops.filter(w => w.status === 'Completed').length },
               { id: 'planning', label: 'Planning', count: workshops.filter(w => w.status === 'Planning').length },
               { id: 'registrations', label: 'Registrations', count: registrationsCount },
-              { id: 'collaboration', label: 'Collaboration Opportunities', count: collaborationsCount } // Fixed from hardcoded 3
+              { id: 'collaboration', label: 'Collaboration Opportunities', count: collaborationsCount },
+              { id: 'analytics', label: 'Analytics', count: 0 }
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setSelectedTab(tab.id as any)}
-                className={`py-2 border-b-2 font-medium text-sm transition-colors ${
+                className={`py-2 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
                   selectedTab === tab.id
                     ? 'border-green-600 text-green-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >
-                {tab.label} ({tab.count})
+                {tab.label} {tab.count > 0 && `(${tab.count})`}
               </button>
             ))}
           </nav>
@@ -278,6 +537,20 @@ useEffect(() => {
             <CollaborationTab />
           ) : selectedTab === 'registrations' ? (
             <RegistrationsTab workshops={workshops} />
+          ) : selectedTab === 'analytics' ? (
+            <div>
+              <div className="mb-6">
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Workshop Analytics</h3>
+                <p className="text-gray-600">Comprehensive analytics and insights about your workshops</p>
+              </div>
+              {loading ? (
+                <div className="flex items-center justify-center h-64">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                </div>
+              ) : (
+                renderAnalyticsTab()
+              )}
+            </div>
           ) : (
             <div className="space-y-6">
               {filteredWorkshops.map((workshop) => (
@@ -442,14 +715,14 @@ useEffect(() => {
 
       {/* Create Workshop Modal */}
       <CreateWorkshopModal
-      isOpen={showCreateModal}
-      onClose={() => {
-        setShowCreateModal(false);
-        setEditingWorkshop(null);
-      }}
-      onSave={handleSaveWorkshop}
-      initialData={editingWorkshop || undefined}
-    />
+        isOpen={showCreateModal}
+        onClose={() => {
+          setShowCreateModal(false);
+          setEditingWorkshop(null);
+        }}
+        onSave={handleSaveWorkshop}
+        initialData={editingWorkshop || undefined}
+      />
     </div>
   );
 };
