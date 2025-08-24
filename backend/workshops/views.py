@@ -516,6 +516,18 @@ class WorkshopRegistrationViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
+            # Double-check for duplicate registration (in case of race conditions)
+            existing_registration = WorkshopRegistration.objects.filter(
+                workshop=workshop,
+                email=serializer.validated_data['email']
+            ).first()
+            
+            if existing_registration:
+                return Response(
+                    {'error': 'This email is already registered for this workshop.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
             # Create the registration
             registration = serializer.save()
             
@@ -538,8 +550,24 @@ class WorkshopRegistrationViewSet(viewsets.ModelViewSet):
             
         except serializers.ValidationError as e:
             logger.error(f"Validation error creating registration: {e.detail}")
+            
+            # Handle unique constraint error specifically
+            error_detail = e.detail
+            if isinstance(error_detail, dict) and 'non_field_errors' in error_detail:
+                for error in error_detail['non_field_errors']:
+                    if 'unique set' in str(error) or 'unique' in str(error).lower():
+                        return Response(
+                            {'error': 'This email is already registered for this workshop.'},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+            elif isinstance(error_detail, str) and ('unique' in error_detail.lower() or 'duplicate' in error_detail.lower()):
+                return Response(
+                    {'error': 'This email is already registered for this workshop.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
             return Response(
-                {'error': 'Validation error', 'details': e.detail},
+                {'error': 'Validation error', 'details': error_detail},
                 status=status.HTTP_400_BAD_REQUEST
             )
         except Workshop.DoesNotExist:
