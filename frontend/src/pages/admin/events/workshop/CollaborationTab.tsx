@@ -85,42 +85,45 @@ const CollaborationTab: React.FC = () => {
   };
 
   const handleNotifySubmission = (submission: CollaborationSubmission) => {
-    setCurrentSubmission(submission);
-    setNotificationComments(submission.additionalNotes || '');
-    setShowNotifyModal(true);
+  setCurrentSubmission(submission);
+  setNotificationComments(''); 
+  setShowNotifyModal(true);
   };
 
   const handleSendNotification = async () => {
-    if (!currentSubmission) return;
+  if (!currentSubmission) return;
 
-    try {
-      setUpdatingStatus(currentSubmission.id);
-      
-      // Update the submission with comments (this would need a backend endpoint)
-      // For now, we'll just update the status to "Needs Info" and show success
-      const updatedSubmission = await workshopsApi.updateCollaborationStatus(currentSubmission.id, 'Needs Info');
-      
-      setCollaborationSubmissions(prev =>
-        prev.map(submission =>
-          submission.id === currentSubmission.id
-            ? updatedSubmission
-            : submission
-        )
-      );
-      
-      setShowNotifyModal(false);
-      setNotificationComments('');
-      setCurrentSubmission(null);
-      
-      // Show success message
-      setError(null);
-    } catch (err) {
-      setError(`Failed to send notification: ${err instanceof Error ? err.message : 'Unknown error'}`);
-      console.error('Error sending notification:', err);
-    } finally {
-      setUpdatingStatus(null);
-    }
-  };
+  try {
+    setUpdatingStatus(currentSubmission.id);
+    
+    // Use the API method from workshopAPI
+    const updatedSubmission = await workshopsApi.addCollaborationCommentsAndNotify(
+      currentSubmission.id, 
+      notificationComments
+    );
+    
+    // Update the submission in the list
+    setCollaborationSubmissions(prev =>
+      prev.map(submission =>
+        submission.id === currentSubmission.id
+          ? updatedSubmission
+          : submission
+      )
+    );
+    
+    setShowNotifyModal(false);
+    setNotificationComments('');
+    setCurrentSubmission(null);
+    
+    // Show success message
+    setError(null);
+  } catch (err) {
+    setError(`Failed to send notification: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    console.error('Error sending notification:', err);
+  } finally {
+    setUpdatingStatus(null);
+  }
+};
 
   const formatDate = (dateString: string) => {
     try {

@@ -454,6 +454,25 @@ export const workshopsApi = {
     return normalizeCollaboration(result);
   },
 
+  addCollaborationCommentsAndNotify: async (id: number, comments: string): Promise<CollaborationSubmission> => {
+  const response = await fetch(`${API_BASE_URL}/collaborations/${id}/add_comments_and_notify/`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ comments }),
+  });
+  
+  const result = await handleResponse(response);
+  
+  
+  if (result && result.data) {
+    return normalizeCollaboration(result.data);
+  } else if (result && result.collaboration) {
+    return normalizeCollaboration(result.collaboration);
+  } else {
+    return normalizeCollaboration(result);
+  }
+},
+
   updateCollaboration: async (id: number, data: Partial<CreateCollaborationInput>): Promise<CollaborationSubmission> => {
     const response = await fetch(`${API_BASE_URL}/collaborations/${id}/`, {
       method: 'PATCH',

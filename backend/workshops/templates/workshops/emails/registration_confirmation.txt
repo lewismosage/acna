@@ -1,0 +1,18 @@
+Dear {{ registration.first_name }} {{ registration.last_name }},
+
+Thank you for registering for the workshop: {{ workshop.title }}
+
+Workshop Details:
+- Date: {{ workshop.date }}
+- Time: {{ workshop.time }}
+- Duration: {{ workshop.duration }}
+- Location: {{ workshop.location }}
+{% if workshop.venue %}- Venue: {{ workshop.venue }}{% endif %}
+
+Your registration has been confirmed. You will receive further details closer to the workshop date.
+
+If you have any questions, please contact us at workshops@acna.org.
+
+Best regards,
+The ACNA Team
+{{ frontend_url }}

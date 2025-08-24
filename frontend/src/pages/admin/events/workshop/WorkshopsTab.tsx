@@ -21,6 +21,7 @@ const WorkshopsTab: React.FC<WorkshopsTabProps> = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [registrationsCount, setRegistrationsCount] = useState(0);
+  const [collaborationsCount, setCollaborationsCount] = useState(0); 
   const [editingWorkshop, setEditingWorkshop] = useState<Workshop | null>(null);
 
   // Fetch workshops from backend
@@ -61,16 +62,31 @@ const WorkshopsTab: React.FC<WorkshopsTabProps> = () => {
 };
 
 useEffect(() => {
-  const fetchRegistrationsCount = async () => {
+  const fetchAllCounts = async () => {
     try {
+      setLoading(true);
+      
+      // Fetch workshops
+      const workshopsData = await workshopsApi.getAll();
+      setWorkshops(workshopsData);
+      
+      // Fetch registrations count
       const registrations = await workshopsApi.getRegistrations();
       setRegistrationsCount(registrations.length);
+      
+      // Fetch collaborations count
+      const collaborations = await workshopsApi.getCollaborations();
+      setCollaborationsCount(collaborations.length);
+      
     } catch (err) {
-      console.error('Error fetching registrations count:', err);
+      setError('Failed to fetch data. Please try again later.');
+      console.error('Error fetching data:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  fetchRegistrationsCount();
+  fetchAllCounts();
 }, []);
 
   const handleEditWorkshop = (workshop: Workshop) => {
@@ -239,7 +255,7 @@ useEffect(() => {
               { id: 'completed', label: 'Completed', count: workshops.filter(w => w.status === 'Completed').length },
               { id: 'planning', label: 'Planning', count: workshops.filter(w => w.status === 'Planning').length },
               { id: 'registrations', label: 'Registrations', count: registrationsCount },
-              { id: 'collaboration', label: 'Collaboration Opportunities', count: 3 }
+              { id: 'collaboration', label: 'Collaboration Opportunities', count: collaborationsCount } // Fixed from hardcoded 3
             ].map((tab) => (
               <button
                 key={tab.id}

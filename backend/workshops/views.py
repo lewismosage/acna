@@ -423,8 +423,8 @@ class CollaborationViewSet(viewsets.ModelViewSet):
                 'comments': comments,
             }
             
-            html_content = render_to_string('emails/collaboration_notification.html', context)
-            text_content = render_to_string('emails/collaboration_notification.txt', context)
+            html_content = render_to_string('workshops/emails/collaboration_notification.html', context)
+            text_content = render_to_string('workshops/emails/collaboration_notification.txt', context)
             
             msg = EmailMultiAlternatives(subject, text_content, from_email, to)
             msg.attach_alternative(html_content, "text/html")
@@ -437,11 +437,18 @@ class CollaborationViewSet(viewsets.ModelViewSet):
                 'data': serializer.data
             })
             
+        except TemplateDoesNotExist as e:
+            logger.error(f"Email template not found: {str(e)}")
+            return Response({
+                'success': False,
+                'error': 'Email template configuration error'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
         except Exception as e:
             logger.error(f"Failed to send notification: {str(e)}")
             return Response({
                 'success': False,
-                'error': 'Failed to send notification'
+                'error': 'Failed to send notification. Please check email configuration.'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 

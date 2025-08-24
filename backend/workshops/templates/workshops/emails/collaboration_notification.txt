@@ -1,0 +1,26 @@
+Collaboration Request Update
+
+Dear {{ collaboration.project_lead }},
+
+Your collaboration request "{{ collaboration.project_title }}" has been reviewed.
+
+Current Status: {{ collaboration.status }}
+
+{% if comments %}
+Comments from our team:
+{{ comments }}
+{% endif %}
+
+Project Details:
+- Institution: {{ collaboration.institution }}
+- Duration: {{ collaboration.duration }}
+- Commitment Level: {{ collaboration.commitment_level }}
+
+If you have any questions or need further information, please don't hesitate to contact us.
+
+Best regards,
+The Workshop Team
+
+---
+This is an automated message. Please do not reply to this email.
+© {% now "Y" %} Workshop Management System. All rights reserved.
