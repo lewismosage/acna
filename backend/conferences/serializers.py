@@ -67,6 +67,28 @@ class RegistrationSerializer(serializers.ModelSerializer):
     def get_full_name(self, obj):
         return obj.full_name
 
+    def validate(self, data):
+        # Check if email is already registered for this conference
+        conference = data.get('conference')
+        email = data.get('email')
+        
+        if conference and email:
+            # Check if this email is already registered for this conference
+            if Registration.objects.filter(conference=conference, email=email).exists():
+                raise serializers.ValidationError({
+                    'email': 'This email is already registered for this conference.'
+                })
+        
+        # Ensure required fields are present
+        required_fields = ['first_name', 'last_name', 'email', 'conference']
+        for field in required_fields:
+            if not data.get(field):
+                raise serializers.ValidationError({
+                    field: f'{field.replace("_", " ").title()} is required.'
+                })
+        
+        return data
+
 class ConferenceSerializer(serializers.ModelSerializer):
     display_image_url = serializers.SerializerMethodField()
     speakers = SpeakerSerializer(many=True, read_only=True)

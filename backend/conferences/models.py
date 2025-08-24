@@ -192,6 +192,7 @@ class Registration(models.Model):
     dietary_requirements = models.TextField(blank=True, null=True)
     accessibility_needs = models.TextField(blank=True, null=True)
     registered_at = models.DateTimeField(default=timezone.now)
+    unique_together = ['conference', 'email'] 
 
     @property
     def full_name(self):

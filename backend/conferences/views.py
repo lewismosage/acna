@@ -400,19 +400,45 @@ class ConferenceViewSet(viewsets.ModelViewSet):
     def add_registration(self, request, pk=None):
         try:
             conference = self.get_object()
-            serializer = RegistrationSerializer(data=request.data)
+            
+            # Add conference to request data
+            request_data = request.data.copy()
+            request_data['conference'] = conference.id
+            
+            serializer = RegistrationSerializer(data=request_data)
             
             if serializer.is_valid():
-                serializer.save(conference=conference)
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
+                registration = serializer.save()
+                
+                # Return success response
+                return Response({
+                    'success': True,
+                    'message': 'Registration successful!',
+                    'data': serializer.data
+                }, status=status.HTTP_201_CREATED)
             
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            # Handle duplicate email error specifically
+            if 'email' in serializer.errors and 'already registered' in str(serializer.errors['email']):
+                return Response({
+                    'success': False,
+                    'error': 'Duplicate registration',
+                    'message': 'This email is already registered for this conference.',
+                    'details': serializer.errors
+                }, status=status.HTTP_409_CONFLICT)
+                
+            return Response({
+                'success': False,
+                'error': 'Validation failed',
+                'details': serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
         except Exception as e:
             logger.error(f"Error adding registration: {str(e)}")
-            return Response(
-                {'error': f'Failed to add registration: {str(e)}'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            return Response({
+                'success': False,
+                'error': 'Internal server error',
+                'message': 'Failed to process registration. Please try again later.'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=False, methods=['post'])
     def upload_image(self, request):

@@ -145,6 +145,7 @@ class AwardNomination(models.Model):
     
     # Award category
     award_category = models.ForeignKey(AwardCategory, on_delete=models.CASCADE, related_name='nominations')
+    unique_together = ['award_category', 'nominator_email'] 
     
     # Nominator information
     nominator_name = models.CharField(max_length=200)

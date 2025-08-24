@@ -82,9 +82,8 @@ const ConferenceDetailPage = () => {
     
     setIsRegistering(true);
     setRegistrationStatus(null);
-  
+
     try {
-      // Create a type-safe registration payload
       const registrationPayload: Omit<Registration, 'id' | 'full_name'> = {
         first_name: registrationData.firstName,
         last_name: registrationData.lastName,
@@ -96,7 +95,7 @@ const ConferenceDetailPage = () => {
         payment_status: 'pending',
         registered_at: new Date().toISOString()
       };
-  
+
       await conferencesApi.addRegistration(parseInt(id), registrationPayload);
       
       setRegistrationStatus({
@@ -114,11 +113,24 @@ const ConferenceDetailPage = () => {
         phone: '',
         registrationType: 'early_bird'
       });
-    } catch (err) {
-      setRegistrationStatus({
-        type: 'error',
-        message: 'Registration failed. Please try again later.'
-      });
+    } catch (err: any) {
+      // Handle duplicate registration error
+      if (err.message && err.message.includes('already registered')) {
+        setRegistrationStatus({
+          type: 'error',
+          message: 'This email is already registered for this conference. Please use a different email address.'
+        });
+      } else if (err.message && err.message.includes('409')) {
+        setRegistrationStatus({
+          type: 'error',
+          message: 'This email is already registered for this conference. Please use a different email address.'
+        });
+      } else {
+        setRegistrationStatus({
+          type: 'error',
+          message: 'Registration failed. Please try again later.'
+        });
+      }
     } finally {
       setIsRegistering(false);
     }

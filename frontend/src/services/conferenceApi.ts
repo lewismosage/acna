@@ -392,28 +392,36 @@ export const conferencesApi = {
   },
 
   addRegistration: async (
-    conferenceId: number,
-    data: Omit<Registration, 'id' | 'full_name'>
-  ): Promise<Registration> => {
-    try {
-      const response = await fetch(
-        `${CONFERENCES_API_URL}/${conferenceId}/add_registration/`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
-        }
-      );
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
+  conferenceId: number,
+  data: Omit<Registration, 'id' | 'full_name'>
+): Promise<Registration> => {
+  try {
+    // Include conference ID in the payload
+    const payload = {
+      ...data,
+      conference: conferenceId 
+    };
+    
+    const response = await fetch(
+      `${CONFERENCES_API_URL}/${conferenceId}/add_registration/`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       }
-      return response.json();
-    } catch (error) {
-      console.error(`Error adding registration to conference ${conferenceId}:`, error);
-      throw error;
+    );
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP ${response.status}: ${errorText}`);
     }
-  },
+    
+    return response.json();
+  } catch (error) {
+    console.error(`Error adding registration to conference ${conferenceId}:`, error);
+    throw error;
+  }
+},
 
   updateStatus: async (id: number, status: string): Promise<Conference> => {
     try {

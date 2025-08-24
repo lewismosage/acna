@@ -12,6 +12,7 @@ from django.conf import settings
 import os
 import uuid
 import logging
+from rest_framework import serializers
 
 from .models import AwardCategory, AwardWinner, Nominee, AwardNomination
 from .serializers import (
@@ -298,22 +299,56 @@ class AwardNominationViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(nomination)
         return Response(serializer.data)
     
-    def perform_create(self, serializer):
-        """Override create to handle nomination for suggested nominees"""
-        nomination = serializer.save()
-        
-        # All nominations are for suggested nominees - go directly to poll
-        nomination.source = 'suggested'
-        nomination.status = 'Approved'
-        nomination.save()
-        
-        print(f"Vote counted for nominee: {nomination.nominee_name}")
-
-        # Send confirmation email
+    def create(self, request, *args, **kwargs):
+        """Create a new award nomination with duplicate prevention"""
         try:
-            self.send_nomination_confirmation(nomination)
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            
+            # All nominations are for suggested nominees - go directly to poll
+            nomination = serializer.save()
+            nomination.source = 'suggested'
+            nomination.status = 'Approved'
+            nomination.save()
+            
+            print(f"Vote counted for nominee: {nomination.nominee_name}")
+
+            # Send confirmation email
+            try:
+                self.send_nomination_confirmation(nomination)
+            except Exception as e:
+                logger.error(f"Failed to send confirmation email: {str(e)}")
+
+            # Return success response
+            return Response({
+                'success': True,
+                'message': 'Nomination submitted successfully!',
+                'data': AwardNominationSerializer(nomination, context={'request': request}).data
+            }, status=status.HTTP_201_CREATED)
+            
+        except serializers.ValidationError as e:
+            # Handle duplicate vote error specifically
+            if 'nominator_email' in e.detail and 'already submitted' in str(e.detail['nominator_email']):
+                return Response({
+                    'success': False,
+                    'error': 'Duplicate vote',
+                    'message': 'You have already submitted a nomination for this award category.',
+                    'details': e.detail
+                }, status=status.HTTP_409_CONFLICT)
+                
+            return Response({
+                'success': False,
+                'error': 'Validation failed',
+                'details': e.detail
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
         except Exception as e:
-            logger.error(f"Failed to send confirmation email: {str(e)}")
+            logger.error(f"Error creating nomination: {str(e)}")
+            return Response({
+                'success': False,
+                'error': 'Internal server error',
+                'message': 'Failed to submit nomination. Please try again later.'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def send_nomination_confirmation(self, nomination):
         """Send nomination confirmation email"""

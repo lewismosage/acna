@@ -157,5 +157,34 @@ class CreateAwardNominationSerializer(serializers.ModelSerializer):
             'achievement_summary', 'additional_info', 'supporting_documents'
         ]
     
+    def validate(self, data):
+        # Check if this email has already voted in this category
+        award_category = data.get('award_category')
+        nominator_email = data.get('nominator_email')
+        
+        if award_category and nominator_email:
+            # Check if this email has already nominated someone in this category
+            if AwardNomination.objects.filter(
+                award_category=award_category, 
+                nominator_email=nominator_email
+            ).exists():
+                raise serializers.ValidationError({
+                    'nominator_email': 'You have already submitted a nomination for this award category. Each email can only vote once per category.'
+                })
+        
+        # Ensure required fields are present
+        required_fields = [
+            'nominee_name', 'nominee_institution', 'award_category',
+            'nominator_name', 'nominator_email', 'achievement_summary'
+        ]
+        
+        for field in required_fields:
+            if not data.get(field):
+                raise serializers.ValidationError({
+                    field: f'{field.replace("_", " ").title()} is required.'
+                })
+        
+        return data
+    
     def create(self, validated_data):
         return AwardNomination.objects.create(**validated_data)

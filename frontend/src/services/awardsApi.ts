@@ -87,9 +87,9 @@ export interface CreateNomineeInput {
   phone: string;
   location: string;
   imageUrl: string;
-  status: 'Approved' | 'Rejected' | 'Winner'; // Removed 'Pending' status
+  status: 'Approved' | 'Rejected' | 'Winner'; 
   suggestedBy: string;
-  source: 'admin' | 'suggested'; // Removed 'new' and 'nomination' sources
+  source: 'admin' | 'suggested'; 
 }
 
 export interface CreateAwardNominationInput {
@@ -504,48 +504,81 @@ export const awardsApi = {
   },
 
   createNomination: async (data: CreateAwardNominationInput): Promise<AwardNomination> => {
-    const formData = new FormData();
-    
-    // Convert camelCase to snake_case for Django backend
-    const fieldMapping: Record<string, string> = {
-      nomineeName: 'nominee_name',
-      nomineeEmail: 'nominee_email',
-      nomineeInstitution: 'nominee_institution',
-      nomineeLocation: 'nominee_location',
-      nomineeSpecialty: 'nominee_specialty',
-      awardCategory: 'award_category',
-      nominatorName: 'nominator_name',
-      nominatorEmail: 'nominator_email',
-      nominatorRelationship: 'nominator_relationship',
-      achievementSummary: 'achievement_summary',
-      additionalInfo: 'additional_info',
-      supportingDocuments: 'supporting_documents',
-    };
-    
-    // Append all fields to formData with correct field names
-    Object.entries(data).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        const fieldName = fieldMapping[key] || key;
-        
-        if (fieldName === 'supporting_documents' && value instanceof File) {
-          formData.append(fieldName, value);
-        } else if (fieldName === 'award_category') {
-          formData.append(fieldName, value.toString());
-        } else {
-          formData.append(fieldName, value.toString());
-        }
+  const formData = new FormData();
+  
+  // Convert camelCase to snake_case for Django backend
+  const fieldMapping: Record<string, string> = {
+    nomineeName: 'nominee_name',
+    nomineeEmail: 'nominee_email',
+    nomineeInstitution: 'nominee_institution',
+    nomineeLocation: 'nominee_location',
+    nomineeSpecialty: 'nominee_specialty',
+    awardCategory: 'award_category',
+    nominatorName: 'nominator_name',
+    nominatorEmail: 'nominator_email',
+    nominatorRelationship: 'nominator_relationship',
+    achievementSummary: 'achievement_summary',
+    additionalInfo: 'additional_info',
+    supportingDocuments: 'supporting_documents',
+  };
+  
+  // Append all fields to formData with correct field names
+  Object.entries(data).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      const fieldName = fieldMapping[key] || key;
+      
+      if (fieldName === 'supporting_documents' && value instanceof File) {
+        formData.append(fieldName, value);
+      } else if (fieldName === 'award_category') {
+        formData.append(fieldName, value.toString());
+      } else {
+        formData.append(fieldName, value.toString());
       }
-    });
+    }
+  });
+  
+  const response = await fetch(`${API_BASE_URL}/awards/nominations/`, {
+    method: 'POST',
+    headers: getAuthHeadersWithoutContentType(),
+    body: formData,
+  });
+  
+  // Handle duplicate vote error specifically
+  if (response.status === 409) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      errorData.message || 
+      'You have already submitted a nomination for this award category. Each email can only vote once per category.'
+    );
+  }
+  
+  // Handle validation errors
+  if (response.status === 400) {
+    const errorData = await response.json().catch(() => ({}));
     
-    const response = await fetch(`${API_BASE_URL}/awards/nominations/`, {
-      method: 'POST',
-      headers: getAuthHeadersWithoutContentType(),
-      body: formData,
-    });
+    // Check if it's a duplicate email error
+    if (errorData.details && errorData.details.nominator_email) {
+      throw new Error(errorData.details.nominator_email);
+    }
     
-    const result = await handleResponse(response);
-    return normalizeAwardNomination(result);
-  },
+    // Handle other validation errors
+    if (errorData.details) {
+      const errorMessages = Object.values(errorData.details).flat();
+      throw new Error(errorMessages.join(', ') || 'Validation failed. Please check your input.');
+    }
+    
+    throw new Error(errorData.error || 'Validation failed. Please check your input.');
+  }
+  
+  // Handle other errors
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`HTTP ${response.status}: ${errorText}`);
+  }
+  
+  const result = await response.json();
+  return normalizeAwardNomination(result);
+},
 
   updateNomination: async (id: number, data: Partial<CreateAwardNominationInput>): Promise<AwardNomination> => {
     const response = await fetch(`${API_BASE_URL}/awards/nominations/${id}/`, {

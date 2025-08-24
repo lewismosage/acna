@@ -110,9 +110,21 @@ const AwardNominationPage = () => {
       });
 
       setStep(4);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Nomination submission error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to submit nomination');
+      
+      // Handle specific error messages
+      if (err.message.includes('already submitted') || err.message.includes('already voted')) {
+        setError(err.message);
+      } else if (err.message.includes('Validation failed')) {
+        setError('Please fill in all required fields correctly.');
+      } else if (err.message.includes('HTTP 400')) {
+        setError('Invalid input. Please check your information and try again.');
+      } else if (err.message.includes('HTTP 409')) {
+        setError('You have already submitted a nomination for this award category.');
+      } else {
+        setError(err.message || 'Failed to submit nomination. Please try again later.');
+      }
     } finally {
       setSubmitting(false);
     }
