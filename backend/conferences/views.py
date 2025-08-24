@@ -24,6 +24,10 @@ from django.http import JsonResponse
 import traceback
 from django.core.files.storage import default_storage
 import os
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.template import TemplateDoesNotExist
+from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
@@ -410,10 +414,18 @@ class ConferenceViewSet(viewsets.ModelViewSet):
             if serializer.is_valid():
                 registration = serializer.save()
                 
+                # Send confirmation email
+                try:
+                    self.send_registration_confirmation(registration, conference)
+                    logger.info(f"Confirmation email sent for registration {registration.id}")
+                except Exception as e:
+                    logger.error(f"Failed to send confirmation email: {str(e)}")
+                    # Don't fail the registration if email fails
+                
                 # Return success response
                 return Response({
                     'success': True,
-                    'message': 'Registration successful!',
+                    'message': 'Registration successful! A confirmation email has been sent.',
                     'data': serializer.data
                 }, status=status.HTTP_201_CREATED)
             
@@ -547,3 +559,58 @@ class ConferenceViewSet(viewsets.ModelViewSet):
                 {'error': f'Failed to upload image: {str(e)}'}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+        
+    def send_registration_confirmation(self, registration, conference):
+        """Send conference registration confirmation email"""
+        subject = f"Registration Confirmation: {conference.title}"
+        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@example.com')
+        to = [registration.email]
+
+        context = {
+            'registration': registration,
+            'conference': conference,
+            'company_name': getattr(settings, 'COMPANY_NAME', 'African Child Neurology Association'),
+            'frontend_url': getattr(settings, 'FRONTEND_URL', 'http://localhost:3000'),
+            'contact_email': getattr(settings, 'CONTACT_EMAIL', 'info@acna.org')
+        }
+
+        try:
+            # Try to send HTML email if templates exist
+            try:
+                html_content = render_to_string("conferences/emails/registration_confirmation.html", context)
+                text_content = render_to_string("conferences/emails/registration_confirmation.txt", context)
+                
+                msg = EmailMultiAlternatives(subject, text_content, from_email, to)
+                msg.attach_alternative(html_content, "text/html")
+                msg.send()
+                
+            except TemplateDoesNotExist:
+                # Fallback to plain text email
+                text_content = f"""Dear {registration.first_name} {registration.last_name},
+
+Thank you for registering for the conference: {conference.title}
+
+Conference Details:
+- Date: {conference.date}
+- Location: {conference.location}
+- Venue: {conference.venue or 'To be announced'}
+
+Your registration has been confirmed. You will receive further details closer to the conference date.
+
+Registration Type: {registration.registration_type}
+Payment Status: {registration.payment_status}
+
+If you have any questions, please contact us at {context['contact_email']}.
+
+Best regards,
+The {context['company_name']} Team
+"""
+
+            from django.core.mail import send_mail
+            send_mail(subject, text_content, from_email, to, fail_silently=False)
+            
+            logger.info(f"Conference registration confirmation sent to {registration.email}")
+        
+        except Exception as e:
+            logger.error(f"Failed to send conference registration confirmation to {registration.email}: {str(e)}")
+            raise

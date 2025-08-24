@@ -1,0 +1,27 @@
+Dear {{ registration.first_name }} {{ registration.last_name }},
+
+Thank you for registering for the conference: {{ conference.title }}
+
+Conference Details:
+- Date: {{ conference.date }}
+- Location: {{ conference.location }}
+{% if conference.venue %}- Venue: {{ conference.venue }}{% endif %}
+- Type: {{ conference.get_type_display }}
+
+Your Registration Details:
+- Name: {{ registration.first_name }} {{ registration.last_name }}
+- Email: {{ registration.email }}
+{% if registration.organization %}- Organization: {{ registration.organization }}{% endif %}
+{% if registration.job_title %}- Profession: {{ registration.job_title }}{% endif %}
+- Registration Type: {{ registration.get_registration_type_display }}
+- Payment Status: {{ registration.get_payment_status_display }}
+- Registration ID: #{{ registration.id }}
+
+Your registration has been confirmed. You will receive further details closer to the conference date, including the full program schedule and joining instructions.
+
+If you have any questions or need to update your registration, please contact us at {{ contact_email }}.
+
+Best regards,
+The {{ company_name }} Team
+
+{{ frontend_url }}

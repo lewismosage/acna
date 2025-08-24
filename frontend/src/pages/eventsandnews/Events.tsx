@@ -1,104 +1,165 @@
-import React, { useState } from 'react';
-import { Calendar, Mail, MapPin, Users } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Calendar, Loader, Mail, MapPin } from 'lucide-react';
 import ScrollToTop from '../../components/common/ScrollToTop';
 import api from '../../services/api';
+import { conferencesApi, Conference } from '../../services/conferenceApi';
+import { webinarsApi, Webinar } from '../../services/webinarsApi';
+import { workshopsApi, Workshop } from '../../services/workshopAPI';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 
 interface SubscriptionStatus {
   type: 'success' | 'error';
   message: string;
 }
 
-interface Event {
+interface CombinedEvent {
   id: number;
   title: string;
   date: string;
   time: string;
   location: string;
   type: 'upcoming' | 'past';
-  category: string;
+  category: 'CONFERENCE' | 'WEBINAR' | 'WORKSHOP';
   description: string;
   imageUrl: string;
   isOnline?: boolean;
+  eventType: 'conference' | 'webinar' | 'workshop';
 }
 
 const EventsPage = () => {
+  const navigate = useNavigate();
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'upcoming' | 'past'>('all');
+  const [events, setEvents] = useState<CombinedEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Newsletter subscription states
   const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
 
-  const events: Event[] = [
-    {
-      id: 1,
-      title: "ACNA Live from Nairobi: Advancing Pediatric Neurology Care Across East Africa",
-      date: "August 15, 2025",
-      time: "2:00PM-4:00PM EAT",
-      location: "Live online",
-      type: "upcoming",
-      category: "CONFERENCE",
-      description: "Join us for an interactive session discussing the latest advances in pediatric neurology care and treatment protocols across East African healthcare systems.",
-      imageUrl: "https://images.pexels.com/photos/5215024/pexels-photo-5215024.jpeg?auto=compress&cs=tinysrgb&w=600",
-      isOnline: true
-    },
-    {
-      id: 2,
-      title: "Epilepsy Awareness Workshop in Community Settings",
-      date: "August 22, 2025",
-      time: "9:00AM-5:00PM CAT",
-      location: "In-person in Cape Town, SA",
-      type: "upcoming",
-      category: "WORKSHOP",
-      description: "A comprehensive workshop focused on epilepsy awareness, community education, and reducing stigma around neurological conditions in African communities.",
-      imageUrl: "https://images.pexels.com/photos/3184638/pexels-photo-3184638.jpeg?auto=compress&cs=tinysrgb&w=600"
-    },
-    {
-      id: 3,
-      title: "Child Neurology Training Program for Healthcare Workers",
-      date: "September 5, 2025",
-      time: "10:00AM-3:00PM WAT",
-      location: "In-person in Lagos, Nigeria",
-      type: "upcoming",
-      category: "TRAINING",
-      description: "Intensive training program designed to equip primary healthcare workers with essential skills in identifying and managing pediatric neurological conditions.",
-      imageUrl: "https://images.pexels.com/photos/5452293/pexels-photo-5452293.jpeg?auto=compress&cs=tinysrgb&w=600"
-    },
-    {
-      id: 4,
-      title: "ACNA Annual Conference: Building Stronger Neurological Care Networks",
-      date: "July 10, 2025",
-      time: "8:00AM-6:00PM EAT",
-      location: "In-person in Kampala, Uganda",
-      type: "past",
-      category: "CONFERENCE",
-      description: "Our flagship annual conference brought together neurologists, healthcare professionals, and advocates from across Africa to discuss collaborative care approaches.",
-      imageUrl: "https://images.pexels.com/photos/1181438/pexels-photo-1181438.jpeg?auto=compress&cs=tinysrgb&w=600"
-    },
-    {
-      id: 5,
-      title: "Cerebral Palsy Support Groups: Strengthening Family Networks",
-      date: "June 28, 2025",
-      time: "2:00PM-5:00PM CAT",
-      location: "In-person in Johannesburg, SA",
-      type: "past",
-      category: "SUPPORT GROUP",
-      description: "A gathering of families, caregivers, and professionals focused on building support networks and sharing resources for children with cerebral palsy.",
-      imageUrl: "https://images.pexels.com/photos/4260323/pexels-photo-4260323.jpeg?auto=compress&cs=tinysrgb&w=600"
-    },
-    {
-      id: 6,
-      title: "Telemedicine in Child Neurology: Expanding Access to Care",
-      date: "June 15, 2025",
-      time: "11:00AM-1:00PM GMT",
-      location: "Live online",
-      type: "past",
-      category: "WEBINAR",
-      description: "An exploration of telemedicine technologies and their role in expanding access to specialized neurological care for children in remote areas.",
-      imageUrl: "https://images.pexels.com/photos/3952048/pexels-photo-3952048.jpeg?auto=compress&cs=tinysrgb&w=600",
-      isOnline: true
+  useEffect(() => {
+    fetchAllEvents();
+  }, []);
+
+  const fetchAllEvents = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const [conferences, webinars, workshops] = await Promise.allSettled([
+        conferencesApi.getAll(),
+        webinarsApi.getAll(),
+        workshopsApi.getAll()
+      ]);
+
+      const combinedEvents: CombinedEvent[] = [];
+
+      // Process conferences
+      if (conferences.status === 'fulfilled') {
+        conferences.value.forEach((conference: Conference) => {
+          const isUpcoming = ['planning', 'registration_open', 'coming_soon'].includes(conference.status || '');
+          const isOnline = conference.type === 'virtual';
+          
+          combinedEvents.push({
+            id: conference.id!,
+            title: conference.title,
+            date: new Date(conference.date).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            }),
+            time: conference.time || 'TBA',
+            location: isOnline ? 'Virtual' : conference.location,
+            type: isUpcoming ? 'upcoming' : 'past',
+            category: 'CONFERENCE',
+            description: conference.description,
+            imageUrl: conference.display_image_url || conference.image_url || 'https://images.pexels.com/photos/1181438/pexels-photo-1181438.jpeg?auto=compress&cs=tinysrgb&w=600',
+            isOnline,
+            eventType: 'conference'
+          });
+        });
+      }
+
+      // Process webinars
+      if (webinars.status === 'fulfilled') {
+        webinars.value.forEach((webinar: Webinar) => {
+          const isUpcoming = ['Planning', 'Registration Open'].includes(webinar.status);
+          
+          combinedEvents.push({
+            id: webinar.id,
+            title: webinar.title,
+            date: new Date(webinar.date).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            }),
+            time: webinar.time,
+            location: 'Online',
+            type: isUpcoming ? 'upcoming' : 'past',
+            category: 'WEBINAR',
+            description: webinar.description,
+            imageUrl: webinar.imageUrl || 'https://images.pexels.com/photos/3952048/pexels-photo-3952048.jpeg?auto=compress&cs=tinysrgb&w=600',
+            isOnline: true,
+            eventType: 'webinar'
+          });
+        });
+      }
+
+      // Process workshops
+      if (workshops.status === 'fulfilled') {
+        workshops.value.forEach((workshop: Workshop) => {
+          const isUpcoming = ['Planning', 'Registration Open'].includes(workshop.status);
+          const isOnline = workshop.type === 'Online';
+          
+          combinedEvents.push({
+            id: workshop.id,
+            title: workshop.title,
+            date: new Date(workshop.date).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            }),
+            time: workshop.time,
+            location: isOnline ? 'Online' : workshop.location,
+            type: isUpcoming ? 'upcoming' : 'past',
+            category: 'WORKSHOP',
+            description: workshop.description,
+            imageUrl: workshop.imageUrl || 'https://images.pexels.com/photos/5452293/pexels-photo-5452293.jpeg?auto=compress&cs=tinysrgb&w=600',
+            isOnline,
+            eventType: 'workshop'
+          });
+        });
+      }
+
+      // Sort events by date (most recent first)
+      combinedEvents.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      
+      setEvents(combinedEvents);
+    } catch (err) {
+      console.error('Error fetching events:', err);
+      setError('Failed to load events. Please try again later.');
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  const handleReadMore = (event: CombinedEvent) => {
+    switch (event.eventType) {
+      case 'conference':
+        navigate(`/conferences/${event.id}`);
+        break;
+      case 'webinar':
+        navigate(`/webinars/${event.id}`);
+        break;
+      case 'workshop':
+        navigate(`/workshops/${event.id}`);
+        break;
+    }
+  };
 
   const filteredEvents = events.filter(event => {
     if (selectedFilter === 'all') return true;
@@ -148,6 +209,60 @@ const EventsPage = () => {
       setIsSubmitting(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="bg-white min-h-screen">
+        <ScrollToTop />
+        <section className="py-12 md:py-20 bg-gradient-to-r from-blue-50 to-indigo-50">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 text-center">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light text-gray-900 mb-4 md:mb-6">
+              Events
+            </h1>
+            <p className="text-lg sm:text-xl md:text-2xl text-gray-700 font-light max-w-3xl mx-auto">
+              Join us in advancing child neurology care across Africa through conferences, training programs, and community outreach initiatives.
+            </p>
+          </div>
+        </section>
+        <div className="flex justify-center items-center py-20">
+          <div className="text-center">
+            < LoadingSpinner />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-white min-h-screen">
+        <ScrollToTop />
+        <section className="py-12 md:py-20 bg-gradient-to-r from-blue-50 to-indigo-50">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 text-center">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light text-gray-900 mb-4 md:mb-6">
+              Events
+            </h1>
+            <p className="text-lg sm:text-xl md:text-2xl text-gray-700 font-light max-w-3xl mx-auto">
+              Join us in advancing child neurology care across Africa through conferences, training programs, and community outreach initiatives.
+            </p>
+          </div>
+        </section>
+        <div className="flex justify-center items-center py-20">
+          <div className="text-center">
+            <div className="bg-red-50 border border-red-200 rounded-md p-6 max-w-md mx-auto">
+              <p className="text-red-800 mb-4">{error}</p>
+              <button
+                onClick={fetchAllEvents}
+                className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white min-h-screen">
@@ -261,7 +376,7 @@ const EventsPage = () => {
             <div className="flex-1">
               <div className="space-y-4 md:space-y-6">
                 {filteredEvents.map((event) => (
-                  <div key={event.id} className="bg-white border border-gray-200 rounded overflow-hidden hover:shadow-lg transition-shadow duration-200">
+                  <div key={`${event.eventType}-${event.id}`} className="bg-white border border-gray-200 rounded overflow-hidden hover:shadow-lg transition-shadow duration-200">
                     <div className="flex flex-col sm:flex-row">
                       {/* Event Image */}
                       <div className="relative w-full sm:w-48 lg:w-64 h-48 flex-shrink-0">
@@ -269,6 +384,10 @@ const EventsPage = () => {
                           src={event.imageUrl}
                           alt={event.title}
                           className="w-full h-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = 'https://images.pexels.com/photos/5215024/pexels-photo-5215024.jpeg?auto=compress&cs=tinysrgb&w=600';
+                          }}
                         />
                         <div className="absolute top-3 left-3">
                           <span className="bg-red-600 text-white px-2 py-1 text-xs font-bold uppercase tracking-wide rounded">
@@ -309,7 +428,10 @@ const EventsPage = () => {
                           {event.description}
                         </p>
 
-                        <button className="text-red-600 text-xs sm:text-sm font-medium hover:text-red-700 hover:underline">
+                        <button 
+                          onClick={() => handleReadMore(event)}
+                          className="text-red-600 text-xs sm:text-sm font-medium hover:text-red-700 hover:underline"
+                        >
                           Read more»
                         </button>
                       </div>
@@ -328,15 +450,6 @@ const EventsPage = () => {
                     className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                   >
                     Reset Filters
-                  </button>
-                </div>
-              )}
-
-              {/* Load More Button */}
-              {filteredEvents.length > 0 && (
-                <div className="text-center mt-8 sm:mt-12">
-                  <button className="border-2 border-orange-600 text-orange-600 px-6 py-2 sm:px-8 sm:py-3 font-medium hover:bg-orange-600 hover:text-white transition-all duration-300 uppercase tracking-wide rounded text-sm sm:text-base">
-                    Load More Events
                   </button>
                 </div>
               )}

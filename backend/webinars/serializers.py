@@ -53,6 +53,28 @@ class RegistrationSerializer(serializers.ModelSerializer):
             'email', 'phone', 'organization', 'registration_type',
             'payment_status', 'amount', 'country', 'registration_date'
         ]
+    
+    def validate(self, data):
+        # Check if email is already registered for this webinar
+        webinar = data.get('webinar')
+        email = data.get('email')
+        
+        if webinar and email:
+            # Check if this email is already registered for this webinar
+            if Registration.objects.filter(webinar=webinar, email=email).exists():
+                raise serializers.ValidationError({
+                    'email': 'This email is already registered for this webinar.'
+                })
+        
+        # Ensure required fields are present
+        required_fields = ['attendee_name', 'email', 'webinar']
+        for field in required_fields:
+            if not data.get(field):
+                raise serializers.ValidationError({
+                    field: f'{field.replace("_", " ").title()} is required.'
+                })
+        
+        return data
 
 class WebinarSerializer(serializers.ModelSerializer):
     imageUrl = serializers.SerializerMethodField()

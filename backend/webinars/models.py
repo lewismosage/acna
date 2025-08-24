@@ -218,6 +218,7 @@ class Registration(models.Model):
     )
     attendee_name = models.CharField(max_length=100)
     email = models.EmailField()
+    unique_together = ['webinar', 'email']
     phone = models.CharField(max_length=20, blank=True)
     organization = models.CharField(max_length=150, blank=True)
     registration_type = models.CharField(

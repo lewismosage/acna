@@ -6,7 +6,9 @@ import {
   Phone,
   RefreshCw,
   Search,
-  Calendar
+  Calendar,
+  AlertTriangle,
+  Users
 } from "lucide-react";
 import { workshopsApi, CollaborationSubmission } from '../../../services/workshopAPI';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
@@ -74,24 +76,48 @@ const CollaborationsTab = () => {
     opportunity.skillsNeeded.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
+  // Error Card Component
+  const ErrorCard = ({ message, onRetry }: { message: string; onRetry: () => void }) => (
+    <div className="bg-red-50 border border-red-200 rounded-lg p-8 text-center max-w-md mx-auto">
+      <AlertTriangle className="w-16 h-16 text-red-400 mx-auto mb-4" />
+      <h3 className="text-lg font-medium text-red-800 mb-2">Error Loading Content</h3>
+      <p className="text-red-600 mb-6">{message}</p>
+      <button
+        onClick={onRetry}
+        className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-md font-medium transition-colors duration-300"
+      >
+        Try Again
+      </button>
+    </div>
+  );
+
+  // No Content Card Component
+  const NoContentCard = ({ type, searchTerm }: { type: 'opportunities' | 'search'; searchTerm?: string }) => (
+    <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center max-w-md mx-auto">
+      <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+      <h3 className="text-lg font-medium text-gray-900 mb-2">
+        {type === 'search' && searchTerm ? 'No Matching Opportunities Found' : 'No Active Opportunities'}
+      </h3>
+      <p className="text-gray-600 mb-4">
+        {type === 'search' && searchTerm 
+          ? 'Try adjusting your search terms or browse all opportunities.' 
+          : 'Check back later for new collaboration opportunities or submit your own project.'}
+      </p>
+      {type === 'search' && searchTerm && (
+        <button
+          onClick={() => setSearchTerm('')}
+          className="text-blue-600 hover:text-blue-800 font-medium"
+        >
+          Clear search
+        </button>
+      )}
+    </div>
+  );
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <LoadingSpinner />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-        <span className="block sm:inline">{error}</span>
-        <button onClick={() => setError(null)} className="absolute top-0 bottom-0 right-0 px-4 py-3">
-          <svg className="fill-current h-6 w-6 text-red-500" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-            <title>Close</title>
-            <path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z"/>
-          </svg>
-        </button>
       </div>
     );
   }
@@ -142,7 +168,12 @@ const CollaborationsTab = () => {
 
       {/* Current Opportunities */}
       <div className="mb-12">
-        {filteredOpportunities.length > 0 ? (
+        {error ? (
+          <ErrorCard 
+            message={error} 
+            onRetry={fetchApprovedCollaborations} 
+          />
+        ) : filteredOpportunities.length > 0 ? (
           <div className="space-y-6">
             {filteredOpportunities.map((opportunity) => (
               <div key={opportunity.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden border border-gray-200 p-6">
@@ -200,17 +231,10 @@ const CollaborationsTab = () => {
             ))}
           </div>
         ) : (
-          <div className="text-center py-12">
-            <UserPlus className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {searchTerm ? 'No matching opportunities found' : 'No active collaboration opportunities'}
-            </h3>
-            <p className="text-gray-500">
-              {searchTerm 
-                ? 'Try adjusting your search terms' 
-                : 'Check back later for new collaboration opportunities or submit your own project.'}
-            </p>
-          </div>
+          <NoContentCard 
+            type={searchTerm ? 'search' : 'opportunities'} 
+            searchTerm={searchTerm} 
+          />
         )}
       </div>
 

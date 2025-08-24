@@ -11,6 +11,7 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
 from django.http import JsonResponse
+from rest_framework import serializers
 import os
 import uuid
 from .models import Webinar, Speaker, Registration, WebinarView, WebinarAudience, WebinarLanguage
@@ -619,12 +620,88 @@ class RegistrationViewSet(viewsets.ModelViewSet):
         
         return queryset.order_by('-registration_date')
 
-    def perform_create(self, serializer):
-        """Override create to send confirmation email"""
-        registration = serializer.save()
-        
-        # Send confirmation email
-        self.send_registration_confirmation(registration)
+    def create(self, request, *args, **kwargs):
+        """Create a new webinar registration with duplicate prevention"""
+        try:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            
+            # Get the webinar
+            webinar_id = serializer.validated_data['webinar'].id
+            webinar = Webinar.objects.get(id=webinar_id)
+            
+            # Check if webinar is open for registration
+            if webinar.status != 'Registration Open':
+                return Response(
+                    {'error': 'This webinar is not currently open for registration.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Check capacity
+            if webinar.registration_count >= webinar.capacity:
+                return Response(
+                    {'error': 'This webinar has reached its capacity.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Double-check for duplicate registration (in case of race conditions)
+            existing_registration = Registration.objects.filter(
+                webinar=webinar,
+                email=serializer.validated_data['email']
+            ).first()
+            
+            if existing_registration:
+                return Response(
+                    {'error': 'This email is already registered for this webinar.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Create the registration
+            registration = serializer.save()
+            
+            # Update webinar registration count
+            webinar.registration_count += 1
+            webinar.save(update_fields=['registration_count'])
+            
+            # Send confirmation email
+            try:
+                self.send_registration_confirmation(registration)
+                logger.info(f"Confirmation email sent for registration {registration.id}")
+            except Exception as e:
+                logger.error(f"Failed to send confirmation email: {str(e)}")
+                # Don't fail the registration if email fails
+            
+            # Return the created registration
+            read_serializer = self.get_serializer(registration)
+            logger.info(f"Webinar registration created successfully: {registration.id}")
+            return Response(read_serializer.data, status=status.HTTP_201_CREATED)
+            
+        except serializers.ValidationError as e:
+            logger.error(f"Validation error creating registration: {e.detail}")
+            
+            # Handle duplicate registration error specifically
+            error_detail = e.detail
+            if isinstance(error_detail, dict) and 'email' in error_detail and 'already registered' in str(error_detail['email']):
+                return Response(
+                    {'error': 'This email is already registered for this webinar.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            return Response(
+                {'error': 'Validation error', 'details': error_detail},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Webinar.DoesNotExist:
+            return Response(
+                {'error': 'Webinar not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            logger.error(f"Error creating registration: {str(e)}")
+            return Response(
+                {'error': f'Failed to create registration: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     def send_registration_confirmation(self, registration):
         """Send registration confirmation email"""
@@ -670,6 +747,7 @@ The {settings.COMPANY_NAME} Team
             
         except Exception as e:
             logger.error(f"Failed to send registration confirmation to {registration.email}: {str(e)}")
+            # Don't raise exception here to avoid breaking the registration process
 
     @action(detail=True, methods=['post'])
     def send_confirmation(self, request, pk=None):

@@ -15,12 +15,13 @@ import {
   Globe,
   Mail
 } from 'lucide-react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Webinar, webinarsApi } from '../../services/webinarsApi';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ScrollToTop from '../../components/common/ScrollToTop';
 
 const WebinarDetailPage = () => {
+  const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState<'overview' | 'speakers' | 'resources' | 'registration'>('overview');
   const [webinar, setWebinar] = useState<Webinar | null>(null);
@@ -174,9 +175,13 @@ const WebinarDetailPage = () => {
           <AlertCircle className="w-16 h-16 text-red-600 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Webinar Not Found</h2>
           <p className="text-gray-600 mb-4">{error || "The webinar you're looking for doesn't exist."}</p>
-          <Link to="/webinars" className="text-red-600 hover:text-red-700 font-medium">
+          <button 
+            onClick={() => navigate(-1)}
+            className="flex items-center text-red-600 hover:text-red-700 font-medium"
+          >
+            <ChevronLeft className="w-4 h-4 mr-1" />
             Back to Webinars
-          </Link>
+          </button>
         </div>
       </div>
     );
@@ -191,10 +196,13 @@ const WebinarDetailPage = () => {
       {/* Back Navigation */}
       <div className="bg-gray-50 border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-4 py-4">
-          <Link to="/webinars" className="flex items-center text-red-600 hover:text-red-700 font-medium">
+          <button 
+            onClick={() => navigate(-1)}
+            className="flex items-center text-red-600 hover:text-red-700 font-medium"
+          >
             <ChevronLeft className="w-4 h-4 mr-1" />
             Back to Webinars
-          </Link>
+          </button>
         </div>
       </div>
 
