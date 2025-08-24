@@ -14,11 +14,11 @@ const NewsManagement = () => {
   const renderTabContent = () => {
     switch (activeTab) {
       case 'news':
-        return <NewsUpdatesTab />;  // Removed newsItems prop
+        return <NewsUpdatesTab />;  
       case 'gallery':  
-        return <GalleryTab />;      // Removed galleryItems and storyItems props
+        return <GalleryTab />;      
       default:
-        return <NewsUpdatesTab />;  // Removed newsItems prop
+        return <NewsUpdatesTab />;  
     }
   };
 

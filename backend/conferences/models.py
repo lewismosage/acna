@@ -3,7 +3,7 @@ from django.core.validators import MinValueValidator
 from django.utils import timezone
 from django.conf import settings
 import json
-from datetime import datetime, timedelta  # Add this import at the top
+from datetime import datetime, timedelta  
 
 class Conference(models.Model):
     CONFERENCE_TYPES = (

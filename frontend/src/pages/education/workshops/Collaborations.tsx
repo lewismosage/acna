@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   UserPlus,
   AlertCircle,
-  Mail,
-  Phone,
+  
   RefreshCw,
   Search,
   Calendar,

@@ -360,13 +360,10 @@ class ConferenceViewSet(viewsets.ModelViewSet):
             ).count()
             
             # Monthly registrations
-            monthly_registrations = list(
-                Registration.objects.filter(
-                    registered_at__gte=timezone.now() - timedelta(days=365))
-                .extra({'month': "date_trunc('month', registered_at)"})
-                .values('month')
-                .annotate(count=Count('id'))
-                .order_by('month')
+            monthly_registrations = []
+            one_year_ago = timezone.now() - timedelta(days=365)
+            registrations_last_year = Registration.objects.filter(
+                registered_at__gte=one_year_ago
             )
             
             # Top conferences by registration count
