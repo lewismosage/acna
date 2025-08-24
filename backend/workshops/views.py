@@ -454,7 +454,11 @@ class CollaborationViewSet(viewsets.ModelViewSet):
 
 class WorkshopRegistrationViewSet(viewsets.ModelViewSet):
     queryset = WorkshopRegistration.objects.all()
-    serializer_class = WorkshopRegistrationSerializer
+    
+    def get_serializer_class(self):
+        if self.action in ['create', 'update', 'partial_update']:
+            return CreateWorkshopRegistrationSerializer
+        return WorkshopRegistrationSerializer
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -486,6 +490,70 @@ class WorkshopRegistrationViewSet(viewsets.ModelViewSet):
         
         return queryset.order_by('-registered_at')
 
+    def create(self, request, *args, **kwargs):
+        """Create a new workshop registration"""
+        try:
+            logger.info(f"Creating workshop registration with data: {request.data}")
+            
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            
+            # Get the workshop
+            workshop_id = serializer.validated_data['workshop'].id
+            workshop = Workshop.objects.get(id=workshop_id)
+            
+            # Check if workshop is open for registration
+            if workshop.status != 'Registration Open':
+                return Response(
+                    {'error': 'This workshop is not currently open for registration.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Check capacity
+            if workshop.registered >= workshop.capacity:
+                return Response(
+                    {'error': 'This workshop has reached its capacity.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Create the registration
+            registration = serializer.save()
+            
+            # Update workshop registration count
+            workshop.registered += 1
+            workshop.save(update_fields=['registered'])
+            
+            # Send confirmation email
+            try:
+                self.send_registration_confirmation(registration)
+                logger.info(f"Confirmation email sent for registration {registration.id}")
+            except Exception as e:
+                logger.error(f"Failed to send confirmation email: {str(e)}")
+                # Don't fail the registration if email fails
+            
+            # Return the created registration using the read serializer
+            read_serializer = WorkshopRegistrationSerializer(registration, context={'request': request})
+            logger.info(f"Workshop registration created successfully: {registration.id}")
+            return Response(read_serializer.data, status=status.HTTP_201_CREATED)
+            
+        except serializers.ValidationError as e:
+            logger.error(f"Validation error creating registration: {e.detail}")
+            return Response(
+                {'error': 'Validation error', 'details': e.detail},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Workshop.DoesNotExist:
+            return Response(
+                {'error': 'Workshop not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            logger.error(f"Error creating registration: {str(e)}")
+            return Response(
+                {'error': f'Failed to create registration: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
     @action(detail=True, methods=['patch'])
     def update_payment_status(self, request, pk=None):
         """Update payment status of a registration"""
@@ -510,7 +578,6 @@ class WorkshopRegistrationViewSet(viewsets.ModelViewSet):
         registration = self.get_object()
         
         try:
-            # This method would need to be implemented in the viewset
             self.send_registration_confirmation(registration)
             return Response({
                 'success': True,
@@ -523,83 +590,22 @@ class WorkshopRegistrationViewSet(viewsets.ModelViewSet):
                 'error': 'Failed to send confirmation email'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
-    @action(detail=True, methods=['get'])
-    def registrations(self, request, pk=None):
-        """Get registrations for a specific workshop"""
-        workshop = self.get_object()
-        registrations = workshop.registrations.all().order_by('-registered_at')
-        
-        page = self.paginate_queryset(registrations)
-        if page is not None:
-            serializer = WorkshopRegistrationSerializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-        
-        serializer = WorkshopRegistrationSerializer(registrations, many=True)
-        return Response(serializer.data)
-
-    @action(detail=True, methods=['post'])
-    def register(self, request, pk=None):
-        """Register for a workshop"""
-        workshop = self.get_object()
-        
-        # Check if workshop is open for registration
-        if workshop.status != 'Registration Open':
-            return Response(
-                {'error': 'This workshop is not currently open for registration.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # Check capacity
-        if workshop.registered >= workshop.capacity:
-            return Response(
-                {'error': 'This workshop has reached its capacity.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        serializer = CreateWorkshopRegistrationSerializer(data=request.data)
-        if serializer.is_valid():
-            try:
-                registration = serializer.save(workshop=workshop)
-                
-                # Update workshop registration count
-                workshop.registered += 1
-                workshop.save()
-                
-                # Send confirmation email
-                self.send_registration_confirmation(registration)
-                
-                # Return the created registration
-                read_serializer = WorkshopRegistrationSerializer(registration)
-                return Response(read_serializer.data, status=status.HTTP_201_CREATED)
-                
-            except Exception as e:
-                return Response(
-                    {'error': f'Failed to create registration: {str(e)}'}, 
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
-        
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
     def send_registration_confirmation(self, registration):
         """Send registration confirmation email"""
         subject = f"Registration Confirmation: {registration.workshop.title}"
-        from_email = settings.DEFAULT_FROM_EMAIL
+        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@example.com')
         to = [registration.email]
 
         context = {
             'registration': registration,
             'workshop': registration.workshop,
-            'company_name': settings.COMPANY_NAME,
-            'frontend_url': settings.FRONTEND_URL,
-            'contact_email': settings.CONTACT_EMAIL
+            'company_name': getattr(settings, 'COMPANY_NAME', 'African Consortium for Neurology in Africa'),
+            'frontend_url': getattr(settings, 'FRONTEND_URL', 'http://localhost:3000'),
+            'contact_email': getattr(settings, 'CONTACT_EMAIL', 'contact@acna.org')
         }
 
         try:
-            # HTML version
-            html_content = render_to_string("workshops/emails/registration_confirmation.html", context)
-            
-            # Text version
+            # Simple text email (you can enhance with HTML later)
             text_content = f"""Dear {registration.first_name} {registration.last_name},
 
 Thank you for registering for the workshop: {registration.workshop.title}
@@ -612,17 +618,25 @@ Workshop Details:
 
 Your registration has been confirmed. You will receive further details closer to the workshop date.
 
-If you have any questions, please contact us at {settings.CONTACT_EMAIL}.
+If you have any questions, please contact us at {context['contact_email']}.
 
 Best regards,
-The {settings.COMPANY_NAME} Team
+The {context['company_name']} Team
 """
 
-            msg = EmailMultiAlternatives(subject, text_content, from_email, to)
-            msg.attach_alternative(html_content, "text/html")
-            msg.send()
+            # Try to send HTML email if templates exist, otherwise send plain text
+            try:
+                html_content = render_to_string("workshops/emails/registration_confirmation.html", context)
+                msg = EmailMultiAlternatives(subject, text_content, from_email, to)
+                msg.attach_alternative(html_content, "text/html")
+                msg.send()
+            except Exception:
+                # Fallback to plain text email
+                from django.core.mail import send_mail
+                send_mail(subject, text_content, from_email, to, fail_silently=False)
             
             logger.info(f"Workshop registration confirmation sent to {registration.email}")
             
         except Exception as e:
             logger.error(f"Failed to send registration confirmation to {registration.email}: {str(e)}")
+            raise

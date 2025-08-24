@@ -266,14 +266,64 @@ class CreateWorkshopRegistrationSerializer(serializers.ModelSerializer):
             'profession', 'registration_type', 'amount', 'country'
         ]
     
+    def to_internal_value(self, data):
+        # Handle camelCase to snake_case conversion
+        field_mapping = {
+            'firstName': 'first_name',
+            'lastName': 'last_name',
+            'registrationType': 'registration_type',
+            'paymentStatus': 'payment_status'
+        }
+        
+        new_data = {}
+        for key, value in data.items():
+            if key in field_mapping:
+                new_data[field_mapping[key]] = value
+            else:
+                new_data[key] = value
+        
+        return super().to_internal_value(new_data)
+    
     def validate(self, data):
         # Check if email is already registered for this workshop
         workshop = data['workshop']
         email = data['email']
         
         if WorkshopRegistration.objects.filter(workshop=workshop, email=email).exists():
-            raise serializers.ValidationError(
-                "This email is already registered for this workshop."
-            )
+            raise serializers.ValidationError({
+                'email': "This email is already registered for this workshop."
+            })
+        
+        # Ensure required fields are present
+        if not data.get('first_name'):
+            raise serializers.ValidationError({
+                'first_name': "First name is required."
+            })
+        
+        if not data.get('last_name'):
+            raise serializers.ValidationError({
+                'last_name': "Last name is required."
+            })
+        
+        if not data.get('email'):
+            raise serializers.ValidationError({
+                'email': "Email is required."
+            })
+        
+        # Set default payment status based on registration type
+        if data.get('registration_type') == 'Free':
+            data['payment_status'] = 'Free'
+        elif not hasattr(self, 'initial_data') or 'payment_status' not in self.initial_data:
+            data['payment_status'] = 'Pending'
         
         return data
+    
+    def create(self, validated_data):
+        # Set default payment status if not provided
+        if 'payment_status' not in validated_data:
+            if validated_data.get('registration_type') == 'Free':
+                validated_data['payment_status'] = 'Free'
+            else:
+                validated_data['payment_status'] = 'Pending'
+        
+        return super().create(validated_data)
