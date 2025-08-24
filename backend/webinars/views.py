@@ -10,6 +10,7 @@ from datetime import timedelta
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
+from django.http import JsonResponse
 import os
 import uuid
 from .models import Webinar, Speaker, Registration, WebinarView, WebinarAudience, WebinarLanguage
@@ -148,6 +149,10 @@ class WebinarViewSet(viewsets.ModelViewSet):
             saved_path = default_storage.save(file_path, ContentFile(image.read()))
             file_url = default_storage.url(saved_path)
             
+            # Return full URL if needed
+            if request:
+                file_url = request.build_absolute_uri(file_url)
+            
             return Response({
                 'url': file_url,
                 'filename': filename,
@@ -197,6 +202,10 @@ class WebinarViewSet(viewsets.ModelViewSet):
             # Save file using Django's default storage
             saved_path = default_storage.save(file_path, ContentFile(image.read()))
             file_url = default_storage.url(saved_path)
+            
+            # Return full URL if needed
+            if request:
+                file_url = request.build_absolute_uri(file_url)
             
             return Response({
                 'url': file_url,

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Video, 
-  Plus, 
   Calendar, 
   Clock, 
   User, 
@@ -24,7 +23,6 @@ import {
   Tag,
   Phone,
   TrendingUp,
-  DollarSign,
   Eye as EyeIcon,
   Download,
   FileText

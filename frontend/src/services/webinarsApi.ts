@@ -170,6 +170,14 @@ const normalizeWebinar = (backendWebinar: any): Webinar => {
     }).filter(Boolean);
   };
 
+  // Get the image URL properly
+  let imageUrl = backendWebinar.imageUrl || backendWebinar.image_url;
+  
+  // If it's a relative path, make it absolute
+  if (imageUrl && imageUrl.startsWith('/') && !imageUrl.startsWith('//')) {
+    imageUrl = `${API_BASE_URL}${imageUrl}`;
+  }
+
   return {
     id: backendWebinar.id || 0,
     title: backendWebinar.title || '',
@@ -196,7 +204,7 @@ const normalizeWebinar = (backendWebinar: any): Webinar => {
     registrationLink: backendWebinar.registrationLink || backendWebinar.registration_link,
     recordingLink: backendWebinar.recordingLink || backendWebinar.recording_link,
     slidesLink: backendWebinar.slidesLink || backendWebinar.slides_link,
-    imageUrl: backendWebinar.imageUrl || backendWebinar.image_url || '/api/placeholder/400/250',
+    imageUrl: imageUrl || '/api/placeholder/400/250',
     tags: safeArray(backendWebinar.tags, 'name'),
     languages: safeArray(backendWebinar.languages, 'language'),
     targetAudience: safeArray(backendWebinar.targetAudience || backendWebinar.target_audience, 'audience'),

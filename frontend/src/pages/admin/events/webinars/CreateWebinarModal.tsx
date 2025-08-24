@@ -324,19 +324,32 @@ const CreateWebinarModal: React.FC<CreateWebinarModalProps> = ({
     }));
   };
 
-  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) {
-      const file = e.target.files[0];
-      setImageFile(file);
-      
-      // Create preview URL
-      const previewUrl = URL.createObjectURL(file);
-      setImagePreview(previewUrl);
-      
-      // Clear any existing image URL
-      setFormData(prev => ({ ...prev, imageUrl: '' }));
+  const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  if (e.target.files?.[0]) {
+    const file = e.target.files[0];
+    setImageFile(file);
+    
+    // Create preview URL
+    const previewUrl = URL.createObjectURL(file);
+    setImagePreview(previewUrl);
+    
+    // Upload the image immediately
+    setImageUploading(true);
+    try {
+      const uploadResult = await webinarsApi.uploadImage(file);
+      setFormData(prev => ({ ...prev, imageUrl: uploadResult.url }));
+      console.log('Image uploaded successfully:', uploadResult);
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      setErrors(prev => ({
+        ...prev,
+        image: 'Failed to upload image'
+      }));
+    } finally {
+      setImageUploading(false);
     }
-  };
+  }
+};
   
   // Clean up object URLs when component unmounts
   useEffect(() => {
@@ -513,7 +526,7 @@ const CreateWebinarModal: React.FC<CreateWebinarModalProps> = ({
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold flex items-center">
                 <Video className="w-6 h-6 mr-2 text-purple-600" />
-                Create New Webinar
+                {initialData ? 'Edit Webinar' : 'Create New Webinar'}
               </h2>
               <button 
                 type="button"
@@ -701,12 +714,12 @@ const CreateWebinarModal: React.FC<CreateWebinarModalProps> = ({
                     </button>
                   </div>
                   
-                  {imagePreview && (
+                  {(imagePreview || formData.imageUrl) && (
                     <div>
                       <h4 className="text-sm font-medium text-gray-700 mb-2">Preview</h4>
                       <div className="relative w-full h-48 overflow-hidden rounded-md border border-gray-200">
                         <img
-                          src={imagePreview}
+                          src={imagePreview || formData.imageUrl}
                           alt="Featured image preview"
                           className="w-full h-full object-cover"
                         />
@@ -1135,6 +1148,7 @@ const CreateWebinarModal: React.FC<CreateWebinarModalProps> = ({
               <div className="flex justify-end gap-3 pt-6 border-t border-gray-200">
                 <button
                   type="button"
+                  onClick={onClose}
                   className="px-6 py-2 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50"
                   disabled={isSubmitting}
                 >
@@ -1148,12 +1162,12 @@ const CreateWebinarModal: React.FC<CreateWebinarModalProps> = ({
                   {isSubmitting ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Saving...
+                      {initialData ? 'Updating...' : 'Creating...'}
                     </>
                   ) : (
                     <>
                       <Check className="w-4 h-4 mr-2" />
-                      Create Webinar
+                      {initialData ? 'Update Webinar' : 'Create Webinar'}
                     </>
                   )}
                 </button>
