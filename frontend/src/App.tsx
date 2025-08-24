@@ -76,6 +76,7 @@ import AbstractSubmissionForm from "./pages/eventsandnews/AbstractSubmissionForm
 import NewsDetailPage from './pages/eventsandnews/NewsDetailPage';
 import ConferenceDetailPage from "./pages/eventsandnews/ConferenceDetailPage";
 import WebinarDetailPage from "./pages/education/WebinarDetailPage";
+import WorkshopDetailPage from "./pages/education/workshops/WorkshopDetailPage";
 
 // Layout component
 const Layout = ({ children }: { children: React.ReactNode }) => (
@@ -134,6 +135,7 @@ function App() {
             <Route path="/webinars" element={<Webinars />} />
             <Route path="/webinars/:id" element={<WebinarDetailPage />} />
             <Route path="/collaboration-opportunities" element={<WorkshopsSymposiums />} />
+            <Route path="/workshops/:id" element={<WorkshopDetailPage />} />
             {/* Membership */}
             <Route path="/register" element={<Register />} />
             <Route path="/login" element={<Login />} />

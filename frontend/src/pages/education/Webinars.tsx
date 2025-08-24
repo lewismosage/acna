@@ -8,7 +8,6 @@ import {
   Search,
   Filter,
   ChevronDown,
-  ChevronUp,
   Play,
   Download,
   Bookmark,
@@ -30,7 +29,6 @@ const Webinars = () => {
   const [selectedAudience, setSelectedAudience] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState<string>("");
-  const [expandedWebinar, setExpandedWebinar] = useState<number | null>(null);
   const [allWebinars, setAllWebinars] = useState<Webinar[]>([]);
   const [featuredWebinars, setFeaturedWebinars] = useState<Webinar[]>([]);
   const [categories, setCategories] = useState<string[]>(["all"]);
@@ -38,7 +36,7 @@ const Webinars = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAllFeatured, setShowAllFeatured] = useState(false);
-  const [visibleWebinars, setVisibleWebinars] = useState(4);
+  const [visibleWebinars, setVisibleWebinars] = useState(8);
 
   const statuses = ["all", "upcoming", "recorded", "live"];
 
@@ -105,12 +103,12 @@ const Webinars = () => {
   const hasMoreWebinars = visibleWebinars < filteredWebinars.length;
 
   const loadMoreWebinars = () => {
-    setVisibleWebinars(prev => prev + 4);
+    setVisibleWebinars(prev => prev + 8);
   };
 
   const displayedFeaturedWebinars = showAllFeatured 
     ? featuredWebinars 
-    : featuredWebinars.slice(0, 2);
+    : featuredWebinars.slice(0, 3);
 
   const getStatusBadge = (webinar: Webinar) => {
     const isLive = getIsLive(webinar);
@@ -151,7 +149,7 @@ const Webinars = () => {
       return (
         <button 
           onClick={() => navigate(`/webinars/${webinar.id}?tab=registration`)}
-          className="flex-1 bg-red-600 text-white text-center py-2 rounded-md hover:bg-red-700 transition-colors font-medium"
+          className="w-full bg-red-600 text-white text-center py-2 px-3 rounded-md hover:bg-red-700 transition-colors font-medium text-sm"
         >
           Register Now
         </button>
@@ -162,7 +160,7 @@ const Webinars = () => {
           href={webinar.registrationLink}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex-1 bg-red-600 text-white text-center py-2 rounded-md hover:bg-red-700 transition-colors font-medium"
+          className="block w-full bg-red-600 text-white text-center py-2 px-3 rounded-md hover:bg-red-700 transition-colors font-medium text-sm"
         >
           Join Live
         </a>
@@ -173,7 +171,7 @@ const Webinars = () => {
           href={webinar.recordingLink}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex-1 bg-red-600 text-white text-center py-2 rounded-md hover:bg-red-700 transition-colors font-medium"
+          className="block w-full bg-red-600 text-white text-center py-2 px-3 rounded-md hover:bg-red-700 transition-colors font-medium text-sm"
         >
           Watch Recording
         </a>
@@ -344,7 +342,7 @@ const Webinars = () => {
       <section className="py-16">
         <div className="max-w-6xl mx-auto px-4">
           {/* Featured Webinars */}
-          <div className="mb-12">
+          <div className="mb-16">
             <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
               <Bookmark className="w-6 h-6 text-red-600 mr-2" />
               Featured Webinars
@@ -359,65 +357,62 @@ const Webinars = () => {
               />
             ) : featuredWebinars.length > 0 ? (
               <>
-                <div className="grid md:grid-cols-2 gap-8">
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {displayedFeaturedWebinars.map((webinar) => (
-                    <div key={webinar.id} className="bg-white rounded-xl shadow-lg overflow-hidden border-2 border-red-200 hover:border-red-300 transition-colors">
+                    <div key={webinar.id} className="bg-white rounded-lg shadow-lg overflow-hidden border-2 border-red-200 hover:border-red-300 transition-all duration-200 hover:shadow-xl">
                       <div className="relative">
                         <img 
                           src={webinar.imageUrl} 
                           alt={webinar.title}
-                          className="w-full h-48 object-cover"
+                          className="w-full h-40 object-cover"
                         />
-                        <div className="absolute top-3 left-3">
+                        <div className="absolute top-2 left-2">
                           {getStatusBadge(webinar)}
                         </div>
                       </div>
-                      <div className="p-6">
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">{webinar.title}</h3>
-                        <p className="text-gray-600 mb-4 line-clamp-2">{webinar.description}</p>
+                      
+                      <div className="p-4">
+                        <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 leading-tight">{webinar.title}</h3>
+                        <p className="text-gray-600 text-sm mb-3 line-clamp-2">{webinar.description}</p>
                         
-                        <div className="flex items-center text-sm text-gray-500 gap-4 mb-4">
+                        <div className="flex items-center text-xs text-gray-500 gap-3 mb-3">
                           <div className="flex items-center">
-                            <Calendar className="w-4 h-4 mr-1" />
+                            <Calendar className="w-3 h-3 mr-1" />
                             {webinar.date}
                           </div>
                           <div className="flex items-center">
-                            <Clock className="w-4 h-4 mr-1" />
-                            {webinar.time} ({webinar.duration})
+                            <Clock className="w-3 h-3 mr-1" />
+                            {webinar.duration}
                           </div>
                         </div>
                         
-                        <div className="flex flex-wrap gap-2 mb-4">
+                        <div className="flex flex-wrap gap-1 mb-3">
                           <span className="bg-blue-100 text-blue-800 px-2 py-1 text-xs rounded">
                             {webinar.category}
                           </span>
-                          {webinar.tags.slice(0, 2).map((tag, index) => (
+                          {webinar.tags.slice(0, 1).map((tag, index) => (
                             <span key={index} className="bg-purple-100 text-purple-800 px-2 py-1 text-xs rounded">
                               {tag}
                             </span>
                           ))}
                         </div>
                         
-                        <div className="space-y-2 mb-4">
-                          {webinar.speakers.slice(0, 2).map((speaker, index) => (
-                            <div key={index} className="text-sm">
-                              <p className="font-medium text-gray-900">{speaker.name}, {speaker.credentials}</p>
-                              <p className="text-gray-600">{speaker.affiliation}</p>
-                            </div>
-                          ))}
-                          {webinar.speakers.length > 2 && (
-                            <p className="text-xs text-gray-500">+{webinar.speakers.length - 2} more speakers</p>
+                        <div className="mb-3 text-sm">
+                          <p className="font-medium text-gray-900 text-xs">{webinar.speakers[0]?.name}</p>
+                          <p className="text-gray-600 text-xs">{webinar.speakers[0]?.affiliation}</p>
+                          {webinar.speakers.length > 1 && (
+                            <p className="text-xs text-gray-500">+{webinar.speakers.length - 1} more</p>
                           )}
                         </div>
                         
-                        <div className="flex flex-col sm:flex-row gap-2">
+                        <div className="space-y-2">
                           {getActionButton(webinar)}
                           <button 
                             onClick={() => handleWebinarClick(webinar.id)}
-                            className="flex items-center justify-center text-red-600 hover:text-red-700 font-medium py-2 px-4 border border-red-200 rounded-md hover:bg-red-50"
+                            className="w-full text-red-600 hover:text-red-700 font-medium py-2 px-3 border border-red-200 rounded-md hover:bg-red-50 transition-colors text-sm flex items-center justify-center"
                           >
-                            Read More
-                            <ArrowRight className="w-4 h-4 ml-1" />
+                            View Details
+                            <ArrowRight className="w-3 h-3 ml-1" />
                           </button>
                         </div>
                       </div>
@@ -425,7 +420,7 @@ const Webinars = () => {
                   ))}
                 </div>
                 
-                {featuredWebinars.length > 2 && (
+                {featuredWebinars.length > 3 && (
                   <div className="text-center mt-6">
                     <button
                       onClick={() => setShowAllFeatured(!showAllFeatured)}
@@ -461,131 +456,58 @@ const Webinars = () => {
                 onRetry={() => window.location.reload()} 
               />
             ) : displayedWebinars.length > 0 ? (
-              <div className="space-y-8">
-                {displayedWebinars.map((webinar) => (
-                  <div key={webinar.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden border border-gray-200">
-                    <div className="flex flex-col md:flex-row">
-                      <div className="md:w-1/3 relative">
+              <div className="space-y-6">
+                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {displayedWebinars.map((webinar) => (
+                    <div key={webinar.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200 overflow-hidden border border-gray-200 hover:border-red-200">
+                      <div className="relative">
                         <img 
                           src={webinar.imageUrl} 
                           alt={webinar.title}
-                          className="w-full h-48 md:h-full object-cover"
+                          className="w-full h-32 object-cover"
                         />
-                        <div className="absolute top-3 left-3">
+                        <div className="absolute top-2 left-2">
                           {getStatusBadge(webinar)}
                         </div>
                       </div>
                       
-                      <div className="md:w-2/3 p-6">
-                        <div className="flex justify-between items-start mb-2">
-                          <h3 className="text-lg font-bold text-gray-900">{webinar.title}</h3>
-                          <button 
-                            onClick={() => setExpandedWebinar(expandedWebinar === webinar.id ? null : webinar.id)}
-                            className="text-red-600 hover:text-red-700 text-sm font-medium flex items-center"
-                          >
-                            {expandedWebinar === webinar.id ? 'Less Details' : 'More Details'}
-                            {expandedWebinar === webinar.id ? (
-                              <ChevronUp className="ml-1 w-4 h-4" />
-                            ) : (
-                              <ChevronDown className="ml-1 w-4 h-4" />
-                            )}
-                          </button>
-                        </div>
+                      <div className="p-3">
+                        <h3 className="text-sm font-bold text-gray-900 mb-2 line-clamp-2 leading-tight">{webinar.title}</h3>
                         
-                        <p className="text-gray-600 text-sm mb-4">{webinar.description}</p>
-                        
-                        <div className="flex flex-wrap gap-2 mb-4">
-                          <span className="bg-blue-100 text-blue-800 px-2 py-1 text-xs rounded">
+                        <div className="flex flex-wrap gap-1 mb-2">
+                          <span className="bg-blue-100 text-blue-800 px-1.5 py-0.5 text-xs rounded">
                             {webinar.category}
                           </span>
-                          {webinar.tags.slice(0, 2).map((tag, index) => (
-                            <span key={index} className="bg-purple-100 text-purple-800 px-2 py-1 text-xs rounded">
-                              {tag}
-                            </span>
-                          ))}
                         </div>
                         
-                        <div className="flex items-center text-sm text-gray-500 gap-4 mb-4">
+                        <div className="flex items-center text-xs text-gray-500 gap-2 mb-2">
                           <div className="flex items-center">
-                            <Calendar className="w-4 h-4 mr-1" />
-                            {webinar.date}
-                          </div>
-                          <div className="flex items-center">
-                            <Clock className="w-4 h-4 mr-1" />
-                            {webinar.time} ({webinar.duration})
+                            <Calendar className="w-3 h-3 mr-1" />
+                            <span className="truncate">{webinar.date}</span>
                           </div>
                         </div>
                         
-                        {expandedWebinar === webinar.id && (
-                          <div className="mt-4 pt-4 border-t border-gray-200">
-                            <div className="mb-4">
-                              <h4 className="font-semibold text-gray-900 text-sm mb-2">Learning Objectives:</h4>
-                              <ul className="space-y-1 text-sm text-gray-600">
-                                {webinar.learningObjectives.map((obj, index) => (
-                                  <li key={index} className="flex items-start">
-                                    <span className="text-red-600 mr-2">•</span>
-                                    {obj}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                            
-                            <div className="mb-4">
-                              <h4 className="font-semibold text-gray-900 text-sm mb-2">Speakers:</h4>
-                              <div className="space-y-2">
-                                {webinar.speakers.map((speaker, index) => (
-                                  <div key={index} className="text-sm">
-                                    <p className="font-medium text-gray-900">{speaker.name}, {speaker.credentials}</p>
-                                    <p className="text-gray-600">{speaker.affiliation}</p>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                            
-                            <div className="mb-4">
-                              <h4 className="font-semibold text-gray-900 text-sm mb-2">For:</h4>
-                              <div className="flex flex-wrap gap-1">
-                                {webinar.targetAudience.map((audience, index) => (
-                                  <span key={index} className="bg-gray-100 text-gray-700 px-2 py-1 text-xs rounded">
-                                    {audience}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                            
-                            <div className="flex flex-col sm:flex-row gap-3">
-                              {getActionButton(webinar)}
-                              
-                              <button 
-                                onClick={() => handleWebinarClick(webinar.id)}
-                                className="flex items-center justify-center text-red-600 hover:text-red-700 font-medium py-2 px-4 border border-red-200 rounded-md hover:bg-red-50"
-                              >
-                                Full Details
-                                <ArrowRight className="w-4 h-4 ml-1" />
-                              </button>
-                              
-                              {webinar.slidesLink && (
-                                <a
-                                  href={webinar.slidesLink}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex items-center justify-center border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors font-medium"
-                                >
-                                  <Download className="w-4 h-4 mr-2" />
-                                  Slides
-                                </a>
-                              )}
-                              
-                              <button className="p-2 border border-gray-300 rounded-md hover:bg-gray-50">
-                                <Share2 className="w-4 h-4 text-gray-600" />
-                              </button>
-                            </div>
-                          </div>
-                        )}
+                        <div className="text-xs mb-2">
+                          <p className="font-medium text-gray-900 truncate">{webinar.speakers[0]?.name}</p>
+                          {webinar.speakers.length > 1 && (
+                            <p className="text-gray-500">+{webinar.speakers.length - 1} more</p>
+                          )}
+                        </div>
+                        
+                        <div className="space-y-1">
+                          {getActionButton(webinar)}
+                          <button 
+                            onClick={() => handleWebinarClick(webinar.id)}
+                            className="w-full text-red-600 hover:text-red-700 font-medium py-1.5 px-3 border border-red-200 rounded-md hover:bg-red-50 transition-colors text-xs flex items-center justify-center"
+                          >
+                            Details
+                            <ArrowRight className="w-3 h-3 ml-1" />
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
                 
                 {/* Load More Button */}
                 {hasMoreWebinars && (
