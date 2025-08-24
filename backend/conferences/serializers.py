@@ -91,9 +91,12 @@ class ConferenceSerializer(serializers.ModelSerializer):
         return obj.registration_count
 
     def get_display_image_url(self, obj):
-        if obj.image:
-            return obj.image.url
-        return obj.image_url
+        """Return absolute URL for the image"""
+        image_url = obj.image_url_display
+        request = self.context.get('request')
+        if request and image_url:
+            return request.build_absolute_uri(image_url)
+        return image_url
 
     def get_highlights(self, obj):
         """Return highlights as a list"""

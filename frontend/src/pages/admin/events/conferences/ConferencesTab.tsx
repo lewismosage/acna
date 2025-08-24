@@ -42,14 +42,13 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
   useEffect(() => {
     const fetchConferences = async () => {
       if (initialConferences && initialConferences.length > 0) {
-        return; // Use initial data if available
+        return;
       }
       
       setIsLoading(true);
       setError(null);
       try {
         const data = await conferencesApi.getAll();
-        console.log('Fetched conferences:', data);
         setConferences(data);
       } catch (err: any) {
         const errorMessage = err?.error || err?.message || 'Failed to load conferences. Please try again later.';
@@ -175,7 +174,6 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
   };
 
   const handleEditConference = (conference: Conference) => {
-    console.log('Editing conference:', conference);
     setEditingConference(conference);
     setShowCreateModal(true);
   };
@@ -185,39 +183,29 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
       setIsLoading(true);
       let result: Conference;
       
-      console.log('Saving conference data:', conferenceData);
-      
       if (editingConference && editingConference.id) {
-        // Update existing conference
         result = await conferencesApi.update(editingConference.id, conferenceData);
         setConferences(prev => 
           prev.map(conf => 
             conf.id === editingConference.id ? result : conf
           )
         );
-        console.log('Conference updated successfully:', result);
       } else {
-        // Create new conference
         result = await conferencesApi.create(conferenceData);
         setConferences(prev => [result, ...prev]);
-        console.log('Conference created successfully:', result);
       }
       
       setShowCreateModal(false);
       setEditingConference(null);
-      setError(null); // Clear any previous errors
+      setError(null);
       
     } catch (err: any) {
-      console.error('Error saving conference:', err);
-      
-      // Extract meaningful error message
       let errorMessage = 'Failed to save conference.';
       
       if (err?.error) {
         if (typeof err.error === 'string') {
           errorMessage = err.error;
         } else if (typeof err.error === 'object') {
-          // Handle field-specific errors
           const fieldErrors = Object.entries(err.error)
             .map(([field, messages]: [string, any]) => {
               const messageArray = Array.isArray(messages) ? messages : [messages];
@@ -296,7 +284,6 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
 
     return (
       <div className="space-y-6">
-        {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
             <div className="flex items-center justify-between">
@@ -343,32 +330,30 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
           </div>
         </div>
 
-        {/* Conference Types */}
         <div className="bg-white border border-gray-200 rounded-lg p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Conference Types</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-blue-50 p-4 rounded-lg">
               <div className="flex items-center justify-between">
                 <span className="text-blue-800 font-medium">In-person</span>
-                <span className="text-blue-600 font-bold">{analyticsData.conferences_by_type.in_person || 0}</span>
+                <span className="text-blue-600 font-bold">{analyticsData.conferences_by_type?.in_person || 0}</span>
               </div>
             </div>
             <div className="bg-green-50 p-4 rounded-lg">
               <div className="flex items-center justify-between">
                 <span className="text-green-800 font-medium">Virtual</span>
-                <span className="text-green-600 font-bold">{analyticsData.conferences_by_type.virtual || 0}</span>
+                <span className="text-green-600 font-bold">{analyticsData.conferences_by_type?.virtual || 0}</span>
               </div>
             </div>
             <div className="bg-purple-50 p-4 rounded-lg">
               <div className="flex items-center justify-between">
                 <span className="text-purple-800 font-medium">Hybrid</span>
-                <span className="text-purple-600 font-bold">{analyticsData.conferences_by_type.hybrid || 0}</span>
+                <span className="text-purple-600 font-bold">{analyticsData.conferences_by_type?.hybrid || 0}</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Top Conferences */}
         {analyticsData.top_conferences && analyticsData.top_conferences.length > 0 && (
           <div className="bg-white border border-gray-200 rounded-lg p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Conferences by Registration</h3>
@@ -487,7 +472,6 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
 
   return (
     <div className="space-y-6">
-      {/* Error Message */}
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
           <span className="block sm:inline">{error}</span>
@@ -500,7 +484,6 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
         </div>
       )}
 
-      {/* Header Section */}
       <div className="bg-white border border-gray-300 rounded-lg">
         <div className="bg-blue-50 px-6 py-4 border-b border-gray-300">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -529,7 +512,6 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
           </div>
         </div>
 
-        {/* Tab Navigation */}
         <div className="px-6 py-4 border-b border-gray-200">
           <nav className="flex space-x-8">
             {[
@@ -561,14 +543,12 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
           </nav>
         </div>
 
-        {/* Loading State */}
         {isLoading && (
           <div className="p-6 text-center">
             <LoadingSpinner />
           </div>
         )}
 
-        {/* Content Area */}
         {!isLoading && (
           <>
             {selectedTab === 'registrations' ? (
@@ -581,14 +561,17 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
                   {filteredConferences.map((conference) => (
                     <div key={conference.id} className="bg-white border border-gray-200 rounded-lg hover:shadow-lg transition-shadow">
                       <div className="flex flex-col lg:flex-row">
-                        {/* Conference Image */}
                         <div className="lg:w-1/4">
                           <div className="relative">
                             {conference.display_image_url || conference.image_url ? (
                               <img 
-                                src={conference.display_image_url || conference.image_url || ''}
-                                alt="Event preview" 
-                                className="h-32 w-32 object-cover rounded-md"
+                                src={conference.display_image_url || conference.image_url} 
+                                alt={conference.title} 
+                                className="w-full h-48 lg:h-full object-cover rounded-t-lg lg:rounded-l-lg lg:rounded-t-none"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.src = '/api/placeholder/300/200';
+                                }}
                               />
                             ) : (
                               <div className="w-full h-48 lg:h-full bg-gray-200 flex items-center justify-center rounded-t-lg lg:rounded-l-lg lg:rounded-t-none">
@@ -611,7 +594,6 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
                           </div>
                         </div>
 
-                        {/* Conference Details */}
                         <div className="lg:w-3/4 p-6">
                           <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4 mb-4">
                             <div className="flex-1">
@@ -662,7 +644,6 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
                                 </div>
                               </div>
                               
-                              {/* Registration Progress */}
                               {conference.registration_count !== undefined && conference.capacity && (
                                 <div className="mb-4">
                                   <div className="flex justify-between items-center mb-1">
@@ -686,7 +667,6 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
                             {conference.description}
                           </p>
 
-                          {/* Highlights */}
                           {conference.highlights && Array.isArray(conference.highlights) && conference.highlights.length > 0 && (
                             <div className="mb-4">
                               <h4 className="text-sm font-medium text-gray-700 mb-2">Event Highlights</h4>
@@ -700,7 +680,6 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
                             </div>
                           )}
 
-                          {/* Admin Actions */}
                           <div className="flex flex-wrap gap-3">
                             <button 
                               onClick={() => handleEditConference(conference)}
@@ -738,7 +717,6 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
                             </button>
                           </div>
 
-                          {/* Metadata */}
                           <div className="mt-4 pt-4 border-t border-gray-200">
                             <div className="flex flex-wrap gap-4 text-xs text-gray-500">
                               <span>Created: {conference.created_at ? new Date(conference.created_at).toLocaleDateString() : 'N/A'}</span>
@@ -775,7 +753,6 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
         )}
       </div>
 
-      {/* Create/Edit Event Modal */}
       <CreateEventModal 
         isOpen={showCreateModal} 
         onClose={handleCloseModal}

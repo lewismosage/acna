@@ -21,6 +21,7 @@ import type {
   SpeakerCreateData,
   SessionCreateData
 } from '../../../../services/conferenceApi';
+import { conferencesApi } from '../../../../services/conferenceApi';
 
 interface CreateEventModalProps {
   isOpen: boolean;
@@ -29,7 +30,7 @@ interface CreateEventModalProps {
   editingConference?: Conference | null;
 }
 
-// Extended Speaker interface to include imageFile property
+// Extended Speaker interface to include imageFile property for preview
 interface ExtendedSpeaker extends Speaker {
   imageFile?: {
     file: File;
@@ -107,6 +108,8 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
   const [speakers, setSpeakers] = useState<ExtendedSpeaker[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [imageUploading, setImageUploading] = useState(false);
+  const [speakerImageUploading, setSpeakerImageUploading] = useState<{ [key: number]: boolean }>({});
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const speakerFileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -121,58 +124,58 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
 
   // Initialize form with editing conference data
   useEffect(() => {
-  if (editingConference) {
-    setFormData({
-      title: editingConference.title || '',
-      date: editingConference.date || '',
-      time: editingConference.time || '',
-      location: editingConference.location || '',
-      venue: editingConference.venue || '',
-      type: editingConference.type || 'in_person',
-      status: editingConference.status || 'planning',
-      theme: editingConference.theme || '',
-      description: editingConference.description || '',
-      fullDescription: editingConference.description || '',
-      imageUrl: editingConference.image_url || editingConference.display_image_url || '',
-      imageFile: undefined,
-      capacity: editingConference.capacity?.toString() || '',
-      earlyBirdFee: editingConference.early_bird_fee?.toString() || '',
-      regularFee: editingConference.regular_fee?.toString() || '',
-      earlyBirdDeadline: editingConference.early_bird_deadline || '',
-      expectedAttendees: editingConference.expected_attendees?.toString() || '',
-      countriesRepresented: editingConference.countries_represented?.toString() || '',
-      organizer: {
-        name: editingConference.organizer_name || 'African Child Neurology Association (ACNA)',
-        email: editingConference.organizer_email || '',
-        phone: editingConference.organizer_phone || '',
-        website: editingConference.organizer_website || ''
-      },
-      highlights: Array.isArray(editingConference.highlights)
-        ? editingConference.highlights
-        : typeof editingConference.highlights === 'string'
-          ? (() => {
-              try {
-                return JSON.parse(editingConference.highlights);
-              } catch {
-                return [editingConference.highlights];
-              }
-            })()
-          : ['']
-    });
+    if (editingConference) {
+      setFormData({
+        title: editingConference.title || '',
+        date: editingConference.date || '',
+        time: editingConference.time || '',
+        location: editingConference.location || '',
+        venue: editingConference.venue || '',
+        type: editingConference.type || 'in_person',
+        status: editingConference.status || 'planning',
+        theme: editingConference.theme || '',
+        description: editingConference.description || '',
+        fullDescription: editingConference.description || '',
+        imageUrl: editingConference.image_url || editingConference.display_image_url || '',
+        imageFile: undefined,
+        capacity: editingConference.capacity?.toString() || '',
+        earlyBirdFee: editingConference.early_bird_fee?.toString() || '',
+        regularFee: editingConference.regular_fee?.toString() || '',
+        earlyBirdDeadline: editingConference.early_bird_deadline || '',
+        expectedAttendees: editingConference.expected_attendees?.toString() || '',
+        countriesRepresented: editingConference.countries_represented?.toString() || '',
+        organizer: {
+          name: editingConference.organizer_name || 'African Child Neurology Association (ACNA)',
+          email: editingConference.organizer_email || '',
+          phone: editingConference.organizer_phone || '',
+          website: editingConference.organizer_website || ''
+        },
+        highlights: Array.isArray(editingConference.highlights)
+          ? editingConference.highlights
+          : typeof editingConference.highlights === 'string'
+            ? (() => {
+                try {
+                  return JSON.parse(editingConference.highlights);
+                } catch {
+                  return [editingConference.highlights];
+                }
+              })()
+            : ['']
+      });
 
-    // Initialize speakers - handle both field names
-    const speakersArray = editingConference.conference_speakers || editingConference.speakers || [];
-    setSpeakers(speakersArray.map(speaker => ({
-      ...speaker,
-      expertise: speaker.expertise || [],
-      is_keynote: speaker.is_keynote || false,
-      imageFile: undefined
-    })));
+      // Initialize speakers - handle both field names
+      const speakersArray = editingConference.conference_speakers || editingConference.speakers || [];
+      setSpeakers(speakersArray.map(speaker => ({
+        ...speaker,
+        expertise: speaker.expertise || [],
+        is_keynote: speaker.is_keynote || false,
+        imageFile: undefined
+      })));
 
-    // Initialize sessions - handle both field names  
-    const sessionsArray = editingConference.conference_sessions || editingConference.sessions || [];
-    setSessions(sessionsArray);
-  } else {
+      // Initialize sessions - handle both field names  
+      const sessionsArray = editingConference.conference_sessions || editingConference.sessions || [];
+      setSessions(sessionsArray);
+    } else {
       // Reset form for new conference
       setFormData({
         title: '',
@@ -207,11 +210,13 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
 
     setCurrentStep(1);
     setErrors({});
+    setImageUploading(false);
+    setSpeakerImageUploading({});
   }, [editingConference, isOpen]);
 
   if (!isOpen) return null;
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, speakerIndex?: number) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, speakerIndex?: number) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -225,6 +230,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
       return;
     }
 
+    // Create preview
     const reader = new FileReader();
     reader.onload = (event) => {
       const imageDataUrl = event.target?.result as string;
@@ -246,6 +252,41 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
       }
     };
     reader.readAsDataURL(file);
+
+    // Upload the image immediately
+    try {
+      if (typeof speakerIndex === 'number') {
+        setSpeakerImageUploading(prev => ({ ...prev, [speakerIndex]: true }));
+        const uploadResult = await conferencesApi.uploadSpeakerImage(file);
+        updateSpeaker(speakerIndex, 'image_url', uploadResult.url);
+      } else {
+        setImageUploading(true);
+        const uploadResult = await conferencesApi.uploadImage(file);
+        setFormData(prev => ({ ...prev, imageUrl: uploadResult.url }));
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      alert('Failed to upload image. Please try again.');
+    } finally {
+      if (typeof speakerIndex === 'number') {
+        setSpeakerImageUploading(prev => ({ ...prev, [speakerIndex]: false }));
+      } else {
+        setImageUploading(false);
+      }
+    }
+  };
+
+  const removeImage = (speakerIndex?: number) => {
+    if (typeof speakerIndex === 'number') {
+      updateSpeaker(speakerIndex, 'imageFile', undefined);
+      updateSpeaker(speakerIndex, 'image_url', '');
+    } else {
+      setFormData(prev => ({ 
+        ...prev, 
+        imageFile: undefined, 
+        imageUrl: '' 
+      }));
+    }
   };
 
   const triggerFileInput = (speakerIndex?: number) => {
@@ -254,6 +295,83 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
     } else {
       fileInputRef.current?.click();
     }
+  };
+
+  const renderImageUploadSection = (speakerIndex?: number) => {
+    const isSpeaker = typeof speakerIndex === 'number';
+    const uploading = isSpeaker 
+      ? speakerImageUploading[speakerIndex!] 
+      : imageUploading;
+    const imageUrl = isSpeaker 
+      ? speakers[speakerIndex!].image_url || speakers[speakerIndex!].display_image_url
+      : formData.imageUrl;
+    const imagePreview = isSpeaker 
+      ? speakers[speakerIndex!].imageFile?.preview
+      : formData.imageFile?.preview;
+
+    return (
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          {isSpeaker ? 'Speaker Photo' : 'Featured Image *'}
+        </label>
+        <div className="flex items-center gap-4">
+          {(imagePreview || imageUrl) ? (
+            <div className="relative">
+              <img 
+                src={imagePreview || imageUrl} 
+                alt={isSpeaker ? `Speaker preview` : 'Event preview'} 
+                className={isSpeaker ? "h-20 w-20 object-cover rounded-full" : "h-32 w-32 object-cover rounded-md"}
+              />
+              {!uploading && (
+                <button
+                  type="button"
+                  onClick={() => removeImage(speakerIndex)}
+                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+              {uploading && (
+                <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-md">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div 
+              className={`border-2 border-dashed border-gray-300 rounded-md p-4 text-center cursor-pointer hover:border-blue-500 ${
+                !isSpeaker && errors.image ? 'border-red-500' : ''
+              }`}
+              onClick={() => triggerFileInput(speakerIndex)}
+            >
+              {uploading ? (
+                <div className="flex flex-col items-center">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mb-2"></div>
+                  <p className="text-sm text-gray-600">Uploading...</p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center">
+                  <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                  <p className="text-sm text-gray-600">Click to upload</p>
+                  <p className="text-xs text-gray-500">PNG, JPG up to 10MB</p>
+                </div>
+              )}
+            </div>
+          )}
+          
+          <input
+            type="file"
+            ref={isSpeaker ? el => speakerFileInputRefs.current[speakerIndex!] = el : fileInputRef}
+            onChange={(e) => handleImageUpload(e, speakerIndex)}
+            accept="image/*"
+            className="hidden"
+          />
+        </div>
+        {!isSpeaker && errors.image && (
+          <p className="mt-1 text-sm text-red-600">{errors.image}</p>
+        )}
+      </div>
+    );
   };
 
   const handleInputChange = (field: string, value: any) => {
@@ -397,24 +515,24 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
   };
 
   const prepareSpeakersData = (): SpeakerCreateData[] => {
-  return speakers
-    .filter(speaker => speaker.name.trim() !== '')
-    .map(speaker => ({
-      id: speaker.id || undefined,
-      name: speaker.name.trim(),
-      title: speaker.title?.trim() || undefined,
-      organization: speaker.organization?.trim() || undefined,
-      bio: speaker.bio?.trim() || undefined,
-      // Don't include File objects - only URLs
-      image_url: !speaker.imageFile?.file ? (speaker.image_url || speaker.display_image_url) : undefined,
-      expertise: Array.isArray(speaker.expertise) 
-        ? speaker.expertise.filter(exp => exp.trim() !== '') 
-        : [],
-      is_keynote: Boolean(speaker.is_keynote),
-      email: speaker.email?.trim() || undefined,
-      linkedin: speaker.linkedin?.trim() || undefined
-    }));
-};
+    return speakers
+      .filter(speaker => speaker.name.trim() !== '')
+      .map(speaker => ({
+        id: speaker.id || undefined,
+        name: speaker.name.trim(),
+        title: speaker.title?.trim() || undefined,
+        organization: speaker.organization?.trim() || undefined,
+        bio: speaker.bio?.trim() || undefined,
+        // Use the uploaded image URL, not the File object
+        image_url: speaker.image_url || undefined,
+        expertise: Array.isArray(speaker.expertise) 
+          ? speaker.expertise.filter(exp => exp.trim() !== '') 
+          : [],
+        is_keynote: Boolean(speaker.is_keynote),
+        email: speaker.email?.trim() || undefined,
+        linkedin: speaker.linkedin?.trim() || undefined
+      }));
+  };
 
   const prepareSessionsData = (): SessionCreateData[] => {
     return sessions
@@ -434,57 +552,56 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
   };
 
   const handleSubmit = async () => {
-  if (!validateCurrentStep()) {
-    return;
-  }
+    if (!validateCurrentStep()) {
+      return;
+    }
 
-  try {
-    const speakersData = prepareSpeakersData();
-    const sessionsData = prepareSessionsData();
+    try {
+      const speakersData = prepareSpeakersData();
+      const sessionsData = prepareSessionsData();
 
-    const filteredHighlights = formData.highlights.filter(h => h.trim() !== '');
+      const filteredHighlights = formData.highlights.filter(h => h.trim() !== '');
 
-    // Ensure date is properly formatted as YYYY-MM-DD
-    const formattedDate = formData.date ? formData.date : '';
+      // Ensure date is properly formatted as YYYY-MM-DD
+      const formattedDate = formData.date ? formData.date : '';
 
-    const conferenceData: ConferenceCreateUpdateData = {
-      title: formData.title.trim(),
-      theme: formData.theme.trim() || undefined,
-      description: formData.fullDescription.trim() || formData.description.trim(),
-      date: formattedDate,
-      time: formData.time || undefined,
-      location: formData.location.trim(),
-      venue: formData.venue.trim() || undefined,
-      type: formData.type,
-      status: formData.status,
-      capacity: formData.capacity ? parseInt(formData.capacity) : undefined,
-      regular_fee: formData.regularFee ? parseFloat(formData.regularFee) : undefined,
-      early_bird_fee: formData.earlyBirdFee ? parseFloat(formData.earlyBirdFee) : undefined,
-      early_bird_deadline: formData.earlyBirdDeadline || undefined,
-      expected_attendees: formData.expectedAttendees ? parseInt(formData.expectedAttendees) : undefined,
-      countries_represented: formData.countriesRepresented ? parseInt(formData.countriesRepresented) : undefined,
-      highlights: filteredHighlights,
-      organizer_name: formData.organizer.name.trim(),
-      organizer_email: formData.organizer.email.trim() || undefined,
-      organizer_phone: formData.organizer.phone.trim() || undefined,
-      organizer_website: formData.organizer.website.trim() || undefined,
-      
-      // Include image data - only main conference image
-      image: formData.imageFile?.file || null,
-      image_url: !formData.imageFile?.file ? (formData.imageUrl || undefined) : undefined,
-      
-      // Include related data for creation/update
-      speakers_data: speakersData,
-      sessions_data: sessionsData
-    };
+      const conferenceData: ConferenceCreateUpdateData = {
+        title: formData.title.trim(),
+        theme: formData.theme.trim() || undefined,
+        description: formData.fullDescription.trim() || formData.description.trim(),
+        date: formattedDate,
+        time: formData.time || undefined,
+        location: formData.location.trim(),
+        venue: formData.venue.trim() || undefined,
+        type: formData.type,
+        status: formData.status,
+        capacity: formData.capacity ? parseInt(formData.capacity) : undefined,
+        regular_fee: formData.regularFee ? parseFloat(formData.regularFee) : undefined,
+        early_bird_fee: formData.earlyBirdFee ? parseFloat(formData.earlyBirdFee) : undefined,
+        early_bird_deadline: formData.earlyBirdDeadline || undefined,
+        expected_attendees: formData.expectedAttendees ? parseInt(formData.expectedAttendees) : undefined,
+        countries_represented: formData.countriesRepresented ? parseInt(formData.countriesRepresented) : undefined,
+        highlights: filteredHighlights,
+        organizer_name: formData.organizer.name.trim(),
+        organizer_email: formData.organizer.email.trim() || undefined,
+        organizer_phone: formData.organizer.phone.trim() || undefined,
+        organizer_website: formData.organizer.website.trim() || undefined,
+        
+        // Only include image_url, not the File object
+        image_url: formData.imageUrl || undefined,
+        
+        // Include related data for creation/update
+        speakers_data: speakersData,
+        sessions_data: sessionsData
+      };
 
-    console.log('Prepared conference data:', conferenceData);
-    onSave(conferenceData);
-  } catch (error) {
-    console.error('Error preparing conference data:', error);
-    setErrors(prev => ({ ...prev, general: 'Error preparing conference data. Please check all fields and try again.' }));
-  }
-};
+      console.log('Prepared conference data:', conferenceData);
+      onSave(conferenceData);
+    } catch (error) {
+      console.error('Error preparing conference data:', error);
+      setErrors(prev => ({ ...prev, general: 'Error preparing conference data. Please check all fields and try again.' }));
+    }
+  };
 
   const renderStepContent = () => {
     switch (currentStep) {
@@ -586,52 +703,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
               />
             </div>
             
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Featured Image *</label>
-              <div className="mt-1 flex items-center">
-                {(formData.imageFile?.preview || formData.imageUrl) ? (
-                  <div className="relative">
-                    <img 
-                      src={formData.imageFile?.preview || formData.imageUrl} 
-                      alt="Event preview" 
-                      className="h-32 w-32 object-cover rounded-md"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setFormData(prev => ({ 
-                        ...prev, 
-                        imageFile: undefined, 
-                        imageUrl: '' 
-                      }))}
-                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ) : (
-                  <div 
-                    className={`border-2 border-dashed rounded-md p-4 text-center cursor-pointer hover:border-blue-500 ${
-                      errors.image ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                    onClick={() => triggerFileInput()}
-                  >
-                    <div className="flex flex-col items-center">
-                      <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                      <p className="text-sm text-gray-600">Click to upload</p>
-                      <p className="text-xs text-gray-500">PNG, JPG up to 10MB</p>
-                    </div>
-                  </div>
-                )}
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleImageUpload}
-                  accept="image/*"
-                  className="hidden"
-                />
-              </div>
-              {errors.image && <p className="mt-1 text-sm text-red-600">{errors.image}</p>}
-            </div>
+            {renderImageUploadSection()}
           </div>
         );
 
@@ -912,52 +984,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
                       </div>
                       
                       <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Speaker Photo</label>
-                        <div className="flex items-center gap-4">
-                          {speaker.imageFile?.preview || speaker.image_url || speaker.display_image_url ? (
-                            <div className="relative">
-                              <img 
-                                src={speaker.imageFile?.preview || speaker.image_url || speaker.display_image_url} 
-                                alt={`Speaker ${index + 1} preview`} 
-                                className="h-20 w-20 object-cover rounded-full"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  updateSpeaker(index, 'imageFile', null);
-                                  updateSpeaker(index, 'image_url', '');
-                                }}
-                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-                              >
-                                <X className="w-3 h-3" />
-                              </button>
-                            </div>
-                          ) : (
-                            <div 
-                              className="border-2 border-dashed border-gray-300 rounded-full p-2 cursor-pointer hover:border-blue-500"
-                              onClick={() => triggerFileInput(index)}
-                            >
-                              <ImageIcon className="w-6 h-6 text-gray-400" />
-                            </div>
-                          )}
-                          <div>
-                            <button
-                              type="button"
-                              onClick={() => triggerFileInput(index)}
-                              className="px-3 py-1 bg-gray-100 text-gray-700 rounded-md text-sm hover:bg-gray-200"
-                            >
-                              {speaker.imageFile || speaker.image_url ? 'Change' : 'Upload'} Photo
-                            </button>
-                            <p className="text-xs text-gray-500 mt-1">PNG, JPG up to 5MB</p>
-                          </div>
-                          <input
-                            type="file"
-                            ref={el => speakerFileInputRefs.current[index] = el}
-                            onChange={(e) => handleImageUpload(e, index)}
-                            accept="image/*"
-                            className="hidden"
-                          />
-                        </div>
+                        {renderImageUploadSection(index)}
                       </div>
                     </div>
                   </div>

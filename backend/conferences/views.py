@@ -22,6 +22,8 @@ from django.core.files.base import ContentFile
 from django.db import transaction
 from django.http import JsonResponse
 import traceback
+from django.core.files.storage import default_storage
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +62,7 @@ class ConferenceViewSet(viewsets.ModelViewSet):
                 serializer = self.get_serializer(page, many=True)
                 return self.get_paginated_response(serializer.data)
 
-            serializer = self.get_serializer(queryset, many=True)
+            serializer = self.get_serializer(queryset, many=True, context={'request': request})
             
             # Transform the response to include related data with correct field names
             data = serializer.data
@@ -412,70 +414,110 @@ class ConferenceViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-    @action(detail=True, methods=['post'])
-    def upload_image(self, request, pk=None):
+    @action(detail=False, methods=['post'])
+    def upload_image(self, request):
+        """Upload an image and return the URL"""
+        if 'image' not in request.FILES:
+            return Response(
+                {'error': 'No image file provided'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        image = request.FILES['image']
+        
+        # Validate file type
+        allowed_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
+        file_extension = os.path.splitext(image.name)[1].lower()
+        
+        if file_extension not in allowed_extensions:
+            return Response(
+                {'error': 'Invalid file type. Allowed types: jpg, jpeg, png, gif, webp'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validate file size (limit to 10MB)
+        if image.size > 10 * 1024 * 1024:
+            return Response(
+                {'error': 'File size too large. Maximum size is 10MB'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
         try:
-            conference = self.get_object()
-            image = request.FILES.get('image')
+            # Generate unique filename
+            ext = file_extension
+            filename = f"{uuid.uuid4()}{ext}"
+            file_path = os.path.join('conferences', 'images', filename)
             
-            if not image:
-                return Response(
-                    {'error': 'No image file provided'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+            # Save file using Django's default storage
+            saved_path = default_storage.save(file_path, ContentFile(image.read()))
+            file_url = default_storage.url(saved_path)
             
-            if image.size > 10 * 1024 * 1024:  # 10MB limit
-                return Response(
-                    {'error': 'Image size should be less than 10MB'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+            # Return full URL if needed
+            if request:
+                file_url = request.build_absolute_uri(file_url)
             
-            conference.image.save(
-                f'conference_{conference.id}_{uuid.uuid4().hex[:6]}.jpg',
-                ContentFile(image.read()),
-                save=True
-            )
+            return Response({
+                'url': file_url,
+                'filename': filename,
+                'path': saved_path
+            })
             
-            return Response(
-                {'url': conference.image.url},
-                status=status.HTTP_201_CREATED
-            )
         except Exception as e:
-            logger.error(f"Error uploading image: {str(e)}")
             return Response(
-                {'error': f'Failed to upload image: {str(e)}'},
+                {'error': f'Failed to upload image: {str(e)}'}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
     @action(detail=False, methods=['post'])
-    def upload_image(self, request):
-        """Upload image without requiring conference ID"""
-        try:
-            image = request.FILES.get('image')
-            
-            if not image:
-                return Response(
-                    {'error': 'No image file provided'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
-            if image.size > 10 * 1024 * 1024:  # 10MB limit
-                return Response(
-                    {'error': 'Image size should be less than 10MB'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
-            # Create a temporary file name
-            filename = f'temp_conference_{uuid.uuid4().hex[:6]}.jpg'
-            
-            # For now, return success - in production, you'd save to temporary storage
+    def upload_speaker_image(self, request):
+        """Upload a speaker image and return the URL"""
+        if 'image' not in request.FILES:
             return Response(
-                {'url': f'/media/conference_images/{filename}'},
-                status=status.HTTP_201_CREATED
+                {'error': 'No image file provided'}, 
+                status=status.HTTP_400_BAD_REQUEST
             )
-        except Exception as e:
-            logger.error(f"Error uploading image: {str(e)}")
+        
+        image = request.FILES['image']
+        
+        # Validate file type
+        allowed_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
+        file_extension = os.path.splitext(image.name)[1].lower()
+        
+        if file_extension not in allowed_extensions:
             return Response(
-                {'error': f'Failed to upload image: {str(e)}'},
+                {'error': 'Invalid file type. Allowed types: jpg, jpeg, png, gif, webp'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validate file size (limit to 10MB)
+        if image.size > 10 * 1024 * 1024:
+            return Response(
+                {'error': 'File size too large. Maximum size is 10MB'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            # Generate unique filename
+            ext = file_extension
+            filename = f"{uuid.uuid4()}{ext}"
+            file_path = os.path.join('speakers', 'images', filename)
+            
+            # Save file using Django's default storage
+            saved_path = default_storage.save(file_path, ContentFile(image.read()))
+            file_url = default_storage.url(saved_path)
+            
+            # Return full URL if needed
+            if request:
+                file_url = request.build_absolute_uri(file_url)
+            
+            return Response({
+                'url': file_url,
+                'filename': filename,
+                'path': saved_path
+            })
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Failed to upload image: {str(e)}'}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )

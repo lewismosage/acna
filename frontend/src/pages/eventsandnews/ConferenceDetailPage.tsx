@@ -34,7 +34,7 @@ interface RegistrationData {
   organization: string;
   profession: string;
   phone: string;
-  registrationType: 'earlyBird' | 'regular';
+  registrationType: 'early_bird' | 'regular';
 }
 
 const ConferenceDetailPage = () => {
@@ -51,7 +51,7 @@ const ConferenceDetailPage = () => {
     organization: '',
     profession: '',
     phone: '',
-    registrationType: 'earlyBird'
+    registrationType: 'early_bird'
   });
   const [isRegistering, setIsRegistering] = useState(false);
   const [registrationStatus, setRegistrationStatus] = useState<RegistrationStatus | null>(null);
@@ -85,14 +85,16 @@ const ConferenceDetailPage = () => {
   
     try {
       // Create a type-safe registration payload
-      const registrationPayload: Omit<Registration, 'id'> = {
-        name: `${registrationData.firstName} ${registrationData.lastName}`,
+      const registrationPayload: Omit<Registration, 'id' | 'full_name'> = {
+        first_name: registrationData.firstName,
+        last_name: registrationData.lastName,
         email: registrationData.email,
         phone: registrationData.phone,
         organization: registrationData.organization,
-        registrationDate: new Date().toISOString(),
-        registrationType: registrationData.registrationType === 'earlyBird' ? 'earlyBird' : 'regular',
-        paymentStatus: 'Pending'
+        job_title: registrationData.profession,
+        registration_type: registrationData.registrationType,
+        payment_status: 'pending',
+        registered_at: new Date().toISOString()
       };
   
       await conferencesApi.addRegistration(parseInt(id), registrationPayload);
@@ -110,7 +112,7 @@ const ConferenceDetailPage = () => {
         organization: '',
         profession: '',
         phone: '',
-        registrationType: 'earlyBird'
+        registrationType: 'early_bird'
       });
     } catch (err) {
       setRegistrationStatus({
@@ -124,21 +126,40 @@ const ConferenceDetailPage = () => {
 
   const getProgressPercentage = () => {
     if (!conference) return 0;
-    return Math.round(((conference.registrationCount || 0) / (conference.capacity || 1)) * 100);
+    return Math.round(((conference.registration_count || 0) / (conference.capacity || 1)) * 100);
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Registration Open':
+      case 'registration_open':
         return 'bg-green-500';
-      case 'Coming Soon':
+      case 'coming_soon':
         return 'bg-yellow-500';
-      case 'Completed':
+      case 'completed':
         return 'bg-blue-500';
-      case 'Cancelled':
+      case 'cancelled':
         return 'bg-red-500';
+      case 'planning':
+        return 'bg-orange-500';
       default:
         return 'bg-gray-500';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'registration_open':
+        return 'Registration Open';
+      case 'coming_soon':
+        return 'Coming Soon';
+      case 'completed':
+        return 'Completed';
+      case 'cancelled':
+        return 'Cancelled';
+      case 'planning':
+        return 'Planning';
+      default:
+        return status;
     }
   };
 
@@ -209,13 +230,13 @@ const ConferenceDetailPage = () => {
             <div className="lg:w-2/5">
               <div className="relative">
                 <img
-                  src={conference.imageUrl || '/default-conference.jpg'}
+                  src={conference.image_url || conference.display_image_url || '/default-conference.jpg'}
                   alt={conference.title}
                   className="w-full h-64 lg:h-80 object-cover rounded-lg shadow-lg"
                 />
                 <div className="absolute top-4 left-4">
                   <span className={`${getStatusColor(conference.status)} text-white px-3 py-1 text-sm font-bold uppercase tracking-wide rounded`}>
-                    {conference.status}
+                    {getStatusLabel(conference.status)}
                   </span>
                 </div>
                 <div className="absolute top-4 right-4">
@@ -269,15 +290,15 @@ const ConferenceDetailPage = () => {
 
                 <div className="grid grid-cols-3 gap-2 text-center">
                   <div className="bg-gray-50 p-2 rounded">
-                    <div className="text-lg font-bold text-red-600">{conference.attendees || '0'}+</div>
+                    <div className="text-lg font-bold text-red-600">{conference.expected_attendees || '0'}+</div>
                     <div className="text-xs text-gray-600">Attendees</div>
                   </div>
                   <div className="bg-gray-50 p-2 rounded">
-                    <div className="text-lg font-bold text-red-600">{conference.speakers || '0'}+</div>
+                    <div className="text-lg font-bold text-red-600">{conference.conference_speakers?.length || conference.speakers?.length || '0'}+</div>
                     <div className="text-xs text-gray-600">Speakers</div>
                   </div>
                   <div className="bg-gray-50 p-2 rounded">
-                    <div className="text-lg font-bold text-red-600">{conference.countries || '0'}+</div>
+                    <div className="text-lg font-bold text-red-600">{conference.countries_represented || '0'}+</div>
                     <div className="text-xs text-gray-600">Countries</div>
                   </div>
                 </div>
@@ -289,7 +310,7 @@ const ConferenceDetailPage = () => {
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-sm font-medium text-gray-700">Registration Progress</span>
                     <span className="text-sm text-gray-600">
-                      {conference.registrationCount || 0} / {conference.capacity} ({getProgressPercentage()}%)
+                      {conference.registration_count || 0} / {conference.capacity} ({getProgressPercentage()}%)
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
@@ -387,14 +408,14 @@ const ConferenceDetailPage = () => {
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <h3 className="text-lg font-light text-gray-900 mb-3">Registration Fees</h3>
                   <div className="text-sm text-gray-700">
-                    {conference.earlyBirdFee && conference.earlyBirdDeadline && (
+                    {conference.early_bird_fee && conference.early_bird_deadline && (
                       <div className="mb-2">
-                        <span className="font-semibold">Early Bird ({conference.earlyBirdDeadline}):</span> {conference.earlyBirdFee}
+                        <span className="font-semibold">Early Bird ({conference.early_bird_deadline}):</span> ${conference.early_bird_fee}
                       </div>
                     )}
-                    {conference.regularFee && (
+                    {conference.regular_fee && (
                       <div>
-                        <span className="font-semibold">Regular:</span> {conference.regularFee}
+                        <span className="font-semibold">Regular:</span> ${conference.regular_fee}
                       </div>
                     )}
                   </div>
@@ -406,24 +427,30 @@ const ConferenceDetailPage = () => {
                   <div className="space-y-3 text-sm">
                     <div className="flex items-center">
                       <Building className="w-4 h-4 mr-2 text-red-600" />
-                      <span className="font-medium">African Child Neurology Association (ACNA)</span>
+                      <span className="font-medium">{conference.organizer_name}</span>
                     </div>
-                    <div className="flex items-center">
-                      <Mail className="w-4 h-4 mr-2 text-red-600" />
-                      <a href="mailto:events@acna.org" className="text-red-600 hover:underline">
-                        events@acna.org
-                      </a>
-                    </div>
-                    <div className="flex items-center">
-                      <Phone className="w-4 h-4 mr-2 text-red-600" />
-                      <span>+250-788-123-456</span>
-                    </div>
-                    <div className="flex items-center">
-                      <ExternalLink className="w-4 h-4 mr-2 text-red-600" />
-                      <a href="https://www.acna.org" className="text-red-600 hover:underline">
-                        www.acna.org
-                      </a>
-                    </div>
+                    {conference.organizer_email && (
+                      <div className="flex items-center">
+                        <Mail className="w-4 h-4 mr-2 text-red-600" />
+                        <a href={`mailto:${conference.organizer_email}`} className="text-red-600 hover:underline">
+                          {conference.organizer_email}
+                        </a>
+                      </div>
+                    )}
+                    {conference.organizer_phone && (
+                      <div className="flex items-center">
+                        <Phone className="w-4 h-4 mr-2 text-red-600" />
+                        <span>{conference.organizer_phone}</span>
+                      </div>
+                    )}
+                    {conference.organizer_website && (
+                      <div className="flex items-center">
+                        <ExternalLink className="w-4 h-4 mr-2 text-red-600" />
+                        <a href={conference.organizer_website} className="text-red-600 hover:underline">
+                          {conference.organizer_website}
+                        </a>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -441,14 +468,14 @@ const ConferenceDetailPage = () => {
                 </p>
               </div>
 
-              {conference.program && conference.program.length > 0 ? (
+              {conference.conference_sessions && conference.conference_sessions.length > 0 ? (
                 <div className="mb-12">
                   <h3 className="text-xl font-light text-gray-900 mb-6 pb-2 border-b-2 border-red-600">
                     Conference Program
                   </h3>
                   
                   <div className="space-y-4">
-                    {conference.program.map((session, index) => (
+                    {conference.conference_sessions.map((session, index) => (
                       <div 
                         key={index} 
                         className="border border-gray-200 rounded-lg p-4 lg:p-6 hover:shadow-md transition-shadow"
@@ -456,10 +483,10 @@ const ConferenceDetailPage = () => {
                         <div className="flex flex-col md:flex-row md:items-start gap-4">
                           <div className="flex items-center md:w-48 flex-shrink-0">
                             <div className="bg-red-600 text-white p-2 rounded mr-3">
-                              {getSessionIcon(session.type)}
+                              {getSessionIcon(session.session_type)}
                             </div>
                             <div>
-                              <div className="font-bold text-gray-900">{session.time}</div>
+                              <div className="font-bold text-gray-900">{session.start_time}</div>
                               {session.location && (
                                 <div className="text-xs text-gray-600">{session.location}</div>
                               )}
@@ -471,9 +498,9 @@ const ConferenceDetailPage = () => {
                               {session.title}
                             </h4>
                             
-                            {session.speaker && (
+                            {session.speaker_names && (
                               <div className="text-red-600 font-medium text-sm mb-1">
-                                Speaker: {session.speaker}
+                                Speaker: {session.speaker_names}
                               </div>
                             )}
                             
@@ -483,9 +510,9 @@ const ConferenceDetailPage = () => {
                               </div>
                             )}
                             
-                            {session.duration && (
+                            {session.duration_display && (
                               <div className="text-sm text-blue-600 font-medium">
-                                Duration: {session.duration}
+                                Duration: {session.duration_display}
                               </div>
                             )}
                           </div>
@@ -514,17 +541,17 @@ const ConferenceDetailPage = () => {
                 </p>
               </div>
 
-              {conference.speakersList && conference.speakersList.length > 0 ? (
+              {conference.conference_speakers && conference.conference_speakers.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
-                  {conference.speakersList.map((speaker, index) => (
+                  {conference.conference_speakers.map((speaker, index) => (
                     <div key={index} className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
                       <div className="relative">
                         <img
-                          src={speaker.imageUrl || '/default-speaker.jpg'}
+                          src={speaker.image_url || speaker.display_image_url || '/default-speaker.jpg'}
                           alt={speaker.name}
                           className="w-full h-48 object-cover"
                         />
-                        {speaker.isKeynote && (
+                        {speaker.is_keynote && (
                           <div className="absolute top-2 left-2">
                             <span className="bg-red-600 text-white px-2 py-1 text-xs font-bold uppercase tracking-wide rounded">
                               Keynote
@@ -536,12 +563,16 @@ const ConferenceDetailPage = () => {
                         <h3 className="text-lg font-light text-gray-900 mb-1">
                           {speaker.name}
                         </h3>
-                        <p className="text-red-600 font-medium text-sm mb-1">
-                          {speaker.title}
-                        </p>
-                        <p className="text-gray-600 text-xs mb-2">
-                          {speaker.organization}
-                        </p>
+                        {speaker.title && (
+                          <p className="text-red-600 font-medium text-sm mb-1">
+                            {speaker.title}
+                          </p>
+                        )}
+                        {speaker.organization && (
+                          <p className="text-gray-600 text-xs mb-2">
+                            {speaker.organization}
+                          </p>
+                        )}
                         <div className="bg-gray-50 p-3 rounded">
                           <p className="text-xs text-gray-700">
                             <span className="font-medium">Bio:</span> {speaker.bio || 'Speaker information coming soon'}
@@ -588,33 +619,33 @@ const ConferenceDetailPage = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-3">Registration Type</label>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {conference.earlyBirdFee && conference.earlyBirdDeadline && (
+                      {conference.early_bird_fee && conference.early_bird_deadline && (
                         <div className="relative">
                           <input
                             type="radio"
                             id="earlyBird"
                             name="registrationType"
-                            value="earlyBird"
-                            checked={registrationData.registrationType === 'earlyBird'}
+                            value="early_bird"
+                            checked={registrationData.registrationType === 'early_bird'}
                             onChange={(e) => setRegistrationData(prev => ({...prev, registrationType: e.target.value as any}))}
                             className="sr-only"
                           />
                           <label
                             htmlFor="earlyBird"
                             className={`block p-4 border-2 rounded-lg cursor-pointer transition-colors ${
-                              registrationData.registrationType === 'earlyBird'
+                              registrationData.registrationType === 'early_bird'
                                 ? 'border-red-600 bg-red-50'
                                 : 'border-gray-300 hover:border-gray-400'
                             }`}
                           >
                             <div className="font-medium text-gray-900">Early Bird</div>
-                            <div className="text-2xl font-bold text-red-600">{conference.earlyBirdFee}</div>
-                            <div className="text-sm text-gray-600">Until {conference.earlyBirdDeadline}</div>
+                            <div className="text-2xl font-bold text-red-600">${conference.early_bird_fee}</div>
+                            <div className="text-sm text-gray-600">Until {conference.early_bird_deadline}</div>
                           </label>
                         </div>
                       )}
                       
-                      {conference.regularFee && (
+                      {conference.regular_fee && (
                         <div className="relative">
                           <input
                             type="radio"
@@ -634,7 +665,7 @@ const ConferenceDetailPage = () => {
                             }`}
                           >
                             <div className="font-medium text-gray-900">Regular</div>
-                            <div className="text-2xl font-bold text-red-600">{conference.regularFee}</div>
+                            <div className="text-2xl font-bold text-red-600">${conference.regular_fee}</div>
                             <div className="text-sm text-gray-600">Standard Rate</div>
                           </label>
                         </div>

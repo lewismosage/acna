@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Calendar, MapPin, Users, Clock, Globe, Download, ExternalLink, CheckCircle } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Calendar, MapPin, Globe, Download, ExternalLink, CheckCircle } from 'lucide-react';
 import ScrollToTop from '../../components/common/ScrollToTop';
 import { conferencesApi, Conference as ApiConference } from '../../services/conferenceApi';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 
-type ConferenceStatus = 'Registration Open' | 'Coming Soon' | 'Completed';
+type ConferenceStatus = 'registration_open' | 'coming_soon' | 'completed' | 'planning' | 'cancelled';
 
 interface Conference {
   id: number;
@@ -46,7 +45,7 @@ const ConferencePage = () => {
         const data = await conferencesApi.getAll();
         // Transform API data to match our frontend interface
         const transformedData = data.map((conf: ApiConference) => ({
-          id: conf.id,
+          id: conf.id || 0,
           title: conf.title,
           date: conf.date,
           location: conf.location,
@@ -55,13 +54,13 @@ const ConferencePage = () => {
           status: conf.status as ConferenceStatus,
           theme: conf.theme || '',
           description: conf.description,
-          imageUrl: conf.imageUrl || '',
-          attendees: conf.attendees || '0',
-          speakers: conf.speakers || '0',
-          countries: conf.countries || '0',
-          earlyBirdDeadline: conf.earlyBirdDeadline || '',
-          regularFee: conf.regularFee || '',
-          earlyBirdFee: conf.earlyBirdFee || '',
+          imageUrl: conf.image_url || conf.display_image_url || '',
+          attendees: conf.expected_attendees?.toString() || conf.registration_count?.toString() || '0',
+          speakers: conf.conference_speakers?.length.toString() || conf.speakers?.length.toString() || '0',
+          countries: conf.countries_represented?.toString() || '0',
+          earlyBirdDeadline: conf.early_bird_deadline || '',
+          regularFee: conf.regular_fee ? `$${conf.regular_fee}` : '',
+          earlyBirdFee: conf.early_bird_fee ? `$${conf.early_bird_fee}` : '',
           highlights: conf.highlights || [],
         }));
         setConferences(transformedData);
@@ -78,24 +77,45 @@ const ConferencePage = () => {
 
   const getStatusColor = (status: ConferenceStatus) => {
     switch (status) {
-      case 'Registration Open':
+      case 'registration_open':
         return 'bg-green-500';
-      case 'Coming Soon':
+      case 'coming_soon':
         return 'bg-yellow-500';
-      case 'Completed':
+      case 'completed':
         return 'bg-blue-500';
+      case 'planning':
+        return 'bg-orange-500';
+      case 'cancelled':
+        return 'bg-red-500';
       default:
         return 'bg-gray-500';
     }
   };
 
+  const getStatusLabel = (status: ConferenceStatus) => {
+    switch (status) {
+      case 'registration_open':
+        return 'Registration Open';
+      case 'coming_soon':
+        return 'Coming Soon';
+      case 'completed':
+        return 'Completed';
+      case 'planning':
+        return 'Planning';
+      case 'cancelled':
+        return 'Cancelled';
+      default:
+        return status;
+    }
+  };
+
   // Filter conferences based on selected tab
   const upcomingConferences = conferences.filter(conf => 
-    conf.status === 'Registration Open' || conf.status === 'Coming Soon'
+    conf.status === 'registration_open' || conf.status === 'coming_soon' || conf.status === 'planning'
   );
   
   const pastConferences = conferences.filter(conf => 
-    conf.status === 'Completed'
+    conf.status === 'completed'
   );
 
   // Calculate quick stats from the data
@@ -161,7 +181,7 @@ const ConferencePage = () => {
       </section>
 
       {/* Quick Stats - Only show if we have data */}
-      {!isLoading && !error && conferences.length > 0 && (
+      {!isLoading && !error && conferences.length > 0 && upcomingConferences.length > 0 && (
         <section className="py-6 md:py-8 bg-orange-600">
           <div className="max-w-6xl mx-auto px-4 sm:px-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 text-center text-white">
@@ -247,7 +267,7 @@ const ConferencePage = () => {
                               <div className="flex-1">
                                 <div className="flex items-center mb-2">
                                   <span className={`${getStatusColor(conference.status)} text-white px-2 py-1 text-xs font-bold uppercase tracking-wide rounded`}>
-                                    {conference.status}
+                                    {getStatusLabel(conference.status)}
                                   </span>
                                 </div>
                                 <h2 className="text-lg md:text-xl lg:text-2xl font-bold text-gray-900 mb-2">
@@ -259,7 +279,7 @@ const ConferencePage = () => {
                                   </p>
                                 )}
                               </div>
-                              {conference.status === 'Registration Open' && (
+                              {conference.status === 'registration_open' && (
                                 <a 
                                   href={`/conferences/${conference.id}`}
                                   className="bg-orange-600 text-white px-4 py-2 text-sm md:text-base font-bold hover:bg-orange-700 transition-colors uppercase tracking-wide rounded text-center"
@@ -286,7 +306,7 @@ const ConferencePage = () => {
                                 </div>
                                 <div className="flex items-center text-gray-700">
                                   <Globe className="w-4 h-4 md:w-5 md:h-5 mr-2 md:mr-3 text-red-600" />
-                                  <span className="font-medium text-sm md:text-base">{conference.type}</span>
+                                  <span className="font-medium text-sm md:text-base capitalize">{conference.type.replace('_', ' ')}</span>
                                 </div>
                               </div>
 
@@ -318,13 +338,13 @@ const ConferencePage = () => {
                                     <div key={index} className="flex items-start">
                                       <CheckCircle className="w-3 h-3 md:w-4 md:h-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
                                       <span className="text-xs md:text-sm text-gray-700">{highlight}</span>
-                                </div>
+                                    </div>
                                   ))}
                                 </div>
                               </div>
                             )}
 
-                            {conference.status === 'Registration Open' && (
+                            {conference.status === 'registration_open' && (conference.earlyBirdFee || conference.regularFee) && (
                               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 md:p-4">
                                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                                   <div>
@@ -395,7 +415,7 @@ const ConferencePage = () => {
                               <div className="flex flex-col md:flex-row md:items-start justify-between mb-4 gap-4">
                                 <div>
                                   <span className={`${getStatusColor(conference.status)} text-white px-2 py-1 text-xs font-bold uppercase tracking-wide rounded mb-2 inline-block`}>
-                                    {conference.status}
+                                    {getStatusLabel(conference.status)}
                                   </span>
                                   <h3 className="text-lg md:text-xl lg:text-2xl font-bold text-gray-900 mb-2">
                                     {conference.title}
@@ -426,7 +446,7 @@ const ConferencePage = () => {
                                   </div>
                                   <div className="flex items-center text-gray-700">
                                     <Globe className="w-4 h-4 md:w-5 md:h-5 mr-2 md:mr-3 text-red-600" />
-                                    <span className="text-sm md:text-base">{conference.type}</span>
+                                    <span className="text-sm md:text-base capitalize">{conference.type.replace('_', ' ')}</span>
                                   </div>
                                 </div>
 

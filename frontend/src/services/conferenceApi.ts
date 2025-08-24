@@ -191,7 +191,7 @@ export const conferencesApi = {
         const errorText = await response.text();
         throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
-      return response.json();
+      return response.json(); 
     } catch (error) {
       console.error('Error fetching conferences:', error);
       throw error;
@@ -325,14 +325,16 @@ export const conferencesApi = {
     }
   },
 
-  uploadImage: async (file: File): Promise<{ url: string }> => {
+  uploadImage: async (file: File): Promise<{ url: string; filename: string; path: string }> => {
     try {
       const formData = new FormData();
       formData.append('image', file);
+      
       const response = await fetch(`${CONFERENCES_API_URL}/upload_image/`, {
         method: 'POST',
         body: formData,
       });
+      
       if (!response.ok) {
         let errorData;
         try {
@@ -345,6 +347,32 @@ export const conferencesApi = {
       return response.json();
     } catch (error) {
       console.error('Error uploading image:', error);
+      throw error;
+    }
+  },
+
+  uploadSpeakerImage: async (file: File): Promise<{ url: string; filename: string; path: string }> => {
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      const response = await fetch(`${CONFERENCES_API_URL}/upload_speaker_image/`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch {
+          errorData = { error: 'Upload failed' };
+        }
+        throw errorData;
+      }
+      return response.json();
+    } catch (error) {
+      console.error('Error uploading speaker image:', error);
       throw error;
     }
   },
