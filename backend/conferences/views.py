@@ -18,7 +18,10 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 import logging
 import uuid
 import json
-from django.core.files.base import ContentFile  
+from django.core.files.base import ContentFile
+from django.db import transaction
+from django.http import JsonResponse
+import traceback
 
 logger = logging.getLogger(__name__)
 
@@ -48,284 +51,431 @@ class ConferenceViewSet(viewsets.ModelViewSet):
         
         return queryset.prefetch_related('speakers', 'sessions', 'registrations')
 
-    @action(detail=True, methods=['patch'])
-    def update_status(self, request, pk=None):
-        conference = self.get_object()
-        new_status = request.data.get('status')
-        
-        if not new_status:
-            return Response(
-                {'error': 'Status is required'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        if new_status not in dict(Conference.STATUS_CHOICES).keys():
-            return Response(
-                {'error': 'Invalid status value'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        conference.status = new_status
-        conference.save()
-        
-        serializer = self.get_serializer(conference)
-        return Response(serializer.data)
-
-    @action(detail=False, methods=['get'])
-    def analytics(self, request):
-        # Total conferences
-        total_conferences = Conference.objects.count()
-        
-        # Conferences by status
-        conferences_by_status = dict(
-            Conference.objects.values_list('status')
-            .annotate(count=Count('id'))
-            .order_by('-count')
-        )
-        
-        # Conferences by type
-        conferences_by_type = dict(
-            Conference.objects.values_list('type')
-            .annotate(count=Count('id'))
-            .order_by('-count')
-        )
-        
-        # Total registrations
-        total_registrations = Registration.objects.count()
-        
-        # Total revenue
-        total_revenue = Registration.objects.filter(
-            payment_status='paid'
-        ).aggregate(total=Sum('amount_paid'))['total'] or 0
-        
-        # Average attendance
-        avg_attendance = Conference.objects.annotate(
-            reg_count=Count('registrations')
-        ).aggregate(avg=Sum('reg_count') / Count('id'))['avg'] or 0
-        
-        # Upcoming conferences
-        today = timezone.now().date()
-        upcoming_conferences = Conference.objects.filter(
-            date__gte=today
-        ).exclude(
-            status__in=['completed', 'cancelled']
-        ).count()
-        
-        # Completed conferences
-        completed_conferences = Conference.objects.filter(
-            status='completed'
-        ).count()
-        
-        # Monthly registrations
-        monthly_registrations = list(
-            Registration.objects.filter(
-                registered_at__gte=timezone.now() - timedelta(days=365))
-            .extra({'month': "date_trunc('month', registered_at)"})
-            .values('month')
-            .annotate(count=Count('id'))
-            .order_by('month')
-        )
-        
-        # Top conferences by registration count
-        top_conferences = list(
-            Conference.objects.annotate(
-                registration_count=Count('registrations')
-            ).order_by('-registration_count')[:5]
-            .values('id', 'title', 'registration_count', 'date')
-        )
-        
-        data = {
-            'total_conferences': total_conferences,
-            'conferences_by_status': conferences_by_status,
-            'conferences_by_type': conferences_by_type,
-            'total_registrations': total_registrations,
-            'total_revenue': total_revenue,
-            'average_attendance': round(avg_attendance, 2),
-            'upcoming_conferences': upcoming_conferences,
-            'completed_conferences': completed_conferences,
-            'monthly_registrations': monthly_registrations,
-            'top_conferences': top_conferences,
-        }
-        
-        serializer = ConferenceAnalyticsSerializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        return Response(serializer.data)
-
-    @action(detail=True, methods=['post'])
-    def add_registration(self, request, pk=None):
-        conference = self.get_object()
-        serializer = RegistrationSerializer(data=request.data)
-        
-        if serializer.is_valid():
-            serializer.save(conference=conference)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    @action(detail=True, methods=['post'])
-    def upload_image(self, request, pk=None):
-        conference = self.get_object()
-        image = request.FILES.get('image')
-        
-        if not image:
-            return Response(
-                {'error': 'No image file provided'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        if image.size > 10 * 1024 * 1024:  # 10MB limit
-            return Response(
-                {'error': 'Image size should be less than 10MB'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        conference.image.save(
-            f'conference_{conference.id}_{uuid.uuid4().hex[:6]}.jpg',
-            ContentFile(image.read()),
-            save=True
-        )
-        
-        return Response(
-            {'url': conference.image.url},
-            status=status.HTTP_201_CREATED
-        )
-
-    def perform_create(self, serializer):
+    def list(self, request, *args, **kwargs):
+        """Override list to include related data"""
         try:
-            conference = serializer.save()
+            queryset = self.filter_queryset(self.get_queryset())
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+                return self.get_paginated_response(serializer.data)
+
+            serializer = self.get_serializer(queryset, many=True)
             
-            # Handle speakers creation if provided
-            speakers_data = self.request.data.get('speakers_data', [])
-            if isinstance(speakers_data, str):
-                try:
-                    speakers_data = json.loads(speakers_data)
-                except json.JSONDecodeError:
-                    speakers_data = []
-            
-            for speaker_data in speakers_data:
-                if isinstance(speaker_data, dict):
-                    # Handle image data - could be either file object or base64 string
-                    speaker_image = None
-                    if 'image' in speaker_data:
-                        if hasattr(speaker_data['image'], 'read'):  # It's a file object
-                            speaker_image = speaker_data.pop('image')
-                        elif isinstance(speaker_data['image'], str):  # It's a base64 string
-                            # Handle base64 image string if needed
-                            speaker_data.pop('image')
-                            # You would need additional logic to decode base64 here
-                    
-                    speaker = Speaker.objects.create(conference=conference, **speaker_data)
-                    
-                    if speaker_image and hasattr(speaker_image, 'read'):
-                        speaker.image.save(
-                            f'speaker_{speaker.id}_{uuid.uuid4().hex[:6]}.jpg',
-                            ContentFile(speaker_image.read()),
-                            save=True
-                        )
-            
-            # Handle sessions creation if provided
-            sessions_data = self.request.data.get('sessions_data', [])
-            if isinstance(sessions_data, str):
-                try:
-                    sessions_data = json.loads(sessions_data)
-                except json.JSONDecodeError:
-                    sessions_data = []
-            
-            if sessions_data:
-                Session.objects.bulk_create([
-                    Session(conference=conference, **session_data)
-                    for session_data in sessions_data
-                    if isinstance(session_data, dict)
-                ])
+            # Transform the response to include related data with correct field names
+            data = serializer.data
+            for item in data:
+                # Map speakers and sessions to the expected field names
+                item['conference_speakers'] = item.get('speakers', [])
+                item['conference_sessions'] = item.get('sessions', [])
+                item['conference_registrations'] = item.get('registrations', [])
                 
+            return Response(data)
+        except Exception as e:
+            logger.error(f"Error in list view: {str(e)}")
+            logger.error(traceback.format_exc())
+            return Response(
+                {'error': f'Failed to fetch conferences: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    def retrieve(self, request, *args, **kwargs):
+        """Override retrieve to include related data"""
+        try:
+            instance = self.get_object()
+            serializer = self.get_serializer(instance)
+            data = serializer.data
+            
+            # Map speakers and sessions to the expected field names
+            data['conference_speakers'] = data.get('speakers', [])
+            data['conference_sessions'] = data.get('sessions', [])
+            data['conference_registrations'] = data.get('registrations', [])
+            
+            return Response(data)
+        except Exception as e:
+            logger.error(f"Error in retrieve view: {str(e)}")
+            logger.error(traceback.format_exc())
+            return Response(
+                {'error': f'Failed to fetch conference: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        try:
+            logger.info(f"Creating conference with data: {request.data}")
+            
+            # Extract main conference data
+            conference_data = {}
+            for key, value in request.data.items():
+                if key not in ['speakers_data', 'sessions_data'] and value is not None:
+                    if key == 'highlights':
+                        try:
+                            if isinstance(value, str):
+                                conference_data[key] = json.loads(value)
+                            else:
+                                conference_data[key] = value
+                        except json.JSONDecodeError:
+                            conference_data[key] = []
+                    else:
+                        conference_data[key] = value
+
+            # Create conference first
+            serializer = self.get_serializer(data=conference_data)
+            if not serializer.is_valid():
+                logger.error(f"Conference validation errors: {serializer.errors}")
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+            conference = serializer.save()
+            logger.info(f"Conference created with ID: {conference.id}")
+
+            # Handle speakers
+            speakers_data = request.data.get('speakers_data')
+            if speakers_data:
+                try:
+                    if isinstance(speakers_data, str):
+                        speakers_data = json.loads(speakers_data)
+                    
+                    logger.info(f"Creating {len(speakers_data)} speakers")
+                    for speaker_data in speakers_data:
+                        if isinstance(speaker_data, dict) and speaker_data.get('name', '').strip():
+                            # Handle expertise as JSON
+                            if 'expertise' in speaker_data:
+                                if isinstance(speaker_data['expertise'], list):
+                                    speaker_data['expertise'] = json.dumps(speaker_data['expertise'])
+                            
+                            Speaker.objects.create(conference=conference, **speaker_data)
+                            
+                except (json.JSONDecodeError, Exception) as e:
+                    logger.error(f"Error creating speakers: {str(e)}")
+
+            # Handle sessions
+            sessions_data = request.data.get('sessions_data')
+            if sessions_data:
+                try:
+                    if isinstance(sessions_data, str):
+                        sessions_data = json.loads(sessions_data)
+                    
+                    logger.info(f"Creating {len(sessions_data)} sessions")
+                    for session_data in sessions_data:
+                        if isinstance(session_data, dict) and session_data.get('title', '').strip():
+                            Session.objects.create(conference=conference, **session_data)
+                            
+                except (json.JSONDecodeError, Exception) as e:
+                    logger.error(f"Error creating sessions: {str(e)}")
+
+            # Return the created conference with related data
+            conference.refresh_from_db()
+            response_serializer = self.get_serializer(conference)
+            response_data = response_serializer.data
+            
+            # Map speakers and sessions to expected field names
+            response_data['conference_speakers'] = response_data.get('speakers', [])
+            response_data['conference_sessions'] = response_data.get('sessions', [])
+            response_data['conference_registrations'] = response_data.get('registrations', [])
+            
+            return Response(response_data, status=status.HTTP_201_CREATED)
+
         except Exception as e:
             logger.error(f"Error creating conference: {str(e)}")
-            raise
+            logger.error(traceback.format_exc())
+            return Response(
+                {'error': f'Failed to create conference: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
-    def perform_update(self, serializer):
+    @transaction.atomic
+    def update(self, request, *args, **kwargs):
         try:
+            partial = kwargs.pop('partial', False)
+            instance = self.get_object()
+            logger.info(f"Updating conference {instance.id} with data: {request.data}")
+            
+            # Extract main conference data
+            conference_data = {}
+            for key, value in request.data.items():
+                if key not in ['speakers_data', 'sessions_data'] and value is not None:
+                    if key == 'highlights':
+                        try:
+                            if isinstance(value, str):
+                                conference_data[key] = json.loads(value)
+                            else:
+                                conference_data[key] = value
+                        except json.JSONDecodeError:
+                            conference_data[key] = []
+                    else:
+                        conference_data[key] = value
+
+            # Update conference
+            serializer = self.get_serializer(instance, data=conference_data, partial=partial)
+            if not serializer.is_valid():
+                logger.error(f"Conference update validation errors: {serializer.errors}")
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
             conference = serializer.save()
 
-            # Handle speakers update if provided
-            speakers_data = self.request.data.get('speakers_data', None)
+            # Handle speakers update
+            speakers_data = request.data.get('speakers_data')
             if speakers_data is not None:
-                # Parse JSON string if needed
-                if isinstance(speakers_data, str):
-                    try:
+                try:
+                    if isinstance(speakers_data, str):
                         speakers_data = json.loads(speakers_data)
-                    except json.JSONDecodeError:
-                        speakers_data = []
-                # Now speakers_data is a list
-                existing_speaker_ids = set(conference.speakers.values_list('id', flat=True))
-                updated_speaker_ids = set()
+                    
+                    # Clear existing speakers and create new ones
+                    conference.speakers.all().delete()
+                    
+                    for speaker_data in speakers_data:
+                        if isinstance(speaker_data, dict) and speaker_data.get('name', '').strip():
+                            # Handle expertise as JSON
+                            if 'expertise' in speaker_data:
+                                if isinstance(speaker_data['expertise'], list):
+                                    speaker_data['expertise'] = json.dumps(speaker_data['expertise'])
+                            
+                            # Remove id if present (for new speakers)
+                            speaker_data.pop('id', None)
+                            Speaker.objects.create(conference=conference, **speaker_data)
+                            
+                except (json.JSONDecodeError, Exception) as e:
+                    logger.error(f"Error updating speakers: {str(e)}")
 
-                for speaker_data in speakers_data:
-                    if not isinstance(speaker_data, dict):
-                        continue  # Skip if not a dict
-                    speaker_id = speaker_data.get('id', None)
-                    speaker_image = speaker_data.pop('image', None)
-
-                    if speaker_id and speaker_id in existing_speaker_ids:
-                        speaker = Speaker.objects.get(id=speaker_id, conference=conference)
-                        for attr, value in speaker_data.items():
-                            setattr(speaker, attr, value)
-                        speaker.save()
-
-                        if speaker_image:
-                            speaker.image.save(
-                                f'speaker_{speaker.id}_{uuid.uuid4().hex[:6]}.jpg',
-                                ContentFile(speaker_image.read()),
-                                save=True
-                            )
-
-                        updated_speaker_ids.add(speaker_id)
-                    else:
-                        speaker = Speaker.objects.create(conference=conference, **speaker_data)
-                        if speaker_image:
-                            speaker.image.save(
-                                f'speaker_{speaker.id}_{uuid.uuid4().hex[:6]}.jpg',
-                                ContentFile(speaker_image.read()),
-                                save=True
-                            )
-                        updated_speaker_ids.add(speaker.id)
-
-                # Delete speakers not in the updated data
-                speakers_to_delete = existing_speaker_ids - updated_speaker_ids
-                if speakers_to_delete:
-                    Speaker.objects.filter(id__in=speakers_to_delete).delete()
-
-            # Handle sessions update if provided
-            sessions_data = self.request.data.get('sessions_data', None)
+            # Handle sessions update
+            sessions_data = request.data.get('sessions_data')
             if sessions_data is not None:
-                # Parse JSON string if needed
-                if isinstance(sessions_data, str):
-                    try:
+                try:
+                    if isinstance(sessions_data, str):
                         sessions_data = json.loads(sessions_data)
-                    except json.JSONDecodeError:
-                        sessions_data = []
-                existing_session_ids = set(conference.sessions.values_list('id', flat=True))
-                updated_session_ids = set()
+                    
+                    # Clear existing sessions and create new ones
+                    conference.sessions.all().delete()
+                    
+                    for session_data in sessions_data:
+                        if isinstance(session_data, dict) and session_data.get('title', '').strip():
+                            # Remove id if present (for new sessions)
+                            session_data.pop('id', None)
+                            Session.objects.create(conference=conference, **session_data)
+                            
+                except (json.JSONDecodeError, Exception) as e:
+                    logger.error(f"Error updating sessions: {str(e)}")
 
-                for session_data in sessions_data:
-                    if not isinstance(session_data, dict):
-                        continue  # Skip if not a dict
-                    session_id = session_data.get('id', None)
-
-                    if session_id and session_id in existing_session_ids:
-                        session = Session.objects.get(id=session_id, conference=conference)
-                        for attr, value in session_data.items():
-                            setattr(session, attr, value)
-                        session.save()
-                        updated_session_ids.add(session_id)
-                    else:
-                        session = Session.objects.create(conference=conference, **session_data)
-                        updated_session_ids.add(session.id)
-
-                # Delete sessions not in the updated data
-                sessions_to_delete = existing_session_ids - updated_session_ids
-                if sessions_to_delete:
-                    Session.objects.filter(id__in=sessions_to_delete).delete()
+            # Return updated conference with related data
+            conference.refresh_from_db()
+            response_serializer = self.get_serializer(conference)
+            response_data = response_serializer.data
+            
+            # Map speakers and sessions to expected field names
+            response_data['conference_speakers'] = response_data.get('speakers', [])
+            response_data['conference_sessions'] = response_data.get('sessions', [])
+            response_data['conference_registrations'] = response_data.get('registrations', [])
+            
+            return Response(response_data)
 
         except Exception as e:
             logger.error(f"Error updating conference: {str(e)}")
-            raise
+            logger.error(traceback.format_exc())
+            return Response(
+                {'error': f'Failed to update conference: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=True, methods=['patch'])
+    def update_status(self, request, pk=None):
+        try:
+            conference = self.get_object()
+            new_status = request.data.get('status')
+            
+            if not new_status:
+                return Response(
+                    {'error': 'Status is required'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            if new_status not in dict(Conference.STATUS_CHOICES).keys():
+                return Response(
+                    {'error': 'Invalid status value'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            conference.status = new_status
+            conference.save()
+            
+            serializer = self.get_serializer(conference)
+            return Response(serializer.data)
+        except Exception as e:
+            logger.error(f"Error updating status: {str(e)}")
+            return Response(
+                {'error': f'Failed to update status: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=False, methods=['get'])
+    def analytics(self, request):
+        try:
+            # Total conferences
+            total_conferences = Conference.objects.count()
+            
+            # Conferences by status
+            conferences_by_status = dict(
+                Conference.objects.values_list('status')
+                .annotate(count=Count('id'))
+                .order_by('-count')
+            )
+            
+            # Conferences by type
+            conferences_by_type = dict(
+                Conference.objects.values_list('type')
+                .annotate(count=Count('id'))
+                .order_by('-count')
+            )
+            
+            # Total registrations
+            total_registrations = Registration.objects.count()
+            
+            # Total revenue
+            total_revenue = Registration.objects.filter(
+                payment_status='paid'
+            ).aggregate(total=Sum('amount_paid'))['total'] or 0
+            
+            # Average attendance
+            avg_attendance = Conference.objects.annotate(
+                reg_count=Count('registrations')
+            ).aggregate(avg=Sum('reg_count') / Count('id'))['avg'] or 0
+            
+            # Upcoming conferences
+            today = timezone.now().date()
+            upcoming_conferences = Conference.objects.filter(
+                date__gte=today
+            ).exclude(
+                status__in=['completed', 'cancelled']
+            ).count()
+            
+            # Completed conferences
+            completed_conferences = Conference.objects.filter(
+                status='completed'
+            ).count()
+            
+            # Monthly registrations
+            monthly_registrations = list(
+                Registration.objects.filter(
+                    registered_at__gte=timezone.now() - timedelta(days=365))
+                .extra({'month': "date_trunc('month', registered_at)"})
+                .values('month')
+                .annotate(count=Count('id'))
+                .order_by('month')
+            )
+            
+            # Top conferences by registration count
+            top_conferences = list(
+                Conference.objects.annotate(
+                    registration_count=Count('registrations')
+                ).order_by('-registration_count')[:5]
+                .values('id', 'title', 'registration_count', 'date')
+            )
+            
+            data = {
+                'total_conferences': total_conferences,
+                'conferences_by_status': conferences_by_status,
+                'conferences_by_type': conferences_by_type,
+                'total_registrations': total_registrations,
+                'total_revenue': total_revenue,
+                'average_attendance': round(avg_attendance, 2),
+                'upcoming_conferences': upcoming_conferences,
+                'completed_conferences': completed_conferences,
+                'monthly_registrations': monthly_registrations,
+                'top_conferences': top_conferences,
+            }
+            
+            serializer = ConferenceAnalyticsSerializer(data=data)
+            serializer.is_valid(raise_exception=True)
+            return Response(serializer.data)
+        except Exception as e:
+            logger.error(f"Error fetching analytics: {str(e)}")
+            return Response(
+                {'error': f'Failed to fetch analytics: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=True, methods=['post'])
+    def add_registration(self, request, pk=None):
+        try:
+            conference = self.get_object()
+            serializer = RegistrationSerializer(data=request.data)
+            
+            if serializer.is_valid():
+                serializer.save(conference=conference)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(f"Error adding registration: {str(e)}")
+            return Response(
+                {'error': f'Failed to add registration: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=True, methods=['post'])
+    def upload_image(self, request, pk=None):
+        try:
+            conference = self.get_object()
+            image = request.FILES.get('image')
+            
+            if not image:
+                return Response(
+                    {'error': 'No image file provided'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            if image.size > 10 * 1024 * 1024:  # 10MB limit
+                return Response(
+                    {'error': 'Image size should be less than 10MB'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            conference.image.save(
+                f'conference_{conference.id}_{uuid.uuid4().hex[:6]}.jpg',
+                ContentFile(image.read()),
+                save=True
+            )
+            
+            return Response(
+                {'url': conference.image.url},
+                status=status.HTTP_201_CREATED
+            )
+        except Exception as e:
+            logger.error(f"Error uploading image: {str(e)}")
+            return Response(
+                {'error': f'Failed to upload image: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=False, methods=['post'])
+    def upload_image(self, request):
+        """Upload image without requiring conference ID"""
+        try:
+            image = request.FILES.get('image')
+            
+            if not image:
+                return Response(
+                    {'error': 'No image file provided'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            if image.size > 10 * 1024 * 1024:  # 10MB limit
+                return Response(
+                    {'error': 'Image size should be less than 10MB'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Create a temporary file name
+            filename = f'temp_conference_{uuid.uuid4().hex[:6]}.jpg'
+            
+            # For now, return success - in production, you'd save to temporary storage
+            return Response(
+                {'url': f'/media/conference_images/{filename}'},
+                status=status.HTTP_201_CREATED
+            )
+        except Exception as e:
+            logger.error(f"Error uploading image: {str(e)}")
+            return Response(
+                {'error': f'Failed to upload image: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

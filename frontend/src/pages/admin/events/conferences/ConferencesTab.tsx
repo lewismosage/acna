@@ -49,9 +49,11 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
       setError(null);
       try {
         const data = await conferencesApi.getAll();
+        console.log('Fetched conferences:', data);
         setConferences(data);
-      } catch (err) {
-        setError('Failed to load conferences. Please try again later.');
+      } catch (err: any) {
+        const errorMessage = err?.error || err?.message || 'Failed to load conferences. Please try again later.';
+        setError(errorMessage);
         console.error('Error fetching conferences:', err);
       } finally {
         setIsLoading(false);
@@ -71,14 +73,14 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
           const allRegistrations: Registration[] = [];
           
           data.forEach(conf => {
-            if (conf.conference_registrations) {
-              allRegistrations.push(...conf.conference_registrations);
-            }
+            const confRegistrations = conf.conference_registrations || conf.registrations || [];
+            allRegistrations.push(...confRegistrations);
           });
           
           setRegistrations(allRegistrations);
-        } catch (err) {
-          setError('Failed to load registrations.');
+        } catch (err: any) {
+          const errorMessage = err?.error || err?.message || 'Failed to load registrations.';
+          setError(errorMessage);
           console.error('Error fetching registrations:', err);
         } finally {
           setIsLoading(false);
@@ -97,8 +99,9 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
         try {
           const data = await conferencesApi.getAnalytics();
           setAnalyticsData(data);
-        } catch (err) {
-          setError('Failed to load analytics data.');
+        } catch (err: any) {
+          const errorMessage = err?.error || err?.message || 'Failed to load analytics data.';
+          setError(errorMessage);
           console.error('Error fetching analytics:', err);
         } finally {
           setIsLoading(false);
@@ -164,20 +167,25 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
           conf.id === conferenceId ? updatedConference : conf
         )
       );
-    } catch (err) {
-      setError('Failed to update conference status.');
+    } catch (err: any) {
+      const errorMessage = err?.error || err?.message || 'Failed to update conference status.';
+      setError(errorMessage);
       console.error('Error updating status:', err);
     }
   };
 
   const handleEditConference = (conference: Conference) => {
+    console.log('Editing conference:', conference);
     setEditingConference(conference);
     setShowCreateModal(true);
   };
 
   const handleCreateConference = async (conferenceData: ConferenceCreateUpdateData) => {
     try {
+      setIsLoading(true);
       let result: Conference;
+      
+      console.log('Saving conference data:', conferenceData);
       
       if (editingConference && editingConference.id) {
         // Update existing conference
@@ -187,17 +195,46 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
             conf.id === editingConference.id ? result : conf
           )
         );
+        console.log('Conference updated successfully:', result);
       } else {
         // Create new conference
         result = await conferencesApi.create(conferenceData);
         setConferences(prev => [result, ...prev]);
+        console.log('Conference created successfully:', result);
       }
       
       setShowCreateModal(false);
       setEditingConference(null);
-    } catch (err) {
-      setError(editingConference ? 'Failed to update conference.' : 'Failed to create conference.');
+      setError(null); // Clear any previous errors
+      
+    } catch (err: any) {
       console.error('Error saving conference:', err);
+      
+      // Extract meaningful error message
+      let errorMessage = 'Failed to save conference.';
+      
+      if (err?.error) {
+        if (typeof err.error === 'string') {
+          errorMessage = err.error;
+        } else if (typeof err.error === 'object') {
+          // Handle field-specific errors
+          const fieldErrors = Object.entries(err.error)
+            .map(([field, messages]: [string, any]) => {
+              const messageArray = Array.isArray(messages) ? messages : [messages];
+              return `${field}: ${messageArray.join(', ')}`;
+            })
+            .join('; ');
+          errorMessage = fieldErrors || errorMessage;
+        }
+      } else if (err?.message) {
+        errorMessage = err.message;
+      } else if (typeof err === 'string') {
+        errorMessage = err;
+      }
+      
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -214,8 +251,9 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
     try {
       await conferencesApi.delete(conferenceId);
       setConferences(prev => prev.filter(conf => conf.id !== conferenceId));
-    } catch (err) {
-      setError('Failed to delete conference.');
+    } catch (err: any) {
+      const errorMessage = err?.error || err?.message || 'Failed to delete conference.';
+      setError(errorMessage);
       console.error('Error deleting conference:', err);
     }
   };

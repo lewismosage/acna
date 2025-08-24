@@ -1,11 +1,11 @@
-// conferencesApi.ts
+// conferencesApi.ts - Updated with proper error handling
 const API_BASE_URL = 'http://127.0.0.1:8000';
 const CONFERENCES_API_URL = `${API_BASE_URL}/api/conferences`;
 
 // ================== TYPES ==================
 
 export interface Speaker {
-  id: number;
+  id?: number;
   name: string;
   title?: string;
   organization?: string;
@@ -19,7 +19,7 @@ export interface Speaker {
 }
 
 export interface Session {
-  id: number;
+  id?: number;
   title: string;
   description?: string;
   start_time: string;
@@ -57,24 +57,8 @@ export interface Registration {
   registered_at: string;
 }
 
-export interface ConferenceDocument {
-  id: number;
-  title: string;
-  document_type:
-    | 'program'
-    | 'abstract'
-    | 'presentation'
-    | 'certificate'
-    | 'other';
-  file: string;
-  description?: string;
-  is_public: boolean;
-  requires_registration: boolean;
-  uploaded_at: string;
-}
-
 export interface Conference {
-  id: number;
+  id?: number;
   title: string;
   theme?: string;
   description: string;
@@ -98,11 +82,15 @@ export interface Conference {
   organizer_email?: string;
   organizer_phone?: string;
   organizer_website?: string;
-  created_at: string;
-  updated_at: string;
+  created_at?: string;
+  updated_at?: string;
   conference_speakers?: Speaker[];
   conference_sessions?: Session[];
   conference_registrations?: Registration[];
+  // For API responses, these might be named differently
+  speakers?: Speaker[];
+  sessions?: Session[];
+  registrations?: Registration[];
 }
 
 export interface ConferenceAnalytics {
@@ -123,22 +111,23 @@ export interface ConferenceAnalytics {
   }>;
 }
 
-// ========= NEW CREATE/UPDATE TYPES =========
+// ========= CREATE/UPDATE TYPES =========
 
 export interface SpeakerCreateData {
+  id?: number;
   name: string;
   title?: string;
   organization?: string;
   bio?: string;
-  image?: File | string | null;
-  image_url?: string | null;
   expertise?: string[];
   is_keynote?: boolean;
   email?: string;
   linkedin?: string;
+  image_url?: string;
 }
 
 export interface SessionCreateData {
+  id?: number;
   title: string;
   description?: string;
   start_time: string;
@@ -161,8 +150,8 @@ export interface ConferenceCreateUpdateData {
   venue?: string;
   type: 'in_person' | 'virtual' | 'hybrid';
   status: 'planning' | 'registration_open' | 'coming_soon' | 'completed' | 'cancelled';
-  image?: File | string | null;
-  image_url?: string | null;
+  image?: File | null;
+  image_url?: string;
   capacity?: number;
   regular_fee?: number;
   early_bird_fee?: number;
@@ -186,148 +175,236 @@ export const conferencesApi = {
     type?: string;
     search?: string;
   }): Promise<Conference[]> => {
-    const queryParams = new URLSearchParams();
-    if (params) {
-      Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          queryParams.append(key, value);
-        }
-      });
+    try {
+      const queryParams = new URLSearchParams();
+      if (params) {
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            queryParams.append(key, value);
+          }
+        });
+      }
+      const response = await fetch(
+        `${CONFERENCES_API_URL}/?${queryParams.toString()}`
+      );
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+      return response.json();
+    } catch (error) {
+      console.error('Error fetching conferences:', error);
+      throw error;
     }
-    const response = await fetch(
-      `${CONFERENCES_API_URL}/?${queryParams.toString()}`
-    );
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    return response.json();
   },
 
   getById: async (id: number): Promise<Conference> => {
-    const response = await fetch(`${CONFERENCES_API_URL}/${id}/`);
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    return response.json();
-  },
-
-  // Create new conference with nested data
-  create: async (data: ConferenceCreateUpdateData): Promise<Conference> => {
-    const formData = new FormData();
-    for (const [key, value] of Object.entries(data)) {
-      if (value === undefined || value === null) continue;
-      if (key === 'image' && value instanceof File) {
-        formData.append('image', value);
-      } else if (
-        key === 'speakers_data' ||
-        key === 'sessions_data' ||
-        key === 'highlights'
-      ) {
-        formData.append(key, JSON.stringify(value));
-      } else {
-        formData.append(key, value.toString());
+    try {
+      const response = await fetch(`${CONFERENCES_API_URL}/${id}/`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
+      return response.json();
+    } catch (error) {
+      console.error(`Error fetching conference ${id}:`, error);
+      throw error;
     }
-    const response = await fetch(`${CONFERENCES_API_URL}/`, {
-      method: 'POST',
-      body: formData,
-    });
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw errorData;
-    }
-    return response.json();
   },
 
+  create: async (data: ConferenceCreateUpdateData): Promise<Conference> => {
+    try {
+      const formData = new FormData();
+      
+      // Add basic fields
+      Object.entries(data).forEach(([key, value]) => {
+        if (value === undefined || value === null) return;
+        
+        if (key === 'image' && value instanceof File) {
+          formData.append('image', value);
+        } else if (key === 'speakers_data' || key === 'sessions_data' || key === 'highlights') {
+          formData.append(key, JSON.stringify(value));
+        } else if (typeof value === 'string' || typeof value === 'number') {
+          formData.append(key, value.toString());
+        }
+      });
+
+      // Debug: Log what we're sending
+      console.log('Sending conference data:');
+      for (let [key, value] of formData.entries()) {
+        if (key.includes('_data')) {
+          console.log(`${key}:`, JSON.parse(value as string));
+        } else {
+          console.log(`${key}:`, value);
+        }
+      }
+
+      const response = await fetch(`${CONFERENCES_API_URL}/`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch {
+          errorData = { error: await response.text() };
+        }
+        console.error('Server error response:', errorData);
+        throw { ...errorData, status: response.status };
+      }
+
+      const result = await response.json();
+      console.log('Conference created successfully:', result);
+      return result;
+    } catch (error) {
+      console.error('Error creating conference:', error);
+      throw error;
+    }
+  },
 
   update: async (
     id: number,
     data: Partial<ConferenceCreateUpdateData>
   ): Promise<Conference> => {
-    const formData = new FormData();
-    for (const [key, value] of Object.entries(data)) {
-      if (value === undefined || value === null) {
-        // For highlights, speakers_data, sessions_data, always send at least an empty array
-        if (key === 'highlights' || key === 'speakers_data' || key === 'sessions_data') {
-          formData.append(key, JSON.stringify([]));
+    try {
+      const formData = new FormData();
+      
+      Object.entries(data).forEach(([key, value]) => {
+        if (value === undefined || value === null) {
+          if (key === 'highlights' || key === 'speakers_data' || key === 'sessions_data') {
+            formData.append(key, JSON.stringify([]));
+          }
+          return;
         }
-        continue;
+
+        if (key === 'image' && value instanceof File) {
+          formData.append('image', value);
+        } else if (key === 'speakers_data' || key === 'sessions_data' || key === 'highlights') {
+          formData.append(key, JSON.stringify(value));
+        } else if (typeof value === 'string' || typeof value === 'number') {
+          formData.append(key, value.toString());
+        }
+      });
+
+      const response = await fetch(`${CONFERENCES_API_URL}/${id}/`, {
+        method: 'PATCH',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch {
+          errorData = { error: await response.text() };
+        }
+        throw { ...errorData, status: response.status };
       }
 
-      if (key === 'image' && value instanceof File) {
-        formData.append('image', value);
-      } else if (
-        key === 'speakers_data' ||
-        key === 'sessions_data' ||
-        key === 'highlights'
-      ) {
-        formData.append(key, JSON.stringify(value));
-      } else {
-        formData.append(key, value.toString());
-      }
+      return response.json();
+    } catch (error) {
+      console.error(`Error updating conference ${id}:`, error);
+      throw error;
     }
-    const response = await fetch(`${CONFERENCES_API_URL}/${id}/`, {
-      method: 'PATCH',
-      body: formData,
-    });
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw errorData;
-    }
-    return response.json();
   },
 
   delete: async (id: number): Promise<void> => {
-    const response = await fetch(`${CONFERENCES_API_URL}/${id}/`, {
-      method: 'DELETE',
-    });
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    try {
+      const response = await fetch(`${CONFERENCES_API_URL}/${id}/`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+    } catch (error) {
+      console.error(`Error deleting conference ${id}:`, error);
+      throw error;
+    }
   },
 
   uploadImage: async (file: File): Promise<{ url: string }> => {
-    const formData = new FormData();
-    formData.append('image', file);
-    const response = await fetch(`${CONFERENCES_API_URL}/upload_image/`, {
-      method: 'POST',
-      body: formData,
-    });
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({
-        error: 'Upload failed',
-      }));
-      throw errorData;
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      const response = await fetch(`${CONFERENCES_API_URL}/upload_image/`, {
+        method: 'POST',
+        body: formData,
+      });
+      if (!response.ok) {
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch {
+          errorData = { error: 'Upload failed' };
+        }
+        throw errorData;
+      }
+      return response.json();
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      throw error;
     }
-    return response.json();
   },
 
   getAnalytics: async (): Promise<ConferenceAnalytics> => {
-    const response = await fetch(`${CONFERENCES_API_URL}/analytics/`);
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    return response.json();
+    try {
+      const response = await fetch(`${CONFERENCES_API_URL}/analytics/`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+      return response.json();
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
+      throw error;
+    }
   },
 
   addRegistration: async (
     conferenceId: number,
     data: Omit<Registration, 'id' | 'full_name'>
   ): Promise<Registration> => {
-    const response = await fetch(
-      `${CONFERENCES_API_URL}/${conferenceId}/add_registration/`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+    try {
+      const response = await fetch(
+        `${CONFERENCES_API_URL}/${conferenceId}/add_registration/`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        }
+      );
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
-    );
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    return response.json();
+      return response.json();
+    } catch (error) {
+      console.error(`Error adding registration to conference ${conferenceId}:`, error);
+      throw error;
+    }
   },
 
   updateStatus: async (id: number, status: string): Promise<Conference> => {
-    const response = await fetch(
-      `${CONFERENCES_API_URL}/${id}/update_status/`,
-      {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
+    try {
+      const response = await fetch(
+        `${CONFERENCES_API_URL}/${id}/update_status/`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status }),
+        }
+      );
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
-    );
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    return response.json();
+      return response.json();
+    } catch (error) {
+      console.error(`Error updating conference ${id} status:`, error);
+      throw error;
+    }
   },
 };

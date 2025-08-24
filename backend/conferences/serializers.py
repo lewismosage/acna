@@ -3,23 +3,29 @@ from .models import Conference, Speaker, Session, Registration
 from django.core.files.base import ContentFile
 import base64
 import uuid
+import json
 
 class SpeakerSerializer(serializers.ModelSerializer):
-    image_url = serializers.SerializerMethodField()
-    expertise = serializers.ListField(child=serializers.CharField(), required=False)
+    display_image_url = serializers.SerializerMethodField()
+    expertise = serializers.SerializerMethodField()
 
     class Meta:
         model = Speaker
         fields = [
             'id', 'name', 'title', 'organization', 'bio', 'image', 'image_url',
-            'expertise', 'is_keynote', 'email', 'linkedin', 'created_at', 'updated_at'
+            'display_image_url', 'expertise', 'is_keynote', 'email', 'linkedin', 
+            'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
 
-    def get_image_url(self, obj):
+    def get_display_image_url(self, obj):
         if obj.image:
             return obj.image.url
         return obj.image_url
+
+    def get_expertise(self, obj):
+        """Return expertise as a list"""
+        return obj.expertise_list
 
     def validate_image(self, value):
         if value and value.size > 5 * 1024 * 1024:  # 5MB limit
@@ -62,60 +68,111 @@ class RegistrationSerializer(serializers.ModelSerializer):
         return obj.full_name
 
 class ConferenceSerializer(serializers.ModelSerializer):
-    image_url = serializers.SerializerMethodField()
-    speakers = SpeakerSerializer(many=True, required=False)
-    sessions = SessionSerializer(many=True, required=False)
-    registrations = RegistrationSerializer(many=True, required=False)
+    display_image_url = serializers.SerializerMethodField()
+    speakers = SpeakerSerializer(many=True, read_only=True)
+    sessions = SessionSerializer(many=True, read_only=True)
+    registrations = RegistrationSerializer(many=True, read_only=True)
     registration_count = serializers.SerializerMethodField()
+    highlights = serializers.SerializerMethodField()
 
     class Meta:
         model = Conference
         fields = [
             'id', 'title', 'theme', 'description', 'full_description', 'date', 'time',
-            'location', 'venue', 'type', 'status', 'image', 'image_url',
+            'location', 'venue', 'type', 'status', 'image', 'image_url', 'display_image_url',
             'capacity', 'regular_fee', 'early_bird_fee', 'early_bird_deadline',
             'expected_attendees', 'countries_represented', 'highlights', 'organizer_name',
             'organizer_email', 'organizer_phone', 'organizer_website', 'registration_count',
             'speakers', 'sessions', 'registrations', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'registration_count']
 
     def get_registration_count(self, obj):
         return obj.registration_count
 
-    def get_image_url(self, obj):
+    def get_display_image_url(self, obj):
         if obj.image:
             return obj.image.url
         return obj.image_url
+
+    def get_highlights(self, obj):
+        """Return highlights as a list"""
+        return obj.highlights_list
 
     def validate_image(self, value):
         if value and value.size > 10 * 1024 * 1024:  # 10MB limit
             raise serializers.ValidationError("Image size should be less than 10MB")
         return value
 
+    def validate_date(self, value):
+        """Ensure date is properly formatted"""
+        if not value:
+            raise serializers.ValidationError("Date is required")
+        return value
+
+    def validate_title(self, value):
+        """Ensure title is not empty"""
+        if not value or not value.strip():
+            raise serializers.ValidationError("Title is required")
+        return value.strip()
+
+    def validate_location(self, value):
+        """Ensure location is not empty"""
+        if not value or not value.strip():
+            raise serializers.ValidationError("Location is required")
+        return value.strip()
+
+    def validate_description(self, value):
+        """Ensure description is not empty"""
+        if not value or not value.strip():
+            raise serializers.ValidationError("Description is required")
+        return value.strip()
+
     def create(self, validated_data):
-        image = validated_data.pop('image', None)
-        conference = Conference.objects.create(**validated_data)
-        if image:
-            conference.image.save(
-                f'conference_{conference.id}_{uuid.uuid4().hex[:6]}.jpg',
-                ContentFile(image.read()),
-                save=True
-            )
-        return conference
+        """Create conference with proper data handling"""
+        try:
+            # Handle highlights
+            if 'highlights' in validated_data:
+                highlights = validated_data['highlights']
+                if isinstance(highlights, list):
+                    validated_data['highlights'] = json.dumps(highlights)
+                elif isinstance(highlights, str):
+                    # Try to parse if it's already JSON
+                    try:
+                        json.loads(highlights)
+                    except json.JSONDecodeError:
+                        # If not valid JSON, treat as single item
+                        validated_data['highlights'] = json.dumps([highlights])
+
+            conference = Conference.objects.create(**validated_data)
+            return conference
+        except Exception as e:
+            raise serializers.ValidationError(f"Error creating conference: {str(e)}")
 
     def update(self, instance, validated_data):
-        image = validated_data.pop('image', None)
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        if image:
-            instance.image.save(
-                f'conference_{instance.id}_{uuid.uuid4().hex[:6]}.jpg',
-                ContentFile(image.read()),
-                save=True
-            )
-        instance.save()
-        return instance
+        """Update conference with proper data handling"""
+        try:
+            # Handle highlights
+            if 'highlights' in validated_data:
+                highlights = validated_data['highlights']
+                if isinstance(highlights, list):
+                    validated_data['highlights'] = json.dumps(highlights)
+                elif isinstance(highlights, str):
+                    # Try to parse if it's already JSON
+                    try:
+                        json.loads(highlights)
+                    except json.JSONDecodeError:
+                        # If not valid JSON, treat as single item
+                        validated_data['highlights'] = json.dumps([highlights])
+
+            # Update instance
+            for attr, value in validated_data.items():
+                setattr(instance, attr, value)
+            
+            instance.save()
+            return instance
+        except Exception as e:
+            raise serializers.ValidationError(f"Error updating conference: {str(e)}")
 
 class ConferenceAnalyticsSerializer(serializers.Serializer):
     total_conferences = serializers.IntegerField()

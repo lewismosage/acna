@@ -7,7 +7,7 @@ router.register(r'conferences', ConferenceViewSet, basename='conference')
 
 urlpatterns = [
     path('', include(router.urls)),
-    
+
     # Additional endpoints
     path('conferences/<int:pk>/update_status/', 
          ConferenceViewSet.as_view({'patch': 'update_status'}), 

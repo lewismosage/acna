@@ -121,54 +121,58 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
 
   // Initialize form with editing conference data
   useEffect(() => {
-    if (editingConference) {
-      setFormData({
-        title: editingConference.title || '',
-        date: editingConference.date || '',
-        time: editingConference.time || '',
-        location: editingConference.location || '',
-        venue: editingConference.venue || '',
-        type: editingConference.type || 'in_person',
-        status: editingConference.status || 'planning',
-        theme: editingConference.theme || '',
-        description: editingConference.description || '',
-        fullDescription: editingConference.description || '',
-        imageUrl: editingConference.image_url || editingConference.display_image_url || '',
-        imageFile: undefined,
-        capacity: editingConference.capacity?.toString() || '',
-        earlyBirdFee: editingConference.early_bird_fee?.toString() || '',
-        regularFee: editingConference.regular_fee?.toString() || '',
-        earlyBirdDeadline: editingConference.early_bird_deadline || '',
-        expectedAttendees: editingConference.expected_attendees?.toString() || '',
-        countriesRepresented: editingConference.countries_represented?.toString() || '',
-        organizer: {
-          name: editingConference.organizer_name || 'African Child Neurology Association (ACNA)',
-          email: editingConference.organizer_email || '',
-          phone: editingConference.organizer_phone || '',
-          website: editingConference.organizer_website || ''
-        },
-        highlights: Array.isArray(editingConference.highlights)
-          ? editingConference.highlights
-          : typeof editingConference.highlights === 'string'
-            ? JSON.parse(editingConference.highlights)
-            : ['']
-      });
+  if (editingConference) {
+    setFormData({
+      title: editingConference.title || '',
+      date: editingConference.date || '',
+      time: editingConference.time || '',
+      location: editingConference.location || '',
+      venue: editingConference.venue || '',
+      type: editingConference.type || 'in_person',
+      status: editingConference.status || 'planning',
+      theme: editingConference.theme || '',
+      description: editingConference.description || '',
+      fullDescription: editingConference.description || '',
+      imageUrl: editingConference.image_url || editingConference.display_image_url || '',
+      imageFile: undefined,
+      capacity: editingConference.capacity?.toString() || '',
+      earlyBirdFee: editingConference.early_bird_fee?.toString() || '',
+      regularFee: editingConference.regular_fee?.toString() || '',
+      earlyBirdDeadline: editingConference.early_bird_deadline || '',
+      expectedAttendees: editingConference.expected_attendees?.toString() || '',
+      countriesRepresented: editingConference.countries_represented?.toString() || '',
+      organizer: {
+        name: editingConference.organizer_name || 'African Child Neurology Association (ACNA)',
+        email: editingConference.organizer_email || '',
+        phone: editingConference.organizer_phone || '',
+        website: editingConference.organizer_website || ''
+      },
+      highlights: Array.isArray(editingConference.highlights)
+        ? editingConference.highlights
+        : typeof editingConference.highlights === 'string'
+          ? (() => {
+              try {
+                return JSON.parse(editingConference.highlights);
+              } catch {
+                return [editingConference.highlights];
+              }
+            })()
+          : ['']
+    });
 
-      // Initialize speakers with proper typing
-      if (editingConference.conference_speakers) {
-        setSpeakers(editingConference.conference_speakers.map(speaker => ({
-          ...speaker,
-          expertise: speaker.expertise || [],
-          is_keynote: speaker.is_keynote || false,
-          imageFile: undefined // Add the imageFile property
-        })));
-      }
+    // Initialize speakers - handle both field names
+    const speakersArray = editingConference.conference_speakers || editingConference.speakers || [];
+    setSpeakers(speakersArray.map(speaker => ({
+      ...speaker,
+      expertise: speaker.expertise || [],
+      is_keynote: speaker.is_keynote || false,
+      imageFile: undefined
+    })));
 
-      // Initialize sessions
-      if (editingConference.conference_sessions) {
-        setSessions(editingConference.conference_sessions);
-      }
-    } else {
+    // Initialize sessions - handle both field names  
+    const sessionsArray = editingConference.conference_sessions || editingConference.sessions || [];
+    setSessions(sessionsArray);
+  } else {
       // Reset form for new conference
       setFormData({
         title: '',
@@ -393,23 +397,24 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
   };
 
   const prepareSpeakersData = (): SpeakerCreateData[] => {
-    return speakers
-      .filter(speaker => speaker.name.trim() !== '')
-      .map(speaker => ({
-        name: speaker.name.trim(),
-        title: speaker.title?.trim() || undefined,
-        organization: speaker.organization?.trim() || undefined,
-        bio: speaker.bio?.trim() || undefined,
-        image: speaker.imageFile?.file || null,
-        image_url: !speaker.imageFile?.file ? (speaker.image_url || speaker.display_image_url) : undefined,
-        expertise: Array.isArray(speaker.expertise) 
-          ? speaker.expertise.filter(exp => exp.trim() !== '') 
-          : [],
-        is_keynote: Boolean(speaker.is_keynote),
-        email: speaker.email?.trim() || undefined,
-        linkedin: speaker.linkedin?.trim() || undefined
-      }));
-  };
+  return speakers
+    .filter(speaker => speaker.name.trim() !== '')
+    .map(speaker => ({
+      id: speaker.id || undefined,
+      name: speaker.name.trim(),
+      title: speaker.title?.trim() || undefined,
+      organization: speaker.organization?.trim() || undefined,
+      bio: speaker.bio?.trim() || undefined,
+      // Don't include File objects - only URLs
+      image_url: !speaker.imageFile?.file ? (speaker.image_url || speaker.display_image_url) : undefined,
+      expertise: Array.isArray(speaker.expertise) 
+        ? speaker.expertise.filter(exp => exp.trim() !== '') 
+        : [],
+      is_keynote: Boolean(speaker.is_keynote),
+      email: speaker.email?.trim() || undefined,
+      linkedin: speaker.linkedin?.trim() || undefined
+    }));
+};
 
   const prepareSessionsData = (): SessionCreateData[] => {
     return sessions
@@ -429,56 +434,57 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
   };
 
   const handleSubmit = async () => {
-    if (!validateCurrentStep()) {
-      return;
-    }
-  
-    try {
-      const speakersData = prepareSpeakersData();
-      const sessionsData = prepareSessionsData();
-  
-      const filteredHighlights = formData.highlights.filter(h => h.trim() !== '');
-  
-      // Ensure date is properly formatted
-      const formattedDate = formData.date ? new Date(formData.date).toISOString().split('T')[0] : '';
-  
-      const conferenceData: ConferenceCreateUpdateData = {
-        title: formData.title.trim(),
-        theme: formData.theme.trim() || undefined,
-        description: formData.fullDescription.trim() || formData.description.trim(),
-        date: formattedDate, // Use the formatted date
-        time: formData.time || undefined,
-        location: formData.location.trim(),
-        venue: formData.venue.trim() || undefined,
-        type: formData.type,
-        status: formData.status,
-        capacity: formData.capacity ? parseInt(formData.capacity) : undefined,
-        regular_fee: formData.regularFee ? parseFloat(formData.regularFee) : undefined,
-        early_bird_fee: formData.earlyBirdFee ? parseFloat(formData.earlyBirdFee) : undefined,
-        early_bird_deadline: formData.earlyBirdDeadline || undefined,
-        expected_attendees: formData.expectedAttendees ? parseInt(formData.expectedAttendees) : undefined,
-        countries_represented: formData.countriesRepresented ? parseInt(formData.countriesRepresented) : undefined,
-        highlights: filteredHighlights,
-        organizer_name: formData.organizer.name.trim(),
-        organizer_email: formData.organizer.email.trim() || undefined,
-        organizer_phone: formData.organizer.phone.trim() || undefined,
-        organizer_website: formData.organizer.website.trim() || undefined,
-        
-        // Include image data
-        image: formData.imageFile?.file || null,
-        image_url: !formData.imageFile?.file ? (formData.imageUrl || undefined) : undefined,
-        
-        // Include related data for creation
-        speakers_data: speakersData,
-        sessions_data: sessionsData
-      };
-  
-      onSave(conferenceData);
-    } catch (error) {
-      console.error('Error preparing conference data:', error);
-      setErrors(prev => ({ ...prev, general: 'Error preparing conference data. Please check all fields and try again.' }));
-    }
-  };
+  if (!validateCurrentStep()) {
+    return;
+  }
+
+  try {
+    const speakersData = prepareSpeakersData();
+    const sessionsData = prepareSessionsData();
+
+    const filteredHighlights = formData.highlights.filter(h => h.trim() !== '');
+
+    // Ensure date is properly formatted as YYYY-MM-DD
+    const formattedDate = formData.date ? formData.date : '';
+
+    const conferenceData: ConferenceCreateUpdateData = {
+      title: formData.title.trim(),
+      theme: formData.theme.trim() || undefined,
+      description: formData.fullDescription.trim() || formData.description.trim(),
+      date: formattedDate,
+      time: formData.time || undefined,
+      location: formData.location.trim(),
+      venue: formData.venue.trim() || undefined,
+      type: formData.type,
+      status: formData.status,
+      capacity: formData.capacity ? parseInt(formData.capacity) : undefined,
+      regular_fee: formData.regularFee ? parseFloat(formData.regularFee) : undefined,
+      early_bird_fee: formData.earlyBirdFee ? parseFloat(formData.earlyBirdFee) : undefined,
+      early_bird_deadline: formData.earlyBirdDeadline || undefined,
+      expected_attendees: formData.expectedAttendees ? parseInt(formData.expectedAttendees) : undefined,
+      countries_represented: formData.countriesRepresented ? parseInt(formData.countriesRepresented) : undefined,
+      highlights: filteredHighlights,
+      organizer_name: formData.organizer.name.trim(),
+      organizer_email: formData.organizer.email.trim() || undefined,
+      organizer_phone: formData.organizer.phone.trim() || undefined,
+      organizer_website: formData.organizer.website.trim() || undefined,
+      
+      // Include image data - only main conference image
+      image: formData.imageFile?.file || null,
+      image_url: !formData.imageFile?.file ? (formData.imageUrl || undefined) : undefined,
+      
+      // Include related data for creation/update
+      speakers_data: speakersData,
+      sessions_data: sessionsData
+    };
+
+    console.log('Prepared conference data:', conferenceData);
+    onSave(conferenceData);
+  } catch (error) {
+    console.error('Error preparing conference data:', error);
+    setErrors(prev => ({ ...prev, general: 'Error preparing conference data. Please check all fields and try again.' }));
+  }
+};
 
   const renderStepContent = () => {
     switch (currentStep) {
