@@ -393,8 +393,8 @@ const ConferenceDetailPage = () => {
                 {/* Description */}
                 <div>
                   <h2 className="text-2xl font-light text-gray-900 mb-4">About This Conference</h2>
-                  <p className="text-gray-700 mb-4 leading-relaxed whitespace-pre-line">
-                    {conference.description}
+                  <p className="text-gray-600 text-sm whitespace-pre-line">
+                    {conference.full_description}
                   </p>
                 </div>
 

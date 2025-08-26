@@ -11,8 +11,13 @@ import {
   Archive,
   BarChart3,
   Mail,
-  User,
-  Trash2
+  Trash2,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  ExternalLink,
+  Phone,
+  Plus
 } from 'lucide-react';
 import CreateEventModal from './CreateConferencesModal';
 import { conferencesApi } from '../../../../services/conferenceApi';
@@ -29,6 +34,7 @@ interface ConferencesTabProps {
 }
 
 const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialConferences }) => {
+  const [expandedConferences, setExpandedConferences] = useState<number[]>([]);
   const [conferences, setConferences] = useState<Conference[]>(initialConferences || []);
   const [selectedTab, setSelectedTab] = useState<'all' | 'upcoming' | 'completed' | 'registrations' | 'analytics'>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -231,6 +237,14 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
     setEditingConference(null);
   };
 
+  const toggleExpand = (id: number) => {
+    setExpandedConferences(prev => 
+      prev.includes(id) 
+        ? prev.filter(item => item !== id) 
+        : [...prev, id]
+    );
+  };
+
   const handleDeleteConference = async (conferenceId: number) => {
     if (!confirm('Are you sure you want to delete this conference? This action cannot be undone.')) {
       return;
@@ -277,6 +291,14 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
       default:
         return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
   };
 
   const renderAnalyticsTab = () => {
@@ -499,6 +521,7 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
                 onClick={() => setShowCreateModal(true)}
                 className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 flex items-center font-medium transition-colors"
               >
+                <Plus className="w-5 h-5 mr-2" />
                 Create Conference
               </button>
               <button 
@@ -624,7 +647,7 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
                                   </div>
                                   <div className="flex items-center text-gray-600 text-sm">
                                     <Globe className="w-4 h-4 mr-2 text-blue-600" />
-                                    <span className="font-medium">{conference.type.replace('_', ' ').toUpperCase()}</span>
+                                    <span className="font-medium">{conference.type?.replace('_', ' ').toUpperCase()}</span>
                                   </div>
                                 </div>
 
@@ -663,7 +686,8 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
                             </div>
                           </div>
 
-                          <p className="text-gray-600 text-sm mb-4 leading-relaxed whitespace-pre-line">
+                          {/* SHORT DESCRIPTION - shown in main card */}
+                          <p className="text-gray-700 text-sm md:text-base mb-4 md:mb-6 leading-relaxed whitespace-pre-line">
                             {conference.description}
                           </p>
 
@@ -680,7 +704,230 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
                             </div>
                           )}
 
+                          {/* Expandable Content */}
+                          {expandedConferences.includes(conference.id!) && (
+                            <div className="mt-4 pt-4 border-t border-gray-200 space-y-4">
+                              {/* FULL DESCRIPTION - shown only when expanded */}
+                              {conference.full_description && (
+                                <div className="bg-gray-50 p-4 rounded-lg">
+                                  <h4 className="font-medium text-gray-900 mb-2">Full Description</h4>
+                                  <p className="text-gray-600 text-sm whitespace-pre-line">
+                                    {conference.full_description}
+                                  </p>
+                                </div>
+                              )}
+
+                              {/* Additional Conference Details */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Conference Information */}
+                                <div className="space-y-4">
+                                  <div className="bg-gray-50 p-4 rounded-lg">
+                                    <h4 className="font-medium text-gray-900 mb-3">Event Details</h4>
+                                    <div className="space-y-2 text-sm">
+                                      {conference.start_date && (
+                                        <div className="flex items-center">
+                                          <Calendar className="w-4 h-4 mr-2 text-blue-600" />
+                                          <span>Start: {formatDate(conference.start_date)}</span>
+                                        </div>
+                                      )}
+                                      {conference.end_date && (
+                                        <div className="flex items-center">
+                                          <Calendar className="w-4 h-4 mr-2 text-blue-600" />
+                                          <span>End: {formatDate(conference.end_date)}</span>
+                                        </div>
+                                      )}
+                                      {conference.duration && (
+                                        <div className="flex items-center">
+                                          <Clock className="w-4 h-4 mr-2 text-blue-600" />
+                                          <span>Duration: {conference.duration}</span>
+                                        </div>
+                                      )}
+                                      {conference.website && (
+                                        <div className="flex items-center">
+                                          <ExternalLink className="w-4 h-4 mr-2 text-blue-600" />
+                                          <a 
+                                            href={conference.website} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="text-blue-600 hover:underline"
+                                          >
+                                            Visit Website
+                                          </a>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* Registration Information */}
+                                  {(conference.regular_fee || conference.early_bird_fee) && (
+                                    <div className="bg-blue-50 p-4 rounded-lg">
+                                      <h4 className="font-medium text-gray-900 mb-3">Registration Fees</h4>
+                                      <div className="space-y-2 text-sm">
+                                        {conference.early_bird_fee && (
+                                          <div className="flex justify-between">
+                                            <span>Early Bird:</span>
+                                            <span className="font-medium">${conference.early_bird_fee}</span>
+                                          </div>
+                                        )}
+                                        {conference.regular_fee && (
+                                          <div className="flex justify-between">
+                                            <span>Regular:</span>
+                                            <span className="font-medium">${conference.regular_fee}</span>
+                                          </div>
+                                        )}
+                                        {conference.early_bird_deadline && (
+                                          <div className="text-xs text-gray-600 mt-2">
+                                            Early bird deadline: {formatDate(conference.early_bird_deadline)}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Speakers and Organizers */}
+                                <div className="space-y-4">
+                                  {/* Speakers */}
+                                  {conference.conference_speakers && conference.conference_speakers.length > 0 && (
+                                    <div className="bg-gray-50 p-4 rounded-lg">
+                                      <h4 className="font-medium text-gray-900 mb-3">Featured Speakers</h4>
+                                      <div className="space-y-3">
+                                        {conference.conference_speakers.slice(0, 3).map((speaker, idx) => (
+                                          <div key={idx} className="flex items-center gap-3">
+                                            {speaker.image_url && (
+                                              <img 
+                                                src={speaker.image_url}
+                                                alt={speaker.name}
+                                                className="w-10 h-10 rounded-full object-cover"
+                                              />
+                                            )}
+                                            <div>
+                                              <p className="font-medium text-gray-900 text-sm">{speaker.name}</p>
+                                              <p className="text-xs text-gray-600">{speaker.title}</p>
+                                              {speaker.organization && (
+                                                <p className="text-xs text-gray-500">{speaker.organization}</p>
+                                              )}
+                                            </div>
+                                          </div>
+                                        ))}
+                                        {conference.conference_speakers.length > 3 && (
+                                          <p className="text-xs text-gray-600">
+                                            +{conference.conference_speakers.length - 3} more speakers
+                                          </p>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Contact Information */}
+                                  {(conference.organizer_email || conference.organizer_phone) && (
+                                    <div className="bg-blue-50 p-4 rounded-lg">
+                                      <h4 className="font-medium text-gray-900 mb-3">Contact Information</h4>
+                                      <div className="space-y-2 text-sm">
+                                        {conference.organizer_email && (
+                                          <div className="flex items-center">
+                                            <Mail className="w-4 h-4 mr-2 text-blue-600" />
+                                            <a 
+                                              href={`mailto:${conference.organizer_email}`}
+                                              className="text-blue-600 hover:underline"
+                                            >
+                                              {conference.organizer_email}
+                                            </a>
+                                          </div>
+                                        )}
+                                        {conference.organizer_phone && (
+                                          <div className="flex items-center">
+                                            <Phone className="w-4 h-4 mr-2 text-blue-600" />
+                                            <span>{conference.organizer_phone}</span>
+                                          </div>
+                                        )}
+                                        {conference.organizer_name && (
+                                          <div className="flex items-center">
+                                            <Users className="w-4 h-4 mr-2 text-blue-600" />
+                                            <span>{conference.organizer_name}</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Additional Information */}
+                              {(conference.agenda || conference.objectives || conference.target_audience) && (
+                                <div className="space-y-4">
+                                  {conference.objectives && (
+                                    <div className="bg-gray-50 p-4 rounded-lg">
+                                      <h4 className="font-medium text-gray-900 mb-2">Objectives</h4>
+                                      <p className="text-gray-600 text-sm whitespace-pre-line">{conference.objectives}</p>
+                                    </div>
+                                  )}
+                                  
+                                  {conference.target_audience && (
+                                    <div className="bg-gray-50 p-4 rounded-lg">
+                                      <h4 className="font-medium text-gray-900 mb-2">Target Audience</h4>
+                                      <p className="text-gray-600 text-sm whitespace-pre-line">{conference.target_audience}</p>
+                                    </div>
+                                  )}
+
+                                  {conference.agenda && (
+                                    <div className="bg-gray-50 p-4 rounded-lg">
+                                      <h4 className="font-medium text-gray-900 mb-2">Conference Agenda</h4>
+                                      <p className="text-gray-600 text-sm whitespace-pre-line">{conference.agenda}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Registration Stats (if expanded) */}
+                              {conference.registration_count !== undefined && (
+                                <div className="bg-green-50 p-4 rounded-lg">
+                                  <h4 className="font-medium text-gray-900 mb-3">Registration Statistics</h4>
+                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                                    <div>
+                                      <div className="text-lg font-bold text-green-600">{conference.registration_count}</div>
+                                      <div className="text-xs text-gray-600">Registered</div>
+                                    </div>
+                                    <div>
+                                      <div className="text-lg font-bold text-blue-600">{conference.capacity || 0}</div>
+                                      <div className="text-xs text-gray-600">Capacity</div>
+                                    </div>
+                                    <div>
+                                      <div className="text-lg font-bold text-purple-600">
+                                        {conference.capacity ? conference.capacity - conference.registration_count : 0}
+                                      </div>
+                                      <div className="text-xs text-gray-600">Available</div>
+                                    </div>
+                                    <div>
+                                      <div className="text-lg font-bold text-orange-600">
+                                        {getProgressPercentage(conference.registration_count, conference.capacity)}%
+                                      </div>
+                                      <div className="text-xs text-gray-600">Filled</div>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
                           <div className="flex flex-wrap gap-3">
+                            <button 
+                              onClick={() => toggleExpand(conference.id!)}
+                              className="border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center text-sm font-medium transition-colors"
+                            >
+                              {expandedConferences.includes(conference.id!) ? (
+                                <>
+                                  <ChevronUp className="w-4 h-4 mr-2" />
+                                  Collapse
+                                </>
+                              ) : (
+                                <>
+                                  <ChevronDown className="w-4 h-4 mr-2" />
+                                  Expand
+                                </>
+                              )}
+                            </button>
+
                             <button 
                               onClick={() => handleEditConference(conference)}
                               className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center text-sm font-medium transition-colors"

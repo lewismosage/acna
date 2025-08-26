@@ -53,7 +53,8 @@ const ConferencePage = () => {
           type: conf.type,
           status: conf.status as ConferenceStatus,
           theme: conf.theme || '',
-          description: conf.description,
+          description: conf.description, // This should be the short description
+          fullDescription: conf.full_description || conf.description, // Fallback to description if full_description doesn't exist
           imageUrl: conf.image_url || conf.display_image_url || '',
           attendees: conf.expected_attendees?.toString() || conf.registration_count?.toString() || '0',
           speakers: conf.conference_speakers?.length.toString() || conf.speakers?.length.toString() || '0',
@@ -326,7 +327,7 @@ const ConferencePage = () => {
                               </div>
                             </div>
 
-                            <p className="text-gray-700 text-sm md:text-base mb-4 md:mb-6 leading-relaxed">
+                            <p className="text-gray-700 text-sm md:text-base mb-4 md:mb-6 leading-relaxed whitespace-pre-line">
                               {conference.description}
                             </p>
 

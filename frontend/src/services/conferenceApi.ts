@@ -1,4 +1,4 @@
-// conferencesApi.ts - Updated with proper error handling
+// conferencesApi.ts - Updated with complete interface
 const API_BASE_URL = 'http://127.0.0.1:8000';
 const CONFERENCES_API_URL = `${API_BASE_URL}/api/conferences`;
 
@@ -62,17 +62,23 @@ export interface Conference {
   title: string;
   theme?: string;
   description: string;
+  full_description?: string;
   date: string;
   time?: string;
+  start_date?: string;
+  end_date?: string;
+  duration?: string;
   location: string;
   venue?: string;
   type: 'in_person' | 'virtual' | 'hybrid';
   status: 'planning' | 'registration_open' | 'coming_soon' | 'completed' | 'cancelled';
   image_url?: string;
   display_image_url?: string;
+  website?: string;
   capacity?: number;
   registration_count: number;
   regular_fee?: number;
+  registration_fee?: number;
   early_bird_fee?: number;
   early_bird_deadline?: string;
   expected_attendees?: number;
@@ -82,6 +88,12 @@ export interface Conference {
   organizer_email?: string;
   organizer_phone?: string;
   organizer_website?: string;
+  contact_email?: string;
+  contact_phone?: string;
+  contact_person?: string;
+  objectives?: string;
+  target_audience?: string;
+  agenda?: string;
   created_at?: string;
   updated_at?: string;
   conference_speakers?: Speaker[];
@@ -144,16 +156,22 @@ export interface ConferenceCreateUpdateData {
   title: string;
   theme?: string;
   description: string;
+  full_description?: string;
   date: string;
   time?: string;
+  start_date?: string;
+  end_date?: string;
+  duration?: string;
   location: string;
   venue?: string;
   type: 'in_person' | 'virtual' | 'hybrid';
   status: 'planning' | 'registration_open' | 'coming_soon' | 'completed' | 'cancelled';
   image?: File | null;
   image_url?: string;
+  website?: string;
   capacity?: number;
   regular_fee?: number;
+  registration_fee?: number;
   early_bird_fee?: number;
   early_bird_deadline?: string;
   expected_attendees?: number;
@@ -163,6 +181,12 @@ export interface ConferenceCreateUpdateData {
   organizer_email?: string;
   organizer_phone?: string;
   organizer_website?: string;
+  contact_email?: string;
+  contact_phone?: string;
+  contact_person?: string;
+  objectives?: string;
+  target_audience?: string;
+  agenda?: string;
   speakers_data?: SpeakerCreateData[];
   sessions_data?: SessionCreateData[];
 }

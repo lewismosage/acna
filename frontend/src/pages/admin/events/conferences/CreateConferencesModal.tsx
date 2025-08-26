@@ -568,7 +568,8 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
       const conferenceData: ConferenceCreateUpdateData = {
         title: formData.title.trim(),
         theme: formData.theme.trim() || undefined,
-        description: formData.fullDescription.trim() || formData.description.trim(),
+        description: formData.description.trim(),      
+        full_description: formData.fullDescription.trim(),
         date: formattedDate,
         time: formData.time || undefined,
         location: formData.location.trim(),
