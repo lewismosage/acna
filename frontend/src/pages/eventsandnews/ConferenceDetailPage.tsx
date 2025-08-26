@@ -393,7 +393,7 @@ const ConferenceDetailPage = () => {
                 {/* Description */}
                 <div>
                   <h2 className="text-2xl font-light text-gray-900 mb-4">About This Conference</h2>
-                  <p className="text-gray-700 mb-4 leading-relaxed">
+                  <p className="text-gray-700 mb-4 leading-relaxed whitespace-pre-line">
                     {conference.description}
                   </p>
                 </div>
@@ -527,6 +527,11 @@ const ConferenceDetailPage = () => {
                                 Duration: {session.duration_display}
                               </div>
                             )}
+                            {session.description && (
+                              <p className="text-gray-600 text-sm mt-2 whitespace-pre-line">
+                                {session.description}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -586,7 +591,7 @@ const ConferenceDetailPage = () => {
                           </p>
                         )}
                         <div className="bg-gray-50 p-3 rounded">
-                          <p className="text-xs text-gray-700">
+                          <p className="text-xs text-gray-700 whitespace-pre-line">
                             <span className="font-medium">Bio:</span> {speaker.bio || 'Speaker information coming soon'}
                           </p>
                         </div>

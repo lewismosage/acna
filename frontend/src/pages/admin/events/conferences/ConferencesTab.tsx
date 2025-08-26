@@ -663,7 +663,7 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
                             </div>
                           </div>
 
-                          <p className="text-gray-600 text-sm mb-4 leading-relaxed">
+                          <p className="text-gray-600 text-sm mb-4 leading-relaxed whitespace-pre-line">
                             {conference.description}
                           </p>
 

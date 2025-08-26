@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowRight, Mail, FileText, Newspaper } from 'lucide-react';
+import { ArrowRight, Mail, FileText, Newspaper, Loader } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { newsApi, NewsItem } from '../../services/newsApi';
@@ -231,8 +231,8 @@ const LatestNewsPage = () => {
 
   // Loading Spinner Component
   const LoadingSpinner = () => (
-    <div className="flex justify-center items-center py-12">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600"></div>
+    <div className="flex justify-center items-center h-64">
+          <Loader className="w-8 h-8 animate-spin text-orange-600" />
     </div>
   );
 

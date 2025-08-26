@@ -563,7 +563,7 @@ const NewsUpdatesTab: React.FC = () => {
                                 </div>
 
                                 {/* Introduction Preview */}
-                                <p className="text-gray-600 text-sm mb-4 leading-relaxed line-clamp-2">
+                                <p className="text-gray-600 text-sm mb-4 leading-relaxed line-clamp-2 whitespace-pre-line">
                                   {item.content.introduction}
                                 </p>
                               </div>
@@ -573,22 +573,18 @@ const NewsUpdatesTab: React.FC = () => {
                             {expandedNews === item.id && (
                               <div className="mt-4 pt-4 border-t border-gray-200 space-y-4">
                                 {/* Content Sections */}
-                                {item.content.sections && item.content.sections.length > 0 && (
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    {item.content.sections.map((section, index) => (
-                                      <div key={index} className="mb-4">
-                                        <h4 className="font-medium text-gray-900 mb-2">{section.heading}</h4>
-                                        <p className="text-gray-600 text-sm whitespace-pre-line">{section.content}</p>
-                                      </div>
-                                    ))}
+                                {item.content.sections.map((section, index) => (
+                                  <div key={index} className="mb-4">
+                                    <h4 className="font-medium text-gray-900 mb-2">{section.heading}</h4>
+                                    <p className="text-gray-600 text-sm whitespace-pre-line">{section.content}</p>
                                   </div>
-                                )}
+                                ))}
 
                                 {/* Conclusion */}
                                 {item.content.conclusion && (
                                   <div className="bg-gray-50 p-4 rounded-lg">
                                     <h4 className="font-medium text-gray-900 mb-2">Conclusion</h4>
-                                    <p className="text-gray-600 text-sm">{item.content.conclusion}</p>
+                                    <p className="text-gray-600 text-sm whitespace-pre-line">{item.content.conclusion}</p>
                                   </div>
                                 )}
 
@@ -611,7 +607,7 @@ const NewsUpdatesTab: React.FC = () => {
                                       </div>
                                     </div>
                                     {item.author.bio && (
-                                      <p className="text-gray-600 text-sm mt-2">{item.author.bio}</p>
+                                      <p className="text-gray-600 text-sm mt-2 whitespace-pre-line">{item.author.bio}</p>
                                     )}
                                   </div>
                                 )}

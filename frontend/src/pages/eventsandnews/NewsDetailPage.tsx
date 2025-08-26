@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { newsApi, NewsItem } from '../../services/newsApi';
 import ScrollToTop from '../../components/common/ScrollToTop';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 
 const NewsDetailPage = () => {
   const { id } = useParams();
@@ -119,17 +120,7 @@ const NewsDetailPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-flex items-center px-4 py-2 font-semibold leading-6 text-sm shadow rounded-md text-gray-500 bg-white">
-            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            Loading article...
-          </div>
-        </div>
-      </div>
+    <LoadingSpinner />
     );
   }
 
@@ -305,7 +296,7 @@ const NewsDetailPage = () => {
               {activeTab === 'article' && (
                 <div className="prose prose-lg max-w-none">
                   {/* Introduction */}
-                  <div className="text-lg leading-relaxed text-gray-700 mb-8 font-medium">
+                  <div className="text-lg leading-relaxed text-gray-700 mb-8 font-medium whitespace-pre-line">
                     {article.content.introduction}
                   </div>
 
@@ -315,7 +306,7 @@ const NewsDetailPage = () => {
                       <h2 className="text-2xl font-bold text-gray-900 mb-4">
                         {section.heading}
                       </h2>
-                      <p className="text-gray-700 leading-relaxed mb-6">
+                      <p className="text-gray-700 leading-relaxed mb-6 whitespace-pre-line">
                         {section.content}
                       </p>
                     </div>
@@ -325,7 +316,7 @@ const NewsDetailPage = () => {
                   {article.content.conclusion && (
                     <div className="bg-blue-50 p-6 rounded-lg mb-8">
                       <h3 className="text-xl font-bold text-gray-900 mb-4">Conclusion</h3>
-                      <p className="text-gray-700 leading-relaxed">
+                      <p className="text-gray-700 leading-relaxed whitespace-pre-line">
                         {article.content.conclusion}
                       </p>
                     </div>
@@ -376,7 +367,7 @@ const NewsDetailPage = () => {
                           </p>
                         )}
                         {article.author.bio && (
-                          <p className="text-gray-700 leading-relaxed">
+                          <p className="text-gray-700 leading-relaxed whitespace-pre-line">
                             {article.author.bio}
                           </p>
                         )}
