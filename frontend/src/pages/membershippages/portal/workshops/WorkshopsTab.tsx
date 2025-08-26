@@ -74,6 +74,12 @@ const WorkshopsTab = () => {
     });
   };
 
+  // Function to truncate description to approximately 2 lines
+  const getTruncatedDescription = (description: string, maxLength: number = 120) => {
+    if (description.length <= maxLength) return description;
+    return description.substring(0, maxLength).trim() + '...';
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-64">
@@ -141,13 +147,13 @@ const WorkshopsTab = () => {
       <div className="space-y-6">
         {filteredWorkshops.map((workshop) => (
           <div key={workshop.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-            {/* Workshop Header */}
+            {/* Workshop Header - Compact View */}
             <div className="p-6">
               <div className="flex flex-col lg:flex-row gap-6">
                 {/* Workshop Image */}
                 {workshop.imageUrl && (
-                  <div className="lg:w-1/4">
-                    <div className="relative h-40 lg:h-full rounded-lg overflow-hidden">
+                  <div className="lg:w-80 w-full">
+                    <div className="relative h-48 rounded-lg overflow-hidden">
                       <img
                         src={workshop.imageUrl}
                         alt={workshop.title}
@@ -167,92 +173,111 @@ const WorkshopsTab = () => {
                   </div>
                 )}
                 
-                {/* Workshop Info */}
-                <div className="flex-1">
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <h3 className="text-xl font-semibold text-gray-900 mb-2">{workshop.title}</h3>
-                    </div>
-                    <div className="text-lg font-bold text-blue-600">
-                      {workshop.price && workshop.price > 0 ? `$${workshop.price}` : 'Free'}
-                    </div>
+                {/* Workshop Info - Compact */}
+                <div className="flex-1 min-w-0">
+                  <div className="mb-4">
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">{workshop.title}</h3>
+                    {/* Truncated description - only show 2 lines */}
+                    <p className="text-gray-600 text-sm">
+                      {getTruncatedDescription(workshop.description)}
+                    </p>
                   </div>
                   
-                  <p className="text-gray-600 mb-4">{workshop.description}</p>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <div className="space-y-2">
+                  {/* Workshop details grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div className="space-y-3">
+                      <div className="flex items-center text-sm text-gray-600">
+                        <Calendar className="w-4 h-4 mr-2 text-blue-500" />
+                        <div>
+                          <div className="font-medium text-gray-900">{formatDate(workshop.date)}</div>
+                          <div className="text-gray-600">{workshop.time}</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center text-sm text-gray-600">
+                        <Clock className="w-4 h-4 mr-2 text-blue-500" />
+                        <span>Duration: {workshop.duration}</span>
+                      </div>
+                      <div className="flex items-center text-sm text-gray-600">
+                        <MapPin className="w-4 h-4 mr-2 text-blue-500" />
+                        <div>
+                          <div className="font-medium text-gray-900">{workshop.location}</div>
+                          {workshop.venue && <div className="text-gray-600">{workshop.venue}</div>}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div className="flex items-center text-sm text-gray-600">
+                        <Users className="w-4 h-4 mr-2 text-blue-500" />
+                        <span>{workshop.registered} / {workshop.capacity} registered</span>
+                      </div>
                       <div className="flex items-center text-sm text-gray-700">
-                        <User className="w-4 h-4 mr-2 text-blue-600" />
-                        <span className="font-medium">{workshop.instructor}</span>
+                        <User className="w-4 h-4 mr-2 text-blue-500" />
+                        <span>Instructor: {workshop.instructor}</span>
                       </div>
-                      <div className="flex items-center text-sm text-gray-600">
-                        <Calendar className="w-4 h-4 mr-2 text-blue-600" />
-                        {formatDate(workshop.date)}
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <div className="flex items-center text-sm text-gray-600">
-                        <Clock className="w-4 h-4 mr-2 text-blue-600" />
-                        {workshop.time} • {workshop.duration}
-                      </div>
-                      <div className="flex items-center text-sm text-gray-600">
-                        <MapPin className="w-4 h-4 mr-2 text-blue-600" />
-                        {workshop.location}
-                        {workshop.venue && <span className="ml-1">({workshop.venue})</span>}
+                      <div className="text-lg font-bold text-blue-600">
+                        {workshop.price && workshop.price > 0 ? `${workshop.price}` : 'Free'}
                       </div>
                     </div>
                   </div>
                   
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Users className="w-4 h-4 mr-1" />
-                      <span>{workshop.registered}/{workshop.capacity} participants</span>
-                    </div>
+                  {/* Action buttons */}
+                  <div className="flex gap-3">
+                    <button 
+                      className={`px-6 py-2 rounded-lg font-medium flex items-center ${
+                        workshop.status === 'Registration Open' 
+                          ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      }`}
+                      disabled={workshop.status !== 'Registration Open'}
+                    >
+                      <FileText className="w-4 h-4 mr-2" />
+                      {workshop.status === 'Registration Open' ? 'Register Now' : workshop.status}
+                    </button>
                     
-                    <div className="flex gap-3">
-                      <button 
-                        className={`px-4 py-2 rounded-lg font-medium ${
-                          workshop.status === 'Registration Open' 
-                            ? 'bg-blue-600 text-white hover:bg-blue-700' 
-                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        }`}
-                        disabled={workshop.status !== 'Registration Open'}
-                      >
-                        {workshop.status === 'Registration Open' ? 'Register Now' : workshop.status}
-                      </button>
-                      
-                      <button 
-                        onClick={() => toggleExpand(workshop.id)}
-                        className="px-3 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 flex items-center"
-                      >
-                        {expandedWorkshop === workshop.id ? (
-                          <>
-                            <ChevronUp className="w-4 h-4 mr-1" />
-                            Less Info
-                          </>
-                        ) : (
-                          <>
-                            <ChevronDown className="w-4 h-4 mr-1" />
-                            More Info
-                          </>
-                        )}
-                      </button>
-                    </div>
+                    <button 
+                      className="px-4 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 flex items-center"
+                    >
+                      <Users className="w-4 h-4 mr-2" />
+                      Share
+                    </button>
+                    
+                    <button 
+                      onClick={() => toggleExpand(workshop.id)}
+                      className="px-4 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 flex items-center"
+                    >
+                      {expandedWorkshop === workshop.id ? (
+                        <>
+                          <ChevronUp className="w-4 h-4 mr-2" />
+                          View Less
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown className="w-4 h-4 mr-2" />
+                          View More
+                        </>
+                      )}
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
             
-            {/* Expanded Details */}
+            {/* Expanded Details - Only shown when expanded */}
             {expandedWorkshop === workshop.id && (
               <div className="border-t border-gray-200 p-6 bg-gray-50">
+                {/* Full description */}
+                <div className="mb-6">
+                  <h4 className="text-lg font-semibold text-gray-900 mb-3">Full Description</h4>
+                  <div className="bg-white p-4 rounded-lg border border-gray-200">
+                    <p className="text-gray-700 text-sm whitespace-pre-line">{workshop.description}</p>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  {/* Left Column - Details */}
+                  {/* Left Column - Prerequisites */}
                   <div className="space-y-6">
-                    {/* Learning Objectives */}
-                    {workshop.prerequisites.length > 0 && (
+                    {workshop.prerequisites && workshop.prerequisites.length > 0 && (
                       <div>
                         <h4 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
                           <Target className="w-5 h-5 mr-2 text-blue-600" />
@@ -270,10 +295,9 @@ const WorkshopsTab = () => {
                     )}
                   </div>
                   
-                  {/* Right Column - Requirements */}
+                  {/* Right Column - Materials */}
                   <div className="space-y-6">
-                    {/* Materials Included */}
-                    {workshop.materials.length > 0 && (
+                    {workshop.materials && workshop.materials.length > 0 && (
                       <div>
                         <h4 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
                           <FileText className="w-5 h-5 mr-2 text-blue-600" />

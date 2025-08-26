@@ -20,6 +20,7 @@ import {
   Plus
 } from 'lucide-react';
 import CreateEventModal from './CreateConferencesModal';
+import AlertModal from '../../../../components/common/AlertModal';
 import { conferencesApi } from '../../../../services/conferenceApi';
 import type { 
   Conference,
@@ -43,6 +44,22 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
   const [error, setError] = useState<string | null>(null);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [analyticsData, setAnalyticsData] = useState<ConferenceAnalytics | null>(null);
+  
+  // Alert modal state
+  const [alertModal, setAlertModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: 'info' | 'warning' | 'error' | 'success' | 'confirm';
+    onConfirm?: () => void;
+    confirmText?: string;
+    cancelText?: string;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info'
+  });
 
   // Fetch conferences from backend
   useEffect(() => {
@@ -117,6 +134,35 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
     }
   }, [selectedTab]);
 
+  // Helper function to show alert modal
+  const showAlert = (
+    title: string, 
+    message: string, 
+    type: 'info' | 'warning' | 'error' | 'success' | 'confirm' = 'info', 
+    onConfirm?: () => void,
+    confirmText?: string,
+    cancelText?: string
+  ) => {
+    setAlertModal({
+      isOpen: true,
+      title,
+      message,
+      type,
+      onConfirm,
+      confirmText,
+      cancelText
+    });
+  };
+
+  const closeAlert = () => {
+    setAlertModal({
+      isOpen: false,
+      title: '',
+      message: '',
+      type: 'info'
+    });
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'registration_open':
@@ -172,9 +218,16 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
           conf.id === conferenceId ? updatedConference : conf
         )
       );
+      
+      // Show success message
+      showAlert(
+        'Status Updated',
+        `Conference status has been successfully updated to "${getStatusDisplayName(newStatus)}".`,
+        'success'
+      );
     } catch (err: any) {
       const errorMessage = err?.error || err?.message || 'Failed to update conference status.';
-      setError(errorMessage);
+      showAlert('Update Failed', errorMessage, 'error');
       console.error('Error updating status:', err);
     }
   };
@@ -196,9 +249,21 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
             conf.id === editingConference.id ? result : conf
           )
         );
+        
+        showAlert(
+          'Conference Updated',
+          `"${result.title}" has been successfully updated.`,
+          'success'
+        );
       } else {
         result = await conferencesApi.create(conferenceData);
         setConferences(prev => [result, ...prev]);
+        
+        showAlert(
+          'Conference Created',
+          `"${result.title}" has been successfully created.`,
+          'success'
+        );
       }
       
       setShowCreateModal(false);
@@ -226,7 +291,7 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
         errorMessage = err;
       }
       
-      setError(errorMessage);
+      showAlert('Save Failed', errorMessage, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -245,19 +310,34 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
     );
   };
 
-  const handleDeleteConference = async (conferenceId: number) => {
-    if (!confirm('Are you sure you want to delete this conference? This action cannot be undone.')) {
-      return;
-    }
-
-    try {
-      await conferencesApi.delete(conferenceId);
-      setConferences(prev => prev.filter(conf => conf.id !== conferenceId));
-    } catch (err: any) {
-      const errorMessage = err?.error || err?.message || 'Failed to delete conference.';
-      setError(errorMessage);
-      console.error('Error deleting conference:', err);
-    }
+  // Updated delete function to use AlertModal instead of confirm()
+  const handleDeleteConference = (conferenceId: number) => {
+    const conference = conferences.find(c => c.id === conferenceId);
+    const conferenceName = conference?.title || 'this conference';
+    
+    showAlert(
+      'Delete Conference',
+      `Are you sure you want to delete "${conferenceName}"?\n\nThis action cannot be undone and will permanently remove all conference data, including registrations and associated information.`,
+      'confirm',
+      async () => {
+        try {
+          await conferencesApi.delete(conferenceId);
+          setConferences(prev => prev.filter(conf => conf.id !== conferenceId));
+          
+          showAlert(
+            'Conference Deleted',
+            `"${conferenceName}" has been successfully deleted.`,
+            'success'
+          );
+        } catch (err: any) {
+          const errorMessage = err?.error || err?.message || 'Failed to delete conference.';
+          showAlert('Delete Failed', errorMessage, 'error');
+          console.error('Error deleting conference:', err);
+        }
+      },
+      'Delete Conference',
+      'Cancel'
+    );
   };
 
   const getProgressPercentage = (registered: number, capacity?: number) => {
@@ -494,6 +574,19 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({ conferences: initialCon
 
   return (
     <div className="space-y-6">
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        onClose={closeAlert}
+        onConfirm={alertModal.onConfirm}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+        confirmText={alertModal.confirmText}
+        cancelText={alertModal.cancelText}
+        showCancel={!!alertModal.onConfirm}
+      />
+
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
           <span className="block sm:inline">{error}</span>
