@@ -47,6 +47,7 @@ class NewsItem(models.Model):
     
     # Content
     introduction = models.TextField()
+    sections = models.TextField(blank=True, help_text="Stores sections as JSON")
     conclusion = models.TextField(blank=True)
     
     # Tags (stored as comma-separated values)

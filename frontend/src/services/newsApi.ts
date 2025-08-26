@@ -138,6 +138,7 @@ export const newsApi = {
   },
 
   update: async (id: number, data: CreateNewsInput): Promise<NewsItem> => {
+   // console.log('Sending update data:', JSON.stringify(data, null, 2));
     const response = await fetch(`${NEWS_API_URL}/${id}/`, {
       method: 'PATCH',
       headers: {
@@ -148,6 +149,7 @@ export const newsApi = {
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      console.error('Update error details:', errorData);
       throw errorData;
     }
     return response.json();

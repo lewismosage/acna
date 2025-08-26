@@ -248,41 +248,54 @@ const CreateNewsModal: React.FC<CreateNewsModalProps> = ({ isOpen, onClose, onSa
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  e.preventDefault();
+  
+  if (!validateForm()) {
+    return;
+  }
+  
+  setIsSubmitting(true);
+  
+  try {
+    // Upload images if any
+    const uploadedImages = await uploadImages();
     
-    if (!validateForm()) {
-      return;
+    // Prepare the news item data for API - ensure proper structure
+    const newsItemData: ApiCreateNewsInput = {
+      title: formData.title,
+      subtitle: formData.subtitle,
+      type: formData.type,
+      status: formData.status,
+      category: formData.category,
+      date: formData.date,
+      readTime: formData.readTime,
+      imageUrl: uploadedImages.imageUrl || formData.imageUrl,
+      content: {
+        ...formData.content,
+        sections: formData.content.sections.filter(s => s.heading || s.content)
+      },
+      author: formData.author ? {
+        ...formData.author,
+        imageUrl: uploadedImages.authorImageUrl || formData.author.imageUrl || ''
+      } : undefined,
+      tags: formData.tags,
+      source: formData.source || undefined, 
+      contact: formData.contact || undefined,
+      isFeatured: formData.isFeatured
+    };
+    
+    // Clean up empty objects
+    if (newsItemData.author && Object.values(newsItemData.author).every(val => !val)) {
+      delete newsItemData.author;
     }
     
-    setIsSubmitting(true);
+    if (newsItemData.source && Object.values(newsItemData.source).every(val => !val)) {
+      delete newsItemData.source;
+    }
     
-    try {
-      // Upload images if any
-      const uploadedImages = await uploadImages();
-      
-      // Prepare the news item data for API
-      const newsItemData: ApiCreateNewsInput = {
-        title: formData.title,
-        subtitle: formData.subtitle,
-        type: formData.type,
-        status: formData.status,
-        category: formData.category,
-        date: formData.date,
-        readTime: formData.readTime,
-        imageUrl: uploadedImages.imageUrl || formData.imageUrl,
-        content: {
-          ...formData.content,
-          sections: formData.content.sections.filter(s => s.heading || s.content)
-        },
-        author: formData.author ? {
-          ...formData.author,
-          imageUrl: uploadedImages.authorImageUrl || formData.author.imageUrl || ''
-        } : undefined,
-        tags: formData.tags,
-        source: formData.source,
-        contact: formData.contact,
-        isFeatured: formData.isFeatured
-      };
+    if (newsItemData.contact && Object.values(newsItemData.contact).every(val => !val)) {
+      delete newsItemData.contact;
+    }
       
       // Create or update news item
       let savedNews: NewsItem;

@@ -38,10 +38,15 @@ class NewsItemSerializer(serializers.ModelSerializer):
         return obj.tags_list
     
     def get_content(self, obj):
-        # Since your frontend expects a structured content object
+        # Parse sections from JSON
+        try:
+            sections = json.loads(obj.sections) if obj.sections else []
+        except json.JSONDecodeError:
+            sections = []
+        
         return {
             'introduction': obj.introduction,
-            'sections': [],  # You can add logic here if you store sections differently
+            'sections': sections,
             'conclusion': obj.conclusion or ''
         }
     
@@ -151,6 +156,8 @@ class CreateNewsSerializer(serializers.ModelSerializer):
         if content_data:
             validated_data['introduction'] = content_data.get('introduction', '')
             validated_data['conclusion'] = content_data.get('conclusion', '')
+            # Store sections as JSON in a text field
+            validated_data['sections'] = json.dumps(content_data.get('sections', []))
         
         # Handle author data
         if author_data:
@@ -211,6 +218,8 @@ class CreateNewsSerializer(serializers.ModelSerializer):
         if content_data:
             instance.introduction = content_data.get('introduction', instance.introduction)
             instance.conclusion = content_data.get('conclusion', instance.conclusion)
+            # Update sections
+            instance.sections = json.dumps(content_data.get('sections', json.loads(instance.sections or '[]')))
         
         # Handle author data
         if author_data:
