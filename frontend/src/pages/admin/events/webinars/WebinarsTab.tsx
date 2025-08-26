@@ -25,7 +25,10 @@ import {
   TrendingUp,
   Eye as EyeIcon,
   Download,
-  FileText
+  FileText,
+  ChevronDown,
+  ChevronUp,
+  Plus
 } from 'lucide-react';
 
 type WebinarStatus = 'Planning' | 'Registration Open' | 'Live' | 'Completed' | 'Cancelled';
@@ -35,6 +38,7 @@ export interface Webinar {
   id: number;
   title: string;
   description: string;
+  full_description?: string;
   category: string;
   date: string;
   time: string;
@@ -118,6 +122,7 @@ const WebinarsTab: React.FC<WebinarsTabProps> = ({ webinars: initialWebinars = [
   const [editingWebinar, setEditingWebinar] = useState<Webinar | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [analyticsData, setAnalyticsData] = useState<WebinarAnalytics | null>(null);
+  const [expandedWebinars, setExpandedWebinars] = useState<number[]>([]);
 
   // Load webinars on component mount
   useEffect(() => {
@@ -166,6 +171,22 @@ const WebinarsTab: React.FC<WebinarsTabProps> = ({ webinars: initialWebinars = [
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper function to truncate text to two sentences
+  const truncateToTwoSentences = (text: string): { truncated: string; hasMore: boolean } => {
+    if (!text) return { truncated: '', hasMore: false };
+    
+    // Split by sentence endings (., !, ?)
+    const sentences = text.match(/[^\.!?]+[\.!?]+/g) || [];
+    
+    if (sentences.length <= 2) {
+      return { truncated: text, hasMore: false };
+    }
+    
+    // Take first two sentences
+    const truncated = sentences.slice(0, 2).join(' ').trim();
+    return { truncated, hasMore: true };
   };
 
   const getStatusColor = (status: WebinarStatus) => {
@@ -308,11 +329,19 @@ const WebinarsTab: React.FC<WebinarsTabProps> = ({ webinars: initialWebinars = [
     }
   };
 
+  const toggleExpand = (id: number) => {
+    setExpandedWebinars(prev => 
+      prev.includes(id) 
+        ? prev.filter(item => item !== id) 
+        : [...prev, id]
+    );
+  };
+
   const getProgressPercentage = (registered: number, capacity: number) => {
     return Math.round((registered / capacity) * 100);
   };
 
-  // Helper function to safely render array data - FIXED TYPE ISSUE
+  // Helper function to safely render array data
   const safeArrayJoin = (arr: any[], key?: string, limit?: number): string => {
     if (!Array.isArray(arr) || arr.length === 0) return 'None';
     
@@ -329,7 +358,6 @@ const WebinarsTab: React.FC<WebinarsTabProps> = ({ webinars: initialWebinars = [
       values = arr.map(item => {
         if (typeof item === 'string') return item;
         if (typeof item === 'object' && item !== null) {
-          // Try different possible property names
           return item.name || item.language || item.audience || item.objective || '';
         }
         return '';
@@ -341,6 +369,17 @@ const WebinarsTab: React.FC<WebinarsTabProps> = ({ webinars: initialWebinars = [
     }
     
     return values.join(', ') || 'None';
+  };
+
+  // Function to render text with line breaks
+  const renderWithLineBreaks = (text: string) => {
+    if (!text) return null;
+    return text.split('\n').map((line, index) => (
+      <React.Fragment key={index}>
+        {line}
+        {index < text.split('\n').length - 1 && <br />}
+      </React.Fragment>
+    ));
   };
 
   const filteredWebinars = webinars.filter(webinar => {
@@ -549,6 +588,7 @@ const WebinarsTab: React.FC<WebinarsTabProps> = ({ webinars: initialWebinars = [
                 onClick={() => setShowCreateModal(true)}
                 className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 flex items-center font-medium transition-colors"
               >
+                <Plus className="w-5 h-5 mr-2" />
                 Create Webinar
               </button>
               <button 
@@ -653,7 +693,7 @@ const WebinarsTab: React.FC<WebinarsTabProps> = ({ webinars: initialWebinars = [
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getPaymentStatusColor(registration.paymentStatus)}`}>
                               {registration.paymentStatus}
-                              {registration.amount && ` ($${registration.amount})`}
+                              {registration.amount && ` (${registration.amount})`}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -708,193 +748,299 @@ const WebinarsTab: React.FC<WebinarsTabProps> = ({ webinars: initialWebinars = [
             /* Webinars List */
             <div className="space-y-6">
               {filteredWebinars.length > 0 ? (
-                filteredWebinars.map((webinar) => (
-                  <div key={webinar.id} className="bg-white border border-gray-200 rounded-lg hover:shadow-lg transition-shadow">
-                    <div className="flex flex-col lg:flex-row">
-                      {/* Webinar Image */}
-                      <div className="lg:w-1/4">
-                        <div className="relative">
-                          <img
-                            src={webinar.imageUrl || '/api/placeholder/300/200'}
-                            alt={webinar.title}
-                            className="w-full h-48 lg:h-full object-cover rounded-t-lg lg:rounded-l-lg lg:rounded-t-none"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.src = '/api/placeholder/300/200';
-                            }}
-                          />
-                          <div className="absolute top-3 left-3">
-                            <span className={`px-2 py-1 rounded-full text-xs font-bold border ${getStatusColor(webinar.status)} flex items-center`}>
-                              {getStatusIcon(webinar.status)}
-                              <span className="ml-1">{webinar.status}</span>
-                            </span>
-                          </div>
-                          {webinar.isFeatured && (
-                            <div className="absolute top-3 right-3">
-                              <Star className="w-5 h-5 text-yellow-500 fill-current" />
-                            </div>
-                          )}
-                          <div className="absolute bottom-3 right-3">
-                            <span className="bg-black bg-opacity-75 text-white px-2 py-1 rounded text-xs font-medium">
-                              {webinar.type}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
+                filteredWebinars.map((webinar) => {
+                  const isExpanded = expandedWebinars.includes(webinar.id);
+                  const { truncated: truncatedDescription, hasMore } = truncateToTwoSentences(webinar.description);
 
-                      {/* Webinar Details */}
-                      <div className="lg:w-3/4 p-6">
-                        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4 mb-4">
-                          <div className="flex-1">
-                            <h3 className="text-xl font-bold text-gray-900 mb-2 leading-tight">
-                              {webinar.title}
-                            </h3>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-                              <div className="space-y-2">
-                                <div className="flex items-center text-gray-600 text-sm">
-                                  <Calendar className="w-4 h-4 mr-2 text-purple-600" />
-                                  <span className="font-medium">{webinar.date}</span>
-                                </div>
-                                <div className="flex items-center text-gray-600 text-sm">
-                                  <Clock className="w-4 h-4 mr-2 text-purple-600" />
-                                  <span className="font-medium">{webinar.time} ({webinar.duration})</span>
-                                </div>
-                                <div className="flex items-center text-gray-600 text-sm">
-                                  <Tag className="w-4 h-4 mr-2 text-purple-600" />
-                                  <span className="font-medium">{webinar.category}</span>
-                                </div>
-                              </div>
-
-                              <div className="space-y-2">
-                                <div className="flex items-center text-gray-600 text-sm">
-                                  <Languages className="w-4 h-4 mr-2 text-purple-600" />
-                                  <span>{safeArrayJoin(webinar.languages, 'language', 2)}</span>
-                                </div>
-                                <div className="flex items-center text-gray-600 text-sm">
-                                  <Target className="w-4 h-4 mr-2 text-purple-600" />
-                                  <span>{safeArrayJoin(webinar.targetAudience, 'audience', 2)}</span>
-                                </div>
-                                <div className="flex items-center text-gray-600 text-sm">
-                                  <User className="w-4 h-4 mr-2 text-purple-600" />
-                                  <span>{(webinar.speakers || []).length} speaker{(webinar.speakers || []).length > 1 ? 's' : ''}</span>
-                                </div>
-                              </div>
+                  return (
+                    <div key={webinar.id} className="bg-white border border-gray-200 rounded-lg hover:shadow-lg transition-shadow">
+                      <div className="flex flex-col lg:flex-row">
+                        {/* Webinar Image */}
+                        <div className="lg:w-1/4">
+                          <div className="relative">
+                            <img
+                              src={webinar.imageUrl || '/api/placeholder/300/200'}
+                              alt={webinar.title}
+                              className="w-full h-48 lg:h-full object-cover rounded-t-lg lg:rounded-l-lg lg:rounded-t-none"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = '/api/placeholder/300/200';
+                              }}
+                            />
+                            <div className="absolute top-3 left-3">
+                              <span className={`px-2 py-1 rounded-full text-xs font-bold border ${getStatusColor(webinar.status)} flex items-center`}>
+                                {getStatusIcon(webinar.status)}
+                                <span className="ml-1">{webinar.status}</span>
+                              </span>
                             </div>
-                            
-                            {/* Registration Progress */}
-                            {webinar.registrationCount !== undefined && webinar.capacity && (
-                              <div className="mb-4">
-                                <div className="flex justify-between items-center mb-1">
-                                  <span className="text-sm font-medium text-gray-700">Registration Progress</span>
-                                  <span className="text-sm text-gray-600">
-                                    {webinar.registrationCount} / {webinar.capacity} ({getProgressPercentage(webinar.registrationCount, webinar.capacity)}%)
-                                  </span>
-                                </div>
-                                <div className="w-full bg-gray-200 rounded-full h-2">
-                                  <div 
-                                    className="bg-purple-600 h-2 rounded-full" 
-                                    style={{ width: `${getProgressPercentage(webinar.registrationCount, webinar.capacity)}%` }}
-                                  ></div>
-                                </div>
+                            {webinar.isFeatured && (
+                              <div className="absolute top-3 right-3">
+                                <Star className="w-5 h-5 text-yellow-500 fill-current" />
                               </div>
                             )}
-
-                            {/* Speakers */}
-                            <div className="mb-4">
-                              <h4 className="font-semibold text-gray-900 text-sm mb-2">Speakers:</h4>
-                              <div className="space-y-1">
-                                {(webinar.speakers || []).map((speaker, index) => (
-                                  <div key={index} className="text-sm">
-                                    <span className="font-medium text-gray-900">{speaker.name}, {speaker.credentials}</span>
-                                    <span className="text-gray-600 ml-2">{speaker.affiliation}</span>
-                                  </div>
-                                ))}
-                              </div>
+                            <div className="absolute bottom-3 right-3">
+                              <span className="bg-black bg-opacity-75 text-white px-2 py-1 rounded text-xs font-medium">
+                                {webinar.type}
+                              </span>
                             </div>
                           </div>
                         </div>
 
-                        <p className="text-gray-600 text-sm mb-4 leading-relaxed">
-                          {webinar.description}
-                        </p>
+                        {/* Webinar Details */}
+                        <div className="lg:w-3/4 p-6">
+                          <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4 mb-4">
+                            <div className="flex-1">
+                              <h3 className="text-xl font-bold text-gray-900 mb-2 leading-tight">
+                                {webinar.title}
+                              </h3>
+                              
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                                <div className="space-y-2">
+                                  <div className="flex items-center text-gray-600 text-sm">
+                                    <Calendar className="w-4 h-4 mr-2 text-purple-600" />
+                                    <span className="font-medium">{webinar.date}</span>
+                                  </div>
+                                  <div className="flex items-center text-gray-600 text-sm">
+                                    <Clock className="w-4 h-4 mr-2 text-purple-600" />
+                                    <span className="font-medium">{webinar.time} ({webinar.duration})</span>
+                                  </div>
+                                  <div className="flex items-center text-gray-600 text-sm">
+                                    <Tag className="w-4 h-4 mr-2 text-purple-600" />
+                                    <span className="font-medium">{webinar.category}</span>
+                                  </div>
+                                </div>
 
-                        {/* Tags */}
-                        <div className="flex flex-wrap gap-2 mb-4">
-                          {(webinar.tags || []).map((tag, index) => (
-                            <span key={index} className="bg-purple-100 text-purple-800 px-2 py-1 text-xs rounded">
-                              {typeof tag === 'string' ? tag : ''}
-                            </span>
-                          ))}
-                        </div>
+                                <div className="space-y-2">
+                                  <div className="flex items-center text-gray-600 text-sm">
+                                    <Languages className="w-4 h-4 mr-2 text-purple-600" />
+                                    <span>{safeArrayJoin(webinar.languages, 'language', 2)}</span>
+                                  </div>
+                                  <div className="flex items-center text-gray-600 text-sm">
+                                    <Target className="w-4 h-4 mr-2 text-purple-600" />
+                                    <span>{safeArrayJoin(webinar.targetAudience, 'audience', 2)}</span>
+                                  </div>
+                                  <div className="flex items-center text-gray-600 text-sm">
+                                    <User className="w-4 h-4 mr-2 text-purple-600" />
+                                    <span>{(webinar.speakers || []).length} speaker{(webinar.speakers || []).length > 1 ? 's' : ''}</span>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              {/* Registration Progress */}
+                              {webinar.registrationCount !== undefined && webinar.capacity && (
+                                <div className="mb-4">
+                                  <div className="flex justify-between items-center mb-1">
+                                    <span className="text-sm font-medium text-gray-700">Registration Progress</span>
+                                    <span className="text-sm text-gray-600">
+                                      {webinar.registrationCount} / {webinar.capacity} ({getProgressPercentage(webinar.registrationCount, webinar.capacity)}%)
+                                    </span>
+                                  </div>
+                                  <div className="w-full bg-gray-200 rounded-full h-2">
+                                    <div 
+                                      className="bg-purple-600 h-2 rounded-full" 
+                                      style={{ width: `${getProgressPercentage(webinar.registrationCount, webinar.capacity)}%` }}
+                                    ></div>
+                                  </div>
+                                </div>
+                              )}
 
-                        {/* Admin Actions */}
-                        <div className="flex flex-wrap gap-3">
-                          <button 
-                            onClick={() => handleEditWebinar(webinar)}
-                            className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 flex items-center text-sm font-medium transition-colors"
-                          >
-                            <Edit3 className="w-4 h-4 mr-2" />
-                            Edit Details
-                          </button>
-
-                          <button className="border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center text-sm font-medium transition-colors">
-                            <Mail className="w-4 h-4 mr-2" />
-                            Email Registrants
-                          </button>
-
-                          {webinar.status === 'Completed' && (
-                            <>
-                              <button className="border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center text-sm font-medium transition-colors">
-                                <Upload className="w-4 h-4 mr-2" />
-                                Upload Recording
-                              </button>
-                              <button className="border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center text-sm font-medium transition-colors">
-                                <BookOpen className="w-4 h-4 mr-2" />
-                                Upload Slides
-                              </button>
-                            </>
-                          )}
-
-                          <div className="relative">
-                            <select
-                              value={webinar.status}
-                              onChange={(e) => handleStatusChange(webinar.id, e.target.value as WebinarStatus)}
-                              className="border border-gray-300 px-3 py-2 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                            >
-                              <option value="Planning">Planning</option>
-                              <option value="Registration Open">Registration Open</option>
-                              <option value="Live">Mark as Live</option>
-                              <option value="Completed">Mark as Completed</option>
-                              <option value="Cancelled">Cancel</option>
-                            </select>
+                              {/* Speakers */}
+                              <div className="mb-4">
+                                <h4 className="font-semibold text-gray-900 text-sm mb-2">Speakers:</h4>
+                                <div className="space-y-1">
+                                  {(webinar.speakers || []).map((speaker, index) => (
+                                    <div key={index} className="text-sm">
+                                      <span className="font-medium text-gray-900">{speaker.name}, {speaker.credentials}</span>
+                                      <span className="text-gray-600 ml-2">{speaker.affiliation}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
                           </div>
 
-                          <button 
-                            onClick={() => handleToggleFeatured(webinar.id)}
-                            className={`border px-4 py-2 rounded-lg flex items-center text-sm font-medium transition-colors ${
-                              webinar.isFeatured 
-                                ? 'border-yellow-300 bg-yellow-50 text-yellow-800 hover:bg-yellow-100' 
-                                : 'border-gray-300 hover:bg-gray-50'
-                            }`}
-                          >
-                            <Star className={`w-4 h-4 mr-2 ${webinar.isFeatured ? 'fill-current' : ''}`} />
-                            {webinar.isFeatured ? 'Unfeature' : 'Feature'}
-                          </button>
-                        </div>
+                          {/* TRUNCATED DESCRIPTION - shows only when NOT expanded */}
+                          {!isExpanded && (
+                            <div className="mb-4">
+                              <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-line">
+                                {renderWithLineBreaks(truncatedDescription)}
+                              </p>
+                              {hasMore && (
+                                <button
+                                  onClick={() => toggleExpand(webinar.id)}
+                                  className="text-purple-600 hover:text-purple-800 text-sm font-medium mt-1"
+                                >
+                                  Read more...
+                                </button>
+                              )}
+                            </div>
+                          )}
 
-                        {/* Metadata */}
-                        <div className="mt-4 pt-4 border-t border-gray-200">
-                          <div className="flex flex-wrap gap-4 text-xs text-gray-500">
-                            <span>Created: {webinar.createdAt}</span>
-                            <span>Last Updated: {webinar.updatedAt}</span>
-                            <span>ID: #{webinar.id}</span>
+                          {/* Tags */}
+                          <div className="flex flex-wrap gap-2 mb-4">
+                            {(webinar.tags || []).map((tag, index) => (
+                              <span key={index} className="bg-purple-100 text-purple-800 px-2 py-1 text-xs rounded">
+                                {typeof tag === 'string' ? tag : ''}
+                              </span>
+                            ))}
+                          </div>
+
+                          {/* Expandable Content */}
+                          {isExpanded && (
+                            <div className="mt-4 pt-4 border-t border-gray-200 space-y-4">
+                              {/* FULL DESCRIPTION */}
+                              <div className="bg-gray-50 p-4 rounded-lg">
+                                <h4 className="font-medium text-gray-900 mb-2">Full Description</h4>
+                                <p className="text-gray-600 text-sm whitespace-pre-line">
+                                  {renderWithLineBreaks(webinar.full_description || webinar.description)}
+                                </p>
+                              </div>
+
+                              {/* Learning Objectives */}
+                              {webinar.learningObjectives && webinar.learningObjectives.length > 0 && (
+                                <div className="bg-blue-50 p-4 rounded-lg">
+                                  <h4 className="font-medium text-gray-900 mb-2">Learning Objectives</h4>
+                                  <ul className="text-gray-600 text-sm list-disc list-inside space-y-1">
+                                    {webinar.learningObjectives.map((objective, index) => (
+                                      <li key={index}>{objective}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+
+                              {/* Additional Details */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* Links */}
+                                {(webinar.registrationLink || webinar.recordingLink || webinar.slidesLink) && (
+                                  <div className="bg-white p-4 rounded-lg border border-gray-200">
+                                    <h4 className="font-medium text-gray-900 mb-2">Links</h4>
+                                    <div className="space-y-2 text-sm">
+                                      {webinar.registrationLink && (
+                                        <div>
+                                          <span className="font-medium">Registration: </span>
+                                          <a href={webinar.registrationLink} target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:underline">
+                                            {webinar.registrationLink}
+                                          </a>
+                                        </div>
+                                      )}
+                                      {webinar.recordingLink && (
+                                        <div>
+                                          <span className="font-medium">Recording: </span>
+                                          <a href={webinar.recordingLink} target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:underline">
+                                            {webinar.recordingLink}
+                                          </a>
+                                        </div>
+                                      )}
+                                      {webinar.slidesLink && (
+                                        <div>
+                                          <span className="font-medium">Slides: </span>
+                                          <a href={webinar.slidesLink} target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:underline">
+                                            {webinar.slidesLink}
+                                          </a>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Additional Info */}
+                                <div className="bg-white p-4 rounded-lg border border-gray-200">
+                                  <h4 className="font-medium text-gray-900 mb-2">Additional Information</h4>
+                                  <div className="space-y-2 text-sm text-gray-600">
+                                    <div>
+                                      <span className="font-medium">Created: </span>
+                                      {webinar.createdAt}
+                                    </div>
+                                    <div>
+                                      <span className="font-medium">Updated: </span>
+                                      {webinar.updatedAt}
+                                    </div>
+                                    <div>
+                                      <span className="font-medium">ID: </span>
+                                      #{webinar.id}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Admin Actions */}
+                          <div className="flex flex-wrap gap-3">
+                            <button 
+                              onClick={() => toggleExpand(webinar.id)}
+                              className="border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center text-sm font-medium transition-colors"
+                            >
+                              {isExpanded ? (
+                                <>
+                                  <ChevronUp className="w-4 h-4 mr-2" />
+                                  Collapse
+                                </>
+                              ) : (
+                                <>
+                                  <ChevronDown className="w-4 h-4 mr-2" />
+                                  Expand
+                                </>
+                              )}
+                            </button>
+
+                            <button 
+                              onClick={() => handleEditWebinar(webinar)}
+                              className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 flex items-center text-sm font-medium transition-colors"
+                            >
+                              <Edit3 className="w-4 h-4 mr-2" />
+                              Edit Details
+                            </button>
+
+                            <button className="border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center text-sm font-medium transition-colors">
+                              <Mail className="w-4 h-4 mr-2" />
+                              Email Registrants
+                            </button>
+
+                            {webinar.status === 'Completed' && (
+                              <>
+                                <button className="border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center text-sm font-medium transition-colors">
+                                  <Upload className="w-4 h-4 mr-2" />
+                                  Upload Recording
+                                </button>
+                                <button className="border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center text-sm font-medium transition-colors">
+                                  <BookOpen className="w-4 h-4 mr-2" />
+                                  Upload Slides
+                                </button>
+                              </>
+                            )}
+
+                            <div className="relative">
+                              <select
+                                value={webinar.status}
+                                onChange={(e) => handleStatusChange(webinar.id, e.target.value as WebinarStatus)}
+                                className="border border-gray-300 px-3 py-2 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                              >
+                                <option value="Planning">Planning</option>
+                                <option value="Registration Open">Registration Open</option>
+                                <option value="Live">Mark as Live</option>
+                                <option value="Completed">Mark as Completed</option>
+                                <option value="Cancelled">Cancel</option>
+                              </select>
+                            </div>
+
+                            <button 
+                              onClick={() => handleToggleFeatured(webinar.id)}
+                              className={`border px-4 py-2 rounded-lg flex items-center text-sm font-medium transition-colors ${
+                                webinar.isFeatured 
+                                  ? 'border-yellow-300 bg-yellow-50 text-yellow-800 hover:bg-yellow-100' 
+                                  : 'border-gray-300 hover:bg-gray-50'
+                              }`}
+                            >
+                              <Star className={`w-4 h-4 mr-2 ${webinar.isFeatured ? 'fill-current' : ''}`} />
+                              {webinar.isFeatured ? 'Unfeature' : 'Feature'}
+                            </button>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               ) : (
                 <div className="text-center py-12">
                   <Video className="w-16 h-16 text-gray-300 mx-auto mb-4" />

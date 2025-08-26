@@ -281,10 +281,6 @@ const WebinarDetailPage = () => {
                 </div>
               </div>
 
-              <p className="text-gray-700 mb-6 leading-relaxed">
-                {webinar.description}
-              </p>
-
               <div className="flex flex-col sm:flex-row gap-4">
                 {webinarIsUpcoming ? (
                   <button 
@@ -374,7 +370,7 @@ const WebinarDetailPage = () => {
                 {/* Description */}
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900 mb-4">About This Webinar</h2>
-                  <p className="text-gray-700 leading-relaxed">
+                  <p className="text-gray-700 leading-relaxed whitespace-pre-line">
                     {webinar.description}
                   </p>
                 </div>
