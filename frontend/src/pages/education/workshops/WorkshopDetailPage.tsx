@@ -276,10 +276,6 @@ const WorkshopDetailPage = () => {
                 </div>
               </div>
 
-              <p className="text-gray-700 mb-6 leading-relaxed">
-                {workshop.description}
-              </p>
-
               <div className="flex flex-col sm:flex-row gap-4">
                 {registrationOpen ? (
                   <button 
@@ -349,7 +345,7 @@ const WorkshopDetailPage = () => {
                 {/* About Workshop */}
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900 mb-4">About This Workshop</h2>
-                  <p className="text-gray-700 leading-relaxed mb-6">
+                  <p className="text-gray-700 leading-relaxed whitespace-pre-line">
                     {workshop.description}
                   </p>
                 </div>
