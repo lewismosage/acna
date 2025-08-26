@@ -1,12 +1,10 @@
-// Updated WorkshopsTab.tsx with Analytics Implementation
-
 import React, { useState, useEffect } from 'react';
 import { 
   BookOpen, Plus, Calendar, Clock, Edit3, 
   MapPin, CheckCircle, AlertCircle, Archive,
   Settings, BarChart3, Mail, TrendingUp,
   DollarSign, Eye as EyeIcon, Download,
-  FileText, Users, Star
+  FileText, Users, Star, ChevronDown, ChevronUp
 } from 'lucide-react';
 import CreateWorkshopModal from './CreateWorkshopModal';
 import CollaborationTab from './CollaborationTab';
@@ -27,6 +25,7 @@ const WorkshopsTab: React.FC<WorkshopsTabProps> = () => {
   const [collaborationsCount, setCollaborationsCount] = useState(0);
   const [editingWorkshop, setEditingWorkshop] = useState<Workshop | null>(null);
   const [analyticsData, setAnalyticsData] = useState<WorkshopAnalytics | null>(null);
+  const [expandedWorkshops, setExpandedWorkshops] = useState<number[]>([]);
 
   // Fetch workshops from backend
   useEffect(() => {
@@ -75,6 +74,41 @@ const WorkshopsTab: React.FC<WorkshopsTabProps> = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper function to truncate text to two sentences
+  const truncateToTwoSentences = (text: string): { truncated: string; hasMore: boolean } => {
+    if (!text) return { truncated: '', hasMore: false };
+    
+    // Split by sentence endings (., !, ?)
+    const sentences = text.match(/[^\.!?]+[\.!?]+/g) || [];
+    
+    if (sentences.length <= 2) {
+      return { truncated: text, hasMore: false };
+    }
+    
+    // Take first two sentences
+    const truncated = sentences.slice(0, 2).join(' ').trim();
+    return { truncated, hasMore: true };
+  };
+
+  // Function to render text with line breaks
+  const renderWithLineBreaks = (text: string) => {
+    if (!text) return null;
+    return text.split('\n').map((line, index) => (
+      <React.Fragment key={index}>
+        {line}
+        {index < text.split('\n').length - 1 && <br />}
+      </React.Fragment>
+    ));
+  };
+
+  const toggleExpand = (id: number) => {
+    setExpandedWorkshops(prev => 
+      prev.includes(id) 
+        ? prev.filter(item => item !== id) 
+        : [...prev, id]
+    );
   };
 
   const handleSaveWorkshop = async (workshopData: CreateWorkshopInput) => {
@@ -553,143 +587,243 @@ const WorkshopsTab: React.FC<WorkshopsTabProps> = () => {
             </div>
           ) : (
             <div className="space-y-6">
-              {filteredWorkshops.map((workshop) => (
-                <div key={workshop.id} className="bg-white border border-gray-200 rounded-lg hover:shadow-lg transition-shadow">
-                  <div className="flex flex-col lg:flex-row">
-                    {/* Workshop Image */}
-                    <div className="lg:w-1/4">
-                      <div className="relative">
-                        <img
-                          src={workshop.imageUrl}
-                          alt={workshop.title}
-                          className="w-full h-48 lg:h-full object-cover rounded-t-lg lg:rounded-l-lg lg:rounded-t-none"
-                        />
-                        <div className="absolute top-3 left-3">
-                          <span className={`px-2 py-1 rounded-full text-xs font-bold border ${getStatusColor(workshop.status)} flex items-center`}>
-                            {getStatusIcon(workshop.status)}
-                            <span className="ml-1">{workshop.status}</span>
-                          </span>
-                        </div>
-                        <div className="absolute top-3 right-3">
-                          <span className="bg-black bg-opacity-75 text-white px-2 py-1 rounded text-xs font-medium">
-                            {workshop.type}
-                          </span>
+              {filteredWorkshops.map((workshop) => {
+                const isExpanded = expandedWorkshops.includes(workshop.id);
+                const { truncated: truncatedDescription, hasMore } = truncateToTwoSentences(workshop.description);
+
+                return (
+                  <div key={workshop.id} className="bg-white border border-gray-200 rounded-lg hover:shadow-lg transition-shadow">
+                    <div className="flex flex-col lg:flex-row">
+                      {/* Workshop Image */}
+                      <div className="lg:w-1/4">
+                        <div className="relative">
+                          <img
+                            src={workshop.imageUrl}
+                            alt={workshop.title}
+                            className="w-full h-48 lg:h-full object-cover rounded-t-lg lg:rounded-l-lg lg:rounded-t-none"
+                          />
+                          <div className="absolute top-3 left-3">
+                            <span className={`px-2 py-1 rounded-full text-xs font-bold border ${getStatusColor(workshop.status)} flex items-center`}>
+                              {getStatusIcon(workshop.status)}
+                              <span className="ml-1">{workshop.status}</span>
+                            </span>
+                          </div>
+                          <div className="absolute top-3 right-3">
+                            <span className="bg-black bg-opacity-75 text-white px-2 py-1 rounded text-xs font-medium">
+                              {workshop.type}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Workshop Details */}
-                    <div className="lg:w-3/4 p-6">
-                      <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4 mb-4">
-                        <div className="flex-1">
-                          <h3 className="text-xl font-bold text-gray-900 mb-2 leading-tight">
-                            {workshop.title}
-                          </h3>
-                          
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-                            <div className="space-y-2">
-                              <div className="flex items-center text-gray-600 text-sm">
-                                <Calendar className="w-4 h-4 mr-2 text-green-600" />
-                                <span className="font-medium">{workshop.date}</span>
+                      {/* Workshop Details */}
+                      <div className="lg:w-3/4 p-6">
+                        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4 mb-4">
+                          <div className="flex-1">
+                            <h3 className="text-xl font-bold text-gray-900 mb-2 leading-tight">
+                              {workshop.title}
+                            </h3>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                              <div className="space-y-2">
+                                <div className="flex items-center text-gray-600 text-sm">
+                                  <Calendar className="w-4 h-4 mr-2 text-green-600" />
+                                  <span className="font-medium">{workshop.date}</span>
+                                </div>
+                                <div className="flex items-center text-gray-600 text-sm">
+                                  <Clock className="w-4 h-4 mr-2 text-green-600" />
+                                  <span className="font-medium">{workshop.time}</span>
+                                </div>
+                                <div className="flex items-center text-gray-600 text-sm">
+                                  <MapPin className="w-4 h-4 mr-2 text-green-600" />
+                                  <div>
+                                    <div className="font-medium">{workshop.location}</div>
+                                    {workshop.venue && (
+                                      <div className="text-xs text-gray-500">{workshop.venue}</div>
+                                    )}
+                                  </div>
+                                </div>
                               </div>
-                              <div className="flex items-center text-gray-600 text-sm">
-                                <Clock className="w-4 h-4 mr-2 text-green-600" />
-                                <span className="font-medium">{workshop.time}</span>
-                              </div>
-                              <div className="flex items-center text-gray-600 text-sm">
-                                <MapPin className="w-4 h-4 mr-2 text-green-600" />
-                                <div>
-                                  <div className="font-medium">{workshop.location}</div>
-                                  {workshop.venue && (
-                                    <div className="text-xs text-gray-500">{workshop.venue}</div>
-                                  )}
+
+                              <div className="grid grid-cols-2 gap-3 text-center">
+                                <div className="bg-gray-50 p-2 rounded">
+                                  <div className="text-lg font-bold text-green-600">{workshop.duration}</div>
+                                  <div className="text-xs text-gray-600">Duration</div>
+                                </div>
+                                <div className="bg-gray-50 p-2 rounded">
+                                  <div className="text-lg font-bold text-green-600">{workshop.instructor.split(' ')[0]}</div>
+                                  <div className="text-xs text-gray-600">Instructor</div>
                                 </div>
                               </div>
                             </div>
-
-                            <div className="grid grid-cols-2 gap-3 text-center">
-                              <div className="bg-gray-50 p-2 rounded">
-                                <div className="text-lg font-bold text-green-600">{workshop.duration}</div>
-                                <div className="text-xs text-gray-600">Duration</div>
+                            
+                            {/* Registration Progress */}
+                            <div className="mb-4">
+                              <div className="flex justify-between items-center mb-1">
+                                <span className="text-sm font-medium text-gray-700">Registration Progress</span>
+                                <span className="text-sm text-gray-600">
+                                  {workshop.registered} / {workshop.capacity} ({getProgressPercentage(workshop.registered, workshop.capacity)}%)
+                                </span>
                               </div>
-                              <div className="bg-gray-50 p-2 rounded">
-                                <div className="text-lg font-bold text-green-600">{workshop.instructor.split(' ')[0]}</div>
-                                <div className="text-xs text-gray-600">Instructor</div>
+                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div 
+                                  className="bg-green-600 h-2 rounded-full" 
+                                  style={{ width: `${getProgressPercentage(workshop.registered, workshop.capacity)}%` }}
+                                ></div>
                               </div>
                             </div>
                           </div>
-                          
-                          {/* Registration Progress */}
+                        </div>
+
+                        {/* TRUNCATED DESCRIPTION - shows only when NOT expanded */}
+                        {!isExpanded && (
                           <div className="mb-4">
-                            <div className="flex justify-between items-center mb-1">
-                              <span className="text-sm font-medium text-gray-700">Registration Progress</span>
-                              <span className="text-sm text-gray-600">
-                                {workshop.registered} / {workshop.capacity} ({getProgressPercentage(workshop.registered, workshop.capacity)}%)
-                              </span>
+                            <p className="text-gray-600 text-sm leading-relaxed">
+                              {renderWithLineBreaks(truncatedDescription)}
+                            </p>
+                            {hasMore && (
+                              <button
+                                onClick={() => toggleExpand(workshop.id)}
+                                className="text-green-600 hover:text-green-800 text-sm font-medium mt-1"
+                              >
+                                Read more...
+                              </button>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Price */}
+                        {workshop.price && (
+                          <div className="mb-4">
+                            <span className="text-lg font-bold text-green-600">${workshop.price}</span>
+                          </div>
+                        )}
+
+                        {/* Expandable Content */}
+                        {isExpanded && (
+                          <div className="mt-4 pt-4 border-t border-gray-200 space-y-4">
+                            {/* FULL DESCRIPTION */}
+                            <div className="bg-gray-50 p-4 rounded-lg">
+                              <h4 className="font-medium text-gray-900 mb-2">Full Description</h4>
+                              <p className="text-gray-600 text-sm whitespace-pre-line">
+                                {renderWithLineBreaks(workshop.description)}
+                              </p>
                             </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2">
-                              <div 
-                                className="bg-green-600 h-2 rounded-full" 
-                                style={{ width: `${getProgressPercentage(workshop.registered, workshop.capacity)}%` }}
-                              ></div>
+
+                            {/* Prerequisites */}
+                            {workshop.prerequisites && workshop.prerequisites.length > 0 && (
+                              <div className="bg-yellow-50 p-4 rounded-lg">
+                                <h4 className="font-medium text-gray-900 mb-2">Prerequisites</h4>
+                                <ul className="text-gray-600 text-sm list-disc list-inside space-y-1">
+                                  {workshop.prerequisites.map((prerequisite, index) => (
+                                    <li key={index}>{prerequisite}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {/* Materials & Resources */}
+                            {workshop.materials && workshop.materials.length > 0 && (
+                              <div className="bg-green-50 p-4 rounded-lg">
+                                <h4 className="font-medium text-gray-900 mb-2">Materials & Resources</h4>
+                                <ul className="text-gray-600 text-sm list-disc list-inside space-y-1">
+                                  {workshop.materials.map((material, index) => (
+                                    <li key={index}>{material}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {/* Additional Details */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {/* Instructor Details */}
+                              <div className="bg-white p-4 rounded-lg border border-gray-200">
+                                <h4 className="font-medium text-gray-900 mb-2">Instructor Information</h4>
+                                <div className="space-y-2 text-sm">
+                                  <div>
+                                    <span className="font-medium">Name: </span>
+                                    <span className="text-gray-600">{workshop.instructor}</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Workshop Metadata */}
+                              <div className="bg-white p-4 rounded-lg border border-gray-200">
+                                <h4 className="font-medium text-gray-900 mb-2">Workshop Details</h4>
+                                <div className="space-y-2 text-sm text-gray-600">
+                                  <div>
+                                    <span className="font-medium">Max Participants: </span>
+                                    {workshop.capacity}
+                                  </div>
+                                  <div>
+                                    <span className="font-medium">Created: </span>
+                                    {workshop.createdAt}
+                                  </div>
+                                  <div>
+                                    <span className="font-medium">Updated: </span>
+                                    {workshop.updatedAt}
+                                  </div>
+                                  <div>
+                                    <span className="font-medium">ID: </span>
+                                    #{workshop.id}
+                                  </div>
+                                </div>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </div>
+                        )}
 
-                      <p className="text-gray-600 text-sm mb-4 leading-relaxed">
-                        {workshop.description}
-                      </p>
-
-                      {/* Price */}
-                      {workshop.price && (
-                        <div className="mb-4">
-                          <span className="text-lg font-bold text-green-600">${workshop.price}</span>
-                        </div>
-                      )}
-
-                      {/* Admin Actions */}
-                      <div className="flex flex-wrap gap-3">
-                        <button 
-                          onClick={() => handleEditWorkshop(workshop)}
-                          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center text-sm font-medium transition-colors"
-                        >
-                          <Edit3 className="w-4 h-4 mr-2" />
-                          Edit Details
-                        </button>
-
-                        <button className="border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center text-sm font-medium transition-colors">
-                          <Mail className="w-4 h-4 mr-2" />
-                          Email Participants
-                        </button>
-
-                        <div className="relative">
-                          <select
-                            value={workshop.status}
-                            onChange={(e) => handleStatusChange(workshop.id, e.target.value as WorkshopStatus)}
-                            className="border border-gray-300 px-3 py-2 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        {/* Admin Actions */}
+                        <div className="flex flex-wrap gap-3">
+                          <button 
+                            onClick={() => toggleExpand(workshop.id)}
+                            className="border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center text-sm font-medium transition-colors"
                           >
-                            <option value="Planning">Planning</option>
-                            <option value="Registration Open">Registration Open</option>
-                            <option value="In Progress">In Progress</option>
-                            <option value="Completed">Completed</option>
-                            <option value="Cancelled">Cancelled</option>
-                          </select>
-                        </div>
-                      </div>
+                            {isExpanded ? (
+                              <>
+                                <ChevronUp className="w-4 h-4 mr-2" />
+                                Collapse
+                              </>
+                            ) : (
+                              <>
+                                <ChevronDown className="w-4 h-4 mr-2" />
+                                Expand
+                              </>
+                            )}
+                          </button>
 
-                      {/* Metadata */}
-                      <div className="mt-4 pt-4 border-t border-gray-200">
-                        <div className="flex flex-wrap gap-4 text-xs text-gray-500">
-                          <span>Created: {workshop.createdAt}</span>
-                          <span>Last Updated: {workshop.updatedAt}</span>
-                          <span>ID: #{workshop.id}</span>
+                          <button 
+                            onClick={() => handleEditWorkshop(workshop)}
+                            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center text-sm font-medium transition-colors"
+                          >
+                            <Edit3 className="w-4 h-4 mr-2" />
+                            Edit Details
+                          </button>
+
+                          <button className="border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center text-sm font-medium transition-colors">
+                            <Mail className="w-4 h-4 mr-2" />
+                            Email Participants
+                          </button>
+
+                          <div className="relative">
+                            <select
+                              value={workshop.status}
+                              onChange={(e) => handleStatusChange(workshop.id, e.target.value as WorkshopStatus)}
+                              className="border border-gray-300 px-3 py-2 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                            >
+                              <option value="Planning">Planning</option>
+                              <option value="Registration Open">Registration Open</option>
+                              <option value="In Progress">In Progress</option>
+                              <option value="Completed">Completed</option>
+                              <option value="Cancelled">Cancelled</option>
+                            </select>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
               {filteredWorkshops.length === 0 && (
                 <div className="text-center py-12">
