@@ -1,28 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Heart, Phone, MessageCircle, Download, Users, Mail, BookOpen, AlertCircle, Clock, Search, Filter, Star, ExternalLink, Play, FileText, Globe, Headphones } from 'lucide-react';
+import { patientCareApi } from '../../services/patientCareApi';
+import { PatientResource } from '../admin/resources/patientcare/patientCare'; 
 import api from '../../services/api';
 
 interface SubscriptionStatus {
   type: 'success' | 'error';
   message: string;
-}
-
-interface Resource {
-  id: number;
-  title: string;
-  category: string;
-  type: 'Guide' | 'Video' | 'Audio' | 'Checklist' | 'App' | 'Website';
-  condition: string;
-  language: string[];
-  description: string;
-  downloadCount?: string;
-  rating?: number;
-  duration?: string;
-  ageGroup: string;
-  imageUrl: string;
-  isPopular?: boolean;
-  isFree: boolean;
-  lastUpdated: string;
 }
 
 interface SupportGroup {
@@ -49,6 +34,7 @@ interface EmergencyResource {
 }
 
 const PatientCaregiverResources = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'resources' | 'support' | 'emergency'>('resources');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedCondition, setSelectedCondition] = useState<string>('all');
@@ -58,27 +44,99 @@ const PatientCaregiverResources = () => {
   const [lastName, setLastName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
+  
+  // New state for API data
+  const [resources, setResources] = useState<PatientResource[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [conditions, setConditions] = useState<string[]>([]);
 
-  const resources: Resource[] = [
-    {
-      id: 1,
-      title: "Understanding Your Child's Epilepsy: A Parent's Complete Guide",
-      category: "Educational Guides",
-      type: "Guide",
-      condition: "Epilepsy",
-      language: ["English", "French", "Swahili", "Hausa"],
-      description: "Comprehensive guide covering seizure types, triggers, medications, and daily management strategies for parents of children with epilepsy.",
-      downloadCount: "15.2K",
-      rating: 4.8,
-      ageGroup: "All Ages",
-      imageUrl: "https://images.pexels.com/photos/4260325/pexels-photo-4260325.jpeg?auto=compress&cs=tinysrgb&w=600",
-      isPopular: true,
-      isFree: true,
-      lastUpdated: "July 2025"
-    },
-    // ... other resources
-  ];
+  // Load data on component mount
+  useEffect(() => {
+    loadResourcesData();
+    loadMetadata();
+  }, []);
 
+  const loadResourcesData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Fetch only published resources for public view
+      const fetchedResources = await patientCareApi.getAll({
+        status: 'Published'
+      });
+      
+      setResources(fetchedResources);
+    } catch (err) {
+      console.error('Error loading resources:', err);
+      setError('Failed to load resources. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadMetadata = async () => {
+    try {
+      const [categoriesData, conditionsData] = await Promise.all([
+        patientCareApi.getCategories(),
+        patientCareApi.getConditions()
+      ]);
+      
+      setCategories(['all', ...categoriesData]);
+      setConditions(['all', ...conditionsData]);
+    } catch (err) {
+      console.error('Error loading metadata:', err);
+      // Use fallback values
+      setCategories(['all', 'Educational Guides', 'Therapy & Exercise', 'Assessment Tools', 'Emergency Care', 'Nutrition & Diet', 'Education Support', 'Medication Management', 'Inspiration & Stories']);
+      setConditions(['all', 'Epilepsy', 'Cerebral Palsy', 'Developmental Delays', 'Autism Spectrum Disorders', 'All Conditions', 'Rare Conditions']);
+    }
+  };
+
+  // Handle resource interactions
+  const handleResourceView = async (resourceId: number) => {
+    try {
+      await patientCareApi.incrementView(resourceId);
+      // Update local state to reflect the view count increment
+      setResources(prev => 
+        prev.map(resource => 
+          resource.id === resourceId 
+            ? { ...resource, viewCount: resource.viewCount + 1 }
+            : resource
+        )
+      );
+    } catch (err) {
+      console.error('Error incrementing view count:', err);
+    }
+  };
+
+  const handleResourceDownload = async (resourceId: number, url?: string) => {
+    try {
+      await patientCareApi.incrementDownload(resourceId);
+      // Update local state to reflect the download count increment
+      setResources(prev => 
+        prev.map(resource => 
+          resource.id === resourceId 
+            ? { ...resource, downloadCount: resource.downloadCount + 1 }
+            : resource
+        )
+      );
+      
+      // Open the download/external URL
+      if (url) {
+        window.open(url, '_blank');
+      }
+    } catch (err) {
+      console.error('Error incrementing download count:', err);
+      // Still allow the download even if tracking fails
+      if (url) {
+        window.open(url, '_blank');
+      }
+    }
+  };
+
+  // Support groups data (keeping as static for now)
   const supportGroups: SupportGroup[] = [
     {
       id: 1,
@@ -92,9 +150,10 @@ const PatientCaregiverResources = () => {
       description: "Support group for families dealing with childhood epilepsy, offering emotional support, practical advice, and advocacy training.",
       languages: ["English", "Swahili"]
     },
-    // ... other support groups
+    // Add more support groups as needed
   ];
 
+  // Emergency resources data (keeping as static for now)
   const emergencyResources: EmergencyResource[] = [
     {
       id: 1,
@@ -105,11 +164,8 @@ const PatientCaregiverResources = () => {
       coverage: "East Africa",
       icon: <Phone className="w-6 h-6" />
     },
-    // ... other emergency resources
+    // Add more emergency resources as needed
   ];
-
-  const categories = ['all', 'Educational Guides', 'Therapy & Exercise', 'Assessment Tools', 'Emergency Care', 'Nutrition & Diet', 'Education Support', 'Medication Management', 'Inspiration & Stories'];
-  const conditions = ['all', 'Epilepsy', 'Cerebral Palsy', 'Developmental Delays', 'Autism Spectrum Disorders', 'All Conditions', 'Rare Conditions'];
 
   const filteredResources = resources.filter(resource => {
     const matchesCategory = selectedCategory === 'all' || resource.category === selectedCategory;
@@ -127,6 +183,8 @@ const PatientCaregiverResources = () => {
       case 'App': return <Globe className="w-4 h-4" />;
       case 'Website': return <ExternalLink className="w-4 h-4" />;
       case 'Checklist': return <BookOpen className="w-4 h-4" />;
+      case 'Infographic': return <BookOpen className="w-4 h-4" />;
+      case 'Handbook': return <BookOpen className="w-4 h-4" />;
       default: return <FileText className="w-4 h-4" />;
     }
   };
@@ -184,6 +242,22 @@ const PatientCaregiverResources = () => {
         <span className="text-sm text-gray-600 ml-1">({rating})</span>
       </div>
     );
+  };
+
+  const getResourceUrl = (resource: PatientResource) => {
+    if (resource.type === 'App' || resource.type === 'Website') {
+      return resource.externalUrl;
+    }
+    return resource.fileUrl;
+  };
+
+  const handleResourceClick = async (resource: PatientResource) => {
+    await handleResourceView(resource.id);
+    
+    const url = getResourceUrl(resource);
+    if (url) {
+      await handleResourceDownload(resource.id, url);
+    }
   };
 
   return (
@@ -301,68 +375,125 @@ const PatientCaregiverResources = () => {
               </div>
             </div>
 
+            {/* Loading State */}
+            {loading && (
+              <div className="text-center py-12">
+                <div className="animate-spin w-8 h-8 border-4 border-red-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading resources...</p>
+              </div>
+            )}
+
+            {/* Error State */}
+            {error && (
+              <div className="text-center py-12">
+                <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+                <p className="text-red-600 mb-4">{error}</p>
+                <button
+                  onClick={loadResourcesData}
+                  className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700"
+                >
+                  Try Again
+                </button>
+              </div>
+            )}
+
             {/* Resources Grid */}
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {filteredResources.map((resource) => (
-                <div key={resource.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200 border border-gray-200">
-                  <div className="relative">
-                    <img
-                      src={resource.imageUrl}
-                      alt={resource.title}
-                      className="w-full h-48 object-cover"
-                    />
-                    <div className="absolute top-3 left-3">
-                      <span className="bg-red-600 text-white px-2 py-1 text-xs font-bold uppercase tracking-wide rounded flex items-center gap-1">
-                        {getTypeIcon(resource.type)}
-                        {resource.type}
-                      </span>
-                    </div>
-                    {resource.isFree && (
-                      <div className="absolute top-3 right-3">
-                        <span className="bg-green-600 text-white px-2 py-1 text-xs font-bold rounded">
-                          FREE
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="p-6">
-                    <h3 className="text-lg font-bold text-gray-900 mb-2">{resource.title}</h3>
-                    <div className="flex items-center text-gray-600 text-sm mb-3">
-                      <span>{resource.category}</span>
-                      <span className="mx-2">•</span>
-                      <span>{resource.condition}</span>
-                    </div>
-                    
-                    <p className="text-gray-600 text-sm mb-4">{resource.description}</p>
-                    
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {resource.language.map((lang, index) => (
-                        <span key={index} className="bg-gray-100 text-gray-600 px-2 py-1 text-xs rounded">
-                          {lang}
-                        </span>
-                      ))}
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div>
-                        {resource.rating && renderStars(resource.rating)}
-                        {resource.downloadCount && (
-                          <div className="flex items-center text-gray-600 text-sm mt-1">
-                            <Download className="w-4 h-4 mr-1" />
-                            {resource.downloadCount}
+            {!loading && !error && (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {filteredResources.length > 0 ? (
+                  filteredResources.map((resource) => (
+                    <div key={resource.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200 border border-gray-200">
+                      <div className="relative">
+                        <img
+                          src={resource.imageUrl || '/api/placeholder/400/250'}
+                          alt={resource.title}
+                          className="w-full h-48 object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = '/api/placeholder/400/250';
+                          }}
+                        />
+                        <div className="absolute top-3 left-3">
+                          <span className="bg-red-600 text-white px-2 py-1 text-xs font-bold uppercase tracking-wide rounded flex items-center gap-1">
+                            {getTypeIcon(resource.type)}
+                            {resource.type}
+                          </span>
+                        </div>
+                        {resource.isFree && (
+                          <div className="absolute top-3 right-3">
+                            <span className="bg-green-600 text-white px-2 py-1 text-xs font-bold rounded">
+                              FREE
+                            </span>
+                          </div>
+                        )}
+                        {resource.isFeatured && (
+                          <div className="absolute bottom-3 right-3">
+                            <Star className="w-5 h-5 text-yellow-500 fill-current" />
                           </div>
                         )}
                       </div>
                       
-                      <button className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors font-medium">
-                        View Resource
-                      </button>
+                      <div className="p-6">
+                        <h3 className="text-lg font-bold text-gray-900 mb-2">{resource.title}</h3>
+                        <div className="flex items-center text-gray-600 text-sm mb-3">
+                          <span>{resource.category}</span>
+                          <span className="mx-2">•</span>
+                          <span>{resource.condition}</span>
+                        </div>
+                        
+                        <p className="text-gray-600 text-sm mb-4">{resource.description}</p>
+                        
+                        <div className="flex flex-wrap gap-2 mb-4">
+                          {resource.language?.map((lang, index) => (
+                            <span key={index} className="bg-gray-100 text-gray-600 px-2 py-1 text-xs rounded">
+                              {lang}
+                            </span>
+                          ))}
+                        </div>
+
+                        {/* Additional metadata */}
+                        <div className="text-xs text-gray-500 mb-4">
+                          <div>Author: {resource.author}</div>
+                          {resource.ageGroup && <div>Age Group: {resource.ageGroup}</div>}
+                          {resource.duration && <div>Duration: {resource.duration}</div>}
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <div>
+                            {resource.rating && renderStars(resource.rating)}
+                            <div className="flex items-center text-gray-600 text-sm mt-1">
+                              <Download className="w-4 h-4 mr-1" />
+                              {resource.downloadCount.toLocaleString()}
+                              <span className="mx-2">•</span>
+                              <span>{resource.viewCount.toLocaleString()} views</span>
+                            </div>
+                          </div>
+                          
+                          <button 
+                            onClick={() => navigate(`/patient-care-resources/${resource.id}`)}
+                            className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors font-medium"
+                          >
+                            View Resource
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                  ))
+                ) : (
+                  !loading && (
+                    <div className="col-span-full text-center py-12">
+                      <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">No resources found</h3>
+                      <p className="text-gray-500">
+                        {searchTerm || selectedCategory !== 'all' || selectedCondition !== 'all'
+                          ? "Try adjusting your search criteria."
+                          : "Resources will appear here once they are published."}
+                      </p>
+                    </div>
+                  )
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -435,11 +566,11 @@ const PatientCaregiverResources = () => {
                       </div>
                       
                       <div className="space-y-2">
-                        <button className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors font-medium flex items-center justify-center gap-2">
+                        <button className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors font-medium flex items-center justify-center gap-2 w-full">
                           <Phone className="w-4 h-4" />
                           {group.contact}
                         </button>
-                        <button className="border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors font-medium">
+                        <button className="border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors font-medium w-full">
                           Learn More
                         </button>
                       </div>
