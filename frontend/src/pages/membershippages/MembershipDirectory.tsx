@@ -28,6 +28,7 @@ const MembershipDirectory = () => {
   const [selectedMembership, setSelectedMembership] = useState('');
   const [selectedSpecialization, setSelectedSpecialization] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  // Initialize as empty array to prevent filter errors
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -38,10 +39,21 @@ const MembershipDirectory = () => {
         setLoading(true);
         setError(null);
         const data = await getMembers();
-        setMembers(data);
+        
+        // Ensure data is an array before setting
+        if (Array.isArray(data)) {
+          setMembers(data);
+        } else {
+          // Handle case where API returns non-array data
+          console.warn('API returned non-array data:', data);
+          setMembers([]);
+          setError('Invalid data format received from server.');
+        }
       } catch (err: any) {
         setError(err?.message || 'Failed to load members. Please try again later.');
         console.error('Error fetching members:', err);
+        // Ensure members remains an empty array on error
+        setMembers([]);
       } finally {
         setLoading(false);
       }
@@ -50,23 +62,34 @@ const MembershipDirectory = () => {
     fetchMembers();
   }, []);
 
-  const filteredMembers = members.filter(member => {
+  // Add safety check to ensure members is always an array
+  const safeMembers = Array.isArray(members) ? members : [];
+
+  const filteredMembers = safeMembers.filter(member => {
+    // Add null/undefined checks for member properties
+    const firstName = member?.first_name || '';
+    const lastName = member?.last_name || '';
+    const specialization = member?.specialization || '';
+    const institution = member?.institution || '';
+    const country = member?.country || '';
+    const membershipClass = member?.membership_class || '';
+
     const matchesSearch = 
-      member.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (member.specialization && member.specialization.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (member.institution && member.institution.toLowerCase().includes(searchTerm.toLowerCase()));
+      firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      specialization.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      institution.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesCountry = !selectedCountry || member.country === selectedCountry;
-    const matchesMembership = !selectedMembership || member.membership_class === selectedMembership;
-    const matchesSpecialization = !selectedSpecialization || member.specialization === selectedSpecialization;
+    const matchesCountry = !selectedCountry || country === selectedCountry;
+    const matchesMembership = !selectedMembership || membershipClass === selectedMembership;
+    const matchesSpecialization = !selectedSpecialization || specialization === selectedSpecialization;
     
     return matchesSearch && matchesCountry && matchesMembership && matchesSpecialization;
   });
 
   // Helper function to determine membership status based on active status and expiry
   const getMembershipStatus = (member: Member): 'Active' | 'Expired' | 'Expiring Soon' => {
-    if (!member.is_active_member) return 'Expired';
+    if (!member?.is_active_member) return 'Expired';
     
     if (member.membership_valid_until) {
       const expiryDate = new Date(member.membership_valid_until);
@@ -127,7 +150,9 @@ const MembershipDirectory = () => {
   };
 
   const obfuscateEmail = (email: string) => {
+    if (!email) return 'Not provided';
     const [name, domain] = email.split('@');
+    if (!name || !domain) return 'Invalid email';
     return `${name.substring(0, 3)}****@${domain}`;
   };
 
@@ -137,10 +162,30 @@ const MembershipDirectory = () => {
     return `${phone.substring(0, 3)}****${phone.substring(phone.length - 2)}`;
   };
 
-  // Extract unique values for filter dropdowns
-  const availableCountries = Array.from(new Set(members.map(member => member.country))).filter(Boolean).sort();
-  const availableMembershipTypes = Array.from(new Set(members.map(member => member.membership_class))).filter(Boolean);
-  const availableSpecializations = Array.from(new Set(members.map(member => member.specialization))).filter(Boolean).sort();
+  // Extract unique values for filter dropdowns with safety checks
+  const availableCountries = Array.from(
+    new Set(
+      safeMembers
+        .map(member => member?.country)
+        .filter(Boolean)
+    )
+  ).sort();
+
+  const availableMembershipTypes = Array.from(
+    new Set(
+      safeMembers
+        .map(member => member?.membership_class)
+        .filter(Boolean)
+    )
+  );
+
+  const availableSpecializations = Array.from(
+    new Set(
+      safeMembers
+        .map(member => member?.specialization)
+        .filter(Boolean)
+    )
+  ).sort();
 
   return (
     <div className="bg-white min-h-screen">
@@ -246,12 +291,12 @@ const MembershipDirectory = () => {
           {/* Results Summary */}
           <div className="flex justify-between items-center text-sm text-gray-600">
             <span>
-              Showing {filteredMembers.length} of {members.length} members
+              Showing {filteredMembers.length} of {safeMembers.length} members
             </span>
             <div className="flex items-center space-x-4">
               <span className="flex items-center">
                 <Users className="w-4 h-4 mr-1" />
-                {members.filter(m => m.is_active_member).length} Active Members
+                {safeMembers.filter(m => m?.is_active_member).length} Active Members
               </span>
             </div>
           </div>
@@ -296,6 +341,9 @@ const MembershipDirectory = () => {
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredMembers.map(member => {
+                // Add safety check for member object
+                if (!member) return null;
+                
                 const membershipStatus = getMembershipStatus(member);
                 return (
                   <div key={member.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
@@ -304,7 +352,7 @@ const MembershipDirectory = () => {
                       <div className="flex items-start gap-4">
                         <img 
                           src={member.profile_photo || DefaultPicture} 
-                          alt={`${member.first_name} ${member.last_name}`}
+                          alt={`${member.first_name || ''} ${member.last_name || ''}`}
                           className="w-16 h-16 rounded-full object-cover border-2 border-white"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
@@ -315,7 +363,7 @@ const MembershipDirectory = () => {
                           <div className="flex justify-between items-start">
                             <div>
                               <h3 className="text-lg font-bold">
-                                {member.first_name} {member.last_name}
+                                {member.first_name || ''} {member.last_name || ''}
                               </h3>
                               <p className="text-orange-100 text-sm">
                                 {member.specialization || 'Healthcare Professional'}
@@ -367,10 +415,10 @@ const MembershipDirectory = () => {
                         {/* Member Details */}
                         <div className="text-xs text-gray-500 mt-2 space-y-1">
                           <div>
-                            Member since {new Date(member.date_joined).toLocaleDateString('en-US', { 
+                            Member since {member.date_joined ? new Date(member.date_joined).toLocaleDateString('en-US', { 
                               year: 'numeric', 
                               month: 'long' 
-                            })}
+                            }) : 'Unknown'}
                           </div>
                           {member.membership_id && (
                             <div>ID: {member.membership_id}</div>
