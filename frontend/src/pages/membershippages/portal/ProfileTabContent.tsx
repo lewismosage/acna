@@ -111,6 +111,11 @@ const ProfileTabContent = ({ memberData, onProfileUpdate }: {
       formDataToSend.append('first_name', formData.firstName);
       formDataToSend.append('last_name', formData.lastName);
       
+      // Include specialization in the update - this was missing!
+      if (formData.specialization) {
+        formDataToSend.append('specialization', formData.specialization);
+      }
+      
       // Only append institution if it exists
       if (formData.institution) {
         formDataToSend.append('institution', formData.institution);
@@ -124,6 +129,7 @@ const ProfileTabContent = ({ memberData, onProfileUpdate }: {
         firstName: formData.firstName,
         lastName: formData.lastName,
         institution: formData.institution,
+        specialization: formData.specialization, // Add this to debug log
         hasProfilePhoto: !!formData.profilePhoto
       });
   
@@ -133,11 +139,11 @@ const ProfileTabContent = ({ memberData, onProfileUpdate }: {
         },
       });
   
-      // Update local state
+      // Update local state with all fields including specialization
       const updatedData = {
         name: `${formData.firstName} ${formData.lastName}`,
         institution: formData.institution,
-        specialization: formData.specialization,
+        specialization: formData.specialization, // Make sure this is included
         profile_photo: response.data.profile_photo || memberData.profile_photo
       };
       onProfileUpdate(updatedData);

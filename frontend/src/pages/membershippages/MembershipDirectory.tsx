@@ -1,23 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, MapPin, Mail, Phone, Filter, Users, Building } from 'lucide-react';
-import { Link } from 'react-router';
+import { Link } from 'react-router-dom';
+import api, { getMembers } from '../../services/api'; 
+import  DefaultPicture from '../../assets/default Profile Image.png';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 
 interface Member {
   id: string;
-  firstName: string;
-  lastName: string;
+  first_name: string;
+  last_name: string;
   email: string;
-  phone: string;
+  mobile_number: string;
   country: string;
-  county: string;
-  membershipType: string;
-  profession: string;
+  membership_class: string;
   institution: string;
   specialization: string;
-  yearsOfExperience: string;
-  joinDate: string;
-  status: 'Active' | 'Expired' | 'Expiring Soon';
-  profileImage?: string;
+  is_active_member: boolean;
+  membership_valid_until: string | null;
+  profile_photo: string | null;
+  membership_id: string | null;
+  date_joined: string;
 }
 
 const MembershipDirectory = () => {
@@ -28,156 +30,56 @@ const MembershipDirectory = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Mock data - in real app, this would come from API
-  const mockMembers: Member[] = [
-    {
-      id: 'ACNA-2024-001',
-      firstName: 'Dr. Sarah',
-      lastName: 'Kimani',
-      email: 'sarah.kimani@hospital.co.ke',
-      phone: '+254 712 345 678',
-      country: 'Kenya',
-      county: 'Nairobi',
-      membershipType: 'Full / Professional Member',
-      profession: 'Pediatric Neurologist',
-      institution: 'Kenyatta National Hospital',
-      specialization: 'Epilepsy',
-      yearsOfExperience: '8-12 years',
-      joinDate: '2020-03-15',
-      status: 'Active',
-      profileImage: 'https://randomuser.me/api/portraits/women/44.jpg'
-    },
-    {
-      id: 'ACNA-2024-002',
-      firstName: 'Dr. James',
-      lastName: 'Mutua',
-      email: 'j.mutua@research.ac.ug',
-      phone: '+256 701 234 567',
-      country: 'Uganda',
-      county: 'Kampala',
-      membershipType: 'Associate Member',
-      profession: 'Neuropsychologist',
-      institution: 'Makerere University',
-      specialization: 'Developmental Disorders',
-      yearsOfExperience: '5-7 years',
-      joinDate: '2021-07-22',
-      status: 'Active',
-      profileImage: 'https://randomuser.me/api/portraits/men/32.jpg'
-    },
-    {
-      id: 'ACNA-2024-003',
-      firstName: 'Prof. Mary',
-      lastName: 'Ochieng',
-      email: 'mary.ochieng@medschool.ac.ke',
-      phone: '+254 722 987 654',
-      country: 'Kenya',
-      county: 'Kisumu',
-      membershipType: 'Full / Professional Member',
-      profession: 'Pediatric Neurologist',
-      institution: 'University of Nairobi',
-      specialization: 'Cerebral Palsy',
-      yearsOfExperience: '15+ years',
-      joinDate: '2018-01-10',
-      status: 'Active',
-      profileImage: 'https://randomuser.me/api/portraits/women/63.jpg'
-    },
-    {
-      id: 'ACNA-2024-004',
-      firstName: 'Dr. Peter',
-      lastName: 'Nyong',
-      email: 'peter.nyong@clinic.org',
-      phone: '+255 754 321 098',
-      country: 'Tanzania',
-      county: 'Dar es Salaam',
-      membershipType: 'Trainee / Student Member',
-      profession: 'Medical Student',
-      institution: 'Muhimbili University',
-      specialization: 'General Neurology',
-      yearsOfExperience: '1-2 years',
-      joinDate: '2023-09-05',
-      status: 'Active',
-      profileImage: 'https://randomuser.me/api/portraits/men/75.jpg'
-    },
-    {
-      id: 'ACNA-2024-005',
-      firstName: 'Dr. Grace',
-      lastName: 'Uwimana',
-      email: 'g.uwimana@hospital.rw',
-      phone: '+250 788 123 456',
-      country: 'Rwanda',
-      county: 'Kigali',
-      membershipType: 'Associate Member',
-      profession: 'Physiotherapist',
-      institution: 'King Faisal Hospital',
-      specialization: 'Pediatric Rehabilitation',
-      yearsOfExperience: '3-5 years',
-      joinDate: '2022-05-18',
-      status: 'Expiring Soon',
-      profileImage: 'https://randomuser.me/api/portraits/women/25.jpg'
-    },
-    {
-      id: 'ACNA-2024-006',
-      firstName: 'Dr. Ahmed',
-      lastName: 'Hassan',
-      email: 'ahmed.hassan@medical.eg',
-      phone: '+20 100 234 5678',
-      country: 'Egypt',
-      county: 'Cairo',
-      membershipType: 'Institutional Member',
-      profession: 'Department Head',
-      institution: 'Cairo Children\'s Hospital',
-      specialization: 'Neuroinfections',
-      yearsOfExperience: '12-15 years',
-      joinDate: '2019-11-30',
-      status: 'Active',
-      profileImage: 'https://randomuser.me/api/portraits/men/55.jpg'
-    }
-  ];
-
-  const countries = ['Kenya', 'Uganda', 'Tanzania', 'Rwanda', 'Egypt', 'Nigeria', 'Ghana', 'South Africa'];
-  const membershipTypes = [
-    'Trainee / Student Member',
-    'Associate Member',
-    'Affiliate Member',
-    'Full / Professional Member',
-    'Institutional Member',
-    'Corporate / Partner Member',
-    'Lifetime Member'
-  ];
-  const specializations = [
-    'Epilepsy',
-    'Cerebral Palsy',
-    'Developmental Disorders',
-    'Neuroinfections',
-    'General Neurology',
-    'Pediatric Rehabilitation',
-    'Neuropsychology',
-    'Neurosurgery'
-  ];
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      setMembers(mockMembers);
-      setLoading(false);
-    }, 1000);
+    const fetchMembers = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await getMembers();
+        setMembers(data);
+      } catch (err: any) {
+        setError(err?.message || 'Failed to load members. Please try again later.');
+        console.error('Error fetching members:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMembers();
   }, []);
 
   const filteredMembers = members.filter(member => {
     const matchesSearch = 
-      member.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.profession.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.institution.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.specialization.toLowerCase().includes(searchTerm.toLowerCase());
+      member.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      member.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (member.specialization && member.specialization.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (member.institution && member.institution.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesCountry = !selectedCountry || member.country === selectedCountry;
-    const matchesMembership = !selectedMembership || member.membershipType === selectedMembership;
+    const matchesMembership = !selectedMembership || member.membership_class === selectedMembership;
     const matchesSpecialization = !selectedSpecialization || member.specialization === selectedSpecialization;
     
     return matchesSearch && matchesCountry && matchesMembership && matchesSpecialization;
   });
+
+  // Helper function to determine membership status based on active status and expiry
+  const getMembershipStatus = (member: Member): 'Active' | 'Expired' | 'Expiring Soon' => {
+    if (!member.is_active_member) return 'Expired';
+    
+    if (member.membership_valid_until) {
+      const expiryDate = new Date(member.membership_valid_until);
+      const today = new Date();
+      const thirtyDaysFromNow = new Date();
+      thirtyDaysFromNow.setDate(today.getDate() + 30);
+      
+      if (expiryDate < today) return 'Expired';
+      if (expiryDate <= thirtyDaysFromNow) return 'Expiring Soon';
+    }
+    
+    return 'Active';
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -190,15 +92,31 @@ const MembershipDirectory = () => {
 
   const getMembershipColor = (type: string) => {
     const colors = {
-      'Trainee / Student Member': 'bg-yellow-100 text-yellow-800',
-      'Associate Member': 'bg-green-100 text-green-800',
-      'Affiliate Member': 'bg-indigo-100 text-indigo-800',
-      'Full / Professional Member': 'bg-blue-100 text-blue-800',
-      'Institutional Member': 'bg-purple-100 text-purple-800',
-      'Corporate / Partner Member': 'bg-rose-100 text-rose-800',
-      'Lifetime Member': 'bg-emerald-100 text-emerald-800'
+      'student': 'bg-yellow-100 text-yellow-800',
+      'associate': 'bg-green-100 text-green-800',
+      'affiliate': 'bg-indigo-100 text-indigo-800',
+      'full_professional': 'bg-blue-100 text-blue-800',
+      'institutional': 'bg-purple-100 text-purple-800',
+      'corporate': 'bg-rose-100 text-rose-800',
+      'lifetime': 'bg-emerald-100 text-emerald-800',
+      'honorary': 'bg-gray-100 text-gray-800'
     };
     return colors[type as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+  };
+
+  // Helper to convert membership class key to display name
+  const getMembershipDisplayName = (membershipClass: string) => {
+    const displayNames = {
+      'full_professional': 'Full / Professional Member',
+      'associate': 'Associate Member',
+      'student': 'Trainee / Student Member',
+      'institutional': 'Institutional Member',
+      'affiliate': 'Affiliate Member',
+      'honorary': 'Honorary Member',
+      'corporate': 'Corporate / Partner Member',
+      'lifetime': 'Lifetime Member',
+    };
+    return displayNames[membershipClass as keyof typeof displayNames] || membershipClass;
   };
 
   const clearFilters = () => {
@@ -214,9 +132,15 @@ const MembershipDirectory = () => {
   };
 
   const obfuscatePhone = (phone: string) => {
-    const parts = phone.split(' ');
-    return `${parts[0]} ${parts[1].substring(0, 3)}****${parts[1].substring(7)}`;
+    if (!phone) return 'Not provided';
+    if (phone.length <= 6) return phone; // Don't obfuscate very short numbers
+    return `${phone.substring(0, 3)}****${phone.substring(phone.length - 2)}`;
   };
+
+  // Extract unique values for filter dropdowns
+  const availableCountries = Array.from(new Set(members.map(member => member.country))).filter(Boolean).sort();
+  const availableMembershipTypes = Array.from(new Set(members.map(member => member.membership_class))).filter(Boolean);
+  const availableSpecializations = Array.from(new Set(members.map(member => member.specialization))).filter(Boolean).sort();
 
   return (
     <div className="bg-white min-h-screen">
@@ -241,7 +165,7 @@ const MembershipDirectory = () => {
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type="text"
-                placeholder="Search by name, profession, institution, or specialization..."
+                placeholder="Search by name, institution, or specialization..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
@@ -273,7 +197,7 @@ const MembershipDirectory = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                   >
                     <option value="">All Countries</option>
-                    {countries.map(country => (
+                    {availableCountries.map(country => (
                       <option key={country} value={country}>{country}</option>
                     ))}
                   </select>
@@ -287,8 +211,8 @@ const MembershipDirectory = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                   >
                     <option value="">All Memberships</option>
-                    {membershipTypes.map(type => (
-                      <option key={type} value={type}>{type}</option>
+                    {availableMembershipTypes.map(type => (
+                      <option key={type} value={type}>{getMembershipDisplayName(type)}</option>
                     ))}
                   </select>
                 </div>
@@ -301,7 +225,7 @@ const MembershipDirectory = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                   >
                     <option value="">All Specializations</option>
-                    {specializations.map(spec => (
+                    {availableSpecializations.map(spec => (
                       <option key={spec} value={spec}>{spec}</option>
                     ))}
                   </select>
@@ -327,7 +251,7 @@ const MembershipDirectory = () => {
             <div className="flex items-center space-x-4">
               <span className="flex items-center">
                 <Users className="w-4 h-4 mr-1" />
-                {members.filter(m => m.status === 'Active').length} Active Members
+                {members.filter(m => m.is_active_member).length} Active Members
               </span>
             </div>
           </div>
@@ -337,11 +261,22 @@ const MembershipDirectory = () => {
       {/* Directory Grid */}
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4">
-          {loading ? (
+          {error ? (
+            <div className="text-center py-20">
+              <div className="text-6xl mb-4">⚠️</div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">Error Loading Directory</h3>
+              <p className="text-gray-600 mb-6">{error}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors duration-300"
+              >
+                Try Again
+              </button>
+            </div>
+          ) : loading ? (
             <div className="flex justify-center items-center py-20">
               <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
-                <p className="text-gray-600">Loading directory...</p>
+                <LoadingSpinner />
               </div>
             </div>
           ) : filteredMembers.length === 0 ? (
@@ -360,76 +295,92 @@ const MembershipDirectory = () => {
             </div>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredMembers.map(member => (
-                <div key={member.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
-                  {/* Header */}
-                  <div className="bg-gradient-to-r from-orange-600 to-red-600 text-white p-4">
-                    <div className="flex items-start gap-4">
-                      <img 
-                        src={member.profileImage || 'https://via.placeholder.com/80'} 
-                        alt={`${member.firstName} ${member.lastName}`}
-                        className="w-16 h-16 rounded-full object-cover border-2 border-white"
-                      />
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h3 className="text-lg font-bold">
-                              {member.firstName} {member.lastName}
-                            </h3>
-                            <p className="text-orange-100 text-sm">{member.profession}</p>
+              {filteredMembers.map(member => {
+                const membershipStatus = getMembershipStatus(member);
+                return (
+                  <div key={member.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
+                    {/* Header */}
+                    <div className="bg-gradient-to-r from-orange-600 to-red-600 text-white p-4">
+                      <div className="flex items-start gap-4">
+                        <img 
+                          src={member.profile_photo || DefaultPicture} 
+                          alt={`${member.first_name} ${member.last_name}`}
+                          className="w-16 h-16 rounded-full object-cover border-2 border-white"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = DefaultPicture;
+                          }}
+                        />
+                        <div className="flex-1">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h3 className="text-lg font-bold">
+                                {member.first_name} {member.last_name}
+                              </h3>
+                              <p className="text-orange-100 text-sm">
+                                {member.specialization || 'Healthcare Professional'}
+                              </p>
+                            </div>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(membershipStatus)}`}>
+                              {membershipStatus}
+                            </span>
                           </div>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(member.status)}`}>
-                            {member.status}
-                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Content */}
+                    <div className="p-4">
+                      <div className="space-y-3">
+                        {/* Institution */}
+                        <div className="flex items-center text-sm text-gray-600">
+                          <Building className="w-4 h-4 mr-2 flex-shrink-0" />
+                          <span className="truncate">{member.institution || 'Not specified'}</span>
+                        </div>
+
+                        {/* Location */}
+                        <div className="flex items-center text-sm text-gray-600">
+                          <MapPin className="w-4 h-4 mr-2 flex-shrink-0" />
+                          <span>{member.country || 'Not specified'}</span>
+                        </div>
+
+                        {/* Contact Info */}
+                        <div className="flex items-center text-sm text-gray-600">
+                          <Mail className="w-4 h-4 mr-2 flex-shrink-0" />
+                          <span className="truncate">{obfuscateEmail(member.email)}</span>
+                        </div>
+
+                        <div className="flex items-center text-sm text-gray-600">
+                          <Phone className="w-4 h-4 mr-2 flex-shrink-0" />
+                          <span>{obfuscatePhone(member.mobile_number)}</span>
+                        </div>
+
+                        {/* Badges */}
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          {member.membership_class && (
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getMembershipColor(member.membership_class)}`}>
+                              {getMembershipDisplayName(member.membership_class)}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Member Details */}
+                        <div className="text-xs text-gray-500 mt-2 space-y-1">
+                          <div>
+                            Member since {new Date(member.date_joined).toLocaleDateString('en-US', { 
+                              year: 'numeric', 
+                              month: 'long' 
+                            })}
+                          </div>
+                          {member.membership_id && (
+                            <div>ID: {member.membership_id}</div>
+                          )}
                         </div>
                       </div>
                     </div>
                   </div>
-
-                  {/* Content */}
-                  <div className="p-4">
-                    <div className="space-y-3">
-                      {/* Institution */}
-                      <div className="flex items-center text-sm text-gray-600">
-                        <Building className="w-4 h-4 mr-2 flex-shrink-0" />
-                        <span className="truncate">{member.institution}</span>
-                      </div>
-
-                      {/* Location */}
-                      <div className="flex items-center text-sm text-gray-600">
-                        <MapPin className="w-4 h-4 mr-2 flex-shrink-0" />
-                        <span>{member.county}, {member.country}</span>
-                      </div>
-
-                      {/* Contact Info */}
-                      <div className="flex items-center text-sm text-gray-600">
-                        <Mail className="w-4 h-4 mr-2 flex-shrink-0" />
-                        <span className="truncate">{obfuscateEmail(member.email)}</span>
-                      </div>
-
-                      <div className="flex items-center text-sm text-gray-600">
-                        <Phone className="w-4 h-4 mr-2 flex-shrink-0" />
-                        <span>{obfuscatePhone(member.phone)}</span>
-                      </div>
-
-                      {/* Badges */}
-                      <div className="flex flex-wrap gap-2 mt-3">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getMembershipColor(member.membershipType)}`}>
-                          {member.membershipType}
-                        </span>
-                      </div>
-
-                      {/* Member Since */}
-                      <div className="text-xs text-gray-500 mt-2">
-                        Member since {new Date(member.joinDate).toLocaleDateString('en-US', { 
-                          year: 'numeric', 
-                          month: 'long' 
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
