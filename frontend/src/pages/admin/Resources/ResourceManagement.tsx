@@ -5,11 +5,11 @@ import {
 } from 'lucide-react';
 
 // Import tab components (these would be created separately)
-import PublicationResourcesTab from './PublicationResourcesTab';
-import EBookletsTab from './EBookletsTab';
-import TrainingProgramsTab from './TrainingProgramsTab';
+import PublicationResourcesTab from './publicationresources/PublicationResourcesTab';
+import EBookletsTab from './ebooks/EBookletsTab';
+import TrainingProgramsTab from './trainingprograms/TrainingProgramsTab';
 import PatientCaregiverResourcesTab from './patientcare/PatientCaregiverResourcesTab';
-import EducationalResourcesTab from './EducationalResourcesTab';
+import EducationalResourcesTab from './educationalresources/EducationalResourcesTab';
 
 const ResourceManagement = () => {
   const [activeTab, setActiveTab] = useState<string>('home');

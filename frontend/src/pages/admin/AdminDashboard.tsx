@@ -9,13 +9,13 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import CommunicationTools from './communication/CommunicationTools';
-import MembersManagement from './MembersManagement';
+import MembersManagement from './membermanagement/MembersManagement';
 import ResourceManagement from './resources/ResourceManagement';
 import EventsManagement from './events/EventsManagement';
 import FinancialManagement from './financial/FinancialManagement';
-import AdminSettings from './AdminSettings';
-import ReportsAnalytics from './ReportsAnalytics';
-import { SignOutModal } from './SignOutModal';
+import AdminSettings from './settings/AdminSettings';
+import ReportsAnalytics from './reports/ReportsAnalytics';
+import { SignOutModal } from './settings/SignOutModal';
 import { useAuth } from '../../services/AuthContext'; 
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import NewsManagement from './news/NewsManagement';

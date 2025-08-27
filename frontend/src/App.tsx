@@ -69,7 +69,7 @@ import PaymentError from "./pages/payment/PaymentError";
 import ACNAMemberDashboard from "./pages/membershippages/portal/ACNAMemberDashboard";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import UnsubscribePage from './pages/other/Unsubscribe';
-import AdminLogin from "./pages/admin/AdminLogin";
+import AdminLogin from "./pages/admin/settings/AdminLogin";
 import AdminProtectedRoute from "./components/common/AdminProtectedRoute";
 import AwardNominationPage from "./pages/eventsandnews/AwardNominationPage";
 import AbstractSubmissionForm from "./pages/eventsandnews/AbstractSubmissionForm";

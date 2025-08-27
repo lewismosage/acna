@@ -4,7 +4,7 @@ import {
   X, Mail, Phone, Calendar, MapPin, Award, CreditCard, Shield,
   MessageCircle, Ban, RotateCcw, ChevronDown, AlertTriangle
 } from 'lucide-react';
-import api from '../../services/api';
+import api from '../../../services/api';
 import { format, parseISO, isValid } from 'date-fns';
 
 // Helper function to safely parse and format dates

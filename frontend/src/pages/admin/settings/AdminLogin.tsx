@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, AlertCircle, Mail, Lock, Shield } from "lucide-react";
-import Card, { CardContent } from "../../components/common/Card";
+import Card, { CardContent } from "../../../components/common/Card";
 import ACNALogo from "../../assets/ACNA.jpg";
-import { useAuth } from '../../services/AuthContext';
+import { useAuth } from '../../../services/AuthContext';
 
 const AdminLogin = () => {
   const { adminLogin } = useAuth();
