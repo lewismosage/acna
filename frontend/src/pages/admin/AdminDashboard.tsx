@@ -10,7 +10,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import CommunicationTools from './communication/CommunicationTools';
 import MembersManagement from './MembersManagement';
-import ResourceManagement from './Resources/ResourceManagement';
+import ResourceManagement from './resources/ResourceManagement';
 import EventsManagement from './events/EventsManagement';
 import FinancialManagement from './financial/FinancialManagement';
 import AdminSettings from './AdminSettings';

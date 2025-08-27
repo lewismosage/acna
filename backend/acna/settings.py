@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     'awards',
     'abstracts',
     'workshops',
+    'patient_resources',
 ]
 
 MIDDLEWARE = [
