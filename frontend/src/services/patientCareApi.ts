@@ -1,90 +1,13 @@
 // services/patientCareApi.ts
 const API_BASE_URL = 'http://127.0.0.1:8000/api';
 
-export interface PatientResource {
-  id: number;
-  title: string;
-  description: string;
-  full_description?: string;
-  category: string;
-  type: 'Guide' | 'Video' | 'Audio' | 'Checklist' | 'App' | 'Website' | 'Infographic' | 'Handbook';
-  condition: string;
-  language: string[];
-  status: 'Draft' | 'Published' | 'Archived' | 'Under Review';
-  isFeatured?: boolean;
-  isFree: boolean;
-  imageUrl: string;
-  fileUrl?: string;
-  externalUrl?: string;
-  tags: string[];
-  targetAudience: string[];
-  ageGroup: string;
-  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
-  duration?: string;
-  downloadCount: number;
-  viewCount: number;
-  rating?: number;
-  author: string;
-  reviewedBy?: string;
-  createdAt: string;
-  updatedAt: string;
-  lastReviewDate?: string;
-}
-
-export interface ResourceAnalytics {
-  total: number;
-  draft: number;
-  published: number;
-  archived: number;
-  underReview: number;
-  totalDownloads: number;
-  monthlyDownloads: number;
-  featured: number;
-  totalViews: number;
-  resourcesByType?: {
-    Guide: number;
-    Video: number;
-    Audio: number;
-    Checklist: number;
-    App: number;
-    Website: number;
-    Infographic: number;
-    Handbook: number;
-  };
-  topResources?: Array<{
-    id: number;
-    title: string;
-    type: string;
-    downloadCount: number;
-    viewCount: number;
-  }>;
-  resourcesByCondition?: {
-    [key: string]: number;
-  };
-}
-
-export interface CreateResourceInput {
-  title: string;
-  description: string;
-  full_description?: string;
-  category: string;
-  type: 'Guide' | 'Video' | 'Audio' | 'Checklist' | 'App' | 'Website' | 'Infographic' | 'Handbook';
-  condition: string;
-  language: string[];
-  status: 'Draft' | 'Published' | 'Archived' | 'Under Review';
-  isFeatured?: boolean;
-  isFree: boolean;
-  imageUrl: string;
-  fileUrl?: string;
-  externalUrl?: string;
-  tags: string[];
-  targetAudience: string[];
-  ageGroup: string;
-  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
-  duration?: string;
-  author: string;
-  reviewedBy?: string;
-}
+import { 
+  PatientResource, 
+  ResourceAnalytics, 
+  CreateResourceInput,
+  ResourceType,
+  ResourceStatus 
+} from '../pages/admin/resources/patientcare/patientCare';
 
 // Helper function to get authentication headers
 const getAuthHeaders = (): Record<string, string> => {
@@ -138,6 +61,20 @@ const normalizeResource = (backendResource: any): PatientResource => {
     }).filter(Boolean);
   };
 
+  // Handle language/languages field mapping
+  let languages: string[] = [];
+  if (backendResource.languages && Array.isArray(backendResource.languages)) {
+    // Backend returns array of objects with language field
+    languages = backendResource.languages.map((lang: any) => 
+      typeof lang === 'string' ? lang : (lang.language || '')
+    ).filter(Boolean);
+  } else if (backendResource.language) {
+    // Fallback if backend returns 'language' field
+    languages = Array.isArray(backendResource.language) 
+      ? safeArray(backendResource.language)
+      : [backendResource.language];
+  }
+
   let imageUrl = backendResource.imageUrl || backendResource.image_url;
   if (imageUrl && imageUrl.startsWith('/') && !imageUrl.startsWith('//')) {
     imageUrl = `${API_BASE_URL}${imageUrl}`;
@@ -154,7 +91,7 @@ const normalizeResource = (backendResource: any): PatientResource => {
     category: backendResource.category || '',
     type: backendResource.type || 'Guide',
     condition: backendResource.condition || '',
-    language: safeArray(backendResource.languages || backendResource.language),
+    language: languages, 
     status: backendResource.status || 'Draft',
     isFeatured: backendResource.isFeatured || backendResource.is_featured || false,
     isFree: backendResource.isFree || backendResource.is_free || true,
@@ -215,26 +152,53 @@ export const patientCareApi = {
   },
 
   create: async (data: CreateResourceInput): Promise<PatientResource> => {
+    const formData = new FormData();
+    
+    // Append all fields to formData
+    Object.entries(data).forEach(([key, value]) => {
+        if (key === 'imageFile' && value instanceof File) {
+        formData.append('image', value);
+        } else if (Array.isArray(value)) {
+        value.forEach(item => formData.append(key, item));
+        } else if (value !== null && value !== undefined) {
+        formData.append(key, value.toString());
+        }
+    });
+
     const response = await fetch(`${API_BASE_URL}/patient-resources/`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data),
+        method: 'POST',
+        headers: getAuthHeadersWithoutContentType(), // Remove Content-Type for FormData
+        body: formData,
     });
     
     const result = await handleResponse(response);
     return normalizeResource(result);
-  },
+    },
 
   update: async (id: number, data: Partial<CreateResourceInput>): Promise<PatientResource> => {
+    // Create FormData for file upload
+    const formData = new FormData();
+    
+    // Append all fields to formData
+    Object.entries(data).forEach(([key, value]) => {
+        if (key === 'imageFile' && value instanceof File) {
+        formData.append('image', value);
+        } else if (Array.isArray(value)) {
+        value.forEach(item => formData.append(key, item));
+        } else if (value !== null && value !== undefined) {
+        formData.append(key, value.toString());
+        }
+    });
+
     const response = await fetch(`${API_BASE_URL}/patient-resources/${id}/`, {
-      method: 'PATCH',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data),
+        method: 'PATCH',
+        headers: getAuthHeadersWithoutContentType(), // Remove Content-Type for FormData
+        body: formData,
     });
     
     const result = await handleResponse(response);
     return normalizeResource(result);
-  },
+    },
 
   delete: async (id: number): Promise<void> => {
     const response = await fetch(`${API_BASE_URL}/patient-resources/${id}/`, {

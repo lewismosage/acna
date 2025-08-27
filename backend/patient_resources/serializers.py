@@ -34,6 +34,9 @@ class PatientResourceSerializer(serializers.ModelSerializer):
     languages = ResourceLanguageSerializer(many=True, read_only=True)
     targetAudience = ResourceAudienceSerializer(source='target_audience', many=True, read_only=True)
     
+    # ADD THIS: Also provide 'language' field for frontend compatibility
+    language = serializers.SerializerMethodField()
+    
     class Meta:
         model = PatientResource
         fields = [
@@ -41,8 +44,12 @@ class PatientResourceSerializer(serializers.ModelSerializer):
             'condition', 'status', 'isFeatured', 'isFree', 'imageUrl', 'fileUrl',
             'externalUrl', 'ageGroup', 'difficulty', 'duration', 'downloadCount',
             'viewCount', 'rating', 'author', 'reviewedBy', 'createdAt', 'updatedAt',
-            'lastReviewDate', 'tags', 'languages', 'targetAudience'
+            'lastReviewDate', 'tags', 'languages', 'language', 'targetAudience' 
         ]
+    
+    def get_language(self, obj):
+        """Return languages as simple array for frontend compatibility"""
+        return [lang.language for lang in obj.languages.all()]
     
     def get_imageUrl(self, obj):
         image_url = obj.image_url_display
@@ -97,22 +104,6 @@ class CreatePatientResourceSerializer(serializers.ModelSerializer):
             'externalUrl', 'ageGroup', 'difficulty', 'duration', 'author', 'reviewedBy',
             'tags', 'languages', 'targetAudience'
         ]
-    
-    def validate_imageUrl(self, value):
-        if value:
-            value = value.strip()
-            if value and not (value.startswith('http://') or value.startswith('https://') or value.startswith('/')):
-                if not value.startswith('/'):
-                    value = '/' + value
-        return value
-    
-    def validate_fileUrl(self, value):
-        if value:
-            value = value.strip()
-            if value and not (value.startswith('http://') or value.startswith('https://') or value.startswith('/')):
-                if not value.startswith('/'):
-                    value = '/' + value
-        return value
     
     def create(self, validated_data):
         tags_data = validated_data.pop('tags', [])
@@ -191,12 +182,15 @@ class CreatePatientResourceSerializer(serializers.ModelSerializer):
     
     def _create_tags(self, resource, tags_data):
         for tag in tags_data:
-            ResourceTag.objects.create(resource=resource, name=tag)
+            if tag.strip():  
+                ResourceTag.objects.create(resource=resource, name=tag.strip())
     
     def _create_languages(self, resource, languages_data):
         for language in languages_data:
-            ResourceLanguage.objects.create(resource=resource, language=language)
+            if language.strip():  
+                ResourceLanguage.objects.create(resource=resource, language=language.strip())
     
     def _create_audience(self, resource, audience_data):
         for audience in audience_data:
-            ResourceAudience.objects.create(resource=resource, audience=audience)
+            if audience.strip():  
+                ResourceAudience.objects.create(resource=resource, audience=audience.strip())

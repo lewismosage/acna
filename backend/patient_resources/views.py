@@ -7,6 +7,7 @@ from django.utils import timezone
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from datetime import timedelta
+from rest_framework import serializers
 from django.http import JsonResponse
 import os
 import uuid
@@ -20,6 +21,103 @@ logger = logging.getLogger(__name__)
 class PatientResourceViewSet(viewsets.ModelViewSet):
     queryset = PatientResource.objects.all()
     parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def create(self, request, *args, **kwargs):
+        try:
+            # Make a mutable copy of the request data
+            data = request.data.copy()
+            
+            # Handle image file upload
+            if 'image' in request.FILES:
+                image_file = request.FILES['image']
+                # Handle the upload using the helper method
+                file_url = self._handle_image_upload_helper(image_file, request)
+                if file_url:
+                    data['image_url'] = file_url
+            
+            # Handle empty arrays
+            if 'tags' not in data or not data['tags']:
+                data['tags'] = []
+            if 'languages' not in data or not data['languages']:
+                data['languages'] = []
+            if 'targetAudience' not in data or not data['targetAudience']:
+                data['targetAudience'] = []
+            
+            # Ensure tags, languages, and targetAudience are lists
+            if isinstance(data.get('tags'), str):
+                data['tags'] = [data['tags']] if data['tags'] else []
+            if isinstance(data.get('languages'), str):
+                data['languages'] = [data['languages']] if data['languages'] else []
+            if isinstance(data.get('targetAudience'), str):
+                data['targetAudience'] = [data['targetAudience']] if data['targetAudience'] else []
+            
+            serializer = self.get_serializer(data=data)
+            serializer.is_valid(raise_exception=True)
+            
+            resource = serializer.save()
+            
+            # Return the created resource
+            read_serializer = PatientResourceSerializer(resource, context={'request': request})
+            logger.info(f"Patient resource created successfully: {resource.id}")
+            return Response(read_serializer.data, status=status.HTTP_201_CREATED)
+            
+        except serializers.ValidationError as e:
+            logger.error(f"Validation error creating resource: {e.detail}")
+            return Response(
+                {'error': 'Validation error', 'details': e.detail},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            logger.error(f"Error creating resource: {str(e)}")
+            return Response(
+                {'error': f'Failed to create resource: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    def update(self, request, *args, **kwargs):
+        try:
+            partial = kwargs.pop('partial', False)
+            instance = self.get_object()
+            
+            # Make a mutable copy of the request data
+            data = request.data.copy()
+            
+            # Handle image file upload if provided
+            if 'image' in request.FILES:
+                image_file = request.FILES['image']
+                # Handle the upload using the helper method
+                file_url = self._handle_image_upload_helper(image_file, request)
+                if file_url:
+                    data['image_url'] = file_url
+            
+            # Handle arrays
+            if 'tags' in data and not data['tags']:
+                data['tags'] = []
+            if 'languages' in data and not data['languages']:
+                data['languages'] = []
+            if 'targetAudience' in data and not data['targetAudience']:
+                data['targetAudience'] = []
+            
+            serializer = self.get_serializer(instance, data=data, partial=partial)
+            serializer.is_valid(raise_exception=True)
+            resource = serializer.save()
+            
+            # Return the updated resource
+            read_serializer = PatientResourceSerializer(resource, context={'request': request})
+            return Response(read_serializer.data)
+            
+        except serializers.ValidationError as e:
+            logger.error(f"Validation error updating resource: {e.detail}")
+            return Response(
+                {'error': 'Validation error', 'details': e.detail},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            logger.error(f"Error updating resource: {str(e)}")
+            return Response(
+                {'error': f'Failed to update resource: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
     
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:
@@ -104,33 +202,52 @@ class PatientResourceViewSet(viewsets.ModelViewSet):
             ip = request.META.get('REMOTE_ADDR')
         return ip
     
-    @action(detail=False, methods=['post'])
+    # PUBLIC ENDPOINT: This is the endpoint your frontend should call
+    @action(detail=False, methods=['post'], parser_classes=[MultiPartParser])
     def upload_image(self, request):
-        """Upload an image and return the URL"""
+        """Upload an image and return the URL - PUBLIC ENDPOINT"""
         if 'image' not in request.FILES:
             return Response(
                 {'error': 'No image file provided'}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        image = request.FILES['image']
+        image_file = request.FILES['image']
         
+        try:
+            file_url = self._handle_image_upload_helper(image_file, request)
+            return Response({
+                'url': file_url,
+                'message': 'Image uploaded successfully'
+            }, status=status.HTTP_201_CREATED)
+            
+        except serializers.ValidationError as e:
+            return Response(
+                {'error': str(e)}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            logger.error(f"Error uploading image: {str(e)}")
+            return Response(
+                {'error': f'Failed to upload image: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    # HELPER METHOD: Private method for handling the actual upload logic
+    def _handle_image_upload_helper(self, image_file, request=None):
+        """Helper method to handle image upload - PRIVATE METHOD"""
         # Validate file type
         allowed_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
-        file_extension = os.path.splitext(image.name)[1].lower()
+        file_extension = os.path.splitext(image_file.name)[1].lower()
         
         if file_extension not in allowed_extensions:
-            return Response(
-                {'error': 'Invalid file type. Allowed types: jpg, jpeg, png, gif, webp'}, 
-                status=status.HTTP_400_BAD_REQUEST
+            raise serializers.ValidationError(
+                'Invalid file type. Allowed types: jpg, jpeg, png, gif, webp'
             )
         
         # Validate file size (limit to 10MB)
-        if image.size > 10 * 1024 * 1024:
-            return Response(
-                {'error': 'File size too large. Maximum size is 10MB'}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        if image_file.size > 10 * 1024 * 1024:
+            raise serializers.ValidationError('File size too large. Maximum size is 10MB')
         
         try:
             # Generate unique filename
@@ -139,24 +256,18 @@ class PatientResourceViewSet(viewsets.ModelViewSet):
             file_path = os.path.join('resources', 'images', filename)
             
             # Save file using Django's default storage
-            saved_path = default_storage.save(file_path, ContentFile(image.read()))
+            saved_path = default_storage.save(file_path, ContentFile(image_file.read()))
             file_url = default_storage.url(saved_path)
             
             # Return full URL if needed
             if request:
                 file_url = request.build_absolute_uri(file_url)
             
-            return Response({
-                'url': file_url,
-                'filename': filename,
-                'path': saved_path
-            })
+            return file_url
             
         except Exception as e:
-            return Response(
-                {'error': f'Failed to upload image: {str(e)}'}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            logger.error(f"Failed to upload image: {str(e)}")
+            raise serializers.ValidationError(f'Failed to upload image: {str(e)}')
     
     @action(detail=False, methods=['post'])
     def upload_file(self, request):
@@ -201,6 +312,8 @@ class PatientResourceViewSet(viewsets.ModelViewSet):
                 {'error': f'Failed to upload file: {str(e)}'}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+    
+    # ... (rest of your methods remain the same)
     
     @action(detail=False, methods=['get'])
     def analytics(self, request):

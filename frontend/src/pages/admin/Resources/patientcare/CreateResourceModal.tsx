@@ -20,12 +20,19 @@ import {
   Link,
   Image as ImageIcon
 } from 'lucide-react';
-import { PatientResource, ResourceType, ResourceStatus } from './PatientCaregiverResourcesTab';
+import { patientCareApi } from '../../../../services/patientCareApi';
+
+import { 
+  PatientResource, 
+  ResourceAnalytics, 
+  ResourceType, 
+  ResourceStatus 
+} from './patientCare';
 
 interface CreatePatientCareModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (resource: PatientResource) => void;
+  onSubmit: (resource: PatientResource & { imageFile?: File | null }) => void;
   editingResource?: PatientResource;
 }
 
@@ -36,11 +43,11 @@ interface FormData {
   category: string;
   type: ResourceType;
   condition: string;
-  language: string[];
+  languages: string[];
   status: ResourceStatus;
   isFeatured: boolean;
   isFree: boolean;
-  imageUrl: string;
+  imageFile: File | null; 
   fileUrl: string;
   externalUrl: string;
   tags: string[];
@@ -63,18 +70,18 @@ const CreatePatientCareModal: React.FC<CreatePatientCareModalProps> = ({
   editingResource
 }) => {
   const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState<FormData>({
+    const [formData, setFormData] = useState<FormData>({
     title: '',
     description: '',
     full_description: '',
     category: '',
     type: 'Guide',
     condition: '',
-    language: ['English'],
+    languages: ['English'],
     status: 'Draft',
     isFeatured: false,
     isFree: true,
-    imageUrl: '',
+    imageFile: null,
     fileUrl: '',
     externalUrl: '',
     tags: [],
@@ -130,58 +137,59 @@ const CreatePatientCareModal: React.FC<CreatePatientCareModalProps> = ({
 
   // Initialize form data when editing
   useEffect(() => {
-    if (editingResource) {
-      setFormData({
-        title: editingResource.title || '',
-        description: editingResource.description || '',
-        full_description: editingResource.full_description || '',
-        category: editingResource.category || '',
-        type: editingResource.type || 'Guide',
-        condition: editingResource.condition || '',
-        language: editingResource.language || ['English'],
-        status: editingResource.status || 'Draft',
-        isFeatured: editingResource.isFeatured || false,
-        isFree: editingResource.isFree || true,
-        imageUrl: editingResource.imageUrl || '',
-        fileUrl: editingResource.fileUrl || '',
-        externalUrl: editingResource.externalUrl || '',
-        tags: editingResource.tags || [],
-        targetAudience: editingResource.targetAudience || ['Parents'],
-        ageGroup: editingResource.ageGroup || '',
-        difficulty: editingResource.difficulty || 'Beginner',
-        duration: editingResource.duration || '',
-        author: editingResource.author || '',
-        reviewedBy: editingResource.reviewedBy || ''
-      });
-    } else {
-      // Reset form for new resource
-      setFormData({
-        title: '',
-        description: '',
-        full_description: '',
-        category: '',
-        type: 'Guide',
-        condition: '',
-        language: ['English'],
-        status: 'Draft',
-        isFeatured: false,
-        isFree: true,
-        imageUrl: '',
-        fileUrl: '',
-        externalUrl: '',
-        tags: [],
-        targetAudience: ['Parents'],
-        ageGroup: '',
-        difficulty: 'Beginner',
-        duration: '',
-        author: '',
-        reviewedBy: ''
-      });
-    }
-    setCurrentStep(1);
-    setErrors({});
-    setShowPreview(false);
-  }, [editingResource, isOpen]);
+  if (editingResource) {
+    setFormData({
+      title: editingResource.title || '',
+      description: editingResource.description || '',
+      full_description: editingResource.full_description || '',
+      category: editingResource.category || '',
+      type: editingResource.type || 'Guide',
+      condition: editingResource.condition || '',
+      languages: editingResource.language || ['English'],
+      status: editingResource.status || 'Draft',
+      isFeatured: editingResource.isFeatured || false,
+      isFree: editingResource.isFree || true,
+      imageFile: null, 
+      fileUrl: editingResource.fileUrl || '',
+      externalUrl: editingResource.externalUrl || '',
+      tags: editingResource.tags || [],
+      targetAudience: editingResource.targetAudience || ['Parents'],
+      ageGroup: editingResource.ageGroup || '',
+      difficulty: editingResource.difficulty || 'Beginner',
+      duration: editingResource.duration || '',
+      author: editingResource.author || '',
+      reviewedBy: editingResource.reviewedBy || ''
+    });
+  } else {
+    // Reset form for new resource
+    setFormData({
+      title: '',
+      description: '',
+      full_description: '',
+      category: '',
+      type: 'Guide',
+      condition: '',
+      languages: ['English'],
+      status: 'Draft',
+      isFeatured: false,
+      isFree: true,
+      imageFile: null,
+      fileUrl: '',
+      externalUrl: '',
+      tags: [],
+      targetAudience: ['Parents'],
+      ageGroup: '',
+      difficulty: 'Beginner',
+      duration: '',
+      author: '',
+      reviewedBy: ''
+    });
+  }
+  setCurrentStep(1);
+  setErrors({});
+  setShowPreview(false);
+}, [editingResource, isOpen]);
+
 
   const validateStep = (step: number): boolean => {
     const newErrors: FormErrors = {};
@@ -194,7 +202,7 @@ const CreatePatientCareModal: React.FC<CreatePatientCareModalProps> = ({
     } else if (step === 2) {
       if (!formData.ageGroup) newErrors.ageGroup = 'Age group is required';
       if (!formData.author.trim()) newErrors.author = 'Author is required';
-      if (formData.language.length === 0) newErrors.language = 'At least one language is required';
+      if (formData.languages.length === 0) newErrors.languages = 'At least one language is required'; // Updated field name
       if (formData.targetAudience.length === 0) newErrors.targetAudience = 'At least one target audience is required';
     } else if (step === 3) {
       if (formData.type === 'Video' || formData.type === 'Audio') {
@@ -227,7 +235,27 @@ const CreatePatientCareModal: React.FC<CreatePatientCareModalProps> = ({
     }
   };
 
-  const handleArrayToggle = (field: 'language' | 'targetAudience', value: string) => {
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        setErrors({ ...errors, imageFile: 'Please select a valid image file (JPEG, PNG, GIF, WEBP)' });
+        return;
+      }
+      
+      // Validate file size (10MB max)
+      if (file.size > 10 * 1024 * 1024) {
+        setErrors({ ...errors, imageFile: 'Image must be less than 10MB' });
+        return;
+      }
+      
+      handleInputChange('imageFile', file);
+    }
+  };
+
+  const handleArrayToggle = (field: 'languages' | 'targetAudience', value: string) => {
     const currentArray = formData[field] as string[];
     const newArray = currentArray.includes(value)
       ? currentArray.filter(item => item !== value)
@@ -279,9 +307,25 @@ const CreatePatientCareModal: React.FC<CreatePatientCareModalProps> = ({
     setIsSubmitting(true);
 
     try {
+      // First upload image if there's a new one
+      let imageUrl = editingResource?.imageUrl || '';
+      
+      if (formData.imageFile) {
+        try {
+          const uploadResponse = await patientCareApi.uploadImage(formData.imageFile);
+          imageUrl = uploadResponse.url;
+        } catch (error) {
+          console.error('Error uploading image:', error);
+          setErrors({ ...errors, imageFile: 'Failed to upload image. Please try again.' });
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
       const resourceData: PatientResource = {
         id: editingResource?.id || Date.now(),
         ...formData,
+        imageUrl, // Use the uploaded image URL
         downloadCount: editingResource?.downloadCount || 0,
         viewCount: editingResource?.viewCount || 0,
         rating: editingResource?.rating,
@@ -496,8 +540,8 @@ const CreatePatientCareModal: React.FC<CreatePatientCareModalProps> = ({
             <label key={lang} className="flex items-center p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
               <input
                 type="checkbox"
-                checked={formData.language.includes(lang)}
-                onChange={() => handleArrayToggle('language', lang)}
+                checked={formData.languages.includes(lang)}
+                onChange={() => handleArrayToggle('languages', lang)}
                 className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500"
               />
               <span className="ml-2 text-sm">{lang}</span>
@@ -606,37 +650,53 @@ const CreatePatientCareModal: React.FC<CreatePatientCareModalProps> = ({
 
       {/* Image URL */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Cover Image URL
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        Cover Image *
         </label>
-        <div className="flex gap-3">
-          <input
-            type="url"
-            value={formData.imageUrl}
-            onChange={(e) => handleInputChange('imageUrl', e.target.value)}
-            className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-            placeholder="https://example.com/image.jpg"
-          />
-          <button
-            type="button"
-            className="px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50"
-          >
-            <Upload className="w-4 h-4" />
-          </button>
-        </div>
-        {formData.imageUrl && (
-          <div className="mt-3">
-            <img
-              src={formData.imageUrl}
-              alt="Preview"
-              className="w-32 h-24 object-cover rounded-lg border border-gray-200"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-              }}
+        <div className="flex items-center gap-4">
+          <label className="flex flex-col items-center justify-center w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-orange-500 transition-colors">
+            <Upload className="w-8 h-8 text-gray-400 mb-2" />
+            <span className="text-sm text-gray-600 text-center px-2">
+              {formData.imageFile ? 'Change Image' : 'Upload Image'}
+            </span>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              onChange={handleImageUpload}
+              className="hidden"
             />
-          </div>
-        )}
+          </label>
+          
+          {formData.imageFile && (
+            <div className="flex flex-col items-center">
+              <img
+                src={URL.createObjectURL(formData.imageFile)}
+                alt="Preview"
+                className="w-32 h-32 object-cover rounded-lg border border-gray-200"
+              />
+              <p className="text-xs text-gray-600 mt-2">
+                {formData.imageFile.name}
+              </p>
+            </div>
+          )}
+          
+          {editingResource?.imageUrl && !formData.imageFile && (
+            <div className="flex flex-col items-center">
+              <img
+                src={editingResource.imageUrl}
+                alt="Current"
+                className="w-32 h-32 object-cover rounded-lg border border-gray-200"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                }}
+              />
+              <p className="text-xs text-gray-600 mt-2">Current Image</p>
+            </div>
+          )}
+        </div>
+        {errors.imageFile && <p className="text-red-500 text-sm mt-1">{errors.imageFile}</p>}
+        <p className="text-gray-500 text-sm mt-1">JPEG, PNG, GIF, or WEBP. Max 10MB.</p>
       </div>
 
       {/* Duration (for video/audio) */}
@@ -777,17 +837,23 @@ const CreatePatientCareModal: React.FC<CreatePatientCareModalProps> = ({
             {/* Preview Image */}
             <div className="lg:w-1/3">
               <div className="relative">
-                {formData.imageUrl ? (
-                  <img
-                    src={formData.imageUrl}
-                    alt={formData.title}
-                    className="w-full h-48 object-cover rounded-lg"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = '/api/placeholder/300/200';
-                    }}
-                  />
-                ) : (
+                {formData.imageFile ? (
+                    <img
+                      src={URL.createObjectURL(formData.imageFile)}
+                      alt={formData.title}
+                      className="w-full h-48 object-cover rounded-lg"
+                    />
+                  ) : editingResource?.imageUrl ? (
+                    <img
+                      src={editingResource.imageUrl}
+                      alt={formData.title}
+                      className="w-full h-48 object-cover rounded-lg"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = '/api/placeholder/300/200';
+                      }}
+                    />
+                  ) : (
                   <div className="w-full h-48 bg-gray-200 rounded-lg flex items-center justify-center">
                     <ImageIcon className="w-12 h-12 text-gray-400" />
                   </div>
@@ -825,7 +891,7 @@ const CreatePatientCareModal: React.FC<CreatePatientCareModalProps> = ({
               <p className="text-gray-600 text-sm mb-4">{formData.description}</p>
               
               <div className="flex flex-wrap gap-2 mb-4">
-                {formData.language.map((lang, index) => (
+                {formData.languages.map((lang, index) => (
                   <span key={index} className="bg-gray-100 text-gray-600 px-2 py-1 text-xs rounded">
                     {lang}
                   </span>
@@ -889,7 +955,7 @@ const CreatePatientCareModal: React.FC<CreatePatientCareModalProps> = ({
           </div>
           <div>
             <span className="font-medium text-blue-800">Languages:</span>
-            <p className="text-blue-700">{formData.language.join(', ')}</p>
+            <p className="text-blue-700">{formData.languages.join(', ')}</p>
           </div>
           <div>
             <span className="font-medium text-blue-800">Target Audience:</span>
@@ -907,14 +973,14 @@ const CreatePatientCareModal: React.FC<CreatePatientCareModalProps> = ({
       </div>
 
       {/* Validation Warnings */}
-      {(!formData.imageUrl || !formData.full_description) && (
+      {(!formData.imageFile || !formData.full_description) && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <div className="flex items-start">
             <AlertCircle className="w-5 h-5 text-yellow-600 mr-3 flex-shrink-0 mt-0.5" />
             <div>
               <h4 className="font-medium text-yellow-800 mb-2">Optional fields missing</h4>
               <ul className="text-yellow-700 text-sm space-y-1">
-                {!formData.imageUrl && <li>• Cover image URL - will use placeholder image</li>}
+                {!formData.imageFile && <li>• Cover image URL - will use placeholder image</li>}
                 {!formData.full_description && <li>• Detailed description - only short description will be shown</li>}
               </ul>
               <p className="text-yellow-700 text-sm mt-2">

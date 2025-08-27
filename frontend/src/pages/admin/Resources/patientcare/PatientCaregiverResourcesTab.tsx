@@ -31,70 +31,13 @@ import {
   Search
 } from 'lucide-react';
 
-export type ResourceStatus = 'Draft' | 'Published' | 'Archived' | 'Under Review';
-export type ResourceType = 'Guide' | 'Video' | 'Audio' | 'Checklist' | 'App' | 'Website' | 'Infographic' | 'Handbook';
-
-export interface PatientResource {
-  id: number;
-  title: string;
-  description: string;
-  full_description?: string;
-  category: string;
-  type: ResourceType;
-  condition: string;
-  language: string[];
-  status: ResourceStatus;
-  isFeatured?: boolean;
-  isFree: boolean;
-  imageUrl: string;
-  fileUrl?: string;
-  externalUrl?: string;
-  tags: string[];
-  targetAudience: string[];
-  ageGroup: string;
-  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
-  duration?: string;
-  downloadCount: number;
-  viewCount: number;
-  rating?: number;
-  author: string;
-  reviewedBy?: string;
-  createdAt: string;
-  updatedAt: string;
-  lastReviewDate?: string;
-}
-
-export interface ResourceAnalytics {
-  total: number;
-  draft: number;
-  published: number;
-  archived: number;
-  underReview: number;
-  totalDownloads: number;
-  monthlyDownloads: number;
-  featured: number;
-  totalViews: number;
-  resourcesByType?: {
-    Guide: number;
-    Video: number;
-    Audio: number;
-    Checklist: number;
-    App: number;
-    Website: number;
-    Infographic: number;
-    Handbook: number;
-  };
-  topResources?: Array<{
-    id: number;
-    title: string;
-    type: string;
-    downloadCount: number;
-    viewCount: number;
-  }>;
-  resourcesByCondition?: {
-    [key: string]: number;
-  };
-}
+import { 
+  PatientResource, 
+  ResourceAnalytics, 
+  ResourceType, 
+  ResourceStatus,
+  CreateResourceInput
+} from './patientCare';
 
 interface PatientCaregiverResourcesTabProps {
   resources?: PatientResource[];
@@ -216,20 +159,26 @@ const PatientCaregiverResourcesTab: React.FC<PatientCaregiverResourcesTabProps> 
     }
   };
 
-  const handleCreateResource = async (resourceData: PatientResource) => {
+  const handleCreateResource = async (resourceData: PatientResource & { imageFile?: File | null }) => {
     try {
+      // Convert PatientResource to CreateResourceInput
+      const createData: CreateResourceInput = {
+        ...resourceData,
+        imageFile: resourceData.imageFile || null,
+      };
+
       if (editingResource) {
-        const updatedResource = await patientCareApi.update(editingResource.id, resourceData);
+        const updatedResource = await patientCareApi.update(editingResource.id, createData);
         setResources(prev => 
           prev.map(r => r.id === editingResource.id ? updatedResource : r)
         );
       } else {
-        const createdResource = await patientCareApi.create(resourceData);
+        const createdResource = await patientCareApi.create(createData);
         setResources(prev => [createdResource, ...prev]);
       }
       setShowCreateModal(false);
       setEditingResource(undefined);
-      loadAnalytics(); // Refresh analytics
+      loadAnalytics();
     } catch (err) {
       console.error('Error saving resource:', err);
     }
