@@ -202,7 +202,7 @@ const CreatePatientCareModal: React.FC<CreatePatientCareModalProps> = ({
     } else if (step === 2) {
       if (!formData.ageGroup) newErrors.ageGroup = 'Age group is required';
       if (!formData.author.trim()) newErrors.author = 'Author is required';
-      if (formData.languages.length === 0) newErrors.languages = 'At least one language is required'; // Updated field name
+      if (formData.languages.length === 0) newErrors.languages = 'At least one language is required';
       if (formData.targetAudience.length === 0) newErrors.targetAudience = 'At least one target audience is required';
     } else if (step === 3) {
       if (formData.type === 'Video' || formData.type === 'Audio') {
@@ -325,13 +325,14 @@ const CreatePatientCareModal: React.FC<CreatePatientCareModalProps> = ({
       const resourceData: PatientResource = {
         id: editingResource?.id || Date.now(),
         ...formData,
-        imageUrl, // Use the uploaded image URL
+        imageUrl, 
+        language: formData.languages,
         downloadCount: editingResource?.downloadCount || 0,
         viewCount: editingResource?.viewCount || 0,
         rating: editingResource?.rating,
         createdAt: editingResource?.createdAt || new Date().toISOString().split('T')[0],
         updatedAt: new Date().toISOString().split('T')[0],
-        lastReviewDate: formData.reviewedBy ? new Date().toISOString().split('T')[0] : undefined
+        lastReviewDate: formData.reviewedBy ? new Date().toISOString().split('T')[0] : undefined,
       };
 
       await onSubmit(resourceData);
