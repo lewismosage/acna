@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { 
   Settings, Users, Calendar, FileText, DollarSign, BarChart3, Shield, LogOut,
-  Home, Mail, Upload, Edit3, Search, Menu, X, Plus, Eye, Trash2,
-  AlertCircle, CheckCircle, Clock, TrendingUp, UserCheck, UserX,
-  Download, Bell, Archive, Globe, Database, Lock,
+  Home, Mail, Menu, X, Plus,
+  Clock, TrendingUp, UserCheck,
+  Download,
   Newspaper
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
