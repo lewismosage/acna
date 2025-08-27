@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { 
-  Home, FileText, BookOpen, Users, Award, Calendar, Plus, 
-  Download, Upload, Edit3, Eye, Trash2, Search, Globe, Database
+  Home, FileText, BookOpen, Users, Award, Plus, 
+  Download, Upload, Edit3, Eye, Trash2, Globe, Database
 } from 'lucide-react';
 
 // Import tab components (these would be created separately)
