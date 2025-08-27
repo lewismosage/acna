@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Heart, Phone, MessageCircle, Download, Users, Mail, BookOpen, AlertCircle, Clock, Search, Filter, Star, ExternalLink, Play, FileText, Globe, Headphones } from 'lucide-react';
 import { patientCareApi } from '../../services/patientCareApi';
 import { PatientResource } from '../admin/resources/patientcare/patientCare'; 
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 import api from '../../services/api';
 
 interface SubscriptionStatus {
@@ -378,8 +379,7 @@ const PatientCaregiverResources = () => {
             {/* Loading State */}
             {loading && (
               <div className="text-center py-12">
-                <div className="animate-spin w-8 h-8 border-4 border-red-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-                <p className="text-gray-600">Loading resources...</p>
+                <LoadingSpinner />
               </div>
             )}
 
