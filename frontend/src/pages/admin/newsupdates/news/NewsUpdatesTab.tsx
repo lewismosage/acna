@@ -22,11 +22,11 @@ import {
   Trash2,
   RefreshCw
 } from 'lucide-react';
-import CreateNewsModal from './news/CreateNewsModal';
-import { NewsItem, NewsStatus, NewsType } from './types';
-import { newsApi } from '../../../services/newsApi';
-import LoadingSpinner from '../../../components/common/LoadingSpinner';
-import placeholderImg from '../../../assets/default Profile Image.png';
+import CreateNewsModal from '../news/CreateNewsModal';
+import { NewsItem, NewsStatus, NewsType } from '../newsmanagement/types';
+import { newsApi } from '../../../../services/newsApi';
+import LoadingSpinner from '../../../../components/common/LoadingSpinner';
+import placeholderImg from '../../../../assets/default Profile Image.png';
 
 const NewsUpdatesTab: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);

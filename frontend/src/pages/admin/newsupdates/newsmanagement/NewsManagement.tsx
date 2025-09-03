@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Newspaper, Heart } from 'lucide-react';
-import NewsUpdatesTab from './NewsUpdatesTab';
-import GalleryTab from './GalleryTab';
+import NewsUpdatesTab from '../news/NewsUpdatesTab';
+import GalleryTab from '../gallery/GalleryTab';
 
 const NewsManagement = () => {
   const [activeTab, setActiveTab] = useState('news');

@@ -10,15 +10,15 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import CommunicationTools from '../communication/communicationmanagement/CommunicationTools';
 import MembersManagement from '../membermanagement/MembersManagement';
-import ResourceManagement from '../resources/resourcemanagement/ResourceManagement';
-import EventsManagement from '../events/EventsManagement';
+import ResourceManagement from '../../admin/ResourceManagement';
+import EventsManagement from '../events/eventsmanagement/EventsManagement';
 import FinancialManagement from '../financial/FinancialManagement';
 import AdminSettings from '../settings/AdminSettings';
 import ReportsAnalytics from '../reports/ReportsAnalytics';
 import { SignOutModal } from '../settings/SignOutModal';
 import { useAuth } from '../../../services/AuthContext'; 
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
-import NewsManagement from '../news/newsmanagement/NewsManagement';
+import NewsManagement from '../newsupdates/newsmanagement/NewsManagement';
 
 // Mock data for demo purposes
 const mockMemberStats = {
