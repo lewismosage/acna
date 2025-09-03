@@ -1,49 +1,89 @@
-import { useState, useEffect } from 'react';
-import { 
-  Settings, Users, Calendar, FileText, DollarSign, BarChart3, Shield, LogOut,
-  Home, Mail, Menu, X, Plus,
-  Clock, TrendingUp, UserCheck,
+import { useState, useEffect } from "react";
+import {
+  Settings,
+  Users,
+  Calendar,
+  FileText,
+  DollarSign,
+  BarChart3,
+  Shield,
+  LogOut,
+  Home,
+  Mail,
+  Menu,
+  X,
+  Plus,
+  Clock,
+  TrendingUp,
+  UserCheck,
   Download,
-  Newspaper
-} from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeftIcon } from '@heroicons/react/24/outline';
-import CommunicationTools from '../communication/communicationmanagement/CommunicationTools';
-import MembersManagement from '../membermanagement/MembersManagement';
-import ResourceManagement from '../resources/resourcemanagement/ResourceManagement';
-import EventsManagement from '../events/eventsmanagement/EventsManagement';
-import FinancialManagement from '../financial/FinancialManagement';
-import AdminSettings from '../settings/AdminSettings';
-import ReportsAnalytics from '../reports/ReportsAnalytics';
-import { SignOutModal } from '../settings/SignOutModal';
-import { useAuth } from '../../../services/AuthContext'; 
-import LoadingSpinner from '../../../components/common/LoadingSpinner';
-import NewsManagement from '../newsupdates/newsmanagement/NewsManagement';
+  Newspaper,
+} from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowLeftIcon } from "@heroicons/react/24/outline";
+import CommunicationTools from "../communication/communicationmanagement/CommunicationTools";
+import MembersManagement from "../membermanagement/MembersManagement";
+import ResourceManagement from "../resources/resourcemanagement/ResourceManagement.tsx";
+import EventsManagement from "../events/eventsmanagement/EventsManagement";
+import FinancialManagement from "../financial/FinancialManagement";
+import AdminSettings from "../settings/AdminSettings";
+import ReportsAnalytics from "../reports/ReportsAnalytics";
+import { SignOutModal } from "../settings/SignOutModal";
+import { useAuth } from "../../../services/AuthContext";
+import LoadingSpinner from "../../../components/common/LoadingSpinner";
+import NewsManagement from "../newsupdates/newsmanagement/NewsManagement";
 
 // Mock data for demo purposes
 const mockMemberStats = {
   totalMembers: 1248,
   activeMembers: 1156,
   newThisMonth: 34,
-  pendingApprovals: 8
+  pendingApprovals: 8,
 };
 
 const mockFinancialStats = {
   totalRevenue: 45680,
   monthlyRevenue: 3420,
   pendingPayments: 12,
-  donations: 2340
+  donations: 2340,
 };
 
 const mockRecentActivity = [
-  { action: 'New Member Registration', user: 'Dr. Sarah Johnson', time: '2 hours ago', status: 'pending' },
-  { action: 'Payment Received', user: 'Dr. Michael Chen', time: '4 hours ago', status: 'completed' },
-  { action: 'Event Registration', user: 'Dr. Amara Okafor', time: '6 hours ago', status: 'completed' },
-  { action: 'Content Published', user: 'Admin User', time: '1 day ago', status: 'completed' }
+  {
+    action: "New Member Registration",
+    user: "Dr. Sarah Johnson",
+    time: "2 hours ago",
+    status: "pending",
+  },
+  {
+    action: "Payment Received",
+    user: "Dr. Michael Chen",
+    time: "4 hours ago",
+    status: "completed",
+  },
+  {
+    action: "Event Registration",
+    user: "Dr. Amara Okafor",
+    time: "6 hours ago",
+    status: "completed",
+  },
+  {
+    action: "Content Published",
+    user: "Admin User",
+    time: "1 day ago",
+    status: "completed",
+  },
 ];
 
 // Stats Card Component
-const StatsCard = ({ title, value, subtitle, icon: Icon, color = 'blue', trend }: any) => (
+const StatsCard = ({
+  title,
+  value,
+  subtitle,
+  icon: Icon,
+  color = "blue",
+  trend,
+}: any) => (
   <div className="bg-white border border-gray-300 rounded-lg p-4">
     <div className="flex items-center justify-between">
       <div>
@@ -72,12 +112,42 @@ const QuickActionsPanel = ({ setActiveTab }: any) => (
     </div>
     <div className="p-4 space-y-3">
       {[
-        { icon: Plus, label: 'Collaboration Opportunities', color: 'blue', action: () => setActiveTab('members') },
-        { icon: Calendar, label: 'Create Event', color: 'green', action: () => setActiveTab('events') },
-        { icon: Plus, label: 'Career Opportunities', color: 'blue', action: () => setActiveTab('members') },
-        { icon: FileText, label: 'Publish Content', color: 'purple', action: () => setActiveTab('content') },
-        { icon: Mail, label: 'Send Newsletter', color: 'orange', action: () => setActiveTab('communication') },
-        { icon: Download, label: 'Export Reports', color: 'red', action: () => setActiveTab('reports') },
+        {
+          icon: Plus,
+          label: "Collaboration Opportunities",
+          color: "blue",
+          action: () => setActiveTab("members"),
+        },
+        {
+          icon: Calendar,
+          label: "Create Event",
+          color: "green",
+          action: () => setActiveTab("events"),
+        },
+        {
+          icon: Plus,
+          label: "Career Opportunities",
+          color: "blue",
+          action: () => setActiveTab("members"),
+        },
+        {
+          icon: FileText,
+          label: "Publish Content",
+          color: "purple",
+          action: () => setActiveTab("content"),
+        },
+        {
+          icon: Mail,
+          label: "Send Newsletter",
+          color: "orange",
+          action: () => setActiveTab("communication"),
+        },
+        {
+          icon: Download,
+          label: "Export Reports",
+          color: "red",
+          action: () => setActiveTab("reports"),
+        },
       ].map(({ icon: Icon, label, color, action }, index) => (
         <button
           key={index}
@@ -134,8 +204,8 @@ const DashboardOverview = ({ setActiveTab }: any) => (
     <div className="bg-white border border-gray-300 rounded-lg">
       <div className="bg-gray-100 px-4 py-2 border-b border-gray-300 flex items-center justify-between">
         <h2 className="font-semibold text-gray-800">Recent Activity</h2>
-        <button 
-          onClick={() => setActiveTab('reports')}
+        <button
+          onClick={() => setActiveTab("reports")}
           className="text-blue-600 hover:text-blue-800 text-sm font-medium"
         >
           View All →
@@ -144,21 +214,32 @@ const DashboardOverview = ({ setActiveTab }: any) => (
       <div className="p-4">
         <div className="space-y-3">
           {mockRecentActivity.map((activity, index) => (
-            <div key={index} className="flex items-center justify-between p-3 border border-gray-200 rounded">
+            <div
+              key={index}
+              className="flex items-center justify-between p-3 border border-gray-200 rounded"
+            >
               <div className="flex items-center">
-                <div className={`w-2 h-2 rounded-full mr-3 ${
-                  activity.status === 'pending' ? 'bg-orange-400' : 'bg-green-400'
-                }`} />
+                <div
+                  className={`w-2 h-2 rounded-full mr-3 ${
+                    activity.status === "pending"
+                      ? "bg-orange-400"
+                      : "bg-green-400"
+                  }`}
+                />
                 <div>
                   <p className="font-medium text-sm">{activity.action}</p>
-                  <p className="text-xs text-gray-600">{activity.user} • {activity.time}</p>
+                  <p className="text-xs text-gray-600">
+                    {activity.user} • {activity.time}
+                  </p>
                 </div>
               </div>
-              <span className={`px-2 py-1 rounded text-xs font-medium ${
-                activity.status === 'pending' 
-                  ? 'bg-orange-100 text-orange-800' 
-                  : 'bg-green-100 text-green-800'
-              }`}>
+              <span
+                className={`px-2 py-1 rounded text-xs font-medium ${
+                  activity.status === "pending"
+                    ? "bg-orange-100 text-orange-800"
+                    : "bg-green-100 text-green-800"
+                }`}
+              >
                 {activity.status}
               </span>
             </div>
@@ -169,48 +250,32 @@ const DashboardOverview = ({ setActiveTab }: any) => (
   </>
 );
 
-
-<>
-  //Member Management Tab
-  <MembersManagement />
-  // Content Management Tab
-  <ResourceManagement />
-  // Events Management Tab
-  <EventsManagement />
-  // Financial Management Tab
-  <FinancialManagement />
-  // Communication Tools Tab
-  <CommunicationTools />
-  //Report Analytics
-  <ReportsAnalytics />
-  //Admin Settings
-  <AdminSettings /></>
-
-
 // Main Admin Dashboard Component
 const AdminDashboard = () => {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState("dashboard");
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [adminName, setAdminName] = useState({ firstName: 'Admin', lastName: 'User' });
-  const { admin, isAdmin, logout } = useAuth(); 
+  const [adminName, setAdminName] = useState({
+    firstName: "Admin",
+    lastName: "User",
+  });
+  const { admin, isAdmin, logout } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (isAdmin === undefined) return;
 
     if (!isAdmin) {
-      navigate('/admin/login');
+      navigate("/admin/login");
     } else {
       setAdminName({
-        firstName: admin?.first_name || 'Admin',
-        lastName: admin?.last_name || 'User'
+        firstName: admin?.first_name || "Admin",
+        lastName: admin?.last_name || "User",
       });
     }
     setIsLoading(false);
   }, [isAdmin, admin, navigate]);
-
 
   if (isLoading) {
     return (
@@ -223,36 +288,36 @@ const AdminDashboard = () => {
   }
 
   const tabs = [
-    { id: 'dashboard', label: 'DASHBOARD', icon: Home },
-    { id: 'members', label: 'MEMBERS', icon: Users },
-    { id: 'resources', label: 'RESOURCES', icon: FileText },
-    { id: 'events', label: 'EVENTS', icon: Calendar },
-    { id: 'news', label: 'NEWS & PRESS RELEASES', icon: Newspaper },
-    { id: 'financial', label: 'FINANCIAL', icon: DollarSign },
-    { id: 'communication', label: 'COMMUNICATION', icon: Mail },
-    { id: 'reports', label: 'REPORTS', icon: BarChart3 },
-    { id: 'settings', label: 'SETTINGS', icon: Settings }
+    { id: "dashboard", label: "DASHBOARD", icon: Home },
+    { id: "members", label: "MEMBERS", icon: Users },
+    { id: "resources", label: "RESOURCES", icon: FileText },
+    { id: "events", label: "EVENTS", icon: Calendar },
+    { id: "news", label: "NEWS & PRESS RELEASES", icon: Newspaper },
+    { id: "financial", label: "FINANCIAL", icon: DollarSign },
+    { id: "communication", label: "COMMUNICATION", icon: Mail },
+    { id: "reports", label: "REPORTS", icon: BarChart3 },
+    { id: "settings", label: "SETTINGS", icon: Settings },
   ];
 
   const renderTabContent = () => {
     switch (activeTab) {
-      case 'dashboard':
+      case "dashboard":
         return <DashboardOverview setActiveTab={setActiveTab} />;
-      case 'members':
-          return <MembersManagement />;
-      case 'resources':
+      case "members":
+        return <MembersManagement />;
+      case "resources":
         return <ResourceManagement />;
-      case 'events':
+      case "events":
         return <EventsManagement />;
-      case 'news':
-          return <NewsManagement />; 
-      case 'financial':
+      case "news":
+        return <NewsManagement />;
+      case "financial":
         return <FinancialManagement />;
-      case 'communication':
+      case "communication":
         return <CommunicationTools />;
-      case 'reports':
+      case "reports":
         return <ReportsAnalytics />;
-      case 'settings':
+      case "settings":
         return <AdminSettings />;
       default:
         return <DashboardOverview setActiveTab={setActiveTab} />;
@@ -266,30 +331,36 @@ const AdminDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <SignOutModal 
-        isOpen={showSignOutModal} 
+      <SignOutModal
+        isOpen={showSignOutModal}
         onClose={() => setShowSignOutModal(false)}
         onConfirm={() => {
           logout();
-          navigate('/admin/login');
+          navigate("/admin/login");
         }}
       />
       {/* Mobile Header */}
       <div className="md:hidden bg-blue-800 text-white p-3 flex items-center justify-between">
-        <button 
+        <button
           onClick={() => setShowMobileSidebar(!showMobileSidebar)}
           className="p-2 rounded-full hover:bg-blue-700"
         >
-          {showMobileSidebar ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          {showMobileSidebar ? (
+            <X className="w-5 h-5" />
+          ) : (
+            <Menu className="w-5 h-5" />
+          )}
         </button>
         <h1 className="text-lg font-semibold">Admin Portal</h1>
         <div className="w-8"></div>
       </div>
 
       {/* Mobile Sidebar */}
-      <div className={`md:hidden fixed inset-y-0 left-0 w-64 bg-blue-800 text-white transform z-40 transition-transform duration-300 ease-in-out ${
-        showMobileSidebar ? 'translate-x-0' : '-translate-x-full'
-      }`}>
+      <div
+        className={`md:hidden fixed inset-y-0 left-0 w-64 bg-blue-800 text-white transform z-40 transition-transform duration-300 ease-in-out ${
+          showMobileSidebar ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
         <div className="h-full flex flex-col">
           <div className="p-4 border-b border-blue-700">
             <div className="flex items-center">
@@ -299,14 +370,14 @@ const AdminDashboard = () => {
               <h1 className="text-lg font-semibold">Admin Portal</h1>
             </div>
           </div>
-          
+
           <nav className="flex-1 overflow-y-auto">
             {tabs.map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
                 onClick={() => handleTabClick(id)}
                 className={`w-full text-left px-4 py-3 flex items-center ${
-                  activeTab === id ? 'bg-blue-700' : 'hover:bg-blue-700'
+                  activeTab === id ? "bg-blue-700" : "hover:bg-blue-700"
                 }`}
               >
                 <Icon className="w-5 h-5 mr-3" />
@@ -321,10 +392,10 @@ const AdminDashboard = () => {
               <span>SIGN OUT</span>
             </button>
           </nav>
-          
+
           <div className="p-4 border-t border-blue-700">
             <Link
-              to='/'
+              to="/"
               className="flex items-center text-sm hover:text-blue-200"
             >
               <Home className="w-4 h-4 mr-2" />
@@ -336,7 +407,7 @@ const AdminDashboard = () => {
 
       {/* Overlay */}
       {showMobileSidebar && (
-        <div 
+        <div
           className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
           onClick={() => setShowMobileSidebar(false)}
         />
@@ -349,15 +420,17 @@ const AdminDashboard = () => {
           <div className="bg-blue-800 text-white px-4 py-3 md:px-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <Link 
-                  to="/" 
+                <Link
+                  to="/"
                   className="w-10 h-10 md:w-12 md:h-12 bg-white rounded-full flex items-center justify-center mr-3 md:mr-4 hover:bg-gray-100 transition-colors duration-200"
                   title="Back to Home"
                 >
                   <ArrowLeftIcon className="w-5 h-5 text-blue-800" />
                 </Link>
                 <div className="flex items-center">
-                  <h1 className="text-lg md:text-xl font-semibold">African Child Neurology Association - Site administration</h1>
+                  <h1 className="text-lg md:text-xl font-semibold">
+                    African Child Neurology Association - Site administration
+                  </h1>
                 </div>
               </div>
               <div className="hidden md:flex items-center space-x-4">
@@ -377,7 +450,9 @@ const AdminDashboard = () => {
                     key={id}
                     onClick={() => handleTabClick(id)}
                     className={`px-3 py-2 md:px-4 md:py-3 text-xs md:text-sm font-medium border-r border-blue-600 last:border-r-0 hover:bg-blue-600 transition-colors whitespace-nowrap ${
-                      activeTab === id ? 'bg-blue-600 text-white' : 'text-blue-100'
+                      activeTab === id
+                        ? "bg-blue-600 text-white"
+                        : "text-blue-100"
                     }`}
                   >
                     <span className="hidden md:inline">{label}</span>
@@ -402,7 +477,7 @@ const AdminDashboard = () => {
 
         {/* Dashboard Content */}
         <div className="max-w-7xl mx-auto px-4 py-4 md:px-6 md:py-6">
-          {activeTab === 'dashboard' ? (
+          {activeTab === "dashboard" ? (
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-6">
               {/* Left Column - Quick Actions */}
               <div className="lg:col-span-1">
@@ -415,9 +490,7 @@ const AdminDashboard = () => {
               </div>
             </div>
           ) : (
-            <div className="space-y-4 md:space-y-6">
-              {renderTabContent()}
-            </div>
+            <div className="space-y-4 md:space-y-6">{renderTabContent()}</div>
           )}
         </div>
       </div>
