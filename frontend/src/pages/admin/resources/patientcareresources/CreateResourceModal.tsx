@@ -20,7 +20,7 @@ import {
   Link,
   Image as ImageIcon,
 } from "lucide-react";
-import { patientCareApi } from "../../../../../services/patientCareApi";
+import { patientCareApi } from "../../../../services/patientCareApi";
 
 import {
   PatientResource,

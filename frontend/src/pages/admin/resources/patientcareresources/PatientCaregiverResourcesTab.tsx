@@ -44,8 +44,8 @@ interface PatientCaregiverResourcesTabProps {
 }
 
 import CreateResourceModal from "./CreateResourceModal";
-import { patientCareApi } from "../../../../../services/patientCareApi";
-import LoadingSpinner from "../../../../../components/common/LoadingSpinner";
+import { patientCareApi } from "../../../../services/patientCareApi";
+import LoadingSpinner from "../../../../components/common/LoadingSpinner";
 
 const PatientCaregiverResourcesTab: React.FC<
   PatientCaregiverResourcesTabProps

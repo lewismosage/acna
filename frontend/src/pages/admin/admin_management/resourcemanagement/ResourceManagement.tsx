@@ -17,7 +17,7 @@ import {
 import PublicationResourcesTab from "../resourcemanagement/PublicationResourcesTab";
 import EBookletsTab from "../resourcemanagement/EBookletsTab";
 import TrainingProgramsTab from "../resourcemanagement/TrainingProgramsTab";
-import PatientCaregiverResourcesTab from "./patientcareresources/PatientCaregiverResourcesTab";
+import PatientCaregiverResourcesTab from "../../resources/patientcareresources/PatientCaregiverResourcesTab";
 import EducationalResourcesTab from "../resourcemanagement/EducationalResourcesTab";
 
 const ResourceManagement = () => {
