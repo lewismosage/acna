@@ -67,7 +67,7 @@ import PaymentSuccess from "./pages/payment/PaymentSuccess";
 import PaymentCanceled from "./pages/payment/PaymentCanceled";
 import PaymentError from "./pages/payment/PaymentError";
 import ACNAMemberDashboard from "./pages/membershippages/portal/ACNAMemberDashboard";
-import AdminDashboard from "./pages/admin/dashboard/dashboard_overview/AdminDashboard";
+import AdminDashboard from "./pages/admin/dashboard/AdminDashboard";
 import UnsubscribePage from "./pages/other/Unsubscribe";
 import AdminLogin from "./pages/admin/settings/AdminLogin";
 import AdminProtectedRoute from "./components/common/AdminProtectedRoute";
