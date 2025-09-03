@@ -14,11 +14,11 @@ import {
   Globe,
   Database,
 } from "lucide-react";
-import PublicationResourcesTab from "../../../resources/publicationresources/PublicationResourcesTab";
-import EBookletsTab from "../../../resources/ebooksresources/EBookletsTab";
-import TrainingProgramsTab from "../../../resources/trainingprogramsresources/TrainingProgramsTab";
-import PatientCaregiverResourcesTab from "../../../resources/patientcareresources/PatientCaregiverResourcesTab";
-import EducationalResourcesTab from "../../../resources/educationalresources/EducationalResourcesTab";
+import PublicationResourcesTab from "../resourcemanagement/PublicationResourcesTab";
+import EBookletsTab from "../resourcemanagement/EBookletsTab";  
+import TrainingProgramsTab from "../resourcemanagement/TrainingProgramsTab";
+import PatientCaregiverResourcesTab from "../../resources/patientcareresources/PatientCaregiverResourcesTab";
+import EducationalResourcesTab from "../resourcemanagement/EducationalResourcesTab";
 
 const ResourceManagement = () => {
   const [activeTab, setActiveTab] = useState<string>("home");
