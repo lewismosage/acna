@@ -6,7 +6,7 @@ import {
   Outlet,
 } from "react-router-dom";
 import { AuthProvider } from "./services/AuthContext";
-import ProtectedRoute from "./components/common/ProtectedRoute"; 
+import ProtectedRoute from "./components/common/ProtectedRoute";
 import Header from "./components/layout/Header";
 import Footer from "./components/layout/Footer";
 import NoLayout from "./components/layout/NoLayout";
@@ -67,17 +67,17 @@ import PaymentSuccess from "./pages/payment/PaymentSuccess";
 import PaymentCanceled from "./pages/payment/PaymentCanceled";
 import PaymentError from "./pages/payment/PaymentError";
 import ACNAMemberDashboard from "./pages/membershippages/portal/ACNAMemberDashboard";
-import AdminDashboard from "./pages/admin/dashboard/AdminDashboard";
-import UnsubscribePage from './pages/other/Unsubscribe';
+import AdminDashboard from "./pages/admin/dashboard/dashboard_overview/AdminDashboard";
+import UnsubscribePage from "./pages/other/Unsubscribe";
 import AdminLogin from "./pages/admin/settings/AdminLogin";
 import AdminProtectedRoute from "./components/common/AdminProtectedRoute";
 import AwardNominationPage from "./pages/eventsandnews/AwardNominationPage";
 import AbstractSubmissionForm from "./pages/eventsandnews/AbstractSubmissionForm";
-import NewsDetailPage from './pages/eventsandnews/NewsDetailPage';
+import NewsDetailPage from "./pages/eventsandnews/NewsDetailPage";
 import ConferenceDetailPage from "./pages/eventsandnews/ConferenceDetailPage";
 import WebinarDetailPage from "./pages/education/WebinarDetailPage";
 import WorkshopDetailPage from "./pages/education/workshops/WorkshopDetailPage";
-import PatientCareDetail from "./pages/education/PatientCareDetailPage"; 
+import PatientCareDetail from "./pages/education/PatientCareDetailPage";
 
 // Layout component
 const Layout = ({ children }: { children: React.ReactNode }) => (
@@ -113,10 +113,19 @@ function App() {
             <Route path="/about/leadership" element={<LeadershipTeam />} />
             <Route path="faqs" element={<GeneralACNAFAQs />} />
             {/* Key Features */}
-            <Route path="/professional-network" element={<ProfessionalNetwork />} />
-            <Route path="/research-publications" element={<ResearchPublications />} />
+            <Route
+              path="/professional-network"
+              element={<ProfessionalNetwork />}
+            />
+            <Route
+              path="/research-publications"
+              element={<ResearchPublications />}
+            />
             <Route path="/events-training" element={<EventsTraining />} />
-            <Route path="/recogination-awards" element={<RecognitionAwards />} />
+            <Route
+              path="/recogination-awards"
+              element={<RecognitionAwards />}
+            />
             {/* Support */}
             <Route path="/get-involved" element={<GetInvolved />} />
             <Route path="/contact" element={<Contact />} />
@@ -125,18 +134,36 @@ function App() {
             <Route path="/careers/benefits" element={<Benefits />} />
             <Route path="/volunteer" element={<VolunteerInfoSection />} />
             {/* Education */}
-            <Route path="/research-papers-and-publications" element={<ResearchPapersPage />} />
+            <Route
+              path="/research-papers-and-publications"
+              element={<ResearchPapersPage />}
+            />
             <Route path="/training-programs" element={<TrainingPrograms />} />
-            <Route path="/case-studies-and-fact-sheets" element={<FactSheetsAndCaseStudies />} />
-            <Route path="/position-statement" element={<PositionStatements />} />
-            <Route path="/patient-caregiver-resources" element={<PatientCaregiverResources />} />
-            <Route path="/patient-care-resources/:id" element={<PatientCareDetail />} />
+            <Route
+              path="/case-studies-and-fact-sheets"
+              element={<FactSheetsAndCaseStudies />}
+            />
+            <Route
+              path="/position-statement"
+              element={<PositionStatements />}
+            />
+            <Route
+              path="/patient-caregiver-resources"
+              element={<PatientCaregiverResources />}
+            />
+            <Route
+              path="/patient-care-resources/:id"
+              element={<PatientCareDetail />}
+            />
             <Route path="/policy-briefs" element={<PolicyBriefs />} />
             <Route path="/journal-watch" element={<JournalWatch />} />
             <Route path="/e-booklets" element={<EBooklets />} />
             <Route path="/webinars" element={<Webinars />} />
             <Route path="/webinars/:id" element={<WebinarDetailPage />} />
-            <Route path="/collaboration-opportunities" element={<WorkshopsSymposiums />} />
+            <Route
+              path="/collaboration-opportunities"
+              element={<WorkshopsSymposiums />}
+            />
             <Route path="/workshops/:id" element={<WorkshopDetailPage />} />
             {/* Membership */}
             <Route path="/register" element={<Register />} />
@@ -145,56 +172,77 @@ function App() {
             <Route path="/membership-application" element={<Register />} />
             <Route path="/membership-renewal" element={<MembershipRenew />} />
             <Route path="/membership-upgrade" element={<MembershipUpgrade />} />
-            <Route path="/membership-directory" element={<MembershipDirectory />} />
+            <Route
+              path="/membership-directory"
+              element={<MembershipDirectory />}
+            />
             <Route path="/membership-faqs" element={<MembershipFAQs />} />
             {/* Privacy */}
-            <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+            <Route
+              path="/terms-and-conditions"
+              element={<TermsAndConditions />}
+            />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/cookie-policy" element={<CookiePolicy />} />
-            <Route path="/donor-privacy-policy" element={<DonorPrivacyPolicy />} />
+            <Route
+              path="/donor-privacy-policy"
+              element={<DonorPrivacyPolicy />}
+            />
             {/* Events */}
-            <Route path="/annual-conference" element={<AnnualConferenceAndMeetings />} />
+            <Route
+              path="/annual-conference"
+              element={<AnnualConferenceAndMeetings />}
+            />
             <Route path="/conferences/:id" element={<ConferenceDetailPage />} />
             <Route path="/call-for-abstracts" element={<CallForAbstracts />} />
-            <Route path="/abstract-submission" element={<AbstractSubmissionForm />} />
+            <Route
+              path="/abstract-submission"
+              element={<AbstractSubmissionForm />}
+            />
             <Route path="/news" element={<News />} />
             <Route path="/news/:id" element={<NewsDetailPage />} />
             <Route path="/awards" element={<Awards />} />
-            <Route path="/awards-nomination" element={<AwardNominationPage />} />
+            <Route
+              path="/awards-nomination"
+              element={<AwardNominationPage />}
+            />
             <Route path="/events" element={<Events />} />
             <Route path="/gallery" element={<Gallery />} />
           </Route>
 
           {/* Protected routes without header/footer */}
           {/* Route without layout (no header/footer) */}
-        <Route
-          element={
-            <NoLayout>
-              <Outlet />
-            </NoLayout>
-          }
-        >
-          {/* Protected Route */}
-          <Route element={<ProtectedRoute />}>
-            <Route path="/memberportal" element={<ACNAMemberDashboard />} />
+          <Route
+            element={
+              <NoLayout>
+                <Outlet />
+              </NoLayout>
+            }
+          >
+            {/* Protected Route */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/memberportal" element={<ACNAMemberDashboard />} />
+            </Route>
+            <Route element={<AdminProtectedRoute />}>
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            </Route>
+            {/* Admin Pages */}
+            <Route path="/admin/login" element={<AdminLogin />} />
+            {/* Forum Pages */}
+            <Route path="/forum" element={<ForumComponent />} />
+            <Route path="/forum/:forumId" element={<ForumThread />} />
+            <Route
+              path="/forum/:forumId/post/:postId"
+              element={<PostReply />}
+            />
+            <Route path="forum-guidelines" element={<ForumGuidelines />} />
+            {/* Payment Pages */}
+            <Route path="/verification" element={<VerificationPage />} />
+            <Route path="/payment" element={<PaymentPage />} />
+            <Route path="/payment-success" element={<PaymentSuccess />} />
+            <Route path="/payment-canceled" element={<PaymentCanceled />} />
+            <Route path="/payment-error" element={<PaymentError />} />
           </Route>
-          <Route element={<AdminProtectedRoute />}>
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
-          </Route>
-          {/* Admin Pages */}
-          <Route path="/admin/login" element={<AdminLogin />} />
-          {/* Forum Pages */}
-          <Route path="/forum" element={<ForumComponent />} />        
-          <Route path="/forum/:forumId" element={<ForumThread />} />
-          <Route path="/forum/:forumId/post/:postId" element={<PostReply />} />
-          <Route path="forum-guidelines" element={<ForumGuidelines />} />
-          {/* Payment Pages */}
-          <Route path="/verification" element={<VerificationPage />} />
-          <Route path="/payment" element={<PaymentPage />} />
-          <Route path="/payment-success" element={<PaymentSuccess />} />
-          <Route path="/payment-canceled" element={<PaymentCanceled />} />
-          <Route path="/payment-error" element={<PaymentError />} />
-        </Route>
         </Routes>
       </Router>
     </AuthProvider>

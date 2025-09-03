@@ -17,11 +17,11 @@ import {
 } from "lucide-react";
 
 // Import components with proper typing
-import WorkshopsTab from "../workshop/WorkshopsTab";
-import WebinarsTab from "../webinars/WebinarsTab";
-import ConferencesTab from "../conferences/ConferencesTab";
-import AwardsTab from "../awards/AwardsTab";
-import AbstractsTab from "../abstracts/AbstractsTab";
+import WorkshopsTab from "../../../events/workshop/WorkshopsTab";
+import WebinarsTab from "../../../events/webinars/WebinarsTab";
+import ConferencesTab from "../../../events/conferences/ConferencesTab";
+import AwardsTab from "../../../events/awards/AwardsTab";
+import AbstractsTab from "../../../events/abstracts/AbstractsTab";
 
 const EventsManagement = () => {
   const [activeTab, setActiveTab] = useState<string>("conferences");

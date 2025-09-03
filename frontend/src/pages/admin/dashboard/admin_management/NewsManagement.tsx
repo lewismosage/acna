@@ -1,24 +1,24 @@
-import { useState } from 'react';
-import { Newspaper, Heart } from 'lucide-react';
-import NewsUpdatesTab from '../news/NewsUpdatesTab';
-import GalleryTab from '../gallery/GalleryTab';
+import { useState } from "react";
+import { Newspaper, Heart } from "lucide-react";
+import NewsUpdatesTab from "../../newsupdates/news/NewsUpdatesTab";
+import GalleryTab from "../../newsupdates/gallery/GalleryTab";
 
 const NewsManagement = () => {
-  const [activeTab, setActiveTab] = useState('news');
+  const [activeTab, setActiveTab] = useState("news");
 
   const tabs = [
-    { id: 'news', label: 'NEWS & UPDATES', icon: Newspaper },
-    { id: 'gallery', label: 'GALLERY', icon: Heart }
+    { id: "news", label: "NEWS & UPDATES", icon: Newspaper },
+    { id: "gallery", label: "GALLERY", icon: Heart },
   ];
 
   const renderTabContent = () => {
     switch (activeTab) {
-      case 'news':
-        return <NewsUpdatesTab />;  
-      case 'gallery':  
-        return <GalleryTab />;      
+      case "news":
+        return <NewsUpdatesTab />;
+      case "gallery":
+        return <GalleryTab />;
       default:
-        return <NewsUpdatesTab />;  
+        return <NewsUpdatesTab />;
     }
   };
 
@@ -33,7 +33,9 @@ const NewsManagement = () => {
                   key={id}
                   onClick={() => setActiveTab(id)}
                   className={`px-3 py-3 md:px-4 md:py-4 text-xs md:text-sm font-medium border-r border-blue-600 last:border-r-0 hover:bg-blue-600 transition-colors whitespace-nowrap flex items-center ${
-                    activeTab === id ? 'bg-blue-600 text-white' : 'text-blue-100'
+                    activeTab === id
+                      ? "bg-blue-600 text-white"
+                      : "text-blue-100"
                   }`}
                 >
                   <Icon className="w-4 h-4 mr-2 md:mr-2" />

@@ -1,16 +1,27 @@
-import { useState } from 'react';
-import { 
-  Home, FileText, BookOpen, Users, Award, Plus, 
-  Download, Upload, Edit3, Eye, Trash2, Globe, Database
-} from 'lucide-react';
-import PublicationResourcesTab from '../publicationresources/PublicationResourcesTab';
-import EBookletsTab from '../ebooksresources/EBookletsTab';
-import TrainingProgramsTab from '../trainingprogramsresources/TrainingProgramsTab';
-import PatientCaregiverResourcesTab from '../patientcareresources/PatientCaregiverResourcesTab';
-import EducationalResourcesTab from '../educationalresources/EducationalResourcesTab';
+import { useState } from "react";
+import {
+  Home,
+  FileText,
+  BookOpen,
+  Users,
+  Award,
+  Plus,
+  Download,
+  Upload,
+  Edit3,
+  Eye,
+  Trash2,
+  Globe,
+  Database,
+} from "lucide-react";
+import PublicationResourcesTab from "../../resources/publicationresources/PublicationResourcesTab";
+import EBookletsTab from "../../resources/ebooksresources/EBookletsTab";
+import TrainingProgramsTab from "../../resources/trainingprogramsresources/TrainingProgramsTab";
+import PatientCaregiverResourcesTab from "../../resources/patientcareresources/PatientCaregiverResourcesTab";
+import EducationalResourcesTab from "../../resources/educationalresources/EducationalResourcesTab";
 
 const ResourceManagement = () => {
-  const [activeTab, setActiveTab] = useState<string>('home');
+  const [activeTab, setActiveTab] = useState<string>("home");
 
   // Mock data for the home tab stats
   const mockResourceStats = {
@@ -18,27 +29,57 @@ const ResourceManagement = () => {
     publications: 245,
     eBooks: 187,
     trainingPrograms: 42,
-    patientResources: 382
+    patientResources: 382,
   };
 
   const mockRecentResources = [
-    { id: 1, title: 'Pediatric Neurology Guidelines 2025', type: 'Publication', date: '2025-08-10', views: 124 },
-    { id: 2, title: 'Epilepsy Management Handbook', type: 'E-Booklet', date: '2025-08-05', views: 87 },
-    { id: 3, title: 'Neurodevelopmental Assessment Course', type: 'Training Program', date: '2025-07-28', views: 56 },
-    { id: 4, title: 'Cerebral Palsy Caregiver Guide', type: 'Patient Resource', date: '2025-07-15', views: 203 },
+    {
+      id: 1,
+      title: "Pediatric Neurology Guidelines 2025",
+      type: "Publication",
+      date: "2025-08-10",
+      views: 124,
+    },
+    {
+      id: 2,
+      title: "Epilepsy Management Handbook",
+      type: "E-Booklet",
+      date: "2025-08-05",
+      views: 87,
+    },
+    {
+      id: 3,
+      title: "Neurodevelopmental Assessment Course",
+      type: "Training Program",
+      date: "2025-07-28",
+      views: 56,
+    },
+    {
+      id: 4,
+      title: "Cerebral Palsy Caregiver Guide",
+      type: "Patient Resource",
+      date: "2025-07-15",
+      views: 203,
+    },
   ];
 
   const tabs = [
-    { id: 'home', label: 'HOME', icon: Home },
-    { id: 'publications', label: 'PUBLICATION RESOURCES', icon: FileText },
-    { id: 'ebooks', label: 'E-BOOKLETS', icon: BookOpen },
-    { id: 'training', label: 'TRAINING PROGRAMS', icon: Users },
-    { id: 'patient', label: 'PATIENT & CAREGIVER RESOURCES', icon: Award },
-    { id: 'educational', label: 'EDUCATIONAL RESOURCES', icon: Globe }
+    { id: "home", label: "HOME", icon: Home },
+    { id: "publications", label: "PUBLICATION RESOURCES", icon: FileText },
+    { id: "ebooks", label: "E-BOOKLETS", icon: BookOpen },
+    { id: "training", label: "TRAINING PROGRAMS", icon: Users },
+    { id: "patient", label: "PATIENT & CAREGIVER RESOURCES", icon: Award },
+    { id: "educational", label: "EDUCATIONAL RESOURCES", icon: Globe },
   ];
 
   // Stats Card Component
-  const StatsCard = ({ title, value, subtitle, icon: Icon, color = 'blue' }: any) => (
+  const StatsCard = ({
+    title,
+    value,
+    subtitle,
+    icon: Icon,
+    color = "blue",
+  }: any) => (
     <div className="bg-white border border-gray-300 rounded-lg p-4">
       <div className="flex items-center justify-between">
         <div>
@@ -55,7 +96,7 @@ const ResourceManagement = () => {
 
   const renderTabContent = () => {
     switch (activeTab) {
-      case 'home':
+      case "home":
         return (
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-6">
             {/* Left Column - Quick Actions */}
@@ -66,11 +107,36 @@ const ResourceManagement = () => {
                 </div>
                 <div className="p-4 space-y-3">
                   {[
-                    { icon: Plus, label: 'Add Publication', color: 'blue', action: () => setActiveTab('publications') },
-                    { icon: Plus, label: 'Upload E-Booklet', color: 'green', action: () => setActiveTab('ebooks') },
-                    { icon: Plus, label: 'Create Training', color: 'purple', action: () => setActiveTab('training') },
-                    { icon: Upload, label: 'Upload Resource', color: 'orange', action: () => setActiveTab('patient') },
-                    { icon: Download, label: 'Export Resources', color: 'red', action: () => {} },
+                    {
+                      icon: Plus,
+                      label: "Add Publication",
+                      color: "blue",
+                      action: () => setActiveTab("publications"),
+                    },
+                    {
+                      icon: Plus,
+                      label: "Upload E-Booklet",
+                      color: "green",
+                      action: () => setActiveTab("ebooks"),
+                    },
+                    {
+                      icon: Plus,
+                      label: "Create Training",
+                      color: "purple",
+                      action: () => setActiveTab("training"),
+                    },
+                    {
+                      icon: Upload,
+                      label: "Upload Resource",
+                      color: "orange",
+                      action: () => setActiveTab("patient"),
+                    },
+                    {
+                      icon: Download,
+                      label: "Export Resources",
+                      color: "red",
+                      action: () => {},
+                    },
                   ].map(({ icon: Icon, label, color, action }, index) => (
                     <button
                       key={index}
@@ -78,7 +144,9 @@ const ResourceManagement = () => {
                       className={`w-full flex items-center px-3 py-2 text-sm bg-${color}-50 hover:bg-${color}-100 border border-${color}-200 rounded transition-colors text-left`}
                     >
                       <Icon className={`w-4 h-4 mr-3 text-${color}-600`} />
-                      <span className={`text-${color}-700 font-medium`}>{label}</span>
+                      <span className={`text-${color}-700 font-medium`}>
+                        {label}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -118,23 +186,29 @@ const ResourceManagement = () => {
               {/* Recent Resources */}
               <div className="bg-white border border-gray-300 rounded-lg">
                 <div className="bg-gray-100 px-4 py-2 border-b border-gray-300 flex items-center justify-between">
-                  <h2 className="font-semibold text-gray-800">Recently Added Resources</h2>
-                  <button 
-                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                  >
+                  <h2 className="font-semibold text-gray-800">
+                    Recently Added Resources
+                  </h2>
+                  <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
                     View All →
                   </button>
                 </div>
                 <div className="p-4">
                   <div className="space-y-3">
                     {mockRecentResources.map((resource, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 border border-gray-200 rounded">
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 border border-gray-200 rounded"
+                      >
                         <div className="flex items-center">
                           <div className="w-2 h-2 rounded-full bg-blue-400 mr-3" />
                           <div>
-                            <p className="font-medium text-sm">{resource.title}</p>
+                            <p className="font-medium text-sm">
+                              {resource.title}
+                            </p>
                             <p className="text-xs text-gray-600">
-                              {resource.type} • {resource.date} • {resource.views} views
+                              {resource.type} • {resource.date} •{" "}
+                              {resource.views} views
                             </p>
                           </div>
                         </div>
@@ -157,20 +231,22 @@ const ResourceManagement = () => {
             </div>
           </div>
         );
-      case 'publications':
+      case "publications":
         return <PublicationResourcesTab />;
-      case 'ebooks':
+      case "ebooks":
         return <EBookletsTab />;
-      case 'training':
+      case "training":
         return <TrainingProgramsTab />;
-      case 'patient':
+      case "patient":
         return <PatientCaregiverResourcesTab />;
-      case 'educational':
+      case "educational":
         return <EducationalResourcesTab />;
       default:
         return (
           <div className="bg-white border border-gray-300 rounded-lg p-6 text-center">
-            <h3 className="text-lg font-medium text-gray-700">Select a resource category to manage</h3>
+            <h3 className="text-lg font-medium text-gray-700">
+              Select a resource category to manage
+            </h3>
           </div>
         );
     }
@@ -187,7 +263,9 @@ const ResourceManagement = () => {
                   key={id}
                   onClick={() => setActiveTab(id)}
                   className={`px-3 py-3 md:px-4 md:py-4 text-xs md:text-sm font-medium border-r border-blue-600 last:border-r-0 hover:bg-blue-600 transition-colors whitespace-nowrap flex items-center ${
-                    activeTab === id ? 'bg-blue-600 text-white' : 'text-blue-100'
+                    activeTab === id
+                      ? "bg-blue-600 text-white"
+                      : "text-blue-100"
                   }`}
                 >
                   <Icon className="w-4 h-4 mr-2 md:mr-2" />

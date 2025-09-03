@@ -1,10 +1,14 @@
-import { useEffect, useState } from 'react';
-import { Mail, Users, MessageSquare } from 'lucide-react';
-import NewsletterManagement from '../newsletters/NewsletterManagement';
-import MessageManagement from '../messages/MessageManagement';
-import { getSubscribers, sendNewsletter, getMessages } from '../../../../services/api';
-import NewsletterForm from '../newsletters/NewsletterForm';
-import AlertModal from '../../../../components/common/AlertModal';
+import { useEffect, useState } from "react";
+import { Mail, Users, MessageSquare } from "lucide-react";
+import NewsletterManagement from "../../../communication/newsletters/NewsletterManagement";
+import MessageManagement from "../../../communication/messages/MessageManagement";
+import {
+  getSubscribers,
+  sendNewsletter,
+  getMessages,
+} from "../../../../../services/api";
+import NewsletterForm from "../../../communication/newsletters/NewsletterForm";
+import AlertModal from "../../../../../components/common/AlertModal";
 
 interface ContactMessage {
   id: number;
@@ -31,12 +35,14 @@ interface Subscriber {
 const CommunicationDashboard = () => {
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [messages, setMessages] = useState<ContactMessage[]>([]);
-  const [activeTab, setActiveTab] = useState<'home' | 'subscribers' | 'messages'>('home');
+  const [activeTab, setActiveTab] = useState<
+    "home" | "subscribers" | "messages"
+  >("home");
   const [alert, setAlert] = useState({
     show: false,
-    title: '',
-    message: '',
-    type: 'success' as 'success' | 'error' | 'warning' | 'info'
+    title: "",
+    message: "",
+    type: "success" as "success" | "error" | "warning" | "info",
   });
 
   useEffect(() => {
@@ -44,12 +50,12 @@ const CommunicationDashboard = () => {
       try {
         const [subscribersData, messagesData] = await Promise.all([
           getSubscribers(),
-          getMessages()
+          getMessages(),
         ]);
         setSubscribers(subscribersData);
         setMessages(messagesData);
       } catch (err: any) {
-        console.error('Failed to fetch data:', err.message);
+        console.error("Failed to fetch data:", err.message);
       }
     };
     fetchData();
@@ -61,7 +67,7 @@ const CommunicationDashboard = () => {
         const data = await getSubscribers();
         setSubscribers(data);
       } catch (err: any) {
-        console.error('Failed to fetch subscribers:', err.message);
+        console.error("Failed to fetch subscribers:", err.message);
       }
     };
     fetchSubscribers();
@@ -76,27 +82,27 @@ const CommunicationDashboard = () => {
       await sendNewsletter(data);
       setAlert({
         show: true,
-        title: 'Success',
-        message: 'Newsletter sent successfully!',
-        type: 'success'
+        title: "Success",
+        message: "Newsletter sent successfully!",
+        type: "success",
       });
     } catch (err: any) {
-      console.error('Failed to send newsletter:', err.message);
+      console.error("Failed to send newsletter:", err.message);
       setAlert({
         show: true,
-        title: 'Error',
-        message: 'Failed to send newsletter',
-        type: 'error'
+        title: "Error",
+        message: "Failed to send newsletter",
+        type: "error",
       });
     }
   };
 
   const closeAlert = () => {
-    setAlert(prev => ({ ...prev, show: false }));
+    setAlert((prev) => ({ ...prev, show: false }));
   };
 
-  const activeSubscribers = subscribers.filter(sub => sub.is_active);
-  const newThisMonth = activeSubscribers.filter(sub => {
+  const activeSubscribers = subscribers.filter((sub) => sub.is_active);
+  const newThisMonth = activeSubscribers.filter((sub) => {
     const subDate = new Date(sub.subscribed_at);
     const monthAgo = new Date();
     monthAgo.setMonth(monthAgo.getMonth() - 1);
@@ -104,23 +110,25 @@ const CommunicationDashboard = () => {
   }).length;
 
   const tabs = [
-    { id: 'home', label: 'HOME', icon: Mail },
-    { id: 'subscribers', label: 'NEWSLETTER SUBSCRIBERS', icon: Users },
-    { id: 'messages', label: 'MESSAGES', icon: MessageSquare }
+    { id: "home", label: "HOME", icon: Mail },
+    { id: "subscribers", label: "NEWSLETTER SUBSCRIBERS", icon: Users },
+    { id: "messages", label: "MESSAGES", icon: MessageSquare },
   ];
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+    const diffInHours = Math.floor(
+      (now.getTime() - date.getTime()) / (1000 * 60 * 60)
+    );
 
     if (diffInHours < 24) {
       return `${diffInHours} hours ago`;
     } else {
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
       });
     }
   };
@@ -133,12 +141,19 @@ const CommunicationDashboard = () => {
       <div className="p-4">
         <div className="space-y-3">
           {messages.slice(0, 3).map((message) => (
-            <div key={message.id} className="p-3 border border-gray-200 rounded hover:bg-gray-50 cursor-pointer">
+            <div
+              key={message.id}
+              className="p-3 border border-gray-200 rounded hover:bg-gray-50 cursor-pointer"
+            >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <p className="font-medium text-sm">{message.first_name} {message.last_name}</p>
+                  <p className="font-medium text-sm">
+                    {message.first_name} {message.last_name}
+                  </p>
                   <p className="text-sm text-gray-700">{message.subject}</p>
-                  <p className="text-xs text-gray-500">{formatTime(message.created_at)}</p>
+                  <p className="text-xs text-gray-500">
+                    {formatTime(message.created_at)}
+                  </p>
                 </div>
                 {!message.is_read && (
                   <div className="w-2 h-2 bg-blue-600 rounded-full ml-2 mt-1"></div>
@@ -147,8 +162,8 @@ const CommunicationDashboard = () => {
             </div>
           ))}
         </div>
-        <button 
-          onClick={() => setActiveTab('messages')}
+        <button
+          onClick={() => setActiveTab("messages")}
           className="w-full mt-4 text-blue-600 hover:text-blue-800 font-medium text-sm"
         >
           View All Messages →
@@ -159,7 +174,7 @@ const CommunicationDashboard = () => {
 
   const HomeContent = () => (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <NewsletterForm 
+      <NewsletterForm
         activeSubscribersCount={activeSubscribers.length}
         newThisMonthCount={newThisMonth}
         onSend={handleSendNewsletter}
@@ -170,11 +185,11 @@ const CommunicationDashboard = () => {
 
   const renderTabContent = () => {
     switch (activeTab) {
-      case 'home':
+      case "home":
         return <HomeContent />;
-      case 'subscribers':
+      case "subscribers":
         return <NewsletterManagement initialSubscribers={subscribers} />;
-      case 'messages':
+      case "messages":
         return <MessageManagement messages={messages} />;
       default:
         return <HomeContent />;
@@ -197,9 +212,13 @@ const CommunicationDashboard = () => {
               {tabs.map(({ id, label, icon: Icon }) => (
                 <button
                   key={id}
-                  onClick={() => setActiveTab(id as 'home' | 'subscribers' | 'messages')}
+                  onClick={() =>
+                    setActiveTab(id as "home" | "subscribers" | "messages")
+                  }
                   className={`px-3 py-3 md:px-4 md:py-4 text-xs md:text-sm font-medium border-r border-blue-600 last:border-r-0 hover:bg-blue-600 transition-colors whitespace-nowrap flex items-center ${
-                    activeTab === id ? 'bg-blue-600 text-white' : 'text-blue-100'
+                    activeTab === id
+                      ? "bg-blue-600 text-white"
+                      : "text-blue-100"
                   }`}
                 >
                   <Icon className="w-4 h-4 mr-2 md:mr-2" />
