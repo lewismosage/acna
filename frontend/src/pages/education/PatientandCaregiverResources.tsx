@@ -2,7 +2,7 @@ import React, { useState, useEffect, } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart, Phone, MessageCircle, Download, Users, Mail, BookOpen, AlertCircle, Clock, Search, Filter, Star, ExternalLink, Play, FileText, Globe, Headphones } from 'lucide-react';
 import { patientCareApi } from '../../services/patientCareApi';
-import { PatientResource } from '../admin/resources/patientcareresources/patientCare'; 
+import { PatientResource } from '../admin/esources/patientcareresources/patientCare'; 
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import api from '../../services/api';
 

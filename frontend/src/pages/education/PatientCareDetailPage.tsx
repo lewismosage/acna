@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { patientCareApi } from '../../services/patientCareApi';
-import { PatientResource } from '../admin/resources/patientcareresources/patientCare'; 
+import { PatientResource } from '../admin/esources/patientcareresources/patientCare'; 
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ScrollToTop from '../../components/common/ScrollToTop';
 
