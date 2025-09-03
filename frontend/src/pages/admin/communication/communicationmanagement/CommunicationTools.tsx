@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import { Mail, Users, MessageSquare } from "lucide-react";
-import NewsletterManagement from "../../../communication/newsletters/NewsletterManagement";
-import MessageManagement from "../../../communication/messages/MessageManagement";
+import NewsletterManagement from "../../communication/newsletters/NewsletterManagement";
+import MessageManagement from "../../communication/messages/MessageManagement";
 import {
   getSubscribers,
   sendNewsletter,
   getMessages,
-} from "../../../../../services/api";
-import NewsletterForm from "../../../communication/newsletters/NewsletterForm";
-import AlertModal from "../../../../../components/common/AlertModal";
+} from "../../../../services/api";
+import NewsletterForm from "../../communication/newsletters/NewsletterForm";
+import AlertModal from "../../../../components/common/AlertModal";
 
 interface ContactMessage {
   id: number;
