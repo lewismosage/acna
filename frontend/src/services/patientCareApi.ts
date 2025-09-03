@@ -7,7 +7,7 @@ import {
   CreateResourceInput,
   ResourceType,
   ResourceStatus 
-} from '../pages/admin/esources/patientcareresources/patientCare';
+} from '../pages/admin/resources/patientcareresources/patientCare';
 
 // Helper function to get authentication headers
 const getAuthHeaders = (): Record<string, string> => {

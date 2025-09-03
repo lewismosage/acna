@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import api from "../../../services/api";
 import { format, parseISO, isValid } from "date-fns";
+import LoadingSpinner from "../../../components/common/LoadingSpinner";
 
 // Helper function to safely parse and format dates
 const safeFormatDate = (
@@ -254,7 +255,7 @@ const MembersManagement = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <p>Loading members...</p>
+        < LoadingSpinner />
       </div>
     );
   }

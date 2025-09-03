@@ -78,6 +78,7 @@ import ConferenceDetailPage from "./pages/eventsandnews/ConferenceDetailPage";
 import WebinarDetailPage from "./pages/education/WebinarDetailPage";
 import WorkshopDetailPage from "./pages/education/workshops/WorkshopDetailPage";
 import PatientCareDetail from "./pages/education/PatientCareDetailPage";
+import EBookletDetailPage from "./pages/education/EBookletDetailPage";
 
 // Layout component
 const Layout = ({ children }: { children: React.ReactNode }) => (
@@ -158,6 +159,7 @@ function App() {
             <Route path="/policy-briefs" element={<PolicyBriefs />} />
             <Route path="/journal-watch" element={<JournalWatch />} />
             <Route path="/e-booklets" element={<EBooklets />} />
+            <Route path="/e-booklets/:id" element={<EBookletDetailPage />} />
             <Route path="/webinars" element={<Webinars />} />
             <Route path="/webinars/:id" element={<WebinarDetailPage />} />
             <Route

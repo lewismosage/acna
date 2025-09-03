@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     'abstracts',
     'workshops',
     'patient_resources',
+    'ebooklets',
 ]
 
 MIDDLEWARE = [
