@@ -21,17 +21,17 @@ import {
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
-import CommunicationTools from "./admin_management/communicationmanagement/CommunicationTools";
-import MembersManagement from "./admin_management/membermanagement/MembersManagement";
-import ResourceManagement from "./admin_management/resourcemanagement/ResourceManagement";
-import EventsManagement from "./admin_management/eventsmanagement/EventsManagement";
+import CommunicationTools from "../communication/communicationmanagement/CommunicationTools";
+import MembersManagement from "../membermanagement/MembersManagement";
+import ResourceManagement from "../admin_management/resourcemanagement/ResourceManagement";
+import EventsManagement from "../events/eventsmanagement/EventsManagement";
 import FinancialManagement from "../financial/FinancialManagement";
 import AdminSettings from "../settings/AdminSettings";
 import ReportsAnalytics from "../reports/ReportsAnalytics";
 import { SignOutModal } from "../settings/SignOutModal";
 import { useAuth } from "../../../services/AuthContext";
 import LoadingSpinner from "../../../components/common/LoadingSpinner";
-import NewsManagement from "./admin_management/newsmanagement/NewsManagement";
+import NewsManagement from "../newsupdates/newsmanagement/NewsManagement";
 
 // Mock data for demo purposes
 const mockMemberStats = {
