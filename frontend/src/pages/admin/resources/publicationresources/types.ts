@@ -9,37 +9,61 @@ export interface Author {
   email?: string;
 }
 
-export interface CreatePublicationInput {
+export interface Publication {
+  id: number;
   title: string;
-  authors: Author[];
-  journal?: string;
   excerpt: string;
-  type: PublicationType;
-  status: PublicationStatus;
-  imageUrl: string;
-  category: string;
-  accessType: AccessType;
   abstract?: string;
   fullContent?: string;
-  tags: string[];
-  targetAudience: string[];
-  keywords: string[];
-  downloadUrl?: string;
-  externalUrl?: string;
-  language: string;
-}
-
-export interface Publication extends CreatePublicationInput {
-  id: number;
-  date: string; // This will be handled by the backend
-  downloads: number;
-  createdAt: string;
-  updatedAt: string;
+  type: PublicationType;
+  category: string;
+  status: PublicationStatus;
+  accessType: AccessType;
+  isFeatured: boolean;
+  journal?: string;
   volume?: string;
   issue?: string;
   pages?: string;
   publisher?: string;
   isbn?: string;
-  citationCount?: number;
-  isFeatured?: boolean;
+  language: string;
+  imageUrl: string;
+  downloadUrl?: string;
+  externalUrl?: string;
+  authors: Author[];
+  targetAudience: string[];
+  tags: string[];
+  keywords: string[];
+  downloads: number;
+  viewCount: number;
+  citationCount: number;
+  date: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreatePublicationInput {
+  title: string;
+  excerpt: string;
+  abstract?: string;
+  fullContent?: string;
+  type: PublicationType;
+  category: string;
+  status: PublicationStatus;
+  accessType: AccessType;
+  isFeatured: boolean;
+  journal?: string;
+  volume?: string;
+  issue?: string;
+  pages?: string;
+  publisher?: string;
+  isbn?: string;
+  language: string;
+  imageFile?: File | null;
+  downloadUrl?: string;
+  externalUrl?: string;
+  authors: Author[];
+  targetAudience: string[];
+  tags: string[];
+  keywords: string[];
 }

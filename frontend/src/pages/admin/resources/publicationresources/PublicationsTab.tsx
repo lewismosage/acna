@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, Edit3, Trash2, Download, FileText, Clock, User, Award, ChevronDown, ChevronUp } from 'lucide-react';
 import CreatePublicationModal from './CreatePublicationModal';
 import { Publication, CreatePublicationInput, PublicationStatus, Author } from './types';
+import { publicationsApi } from '../../../../services/publicationsAPI';
 
 interface PublicationsTabProps {
   showCreateModal?: boolean;
@@ -17,6 +18,7 @@ const PublicationsTab: React.FC<PublicationsTabProps> = ({
   const [expandedPublication, setExpandedPublication] = useState<number | null>(null);
   const [allPublications, setAllPublications] = useState<Publication[]>([]);
   const [editingPublication, setEditingPublication] = useState<Publication | null>(null);
+  const [loading, setLoading] = useState(true);
 
   // Determine which modal state to use
   const showCreateModal = externalShowCreateModal !== undefined 
@@ -30,6 +32,24 @@ const PublicationsTab: React.FC<PublicationsTabProps> = ({
       setInternalShowCreateModal(show);
     }
   };
+
+  // Fetch publications from backend
+  useEffect(() => {
+    const fetchPublications = async () => {
+      try {
+        setLoading(true);
+        const publications = await publicationsApi.getAll();
+        setAllPublications(publications);
+      } catch (error) {
+        console.error('Error fetching publications:', error);
+        // Handle error (show notification, etc.)
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPublications();
+  }, []);
 
   // Sync modal state when external prop changes
   useEffect(() => {
@@ -64,45 +84,48 @@ const PublicationsTab: React.FC<PublicationsTabProps> = ({
     }
   };
 
-  const handleStatusChange = (publicationId: number, newStatus: PublicationStatus) => {
-    setAllPublications(prev => 
-      prev.map(pub => 
-        pub.id === publicationId 
-          ? { ...pub, status: newStatus, updatedAt: new Date().toISOString().split('T')[0] }
-          : pub
-      )
-    );
+  const handleStatusChange = async (publicationId: number, newStatus: PublicationStatus) => {
+    try {
+      const updatedPublication = await publicationsApi.updateStatus(publicationId, newStatus);
+      setAllPublications(prev => 
+        prev.map(pub => 
+          pub.id === publicationId 
+            ? updatedPublication
+            : pub
+        )
+      );
+    } catch (error) {
+      console.error('Error updating publication status:', error);
+      // Handle error (show notification, etc.)
+    }
   };
 
   const toggleExpand = (id: number) => {
     setExpandedPublication(expandedPublication === id ? null : id);
   };
 
-  const handleSavePublication = (publicationData: CreatePublicationInput) => {
-    if (editingPublication) {
-      // Update existing publication
-      const updatedPublication: Publication = {
-        ...editingPublication,
-        ...publicationData,
-        updatedAt: new Date().toISOString().split('T')[0]
-      };
-      setAllPublications(prev => 
-        prev.map(p => p.id === updatedPublication.id ? updatedPublication : p)
-      );
-      setEditingPublication(null);
-    } else {
-      // Add new publication - the date will be set by the backend
-      const newPublication: Publication = {
-        ...publicationData,
-        id: Date.now(), // This would come from the backend in a real app
-        date: new Date().toISOString().split('T')[0], // Set current date as default
-        downloads: 0,
-        createdAt: new Date().toISOString().split('T')[0],
-        updatedAt: new Date().toISOString().split('T')[0],
-      };
-      setAllPublications(prev => [newPublication, ...prev]);
+  const handleSavePublication = async (publicationData: CreatePublicationInput) => {
+    try {
+      let savedPublication: Publication;
+      
+      if (editingPublication) {
+        // Update existing publication
+        savedPublication = await publicationsApi.update(editingPublication.id, publicationData);
+        setAllPublications(prev => 
+          prev.map(p => p.id === savedPublication.id ? savedPublication : p)
+        );
+        setEditingPublication(null);
+      } else {
+        // Add new publication
+        savedPublication = await publicationsApi.create(publicationData);
+        setAllPublications(prev => [savedPublication, ...prev]);
+      }
+      
+      setShowCreateModal(false);
+    } catch (error) {
+      console.error('Error saving publication:', error);
+      // Handle error (show notification, etc.)
     }
-    setShowCreateModal(false);
   };
 
   const handleEditPublication = (publication: Publication) => {
@@ -110,9 +133,15 @@ const PublicationsTab: React.FC<PublicationsTabProps> = ({
     setShowCreateModal(true);
   };
 
-  const handleDeletePublication = (id: number) => {
+  const handleDeletePublication = async (id: number) => {
     if (window.confirm('Are you sure you want to delete this publication?')) {
-      setAllPublications(prev => prev.filter(p => p.id !== id));
+      try {
+        await publicationsApi.delete(id);
+        setAllPublications(prev => prev.filter(p => p.id !== id));
+      } catch (error) {
+        console.error('Error deleting publication:', error);
+        // Handle error (show notification, etc.)
+      }
     }
   };
 
@@ -135,6 +164,14 @@ const PublicationsTab: React.FC<PublicationsTabProps> = ({
   const formatAuthors = (authors: Author[]): string => {
     return authors.map(author => author.name).join(', ');
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div>

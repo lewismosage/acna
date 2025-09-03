@@ -13,51 +13,23 @@ import {
   Tag,
   Users
 } from 'lucide-react';
-
-type PublicationStatus = 'Published' | 'Draft' | 'Archived';
-type PublicationType = 'Research Paper' | 'Clinical Guidelines' | 'Educational Resource' | 'Policy Brief' | 'Research Report';
-type AccessType = 'Open Access' | 'Free Access' | 'Member Access';
-
-interface Author {
-  name: string;
-  credentials: string;
-  affiliation: string;
-  email?: string;
-}
-
-interface CreatePublicationInput {
-  title: string;
-  authors: Author[];
-  journal?: string;
-  excerpt: string;
-  type: PublicationType;
-  status: PublicationStatus;
-  imageUrl: string;
-  category: string;
-  accessType: AccessType;
-  abstract?: string;
-  fullContent?: string;
-  tags: string[];
-  targetAudience: string[];
-  keywords: string[];
-  downloadUrl?: string;
-  externalUrl?: string;
-  language: string;
-}
-
-export interface Publication extends CreatePublicationInput {
-  id: number;
-  downloads: number;
-  createdAt: string;
-  updatedAt: string;
-}
+import { publicationsApi, CreatePublicationInput, Publication, 
+         PublicationType, PublicationStatus, AccessType, Author } from '../../../../services/publicationsAPI';
 
 interface CreatePublicationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (publication: CreatePublicationInput) => void;
+  onSave: (publication: Publication) => void;
   initialData?: Publication;
 }
+
+// Static category options
+const categoryOptions = [
+  'Epilepsy', 'Cerebral Palsy', 'Autism', 'Headache', 
+  'Infectious Disease', 'Neuromuscular', 'Development', 
+  'Genetic Disorders', 'General Neurology', 'Practice Guidelines',
+  'Medical Education', 'Health Policy', 'Annual Report'
+];
 
 const CreatePublicationModal: React.FC<CreatePublicationModalProps> = ({ 
   isOpen, 
@@ -71,11 +43,11 @@ const CreatePublicationModal: React.FC<CreatePublicationModalProps> = ({
     authors: [{ name: '', credentials: '', affiliation: '', email: '' }],
     journal: '',
     excerpt: '',
-    type: 'Research Paper',
-    status: 'Draft',
-    imageUrl: '',
+    type: 'Research Paper' as PublicationType,
+    status: 'Draft' as PublicationStatus,
     category: '',
-    accessType: 'Open Access',
+    accessType: 'Open Access' as AccessType,
+    isFeatured: false,
     abstract: '',
     fullContent: '',
     tags: [],
@@ -96,28 +68,48 @@ const CreatePublicationModal: React.FC<CreatePublicationModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
 
+  // Dynamic data from API
+  const [audienceOptions, setAudienceOptions] = useState<string[]>([]);
+
   // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Predefined options
-  const categoryOptions = [
-    'Epilepsy', 'Cerebral Palsy', 'Autism', 'Headache', 
-    'Infectious Disease', 'Neuromuscular', 'Development', 
-    'Genetic Disorders', 'General Neurology', 'Practice Guidelines',
-    'Medical Education', 'Health Policy', 'Annual Report'
-  ];
-
-  const audienceOptions = [
-    'Neurologists', 'Pediatricians', 'General Practitioners',
-    'Community Health Workers', 'Physical Therapists', 
-    'Occupational Therapists', 'Researchers', 'Educators',
-    'Medical Students', 'Residents', 'Nurses', 'Policymakers'
-  ];
-
+  // Static options
   const languageOptions = [
     'English', 'French', 'Arabic', 'Portuguese', 'Swahili',
     'Hausa', 'Amharic', 'Yoruba', 'Igbo', 'Afrikaans'
   ];
+
+  // Load dynamic data from API
+  useEffect(() => {
+    const loadMetadata = async () => {
+      try {
+        const audiencesData = await publicationsApi.getTargetAudiences();
+        
+        // Set audiences with fallback to default options
+        const defaultAudiences = [
+          'Neurologists', 'Pediatricians', 'General Practitioners',
+          'Community Health Workers', 'Physical Therapists', 
+          'Occupational Therapists', 'Researchers', 'Educators',
+          'Medical Students', 'Residents', 'Nurses', 'Policymakers'
+        ];
+        setAudienceOptions(audiencesData.length > 0 ? audiencesData : defaultAudiences);
+      } catch (error) {
+        console.error('Error loading metadata:', error);
+        // Use default options on error
+        setAudienceOptions([
+          'Neurologists', 'Pediatricians', 'General Practitioners',
+          'Community Health Workers', 'Physical Therapists', 
+          'Occupational Therapists', 'Researchers', 'Educators',
+          'Medical Students', 'Residents', 'Nurses', 'Policymakers'
+        ]);
+      }
+    };
+
+    if (isOpen) {
+      loadMetadata();
+    }
+  }, [isOpen]);
 
   // Initialize form with editing data
   useEffect(() => {
@@ -131,9 +123,9 @@ const CreatePublicationModal: React.FC<CreatePublicationModalProps> = ({
         excerpt: initialData.excerpt || '',
         type: initialData.type || 'Research Paper',
         status: initialData.status || 'Draft',
-        imageUrl: initialData.imageUrl || '',
         category: initialData.category || '',
         accessType: initialData.accessType || 'Open Access',
+        isFeatured: initialData.isFeatured || false,
         abstract: initialData.abstract || '',
         fullContent: initialData.fullContent || '',
         tags: initialData.tags || [],
@@ -148,16 +140,41 @@ const CreatePublicationModal: React.FC<CreatePublicationModalProps> = ({
       if (initialData.imageUrl) {
         setImagePreview(initialData.imageUrl);
       }
+    } else {
+      // Reset form for new publication
+      setFormData({
+        title: '',
+        authors: [{ name: '', credentials: '', affiliation: '', email: '' }],
+        journal: '',
+        excerpt: '',
+        type: 'Research Paper',
+        status: 'Draft',
+        category: '',
+        accessType: 'Open Access',
+        isFeatured: false,
+        abstract: '',
+        fullContent: '',
+        tags: [],
+        targetAudience: [],
+        keywords: [],
+        downloadUrl: '',
+        externalUrl: '',
+        language: 'English'
+      });
+      setImagePreview(null);
+      setImageFile(null);
     }
-  }, [initialData]);
+  }, [initialData, isOpen]);
 
   if (!isOpen) return null;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
+    const checked = type === 'checkbox' ? (e.target as HTMLInputElement).checked : undefined;
+    
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: type === 'checkbox' ? checked : value
     }));
   };
 
@@ -194,20 +211,22 @@ const CreatePublicationModal: React.FC<CreatePublicationModalProps> = ({
       const previewUrl = URL.createObjectURL(file);
       setImagePreview(previewUrl);
       
-      // Simulate upload (replace with actual API call)
+      // Upload image to backend
       setImageUploading(true);
+      setErrors(prev => ({ ...prev, image: '' }));
+      
       try {
-        // Mock upload - replace with actual API call
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        const mockUrl = `https://example.com/uploads/${file.name}`;
-        setFormData(prev => ({ ...prev, imageUrl: mockUrl }));
-        console.log('Image uploaded successfully:', mockUrl);
+        const uploadResult = await publicationsApi.uploadImage(file);
+        console.log('Image uploaded successfully:', uploadResult);
+        // The uploaded file will be handled during form submission
       } catch (error) {
         console.error('Error uploading image:', error);
         setErrors(prev => ({
           ...prev,
-          image: 'Failed to upload image'
+          image: 'Failed to upload image. Please try again.'
         }));
+        setImageFile(null);
+        setImagePreview(null);
       } finally {
         setImageUploading(false);
       }
@@ -280,7 +299,9 @@ const CreatePublicationModal: React.FC<CreatePublicationModalProps> = ({
       newErrors.authors = 'At least one author with name and affiliation is required';
     }
     
-    if (!imageFile && !formData.imageUrl) newErrors.image = 'Featured image is required';
+    if (!imageFile && !initialData?.imageUrl) {
+      newErrors.image = 'Featured image is required';
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -294,6 +315,7 @@ const CreatePublicationModal: React.FC<CreatePublicationModalProps> = ({
     }
     
     setIsSubmitting(true);
+    setErrors({});
     
     try {
       // Filter out incomplete authors
@@ -302,37 +324,37 @@ const CreatePublicationModal: React.FC<CreatePublicationModalProps> = ({
       );
       
       // Prepare the publication data
-      const publicationData: Publication = {
-        id: initialData?.id || Date.now(),
+      const publicationData: CreatePublicationInput = {
+        ...formData,
         title: formData.title.trim(),
         authors: validAuthors,
         journal: formData.journal?.trim() || undefined,
         excerpt: formData.excerpt.trim(),
-        type: formData.type,
-        status: formData.status,
-        imageUrl: formData.imageUrl || (imagePreview as string),
-        category: formData.category,
-        accessType: formData.accessType,
         abstract: formData.abstract?.trim() || undefined,
         fullContent: formData.fullContent?.trim() || undefined,
-        tags: formData.tags,
-        targetAudience: formData.targetAudience,
-        keywords: formData.keywords,
         downloadUrl: formData.downloadUrl?.trim() || undefined,
         externalUrl: formData.externalUrl?.trim() || undefined,
-        language: formData.language,
-        downloads: initialData?.downloads || 0,
-        createdAt: initialData?.createdAt || new Date().toISOString().split('T')[0],
-        updatedAt: new Date().toISOString().split('T')[0]
+        imageFile: imageFile || undefined
       };
       
-      onSave(publicationData);
-      console.log('Publication saved:', publicationData);
+      let savedPublication: Publication;
+      
+      if (initialData) {
+        // Update existing publication
+        savedPublication = await publicationsApi.update(initialData.id, publicationData);
+        console.log('Publication updated:', savedPublication);
+      } else {
+        // Create new publication
+        savedPublication = await publicationsApi.create(publicationData);
+        console.log('Publication created:', savedPublication);
+      }
+      
+      onSave(savedPublication);
+      onClose();
       
     } catch (error: any) {
       console.error('Error saving publication:', error);
       setErrors({
-        ...errors,
         form: error.message || 'Failed to save publication. Please try again.'
       });
     } finally {
@@ -651,12 +673,12 @@ const CreatePublicationModal: React.FC<CreatePublicationModalProps> = ({
                     </button>
                   </div>
                   
-                  {(imagePreview || formData.imageUrl) && (
+                  {imagePreview && (
                     <div>
                       <h4 className="text-sm font-medium text-gray-700 mb-2">Preview</h4>
                       <div className="relative w-full h-48 overflow-hidden rounded-md border border-gray-200">
                         <img
-                          src={imagePreview || formData.imageUrl}
+                          src={imagePreview}
                           alt="Featured image preview"
                           className="w-full h-full object-cover"
                         />
@@ -691,7 +713,7 @@ const CreatePublicationModal: React.FC<CreatePublicationModalProps> = ({
                       name="externalUrl"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                       value={formData.externalUrl || ''}
-                      onChange={handleChange}
+                      onChange={(e) => handleChange(e)}
                       placeholder="https://journal.com/article"
                     />
                   </div>
