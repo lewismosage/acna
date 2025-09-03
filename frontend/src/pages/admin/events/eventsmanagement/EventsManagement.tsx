@@ -17,11 +17,11 @@ import {
 } from "lucide-react";
 
 // Import components with proper typing
-import WorkshopsTab from "./workshop/WorkshopsTab";
-import WebinarsTab from "./webinars/WebinarsTab";
-import ConferencesTab from "./conferences/ConferencesTab";
-import AwardsTab from "./awards/AwardsTab";
-import AbstractsTab from "./abstracts/AbstractsTab";
+import WorkshopsTab from "../workshop/WorkshopsTab";
+import WebinarsTab from "../webinars/WebinarsTab";
+import ConferencesTab from "../conferences/ConferencesTab";
+import AwardsTab from "../awards/AwardsTab";
+import AbstractsTab from "../abstracts/AbstractsTab";
 
 const EventsManagement = () => {
   const [activeTab, setActiveTab] = useState<string>("conferences");
@@ -140,17 +140,17 @@ const EventsManagement = () => {
   const renderTabContent = () => {
     switch (activeTab) {
       case "workshops":
-        return <WorkshopsTab workshops={mockWorkshops} />;
+        return <WorkshopsTab />;
       case "webinars":
-        return <WebinarsTab webinars={mockWebinars} />;
+        return <WebinarsTab />;
       case "conferences":
         return <ConferencesTab />;
       case "awards":
-        return <AwardsTab awards={mockAwards} />;
+        return <AwardsTab />;
       case "abstracts":
-        return <AbstractsTab abstracts={mockAbstracts} />;
+        return <AbstractsTab />;
       default:
-        return <WorkshopsTab workshops={mockWorkshops} />;
+        return <WorkshopsTab />;
     }
   };
 

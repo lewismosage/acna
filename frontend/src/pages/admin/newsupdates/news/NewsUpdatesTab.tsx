@@ -22,7 +22,7 @@ import {
   Trash2,
   RefreshCw
 } from 'lucide-react';
-import CreateNewsModal from './CreateNewsModal';
+import CreateNewsModal from './news/CreateNewsModal';
 import { NewsItem, NewsStatus, NewsType } from './types';
 import { newsApi } from '../../../services/newsApi';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Newspaper, Tag, Plus, Trash2, ChevronDown, ChevronUp, Upload, Check, AlertCircle } from 'lucide-react';
-import { NewsItem, CreateNewsInput } from './types';
-import { newsApi, CreateNewsInput as ApiCreateNewsInput } from '../../../services/newsApi';
+import { NewsItem, CreateNewsInput } from '../newsmanagement/types';
+import { newsApi, CreateNewsInput as ApiCreateNewsInput } from '../../../../services/newsApi';
 
 interface CreateNewsModalProps {
   isOpen: boolean;

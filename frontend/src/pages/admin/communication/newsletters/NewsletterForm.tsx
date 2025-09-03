@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Send } from 'lucide-react';
-import AlertModal from '../../../components/common/AlertModal';
+import AlertModal from '../../../../components/common/AlertModal';
 
 interface NewsletterFormProps {
   activeSubscribersCount: number;

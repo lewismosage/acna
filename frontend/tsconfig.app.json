@@ -20,5 +20,5 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", "src/pages/admin/resources/patientcare/.CreateResourceModal.tsx"]
+  "include": ["src", "src/pages/admin/resources/patientcareresources/.CreateResourceModal.tsx"]
 }

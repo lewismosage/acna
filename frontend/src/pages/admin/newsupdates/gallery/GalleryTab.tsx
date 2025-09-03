@@ -19,8 +19,8 @@ import {
   RefreshCw
 } from 'lucide-react';
 import CreateGalleryItemModal from './CreateGalleryItemModal';
-import { galleryItemsApi, storiesApi, GalleryItem, Story} from '../../../services/galleryApi';
-import LoadingSpinner from '../../../components/common/LoadingSpinner';
+import { galleryItemsApi, storiesApi, GalleryItem, Story} from '../../../../services/galleryApi';
+import LoadingSpinner from '../../../../components/common/LoadingSpinner';
 
 type GalleryItemStatus = 'draft' | 'published' | 'archived';
 

@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { 
   MessageSquare, ArrowLeft, Reply, Send, Mail, Loader2, Inbox, MailOpen
 } from 'lucide-react';
-import AlertModal from '../../../components/common/AlertModal';
-import { getMessages, updateMessage, sendMessageResponse } from '../../../services/api';
+import AlertModal from '../../../../components/common/AlertModal';
+import { getMessages, updateMessage, sendMessageResponse } from '../../../../services/api';
 
 export interface ContactMessage {
   id: number;

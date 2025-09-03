@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Mail, Users, Send } from 'lucide-react';
-import { getSubscribers } from '../../../services/api';
-import LoadingSpinner from '../../../components/common/LoadingSpinner';
+import { getSubscribers } from '../../../../services/api';
+import LoadingSpinner from '../../../../components/common/LoadingSpinner';
 
 interface Subscriber {
   id: number;
