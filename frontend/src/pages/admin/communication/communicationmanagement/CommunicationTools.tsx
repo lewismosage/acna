@@ -79,7 +79,23 @@ const CommunicationDashboard = () => {
     recipients: string;
   }) => {
     try {
-      await sendNewsletter(data);
+      let processedRecipients: "active" | "all" | string[];
+
+      if (data.recipients === "active" || data.recipients === "all") {
+        processedRecipients = data.recipients;
+      } else {
+        // Assume it's a comma-separated list of emails
+        processedRecipients = data.recipients
+          .split(",")
+          .map((email) => email.trim())
+          .filter((email) => email.length > 0); // Filter out empty strings
+      }
+
+      await sendNewsletter({
+        subject: data.subject,
+        content: data.content,
+        recipients: processedRecipients,
+      });
       setAlert({
         show: true,
         title: "Success",
