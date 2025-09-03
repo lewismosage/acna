@@ -91,8 +91,27 @@ class PublicationViewSet(viewsets.ModelViewSet):
         try:
             logger.info(f"Creating publication with data: {request.data}")
             
-            # Extract and process form data
-            processed_data = self.process_form_data(request.data)
+            # Process both form data and files
+            processed_data = {}
+            
+            # Handle regular form fields
+            for key, value in request.data.items():
+                if key != 'image':  # We'll handle image separately
+                    if key in ['authors', 'targetAudience', 'tags', 'keywords']:
+                        # Parse JSON array fields
+                        try:
+                            processed_data[self.snake_case(key)] = json.loads(value)
+                        except (json.JSONDecodeError, TypeError):
+                            processed_data[self.snake_case(key)] = []
+                    elif key in ['isFeatured']:
+                        # Handle boolean fields
+                        processed_data[self.snake_case(key)] = str(value).lower() in ['true', '1', 'yes']
+                    elif value is not None and value != '':
+                        processed_data[self.snake_case(key)] = value
+            
+            # Handle image file
+            if 'image' in request.FILES:
+                processed_data['image'] = request.FILES['image']
             
             # Create publication
             serializer = self.get_serializer(data=processed_data)

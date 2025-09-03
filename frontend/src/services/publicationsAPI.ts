@@ -221,13 +221,13 @@ export const publicationsApi = {
   create: async (data: CreatePublicationInput): Promise<Publication> => {
     const formData = new FormData();
     
-    // Handle array fields by stringifying them
-    const arrayFields = ['authors', 'targetAudience', 'tags', 'keywords'];
+    // Append all fields to formData
     Object.entries(data).forEach(([key, value]) => {
-      if (arrayFields.includes(key) && Array.isArray(value)) {
-        formData.append(key, JSON.stringify(value));
-      } else if (key === 'imageFile' && value instanceof File) {
+      if (key === 'imageFile' && value instanceof File) {
         formData.append('image', value);
+      } else if (Array.isArray(value)) {
+        // Handle array fields by stringifying them
+        formData.append(key, JSON.stringify(value));
       } else if (value !== null && value !== undefined) {
         formData.append(key, value.toString());
       }
@@ -235,7 +235,7 @@ export const publicationsApi = {
   
     const response = await fetch(`${API_BASE_URL}/publications/`, {
       method: 'POST',
-      headers: getAuthHeadersWithoutContentType(),
+      headers: getAuthHeadersWithoutContentType(), 
       body: formData,
     });
     

@@ -66,7 +66,6 @@ const CreatePublicationModal: React.FC<CreatePublicationModalProps> = ({
   const [newAudience, setNewAudience] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [imageUploading, setImageUploading] = useState(false);
 
   // Dynamic data from API
   const [audienceOptions, setAudienceOptions] = useState<string[]>([]);
@@ -207,29 +206,10 @@ const CreatePublicationModal: React.FC<CreatePublicationModalProps> = ({
       const file = e.target.files[0];
       setImageFile(file);
       
-      // Create preview URL
       const previewUrl = URL.createObjectURL(file);
       setImagePreview(previewUrl);
       
-      // Upload image to backend
-      setImageUploading(true);
       setErrors(prev => ({ ...prev, image: '' }));
-      
-      try {
-        const uploadResult = await publicationsApi.uploadImage(file);
-        console.log('Image uploaded successfully:', uploadResult);
-        // The uploaded file will be handled during form submission
-      } catch (error) {
-        console.error('Error uploading image:', error);
-        setErrors(prev => ({
-          ...prev,
-          image: 'Failed to upload image. Please try again.'
-        }));
-        setImageFile(null);
-        setImagePreview(null);
-      } finally {
-        setImageUploading(false);
-      }
     }
   };
 
@@ -323,7 +303,7 @@ const CreatePublicationModal: React.FC<CreatePublicationModalProps> = ({
         author.name.trim() && author.affiliation.trim()
       );
       
-      // Prepare the publication data
+      // Prepare the publication data with the image file
       const publicationData: CreatePublicationInput = {
         ...formData,
         title: formData.title.trim(),
@@ -334,7 +314,7 @@ const CreatePublicationModal: React.FC<CreatePublicationModalProps> = ({
         fullContent: formData.fullContent?.trim() || undefined,
         downloadUrl: formData.downloadUrl?.trim() || undefined,
         externalUrl: formData.externalUrl?.trim() || undefined,
-        imageFile: imageFile || undefined
+        imageFile: imageFile || undefined 
       };
       
       let savedPublication: Publication;
@@ -344,12 +324,15 @@ const CreatePublicationModal: React.FC<CreatePublicationModalProps> = ({
         savedPublication = await publicationsApi.update(initialData.id, publicationData);
         console.log('Publication updated:', savedPublication);
       } else {
-        // Create new publication
+        // Create new publication - this will now handle both data and image
         savedPublication = await publicationsApi.create(publicationData);
         console.log('Publication created:', savedPublication);
       }
       
+      // Call onSave with the complete publication data from backend
       onSave(savedPublication);
+      
+      // Close modal and reset form
       onClose();
       
     } catch (error: any) {
@@ -657,19 +640,9 @@ const CreatePublicationModal: React.FC<CreatePublicationModalProps> = ({
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
                       className={`w-full px-4 py-3 border ${errors.image ? 'border-red-300' : 'border-gray-300'} rounded-md bg-white hover:bg-gray-50 flex items-center justify-center transition-colors`}
-                      disabled={imageUploading}
                     >
-                      {imageUploading ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-                          Uploading...
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="w-5 h-5 mr-2 text-gray-600" />
-                          <span>{imageFile ? `Selected: ${imageFile.name}` : 'Choose Featured Image'}</span>
-                        </>
-                      )}
+                      <Upload className="w-5 h-5 mr-2 text-gray-600" />
+                      <span>{imageFile ? `Selected: ${imageFile.name}` : 'Choose Featured Image'}</span>
                     </button>
                   </div>
                   
@@ -876,7 +849,7 @@ const CreatePublicationModal: React.FC<CreatePublicationModalProps> = ({
                 <button
                   type="submit"
                   className="px-6 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center justify-center min-w-32 disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={isSubmitting || imageUploading}
+                  disabled={isSubmitting}
                 >
                   {isSubmitting ? (
                     <>

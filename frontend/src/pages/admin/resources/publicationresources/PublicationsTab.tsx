@@ -3,6 +3,8 @@ import { Search, Edit3, Trash2, Download, FileText, Clock, User, Award, ChevronD
 import CreatePublicationModal from './CreatePublicationModal';
 import { Publication, CreatePublicationInput, PublicationStatus, Author } from './types';
 import { publicationsApi } from '../../../../services/publicationsAPI';
+import LoadingSpinner from '../../../../components/common/LoadingSpinner';
+import AlertModal from '../../../../components/common/AlertModal';
 
 interface PublicationsTabProps {
   showCreateModal?: boolean;
@@ -19,6 +21,23 @@ const PublicationsTab: React.FC<PublicationsTabProps> = ({
   const [allPublications, setAllPublications] = useState<Publication[]>([]);
   const [editingPublication, setEditingPublication] = useState<Publication | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Alert modal state
+  const [alertModal, setAlertModal] = useState<{
+    isOpen: boolean;
+    type: 'info' | 'warning' | 'error' | 'success' | 'confirm';
+    title: string;
+    message: string;
+    onConfirm?: () => void;
+    showCancel?: boolean;
+    confirmText?: string;
+    cancelText?: string;
+  }>({
+    isOpen: false,
+    type: 'info',
+    title: '',
+    message: ''
+  });
 
   // Determine which modal state to use
   const showCreateModal = externalShowCreateModal !== undefined 
@@ -40,9 +59,14 @@ const PublicationsTab: React.FC<PublicationsTabProps> = ({
         setLoading(true);
         const publications = await publicationsApi.getAll();
         setAllPublications(publications);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error fetching publications:', error);
-        // Handle error (show notification, etc.)
+        setAlertModal({
+          isOpen: true,
+          type: 'error',
+          title: 'Error Loading Publications',
+          message: error.message || 'Failed to load publications. Please refresh the page or try again later.'
+        });
       } finally {
         setLoading(false);
       }
@@ -94,9 +118,21 @@ const PublicationsTab: React.FC<PublicationsTabProps> = ({
             : pub
         )
       );
-    } catch (error) {
+      
+      setAlertModal({
+        isOpen: true,
+        type: 'success',
+        title: 'Status Updated',
+        message: `Publication status has been successfully updated to "${newStatus}".`
+      });
+    } catch (error: any) {
       console.error('Error updating publication status:', error);
-      // Handle error (show notification, etc.)
+      setAlertModal({
+        isOpen: true,
+        type: 'error',
+        title: 'Error Updating Status',
+        message: error.message || 'Failed to update publication status. Please try again.'
+      });
     }
   };
 
@@ -115,16 +151,35 @@ const PublicationsTab: React.FC<PublicationsTabProps> = ({
           prev.map(p => p.id === savedPublication.id ? savedPublication : p)
         );
         setEditingPublication(null);
+        
+        setAlertModal({
+          isOpen: true,
+          type: 'success',
+          title: 'Publication Updated',
+          message: `"${savedPublication.title}" has been successfully updated.`
+        });
       } else {
         // Add new publication
         savedPublication = await publicationsApi.create(publicationData);
         setAllPublications(prev => [savedPublication, ...prev]);
+        
+        setAlertModal({
+          isOpen: true,
+          type: 'success',
+          title: 'Publication Created',
+          message: `"${savedPublication.title}" has been successfully created.`
+        });
       }
       
       setShowCreateModal(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving publication:', error);
-      // Handle error (show notification, etc.)
+      setAlertModal({
+        isOpen: true,
+        type: 'error',
+        title: 'Error Saving Publication',
+        message: error.message || 'Failed to save publication. Please check your data and try again.'
+      });
     }
   };
 
@@ -133,15 +188,38 @@ const PublicationsTab: React.FC<PublicationsTabProps> = ({
     setShowCreateModal(true);
   };
 
-  const handleDeletePublication = async (id: number) => {
-    if (window.confirm('Are you sure you want to delete this publication?')) {
-      try {
-        await publicationsApi.delete(id);
-        setAllPublications(prev => prev.filter(p => p.id !== id));
-      } catch (error) {
-        console.error('Error deleting publication:', error);
-        // Handle error (show notification, etc.)
-      }
+  const handleDeletePublication = (publication: Publication) => {
+    setAlertModal({
+      isOpen: true,
+      type: 'confirm',
+      title: 'Delete Publication',
+      message: `Are you sure you want to delete "${publication.title}"? This action cannot be undone.`,
+      showCancel: true,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      onConfirm: () => confirmDeletePublication(publication.id, publication.title)
+    });
+  };
+
+  const confirmDeletePublication = async (publicationId: number, publicationTitle: string) => {
+    try {
+      await publicationsApi.delete(publicationId);
+      setAllPublications(prev => prev.filter(p => p.id !== publicationId));
+
+      setAlertModal({
+        isOpen: true,
+        type: 'success',
+        title: 'Publication Deleted',
+        message: `"${publicationTitle}" has been successfully deleted.`
+      });
+    } catch (error: any) {
+      console.error('Error deleting publication:', error);
+      setAlertModal({
+        isOpen: true,
+        type: 'error',
+        title: 'Error Deleting Publication',
+        message: error.message || 'Failed to delete publication. Please try again.'
+      });
     }
   };
 
@@ -168,7 +246,7 @@ const PublicationsTab: React.FC<PublicationsTabProps> = ({
   if (loading) {
     return (
       <div className="flex justify-center items-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <LoadingSpinner />
       </div>
     );
   }
@@ -334,7 +412,7 @@ const PublicationsTab: React.FC<PublicationsTabProps> = ({
                       </div>
 
                       <button 
-                        onClick={() => handleDeletePublication(pub.id)}
+                        onClick={() => handleDeletePublication(pub)}
                         className="border border-red-300 text-red-600 px-4 py-2 rounded-lg hover:bg-red-50 flex items-center text-sm font-medium transition-colors"
                       >
                         <Trash2 className="w-4 h-4 mr-2" />
@@ -389,6 +467,19 @@ const PublicationsTab: React.FC<PublicationsTabProps> = ({
           initialData={editingPublication || undefined}
         />
       )}
+
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        onClose={() => setAlertModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={alertModal.onConfirm}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+        showCancel={alertModal.showCancel}
+        confirmText={alertModal.confirmText}
+        cancelText={alertModal.cancelText}
+      />
     </div>
   );
 };
