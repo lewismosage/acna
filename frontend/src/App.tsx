@@ -79,6 +79,7 @@ import WebinarDetailPage from "./pages/education/WebinarDetailPage";
 import WorkshopDetailPage from "./pages/education/workshops/WorkshopDetailPage";
 import PatientCareDetail from "./pages/education/PatientCareDetailPage";
 import EBookletDetailPage from "./pages/education/EBookletDetailPage";
+import PublicationDetailPage from "./pages/education/PublicationDetailPage";
 
 // Layout component
 const Layout = ({ children }: { children: React.ReactNode }) => (
@@ -139,6 +140,7 @@ function App() {
               path="/research-papers-and-publications"
               element={<ResearchPapersPage />}
             />
+            <Route path="/publications/:id" element={<PublicationDetailPage />} />
             <Route path="/training-programs" element={<TrainingPrograms />} />
             <Route
               path="/case-studies-and-fact-sheets"
