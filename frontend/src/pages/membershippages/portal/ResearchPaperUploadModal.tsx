@@ -16,6 +16,8 @@ import {
   Award,
   ExternalLink
 } from 'lucide-react';
+import { researchPapersApi, CreateResearchPaperInput, 
+  ResearchPaperType, ResearchPaperCategory, StudyDesign } from '../../../services/researchprojectsApi';
 
 interface Author {
   name: string;
@@ -29,15 +31,15 @@ interface ResearchPaperFormData {
   abstract: string;
   keywords: string[];
   authors: Author[];
-  researchType: string;
-  studyDesign: string;
+  researchType: ResearchPaperType;
+  studyDesign?: StudyDesign;
   participants: string;
   ethicsApproval: boolean;
   ethicsNumber: string;
   fundingSource: string;
   conflictOfInterest: string;
   acknowledgments: string;
-  category: string;
+  category: ResearchPaperCategory;
   targetJournal: string;
   manuscript: File | null;
   supplementaryFiles: File[];
@@ -58,6 +60,7 @@ const ResearchPaperUploadModal: React.FC<ResearchPaperUploadModalProps> = ({
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [keywordInput, setKeywordInput] = useState('');
   
   const [formData, setFormData] = useState<ResearchPaperFormData>({
@@ -65,22 +68,22 @@ const ResearchPaperUploadModal: React.FC<ResearchPaperUploadModalProps> = ({
     abstract: '',
     keywords: [],
     authors: [{ name: '', email: '', affiliation: '', isCorresponding: true }],
-    researchType: '',
-    studyDesign: '',
+    researchType: '' as ResearchPaperType,
+    studyDesign: '' as StudyDesign,
     participants: '',
     ethicsApproval: false,
     ethicsNumber: '',
     fundingSource: '',
     conflictOfInterest: '',
     acknowledgments: '',
-    category: '',
+    category: '' as ResearchPaperCategory,
     targetJournal: '',
     manuscript: null,
     supplementaryFiles: [],
     declaration: false
   });
 
-  const researchTypes = [
+  const researchTypes: ResearchPaperType[] = [
     'Clinical Trial',
     'Observational Study',
     'Case Report',
@@ -92,7 +95,7 @@ const ResearchPaperUploadModal: React.FC<ResearchPaperUploadModalProps> = ({
     'Other'
   ];
 
-  const categories = [
+  const categories: ResearchPaperCategory[] = [
     'Pediatric Epilepsy',
     'Cerebral Palsy',
     'Neurodevelopmental Disorders',
@@ -103,7 +106,7 @@ const ResearchPaperUploadModal: React.FC<ResearchPaperUploadModalProps> = ({
     'Other'
   ];
 
-  const studyDesigns = [
+  const studyDesigns: StudyDesign[] = [
     'Randomized Controlled Trial',
     'Cohort Study',
     'Case-Control Study',
@@ -179,11 +182,36 @@ const ResearchPaperUploadModal: React.FC<ResearchPaperUploadModalProps> = ({
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
+    setSubmitError(null);
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      // Prepare data for API
+      const apiData: CreateResearchPaperInput = {
+        title: formData.title,
+        abstract: formData.abstract,
+        keywords: formData.keywords,
+        researchType: formData.researchType,
+        category: formData.category,
+        studyDesign: formData.studyDesign,
+        participants: formData.participants,
+        ethicsApproval: formData.ethicsApproval,
+        ethicsNumber: formData.ethicsNumber,
+        fundingSource: formData.fundingSource,
+        conflictOfInterest: formData.conflictOfInterest,
+        acknowledgments: formData.acknowledgments,
+        targetJournal: formData.targetJournal,
+        authors: formData.authors,
+        manuscriptFile: formData.manuscript!,
+        supplementaryFiles: formData.supplementaryFiles,
+        declaration: formData.declaration
+      };
+
+      // Call the API
+      const result = await researchPapersApi.create(apiData);
+      
       setIsSubmitting(false);
       setSubmitSuccess(true);
+      
       if (onSubmit) {
         onSubmit(formData);
       }
@@ -197,15 +225,15 @@ const ResearchPaperUploadModal: React.FC<ResearchPaperUploadModalProps> = ({
           abstract: '',
           keywords: [],
           authors: [{ name: '', email: '', affiliation: '', isCorresponding: true }],
-          researchType: '',
-          studyDesign: '',
+          researchType: '' as ResearchPaperType,
+          studyDesign: '' as StudyDesign,
           participants: '',
           ethicsApproval: false,
           ethicsNumber: '',
           fundingSource: '',
           conflictOfInterest: '',
           acknowledgments: '',
-          category: '',
+          category: '' as ResearchPaperCategory,
           targetJournal: '',
           manuscript: null,
           supplementaryFiles: [],
@@ -213,7 +241,11 @@ const ResearchPaperUploadModal: React.FC<ResearchPaperUploadModalProps> = ({
         });
         onClose();
       }, 3000);
-    }, 2000);
+    } catch (error: any) {
+      setIsSubmitting(false);
+      setSubmitError(error.message || 'Failed to submit research paper. Please try again.');
+      console.error('Error submitting research paper:', error);
+    }
   };
 
   const validateStep = (step: number): boolean => {
@@ -227,7 +259,7 @@ const ResearchPaperUploadModal: React.FC<ResearchPaperUploadModalProps> = ({
           author.affiliation.trim() !== ''
         ) && formData.authors.some(author => author.isCorresponding);
       case 3:
-        return formData.researchType !== '' && formData.category !== '';
+        return (formData.researchType as string) !== '' && (formData.category as string) !== '';
       case 4:
         return formData.manuscript !== null && formData.declaration;
       default:
@@ -299,6 +331,13 @@ const ResearchPaperUploadModal: React.FC<ResearchPaperUploadModalProps> = ({
 
         {/* Form Content */}
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+          {submitError && (
+            <div className="mb-4 p-3 bg-red-100 border border-red-200 rounded text-red-700">
+              <AlertCircle className="inline w-4 h-4 mr-1" />
+              {submitError}
+            </div>
+          )}
+
           {currentStep === 1 && (
             <div className="space-y-6">
               <h3 className="text-lg font-semibold text-gray-900 flex items-center">
@@ -477,7 +516,7 @@ const ResearchPaperUploadModal: React.FC<ResearchPaperUploadModalProps> = ({
                   </label>
                   <select
                     value={formData.researchType}
-                    onChange={(e) => handleInputChange('researchType', e.target.value)}
+                    onChange={(e) => handleInputChange('researchType', e.target.value as ResearchPaperType)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">Select research type</option>
@@ -493,7 +532,7 @@ const ResearchPaperUploadModal: React.FC<ResearchPaperUploadModalProps> = ({
                   </label>
                   <select
                     value={formData.category}
-                    onChange={(e) => handleInputChange('category', e.target.value)}
+                    onChange={(e) => handleInputChange('category', e.target.value as ResearchPaperCategory)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">Select category</option>
@@ -510,7 +549,7 @@ const ResearchPaperUploadModal: React.FC<ResearchPaperUploadModalProps> = ({
                 </label>
                 <select
                   value={formData.studyDesign}
-                  onChange={(e) => handleInputChange('studyDesign', e.target.value)}
+                  onChange={(e) => handleInputChange('studyDesign', e.target.value as StudyDesign)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Select study design</option>
