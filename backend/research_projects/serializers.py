@@ -1,5 +1,8 @@
 from rest_framework import serializers
-from .models import ResearchProject, ResearchProjectView, ResearchProjectUpdate
+from .models import (
+    ResearchProject, ResearchProjectView, ResearchProjectUpdate,
+    ResearchPaper, ResearchPaperFile, ResearchPaperReview, ResearchPaperComment
+)
 import json
 from datetime import datetime
 
@@ -220,3 +223,263 @@ class ResearchProjectUpdateSerializer(serializers.ModelSerializer):
         data['updateType'] = data.get('update_type', 'General Update')
         
         return data
+
+
+class AuthorSerializer(serializers.Serializer):
+    """Serializer for author objects within ResearchPaper"""
+    name = serializers.CharField(max_length=200)
+    email = serializers.EmailField()
+    affiliation = serializers.CharField(max_length=200)
+    isCorresponding = serializers.BooleanField(default=False)
+
+
+class ResearchPaperFileSerializer(serializers.ModelSerializer):
+    """Serializer for supplementary files"""
+    file_url = serializers.SerializerMethodField()
+    file_size = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = ResearchPaperFile
+        fields = ['id', 'file', 'file_url', 'file_type', 'description', 'uploaded_at', 'file_size']
+        read_only_fields = ['id', 'uploaded_at']
+    
+    def get_file_url(self, obj):
+        if obj.file:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.file.url)
+            return obj.file.url
+        return None
+    
+    def get_file_size(self, obj):
+        if obj.file:
+            return obj.file.size
+        return None
+
+
+class ResearchPaperSerializer(serializers.ModelSerializer):
+    # Computed fields
+    manuscript_url = serializers.SerializerMethodField()
+    corresponding_author = serializers.ReadOnlyField()
+    author_count = serializers.ReadOnlyField()
+    is_under_review = serializers.ReadOnlyField()
+    supplementary_files = ResearchPaperFileSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = ResearchPaper
+        fields = [
+            'id', 'title', 'abstract', 'keywords', 'research_type', 'category', 
+            'study_design', 'participants', 'ethics_approval', 'ethics_number',
+            'funding_source', 'conflict_of_interest', 'acknowledgments', 
+            'target_journal', 'status', 'manuscript_file', 'manuscript_url',
+            'authors', 'research_project', 'submission_date', 'last_modified',
+            'review_deadline', 'corresponding_author', 'author_count', 
+            'is_under_review', 'supplementary_files'
+        ]
+        read_only_fields = [
+            'id', 'submission_date', 'last_modified', 'corresponding_author', 
+            'author_count', 'is_under_review', 'supplementary_files'
+        ]
+    
+    def get_manuscript_url(self, obj):
+        if obj.manuscript_file:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.manuscript_file.url)
+            return obj.manuscript_file.url
+        return None
+    
+    def validate_authors(self, value):
+        """Ensure authors is a list of author objects"""
+        if isinstance(value, str):
+            try:
+                value = json.loads(value)
+            except json.JSONDecodeError:
+                raise serializers.ValidationError("Invalid JSON format for authors")
+        
+        if not isinstance(value, list):
+            raise serializers.ValidationError("Authors must be a list")
+        
+        if len(value) == 0:
+            raise serializers.ValidationError("At least one author is required")
+        
+        corresponding_authors = 0
+        
+        # Validate each author object
+        for i, author in enumerate(value):
+            if not isinstance(author, dict):
+                raise serializers.ValidationError(f"Author {i+1} must be an object")
+            
+            required_fields = ['name', 'email', 'affiliation']
+            for field in required_fields:
+                if not author.get(field, '').strip():
+                    raise serializers.ValidationError(f"Author {i+1}: {field} is required")
+            
+            # Validate email format
+            try:
+                serializers.EmailField().to_internal_value(author['email'])
+            except serializers.ValidationError:
+                raise serializers.ValidationError(f"Author {i+1}: Invalid email format")
+            
+            # Count corresponding authors
+            if author.get('isCorresponding', False):
+                corresponding_authors += 1
+        
+        # Ensure at least one corresponding author
+        if corresponding_authors == 0:
+            raise serializers.ValidationError("At least one corresponding author is required")
+        
+        return value
+    
+    def validate_keywords(self, value):
+        """Ensure keywords is a list of strings"""
+        if isinstance(value, str):
+            try:
+                value = json.loads(value)
+            except json.JSONDecodeError:
+                value = [value] if value.strip() else []
+        
+        if not isinstance(value, list):
+            raise serializers.ValidationError("Keywords must be a list")
+        
+        if len(value) < 3:
+            raise serializers.ValidationError("At least 3 keywords are required")
+        
+        return [str(keyword).strip() for keyword in value if str(keyword).strip()]
+    
+    def validate_manuscript_file(self, value):
+        """Validate manuscript file"""
+        if not value:
+            raise serializers.ValidationError("Manuscript file is required")
+        
+        # Check file size (limit to 10MB)
+        if value.size > 10 * 1024 * 1024:
+            raise serializers.ValidationError("Manuscript file size must be less than 10MB")
+        
+        # Check file extension
+        allowed_extensions = ['.pdf', '.doc', '.docx']
+        file_extension = value.name.lower().split('.')[-1] if '.' in value.name else ''
+        if f'.{file_extension}' not in allowed_extensions:
+            raise serializers.ValidationError("Only PDF, DOC, and DOCX files are allowed")
+        
+        return value
+    
+    def to_representation(self, instance):
+        """Customize the output representation for frontend compatibility"""
+        data = super().to_representation(instance)
+        
+        # Format dates for frontend consistency
+        if data.get('submission_date'):
+            data['submissionDate'] = data['submission_date'].split('T')[0] if 'T' in str(data['submission_date']) else str(data['submission_date'])
+        if data.get('last_modified'):
+            data['lastModified'] = data['last_modified'].split('T')[0] if 'T' in str(data['last_modified']) else str(data['last_modified'])
+        if data.get('review_deadline'):
+            data['reviewDeadline'] = data['review_deadline']
+        
+        # Rename fields for frontend compatibility
+        data['researchType'] = data.get('research_type', '')
+        data['studyDesign'] = data.get('study_design', '')
+        data['ethicsApproval'] = data.get('ethics_approval', False)
+        data['ethicsNumber'] = data.get('ethics_number', '')
+        data['fundingSource'] = data.get('funding_source', '')
+        data['conflictOfInterest'] = data.get('conflict_of_interest', '')
+        data['targetJournal'] = data.get('target_journal', '')
+        data['manuscriptFile'] = data.get('manuscript_file', '')
+        data['manuscriptUrl'] = data.get('manuscript_url', '')
+        data['researchProject'] = data.get('research_project')
+        data['correspondingAuthor'] = data.get('corresponding_author')
+        data['authorCount'] = data.get('author_count', 0)
+        data['isUnderReview'] = data.get('is_under_review', False)
+        data['supplementaryFiles'] = data.get('supplementary_files', [])
+        
+        return data
+
+
+class ResearchPaperReviewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ResearchPaperReview
+        fields = [
+            'id', 'research_paper', 'reviewer_name', 'reviewer_email', 
+            'review_status', 'recommendation', 'comments', 'assigned_at', 'completed_at'
+        ]
+        read_only_fields = ['id', 'assigned_at']
+    
+    def to_representation(self, instance):
+        """Customize the output representation for frontend compatibility"""
+        data = super().to_representation(instance)
+        
+        # Format dates for frontend consistency
+        if data.get('assigned_at'):
+            data['assignedAt'] = data['assigned_at'].split('T')[0] if 'T' in str(data['assigned_at']) else str(data['assigned_at'])
+        if data.get('completed_at'):
+            data['completedAt'] = data['completed_at'].split('T')[0] if 'T' in str(data['completed_at']) else str(data['completed_at'])
+        
+        # Rename fields for frontend compatibility
+        data['researchPaper'] = data.get('research_paper')
+        data['reviewerName'] = data.get('reviewer_name', '')
+        data['reviewerEmail'] = data.get('reviewer_email', '')
+        data['reviewStatus'] = data.get('review_status', 'Pending')
+        
+        return data
+
+
+class ResearchPaperCommentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ResearchPaperComment
+        fields = [
+            'id', 'research_paper', 'commenter_name', 'commenter_email', 
+            'comment', 'is_internal', 'created_at'
+        ]
+        read_only_fields = ['id', 'created_at']
+    
+    def to_representation(self, instance):
+        """Customize the output representation for frontend compatibility"""
+        data = super().to_representation(instance)
+        
+        # Format dates for frontend consistency
+        if data.get('created_at'):
+            data['createdAt'] = data['created_at'].split('T')[0] if 'T' in str(data['created_at']) else str(data['created_at'])
+        
+        # Rename fields for frontend compatibility
+        data['researchPaper'] = data.get('research_paper')
+        data['commenterName'] = data.get('commenter_name', '')
+        data['commenterEmail'] = data.get('commenter_email', '')
+        data['isInternal'] = data.get('is_internal', False)
+        
+        return data
+
+
+class ResearchPaperAnalyticsSerializer(serializers.Serializer):
+    """Serializer for research paper analytics data"""
+    total_papers = serializers.IntegerField()
+    submitted = serializers.IntegerField()
+    under_review = serializers.IntegerField()
+    revision_required = serializers.IntegerField()
+    accepted = serializers.IntegerField()
+    published = serializers.IntegerField()
+    rejected = serializers.IntegerField()
+    papers_by_category = serializers.DictField(child=serializers.IntegerField())
+    papers_by_research_type = serializers.DictField(child=serializers.IntegerField())
+    papers_by_status = serializers.DictField(child=serializers.IntegerField())
+    total_authors = serializers.IntegerField()
+    papers_with_ethics_approval = serializers.IntegerField()
+    avg_review_time_days = serializers.FloatField(allow_null=True)
+    
+    def to_representation(self, instance):
+        """Convert snake_case to camelCase for frontend"""
+        data = super().to_representation(instance)
+        return {
+            'totalPapers': data.get('total_papers', 0),
+            'submitted': data.get('submitted', 0),
+            'underReview': data.get('under_review', 0),
+            'revisionRequired': data.get('revision_required', 0),
+            'accepted': data.get('accepted', 0),
+            'published': data.get('published', 0),
+            'rejected': data.get('rejected', 0),
+            'papersByCategory': data.get('papers_by_category', {}),
+            'papersByResearchType': data.get('papers_by_research_type', {}),
+            'papersByStatus': data.get('papers_by_status', {}),
+            'totalAuthors': data.get('total_authors', 0),
+            'papersWithEthicsApproval': data.get('papers_with_ethics_approval', 0),
+            'avgReviewTimeDays': data.get('avg_review_time_days'),
+        }

@@ -32,11 +32,11 @@ const handleResponse = async (response: Response) => {
     }
     throw new Error(errorMessage);
   }
-  
+
   if (response.status === 204) {
     return null;
   }
-  
+
   return response.json();
 };
 
@@ -149,6 +149,157 @@ export interface ResearchProjectUpdate {
   createdAt: string;
 }
 
+// NEW TYPES FOR RESEARCH PAPERS
+
+export type ResearchPaperStatus = 
+  | 'Submitted'
+  | 'Under Review'
+  | 'Revision Required'
+  | 'Accepted'
+  | 'Published'
+  | 'Rejected';
+
+export type ResearchPaperType = 
+  | 'Clinical Trial'
+  | 'Observational Study'
+  | 'Case Report'
+  | 'Case Series'
+  | 'Systematic Review'
+  | 'Meta-Analysis'
+  | 'Basic Science Research'
+  | 'Epidemiological Study'
+  | 'Other';
+
+export type ResearchPaperCategory = 
+  | 'Pediatric Epilepsy'
+  | 'Cerebral Palsy'
+  | 'Neurodevelopmental Disorders'
+  | 'Pediatric Stroke'
+  | 'Infectious Diseases of CNS'
+  | 'Genetic Neurological Disorders'
+  | 'Neurooncology'
+  | 'Other';
+
+export type StudyDesign = 
+  | 'Randomized Controlled Trial'
+  | 'Cohort Study'
+  | 'Case-Control Study'
+  | 'Cross-Sectional Study'
+  | 'Qualitative Study'
+  | 'Mixed Methods'
+  | 'Other';
+
+export interface Author {
+  name: string;
+  email: string;
+  affiliation: string;
+  isCorresponding: boolean;
+}
+
+export interface ResearchPaper {
+  id: number;
+  title: string;
+  abstract: string;
+  keywords: string[];
+  researchType: ResearchPaperType;
+  category: ResearchPaperCategory;
+  studyDesign?: StudyDesign;
+  participants?: string;
+  ethicsApproval: boolean;
+  ethicsNumber?: string;
+  fundingSource?: string;
+  conflictOfInterest?: string;
+  acknowledgments?: string;
+  targetJournal?: string;
+  status: ResearchPaperStatus;
+  manuscriptFile: string;
+  manuscriptUrl?: string;
+  authors: Author[];
+  researchProject?: number;
+  submissionDate: string;
+  lastModified: string;
+  reviewDeadline?: string;
+  correspondingAuthor?: Author;
+  authorCount: number;
+  isUnderReview: boolean;
+  supplementaryFiles: ResearchPaperFile[];
+}
+
+export interface ResearchPaperFile {
+  id: number;
+  file: string;
+  fileUrl?: string;
+  fileType: 'supplementary' | 'figure' | 'dataset' | 'appendix' | 'other';
+  description?: string;
+  uploadedAt: string;
+  fileSize?: number;
+}
+
+export interface CreateResearchPaperInput {
+  title: string;
+  abstract: string;
+  keywords: string[];
+  researchType: ResearchPaperType;
+  category: ResearchPaperCategory;
+  studyDesign?: StudyDesign;
+  participants?: string;
+  ethicsApproval: boolean;
+  ethicsNumber?: string;
+  fundingSource?: string;
+  conflictOfInterest?: string;
+  acknowledgments?: string;
+  targetJournal?: string;
+  authors: Author[];
+  researchProject?: number;
+  manuscriptFile: File;
+  supplementaryFiles?: File[];
+  declaration: boolean;
+}
+
+export interface ResearchPaperAnalytics {
+  totalPapers: number;
+  submitted: number;
+  underReview: number;
+  revisionRequired: number;
+  accepted: number;
+  published: number;
+  rejected: number;
+  papersByCategory: {
+    [key: string]: number;
+  };
+  papersByResearchType: {
+    [key: string]: number;
+  };
+  papersByStatus: {
+    [key: string]: number;
+  };
+  totalAuthors: number;
+  papersWithEthicsApproval: number;
+  avgReviewTimeDays?: number;
+}
+
+export interface ResearchPaperReview {
+  id: number;
+  researchPaper: number;
+  reviewerName: string;
+  reviewerEmail: string;
+  reviewStatus: 'Pending' | 'In Progress' | 'Completed';
+  recommendation?: 'Accept' | 'Minor Revisions' | 'Major Revisions' | 'Reject';
+  comments?: string;
+  assignedAt: string;
+  completedAt?: string;
+}
+
+export interface ResearchPaperComment {
+  id: number;
+  researchPaper: number;
+  commenterName: string;
+  commenterEmail: string;
+  comment: string;
+  isInternal: boolean;
+  createdAt: string;
+}
+
 const normalizeResearchProject = (backendProject: any): ResearchProject => {
   const safeArray = (arr: any): string[] => {
     if (!Array.isArray(arr)) return [];
@@ -191,9 +342,52 @@ const normalizeResearchProject = (backendProject: any): ResearchProject => {
   };
 };
 
+const normalizeResearchPaper = (backendPaper: any): ResearchPaper => {
+  const safeArray = (arr: any): string[] => {
+    if (!Array.isArray(arr)) return [];
+    return arr.filter((item: any) => typeof item === 'string' && item.trim());
+  };
+
+  const safeAuthorArray = (arr: any): Author[] => {
+    if (!Array.isArray(arr)) return [];
+    return arr.filter((item: any) => 
+      typeof item === 'object' && item.name && item.email && item.affiliation
+    );
+  };
+
+  return {
+    id: backendPaper.id || 0,
+    title: backendPaper.title || '',
+    abstract: backendPaper.abstract || '',
+    keywords: safeArray(backendPaper.keywords),
+    researchType: backendPaper.researchType || backendPaper.research_type || 'Clinical Trial',
+    category: backendPaper.category || 'Other',
+    studyDesign: backendPaper.studyDesign || backendPaper.study_design,
+    participants: backendPaper.participants,
+    ethicsApproval: backendPaper.ethicsApproval || backendPaper.ethics_approval || false,
+    ethicsNumber: backendPaper.ethicsNumber || backendPaper.ethics_number,
+    fundingSource: backendPaper.fundingSource || backendPaper.funding_source,
+    conflictOfInterest: backendPaper.conflictOfInterest || backendPaper.conflict_of_interest,
+    acknowledgments: backendPaper.acknowledgments,
+    targetJournal: backendPaper.targetJournal || backendPaper.target_journal,
+    status: backendPaper.status || 'Submitted',
+    manuscriptFile: backendPaper.manuscriptFile || backendPaper.manuscript_file || '',
+    manuscriptUrl: backendPaper.manuscriptUrl || backendPaper.manuscript_url,
+    authors: safeAuthorArray(backendPaper.authors),
+    researchProject: backendPaper.researchProject || backendPaper.research_project,
+    submissionDate: backendPaper.submissionDate || backendPaper.submission_date?.split('T')[0] || new Date().toISOString().split('T')[0],
+    lastModified: backendPaper.lastModified || backendPaper.last_modified?.split('T')[0] || new Date().toISOString().split('T')[0],
+    reviewDeadline: backendPaper.reviewDeadline || backendPaper.review_deadline,
+    correspondingAuthor: backendPaper.correspondingAuthor || backendPaper.corresponding_author,
+    authorCount: backendPaper.authorCount || backendPaper.author_count || 0,
+    isUnderReview: backendPaper.isUnderReview || backendPaper.is_under_review || false,
+    supplementaryFiles: backendPaper.supplementaryFiles || backendPaper.supplementary_files || [],
+  };
+};
+
 export const researchProjectsApi = {
   // ========== RESEARCH PROJECT CRUD OPERATIONS ==========
-  
+
   getAll: async (params?: {
     status?: string;
     type?: string;
@@ -209,11 +403,11 @@ export const researchProjectsApi = {
         }
       });
     }
-    
+
     const response = await fetch(`${API_BASE_URL}/research-projects/?${searchParams.toString()}`, {
       headers: getAuthHeaders(),
     });
-    
+
     const data = await handleResponse(response);
     return Array.isArray(data) ? data.map(normalizeResearchProject) : [];
   },
@@ -222,14 +416,14 @@ export const researchProjectsApi = {
     const response = await fetch(`${API_BASE_URL}/research-projects/${id}/`, {
       headers: getAuthHeaders(),
     });
-    
+
     const data = await handleResponse(response);
     return normalizeResearchProject(data);
   },
 
   create: async (data: CreateResearchProjectInput): Promise<ResearchProject> => {
     const formData = new FormData();
-    
+
     // Append all fields to formData
     Object.entries(data).forEach(([key, value]) => {
       if (key === 'imageFile' && value instanceof File) {
@@ -241,20 +435,20 @@ export const researchProjectsApi = {
         formData.append(key, value.toString());
       }
     });
-  
+
     const response = await fetch(`${API_BASE_URL}/research-projects/`, {
       method: 'POST',
       headers: getAuthHeadersWithoutContentType(), 
       body: formData,
     });
-    
+
     const result = await handleResponse(response);
     return normalizeResearchProject(result);
   },
-  
+
   update: async (id: number, data: Partial<CreateResearchProjectInput>): Promise<ResearchProject> => {
     const formData = new FormData();
-    
+
     // Handle array fields by stringifying them
     const arrayFields = ['investigators', 'institutions', 'objectives', 'keywords'];
     Object.entries(data).forEach(([key, value]) => {
@@ -266,13 +460,13 @@ export const researchProjectsApi = {
         formData.append(key, value.toString());
       }
     });
-  
+
     const response = await fetch(`${API_BASE_URL}/research-projects/${id}/`, {
       method: 'PATCH',
       headers: getAuthHeadersWithoutContentType(),
       body: formData,
     });
-    
+
     const result = await handleResponse(response);
     return normalizeResearchProject(result);
   },
@@ -282,17 +476,17 @@ export const researchProjectsApi = {
       method: 'DELETE',
       headers: getAuthHeadersWithoutContentType(),
     });
-    
+
     return handleResponse(response);
   },
 
   // ========== RESEARCH PROJECT-SPECIFIC OPERATIONS ==========
-  
+
   getActive: async (): Promise<ResearchProject[]> => {
     const response = await fetch(`${API_BASE_URL}/research-projects/active/`, {
       headers: getAuthHeaders(),
     });
-    
+
     const data = await handleResponse(response);
     return Array.isArray(data) ? data.map(normalizeResearchProject) : [];
   },
@@ -301,15 +495,15 @@ export const researchProjectsApi = {
     const response = await fetch(`${API_BASE_URL}/research-projects/by_status/`, {
       headers: getAuthHeaders(),
     });
-    
+
     const data = await handleResponse(response);
     const result: {[key: string]: ResearchProject[]} = {};
-    
+
     for (const [status, projects] of Object.entries(data)) {
       result[status] = Array.isArray(projects) ? 
         (projects as any[]).map(normalizeResearchProject) : [];
     }
-    
+
     return result;
   },
 
@@ -317,9 +511,9 @@ export const researchProjectsApi = {
     const response = await fetch(`${API_BASE_URL}/research-projects/analytics/`, {
       headers: getAuthHeaders(),
     });
-    
+
     const data = await handleResponse(response);
-    
+
     // Normalize the analytics data
     return {
       total: data.total || 0,
@@ -345,7 +539,7 @@ export const researchProjectsApi = {
       headers: getAuthHeaders(),
       body: JSON.stringify({ status }),
     });
-    
+
     const result = await handleResponse(response);
     return normalizeResearchProject(result);
   },
@@ -358,27 +552,27 @@ export const researchProjectsApi = {
   },
 
   // ========== FILE UPLOAD OPERATIONS ==========
-  
+
   uploadImage: async (file: File): Promise<{ url: string; filename: string; path: string }> => {
     const formData = new FormData();
     formData.append('image', file);
-    
+
     const response = await fetch(`${API_BASE_URL}/research-projects/upload_image/`, {
       method: 'POST',
       headers: getAuthHeadersWithoutContentType(),
       body: formData,
     });
-    
+
     return handleResponse(response);
   },
 
   // ========== METADATA OPERATIONS ==========
-  
+
   getInvestigators: async (): Promise<Investigator[]> => {
     const response = await fetch(`${API_BASE_URL}/research-projects/investigators/`, {
       headers: getAuthHeaders(),
     });
-    
+
     const data = await handleResponse(response);
     return Array.isArray(data) ? data : [];
   },
@@ -387,7 +581,7 @@ export const researchProjectsApi = {
     const response = await fetch(`${API_BASE_URL}/research-projects/institutions/`, {
       headers: getAuthHeaders(),
     });
-    
+
     const data = await handleResponse(response);
     return Array.isArray(data) ? data : [];
   },
@@ -396,7 +590,7 @@ export const researchProjectsApi = {
     const response = await fetch(`${API_BASE_URL}/research-projects/types/`, {
       headers: getAuthHeaders(),
     });
-    
+
     const data = await handleResponse(response);
     return Array.isArray(data) ? data : [];
   },
@@ -405,18 +599,18 @@ export const researchProjectsApi = {
     const response = await fetch(`${API_BASE_URL}/research-projects/statuses/`, {
       headers: getAuthHeaders(),
     });
-    
+
     const data = await handleResponse(response);
     return Array.isArray(data) ? data : [];
   },
 
   // ========== PROJECT UPDATES OPERATIONS ==========
-  
+
   getUpdates: async (projectId: number): Promise<ResearchProjectUpdate[]> => {
     const response = await fetch(`${API_BASE_URL}/research-projects/${projectId}/updates/`, {
       headers: getAuthHeaders(),
     });
-    
+
     const data = await handleResponse(response);
     return Array.isArray(data) ? data : [];
   },
@@ -431,7 +625,263 @@ export const researchProjectsApi = {
       headers: getAuthHeaders(),
       body: JSON.stringify(updateData),
     });
-    
+
+    return handleResponse(response);
+  },
+
+  // ========== RESEARCH PAPERS RELATED TO PROJECT ==========
+
+  getResearchPapers: async (projectId: number): Promise<ResearchPaper[]> => {
+    const response = await fetch(`${API_BASE_URL}/research-projects/${projectId}/research_papers/`, {
+      headers: getAuthHeaders(),
+    });
+
+    const data = await handleResponse(response);
+    return Array.isArray(data) ? data.map(normalizeResearchPaper) : [];
+  },
+};
+
+// NEW API FOR RESEARCH PAPERS
+
+export const researchPapersApi = {
+  // ========== RESEARCH PAPER CRUD OPERATIONS ==========
+
+  getAll: async (params?: {
+    status?: string;
+    research_type?: string;
+    category?: string;
+    ethics_approval?: boolean;
+    under_review?: boolean;
+    search?: string;
+  }): Promise<ResearchPaper[]> => {
+    const searchParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          searchParams.append(key, value.toString());
+        }
+      });
+    }
+
+    const response = await fetch(`${API_BASE_URL}/research-papers/?${searchParams.toString()}`, {
+      headers: getAuthHeaders(),
+    });
+
+    const data = await handleResponse(response);
+    return Array.isArray(data) ? data.map(normalizeResearchPaper) : [];
+  },
+
+  getById: async (id: number): Promise<ResearchPaper> => {
+    const response = await fetch(`${API_BASE_URL}/research-papers/${id}/`, {
+      headers: getAuthHeaders(),
+    });
+
+    const data = await handleResponse(response);
+    return normalizeResearchPaper(data);
+  },
+
+  create: async (data: CreateResearchPaperInput): Promise<ResearchPaper> => {
+    const formData = new FormData();
+
+    // Append all fields to formData
+    Object.entries(data).forEach(([key, value]) => {
+      if (key === 'manuscriptFile' && value instanceof File) {
+        formData.append('manuscriptFile', value);
+      } else if (key === 'supplementaryFiles' && Array.isArray(value)) {
+        // Handle supplementary files separately
+        value.forEach((file: File) => {
+          formData.append('supplementaryFiles', file);
+        });
+      } else if (Array.isArray(value)) {
+        // Handle array fields by stringifying them
+        formData.append(key, JSON.stringify(value));
+      } else if (typeof value === 'boolean') {
+        formData.append(key, value.toString());
+      } else if (value !== null && value !== undefined) {
+        formData.append(key, value.toString());
+      }
+    });
+
+    const response = await fetch(`${API_BASE_URL}/research-papers/`, {
+      method: 'POST',
+      headers: getAuthHeadersWithoutContentType(),
+      body: formData,
+    });
+
+    const result = await handleResponse(response);
+    return normalizeResearchPaper(result);
+  },
+
+  update: async (id: number, data: Partial<CreateResearchPaperInput>): Promise<ResearchPaper> => {
+    const formData = new FormData();
+
+    // Handle array fields by stringifying them
+    const arrayFields = ['authors', 'keywords'];
+    Object.entries(data).forEach(([key, value]) => {
+      if (arrayFields.includes(key) && Array.isArray(value)) {
+        formData.append(key, JSON.stringify(value));
+      } else if (key === 'manuscriptFile' && value instanceof File) {
+        formData.append('manuscriptFile', value);
+      } else if (typeof value === 'boolean') {
+        formData.append(key, value.toString());
+      } else if (value !== null && value !== undefined) {
+        formData.append(key, value.toString());
+      }
+    });
+
+    const response = await fetch(`${API_BASE_URL}/research-papers/${id}/`, {
+      method: 'PATCH',
+      headers: getAuthHeadersWithoutContentType(),
+      body: formData,
+    });
+
+    const result = await handleResponse(response);
+    return normalizeResearchPaper(result);
+  },
+
+  delete: async (id: number): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/research-papers/${id}/`, {
+      method: 'DELETE',
+      headers: getAuthHeadersWithoutContentType(),
+    });
+
+    return handleResponse(response);
+  },
+
+  // ========== RESEARCH PAPER-SPECIFIC OPERATIONS ==========
+
+  updateStatus: async (id: number, status: ResearchPaperStatus): Promise<ResearchPaper> => {
+    const response = await fetch(`${API_BASE_URL}/research-papers/${id}/update_status/`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ status }),
+    });
+
+    const result = await handleResponse(response);
+    return normalizeResearchPaper(result);
+  },
+
+  getAnalytics: async (): Promise<ResearchPaperAnalytics> => {
+    const response = await fetch(`${API_BASE_URL}/research-papers/analytics/`, {
+      headers: getAuthHeaders(),
+    });
+
+    const data = await handleResponse(response);
+
+    // Normalize the analytics data
+    return {
+      totalPapers: data.totalPapers || data.total_papers || 0,
+      submitted: data.submitted || 0,
+      underReview: data.underReview || data.under_review || 0,
+      revisionRequired: data.revisionRequired || data.revision_required || 0,
+      accepted: data.accepted || 0,
+      published: data.published || 0,
+      rejected: data.rejected || 0,
+      papersByCategory: data.papersByCategory || data.papers_by_category || {},
+      papersByResearchType: data.papersByResearchType || data.papers_by_research_type || {},
+      papersByStatus: data.papersByStatus || data.papers_by_status || {},
+      totalAuthors: data.totalAuthors || data.total_authors || 0,
+      papersWithEthicsApproval: data.papersWithEthicsApproval || data.papers_with_ethics_approval || 0,
+      avgReviewTimeDays: data.avgReviewTimeDays || data.avg_review_time_days,
+    };
+  },
+
+  // ========== METADATA OPERATIONS ==========
+
+  getCategories: async (): Promise<string[]> => {
+    const response = await fetch(`${API_BASE_URL}/research-papers/categories/`, {
+      headers: getAuthHeaders(),
+    });
+
+    const data = await handleResponse(response);
+    return Array.isArray(data) ? data : [];
+  },
+
+  getResearchTypes: async (): Promise<string[]> => {
+    const response = await fetch(`${API_BASE_URL}/research-papers/research_types/`, {
+      headers: getAuthHeaders(),
+    });
+
+    const data = await handleResponse(response);
+    return Array.isArray(data) ? data : [];
+  },
+
+  getStudyDesigns: async (): Promise<string[]> => {
+    const response = await fetch(`${API_BASE_URL}/research-papers/study_designs/`, {
+      headers: getAuthHeaders(),
+    });
+
+    const data = await handleResponse(response);
+    return Array.isArray(data) ? data : [];
+  },
+
+  // ========== REVIEW OPERATIONS ==========
+
+  getReviews: async (paperId: number): Promise<ResearchPaperReview[]> => {
+    const response = await fetch(`${API_BASE_URL}/research-papers/${paperId}/reviews/`, {
+      headers: getAuthHeaders(),
+    });
+
+    const data = await handleResponse(response);
+    return Array.isArray(data) ? data : [];
+  },
+
+  addReview: async (paperId: number, reviewData: {
+    reviewerName: string;
+    reviewerEmail: string;
+    reviewStatus: 'Pending' | 'In Progress' | 'Completed';
+    recommendation?: 'Accept' | 'Minor Revisions' | 'Major Revisions' | 'Reject';
+    comments?: string;
+  }): Promise<ResearchPaperReview> => {
+    const response = await fetch(`${API_BASE_URL}/research-papers/${paperId}/add_review/`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(reviewData),
+    });
+
+    return handleResponse(response);
+  },
+
+  // ========== COMMENT OPERATIONS ==========
+
+  getComments: async (paperId: number): Promise<ResearchPaperComment[]> => {
+    const response = await fetch(`${API_BASE_URL}/research-papers/${paperId}/comments/`, {
+      headers: getAuthHeaders(),
+    });
+
+    const data = await handleResponse(response);
+    return Array.isArray(data) ? data : [];
+  },
+
+  addComment: async (paperId: number, commentData: {
+    commenterName: string;
+    commenterEmail: string;
+    comment: string;
+    isInternal?: boolean;
+  }): Promise<ResearchPaperComment> => {
+    const response = await fetch(`${API_BASE_URL}/research-papers/${paperId}/add_comment/`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(commentData),
+    });
+
+    return handleResponse(response);
+  },
+
+  // ========== FILE OPERATIONS ==========
+
+  uploadSupplementaryFile: async (paperId: number, file: File, fileType?: string, description?: string): Promise<ResearchPaperFile> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (fileType) formData.append('file_type', fileType);
+    if (description) formData.append('description', description);
+
+    const response = await fetch(`${API_BASE_URL}/research-papers/${paperId}/upload_supplementary_file/`, {
+      method: 'POST',
+      headers: getAuthHeadersWithoutContentType(),
+      body: formData,
+    });
+
     return handleResponse(response);
   },
 };
@@ -455,4 +905,23 @@ export const {
   getStatuses,
   getUpdates,
   addUpdate,
+  getResearchPapers,
 } = researchProjectsApi;
+
+export const {
+  getAll: getAllResearchPapers,
+  getById: getResearchPaperById,
+  create: createResearchPaper,
+  update: updateResearchPaper,
+  delete: deleteResearchPaper,
+  updateStatus: updateResearchPaperStatus,
+  getAnalytics: getResearchPaperAnalytics,
+  getCategories,
+  getResearchTypes,
+  getStudyDesigns,
+  getReviews,
+  addReview,
+  getComments,
+  addComment,
+  uploadSupplementaryFile,
+} = researchPapersApi;

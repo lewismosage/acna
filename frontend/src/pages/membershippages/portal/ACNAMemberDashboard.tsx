@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { 
   User, BookOpen, Award, MessageSquare, FileText, Calendar, LogOut,
-  Home, Edit3, Upload, Users, Clock, CheckCircle, AlertCircle, Search, Menu, X
+  Home, Edit3, Upload, Users, Clock, CheckCircle, AlertCircle, Menu, X
 } from 'lucide-react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import CoursesTabContent from './CoursesTabContent';
 import WorkshopTapContent from './workshops/WorkshopMain';
@@ -15,6 +15,7 @@ import { SignOutModal } from './SignOutModal'
 import ScrollToTop from '../../../components/common/ScrollToTop';
 import defaultProfileImage from '../../../assets/default Profile Image.png';
 import { useAuth } from '../../../services/AuthContext';
+import ResearchPaperUploadModal from './ResearchPaperUploadModal';
 
 interface LocationState {
   activeTab?: string;
@@ -141,7 +142,7 @@ const CpdProgressPanel = ({ memberData }: { memberData: MemberData }) => {
             </tr>
             <tr>
               <td className="py-2 text-gray-600">Certifications:</td>
-              <td className="py-2 font-medium">{cpdData.certificationsEarned}</td>
+              {/*<td className="py-2 font-medium">{cpdData.certificationsEearned}</td> */}
             </tr>
           </tbody>
         </table>
@@ -151,7 +152,7 @@ const CpdProgressPanel = ({ memberData }: { memberData: MemberData }) => {
 };
 
 // Component for Quick Actions Panel
-const QuickActionsPanel = () => (
+const QuickActionsPanel = ({ onUploadResearchPaper }: { onUploadResearchPaper: () => void }) => (
   <div className="bg-white border border-gray-300 rounded-lg">
     <div className="bg-gray-100 px-4 py-2 border-b border-gray-300">
       <h2 className="font-semibold text-gray-800">Quick Actions</h2>
@@ -172,12 +173,21 @@ const QuickActionsPanel = () => (
           <span className={`text-${color}-700 font-medium`}>{label}</span>
         </button>
       ))}
+      
+      {/* Add the Upload Research Paper button */}
+      <button
+        onClick={onUploadResearchPaper}
+        className="w-full flex items-center px-3 py-2 text-xs md:text-sm bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded transition-colors text-left"
+      >
+        <Upload className="w-3 h-3 md:w-4 md:h-4 mr-2 md:mr-3 text-blue-600" />
+        <span className="text-blue-700 font-medium">Upload Research Paper</span>
+      </button>
     </div>
   </div>
 );
 
 // Tab Content Components
-const HomeTabContent = () => {
+const HomeTabContent = ({ onUploadResearchPaper }: { onUploadResearchPaper: () => void }) => {
   const upcomingCourses = [
     {
       title: "Advanced Epilepsy Management",
@@ -241,11 +251,14 @@ const HomeTabContent = () => {
 
       <div className="bg-white border border-gray-300 rounded-lg">
         <div className="bg-gray-100 px-4 py-2 border-b border-gray-300">
-          <h2 className="font-semibold text-gray-800">Research & Case Submission</h2>
+        <h2 className="font-semibold text-gray-800">Research & Case Submission</h2>
         </div>
         <div className="p-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 md:p-6 text-center hover:border-blue-400 transition-colors cursor-pointer">
+            <div 
+              className="border-2 border-dashed border-gray-300 rounded-lg p-4 md:p-6 text-center hover:border-blue-400 transition-colors cursor-pointer"
+              onClick={onUploadResearchPaper}
+            >
               <Upload className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-2 text-gray-400" />
               <h4 className="font-medium text-sm md:text-base text-gray-900 mb-1">Upload Research Paper</h4>
               <p className="text-xs md:text-sm text-gray-600">Submit your research for peer review</p>
@@ -299,7 +312,9 @@ const ACNAMemberDashboard = () => {
   const [activeTab, setActiveTab] = useState((location.state as LocationState)?.activeTab || 'home');
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
-  const { user} = useAuth();
+  const [showResearchPaperModal, setShowResearchPaperModal] = useState(false);
+  const { user } = useAuth();
+  
   const handleProfileUpdate = (updatedData: Partial<MemberData>) => {
     setMemberData((prev: MemberData) => ({
       ...prev,
@@ -327,7 +342,6 @@ const ACNAMemberDashboard = () => {
     }
   });
 
-
   // Tab navigation items (excluding signout since we're using a modal now)
   const tabs = [
     { id: 'home', label: 'HOME', icon: Home },
@@ -343,12 +357,12 @@ const ACNAMemberDashboard = () => {
   const renderTabContent = () => {
     switch (activeTab) {
       case 'home':
-        return <HomeTabContent />;
+        return <HomeTabContent onUploadResearchPaper={() => setShowResearchPaperModal(true)} />;
       case 'profile':
         return <ProfileTabContent 
-        memberData={memberData} 
-        onProfileUpdate={handleProfileUpdate} 
-      />
+          memberData={memberData} 
+          onProfileUpdate={handleProfileUpdate} 
+        />;
       case 'courses':
         return <CoursesTabContent />;
       case 'training':
@@ -360,7 +374,7 @@ const ACNAMemberDashboard = () => {
       case 'directory':
         return <DirectoryTabContent />;
       default:
-        return <HomeTabContent />;
+        return <HomeTabContent onUploadResearchPaper={() => setShowResearchPaperModal(true)} />;
     }
   };
 
@@ -375,6 +389,17 @@ const ACNAMemberDashboard = () => {
       <SignOutModal 
         isOpen={showSignOutModal} 
         onClose={() => setShowSignOutModal(false)} 
+      />
+
+      {/* Research Paper Upload Modal */}
+      <ResearchPaperUploadModal
+        isOpen={showResearchPaperModal}
+        onClose={() => setShowResearchPaperModal(false)}
+        onSubmit={(data) => {
+          // Handle the form submission here
+          console.log('Research paper submitted:', data);
+          // You might want to make an API call here
+        }}
       />
 
       {/* Mobile Header - Always visible on mobile */}
@@ -442,7 +467,7 @@ const ACNAMemberDashboard = () => {
                 setShowMobileSidebar(false);
               }}
             >
-              <Home className="w-4 h-4 mr-2" / >
+              <Home className="w-4 h-4 mr-2" />
               Return to Home
             </Link>
           </div>
@@ -522,7 +547,7 @@ const ACNAMemberDashboard = () => {
               <div className="lg:col-span-1 space-y-4 md:space-y-6">
                 <MemberInfoPanel memberData={memberData} />
                 <CpdProgressPanel memberData={memberData} />
-                <QuickActionsPanel />
+                <QuickActionsPanel onUploadResearchPaper={() => setShowResearchPaperModal(true)} />
               </div>
 
               {/* Right Column - Dynamic Content Based on Active Tab */}

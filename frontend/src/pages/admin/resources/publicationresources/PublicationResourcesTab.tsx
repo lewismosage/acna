@@ -17,7 +17,7 @@ const PublicationResourcesTab = () => {
       case 'research-projects':
         return 'Add Active Research';
       case 'research-papers':
-        return 'Add Recent Research Paper';
+        return null; // No add button for research papers
       default:
         return 'Add Publication';
     }
@@ -32,13 +32,17 @@ const PublicationResourcesTab = () => {
       case 'publications':
         return <PublicationsTab showCreateModal={showCreateModal} onShowCreateModalChange={setShowCreateModal} />;
       case 'research-projects':
-          return <ResearchProjectsTab showCreateModal={showCreateModal} onShowCreateModalChange={setShowCreateModal} />;
+        return <ResearchProjectsTab showCreateModal={showCreateModal} onShowCreateModalChange={setShowCreateModal} />;
       case 'research-papers':
         return <ResearchPapersTab />;
       default:
         return <PublicationsTab showCreateModal={showCreateModal} onShowCreateModalChange={setShowCreateModal} />;
     }
   };
+
+  // Determine if the add button should be shown
+  const shouldShowAddButton = selectedTab !== 'research-papers';
+  const addButtonText = getAddButtonText();
 
   return (
     <div className="space-y-6">
@@ -54,13 +58,15 @@ const PublicationResourcesTab = () => {
               <p className="text-gray-600 mt-1">Manage research papers, clinical guidelines, and educational resources</p>
             </div>
             <div className="flex gap-3">
-              <button 
-                onClick={handleAddButtonClick}
-                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 flex items-center font-medium transition-colors"
-              >
-                <Plus className="w-5 h-5 mr-2" />
-                {getAddButtonText()}
-              </button>
+              {shouldShowAddButton && addButtonText && (
+                <button 
+                  onClick={handleAddButtonClick}
+                  className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 flex items-center font-medium transition-colors"
+                >
+                  <Plus className="w-5 h-5 mr-2" />
+                  {addButtonText}
+                </button>
+              )}
               <button className="border border-blue-600 text-blue-600 px-6 py-2 rounded-lg hover:bg-blue-50 flex items-center font-medium transition-colors">
                 <BarChart3 className="w-5 h-5 mr-2" />
                 Analytics
@@ -76,7 +82,7 @@ const PublicationResourcesTab = () => {
               {[
                 { id: 'publications', label: 'Publications & Resources' },
                 { id: 'research-projects', label: 'Active Research Projects' },
-                { id: 'research-papers', label: 'Recent Research Papers' }
+                { id: 'research-papers', label: 'Research Papers (Submissions by ACNA Members)' }
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -92,6 +98,16 @@ const PublicationResourcesTab = () => {
               ))}
             </nav>
           </div>
+          
+          {/* Additional info for research papers tab */}
+          {selectedTab === 'research-papers' && (
+            <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-sm text-blue-800">
+                <strong>Note:</strong> Research papers are submitted by ACNA members through the member portal. 
+                This section displays all submitted papers for review and management purposes.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Content Area - Render the appropriate tab component */}

@@ -4,12 +4,20 @@ from rest_framework.response import Response
 from django.db.models import Count, Avg, Q, Sum
 from django.utils import timezone
 from datetime import timedelta, datetime
-from .models import ResearchProject, ResearchProjectView, ResearchProjectUpdate
+from .models import (
+    ResearchProject, ResearchProjectView, ResearchProjectUpdate,
+    ResearchPaper, ResearchPaperFile, ResearchPaperReview, ResearchPaperComment
+)
 from .serializers import (
     ResearchProjectSerializer,
     ResearchProjectAnalyticsSerializer,
     ResearchProjectViewSerializer,
-    ResearchProjectUpdateSerializer
+    ResearchProjectUpdateSerializer,
+    ResearchPaperSerializer,
+    ResearchPaperFileSerializer,
+    ResearchPaperReviewSerializer,
+    ResearchPaperCommentSerializer,
+    ResearchPaperAnalyticsSerializer
 )
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
@@ -248,6 +256,443 @@ class ResearchProjectViewSet(viewsets.ModelViewSet):
         else:
             ip = request.META.get('REMOTE_ADDR')
         return ip
+
+    @action(detail=True, methods=['post'])
+    def add_update(self, request, pk=None):
+        """Add an update to a research project"""
+        try:
+            project = self.get_object()
+            data = request.data.copy()
+            data['research_project'] = project.id
+            
+            serializer = ResearchProjectUpdateSerializer(data=data)
+            if not serializer.is_valid():
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+            update = serializer.save()
+            return Response(ResearchProjectUpdateSerializer(update).data, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            logger.error(f"Error adding project update: {str(e)}")
+            return Response(
+                {'error': f'Failed to add project update: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    # NEW ACTION: Get research papers related to this project
+    @action(detail=True, methods=['get'])
+    def research_papers(self, request, pk=None):
+        """Get research papers related to this project"""
+        try:
+            project = self.get_object()
+            papers = ResearchPaper.objects.filter(research_project=project)
+            serializer = ResearchPaperSerializer(papers, many=True, context={'request': request})
+            return Response(serializer.data)
+            
+        except Exception as e:
+            logger.error(f"Error fetching related research papers: {str(e)}")
+            return Response(
+                {'error': f'Failed to fetch related research papers: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+# NEW VIEWSET FOR RESEARCH PAPERS
+
+class ResearchPaperViewSet(viewsets.ModelViewSet):
+    queryset = ResearchPaper.objects.all().order_by('-submission_date')
+    serializer_class = ResearchPaperSerializer
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['status', 'research_type', 'category', 'ethics_approval', 'research_project']
+    search_fields = [
+        'title', 'abstract', 'keywords', 'participants', 'funding_source',
+        'target_journal', 'authors', 'acknowledgments'
+    ]
+    ordering_fields = [
+        'submission_date', 'last_modified', 'title', 'status', 'research_type', 'category'
+    ]
+    ordering = ['-submission_date']
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        
+        # Filter by status
+        status_filter = self.request.query_params.get('status', None)
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        
+        # Filter by under review
+        under_review = self.request.query_params.get('under_review', None)
+        if under_review and under_review.lower() in ['true', '1', 'yes']:
+            queryset = queryset.filter(status__in=['Submitted', 'Under Review', 'Revision Required'])
+        
+        # Filter by ethics approval
+        ethics_filter = self.request.query_params.get('ethics_approval', None)
+        if ethics_filter is not None:
+            has_ethics = ethics_filter.lower() in ['true', '1', 'yes']
+            queryset = queryset.filter(ethics_approval=has_ethics)
+        
+        return queryset
+
+    @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        """Create a new research paper submission"""
+        try:
+            logger.info(f"Creating research paper with data: {request.data}")
+            
+            # Process form data
+            processed_data = self.process_research_paper_data(request.data)
+            
+            # Handle manuscript file
+            if 'manuscriptFile' in request.FILES:
+                processed_data['manuscript_file'] = request.FILES['manuscriptFile']
+            elif 'manuscript' in request.FILES:
+                processed_data['manuscript_file'] = request.FILES['manuscript']
+            
+            # Create research paper
+            serializer = self.get_serializer(data=processed_data)
+            if not serializer.is_valid():
+                logger.error(f"Research paper validation errors: {serializer.errors}")
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+            paper = serializer.save()
+            
+            # Handle supplementary files
+            supplementary_files = request.FILES.getlist('supplementaryFiles')
+            for file in supplementary_files:
+                ResearchPaperFile.objects.create(
+                    research_paper=paper,
+                    file=file,
+                    file_type='supplementary',
+                    description=f'Supplementary file: {file.name}'
+                )
+            
+            logger.info(f"Research paper created with ID: {paper.id}")
+            
+            # Return created paper
+            response_serializer = self.get_serializer(paper, context={'request': request})
+            return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            logger.error(f"Error creating research paper: {str(e)}")
+            logger.error(traceback.format_exc())
+            return Response(
+                {'error': f'Failed to create research paper: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    def process_research_paper_data(self, data):
+        """Process research paper form data"""
+        processed_data = {}
+        
+        for key, value in data.items():
+            if key in ['authors', 'keywords']:
+                # Handle JSON array fields
+                try:
+                    if isinstance(value, str):
+                        processed_data[self.snake_case(key)] = json.loads(value)
+                    else:
+                        processed_data[self.snake_case(key)] = value
+                except json.JSONDecodeError:
+                    processed_data[self.snake_case(key)] = []
+            elif key in ['ethicsApproval', 'declaration']:
+                # Handle boolean fields
+                processed_data[self.snake_case(key)] = str(value).lower() in ['true', '1', 'yes'] if isinstance(value, str) else bool(value)
+            elif key in ['researchProject']:
+                # Handle foreign key fields
+                try:
+                    processed_data[self.snake_case(key)] = int(value) if value else None
+                except (ValueError, TypeError):
+                    processed_data[self.snake_case(key)] = None
+            elif key not in ['manuscriptFile', 'supplementaryFiles', 'declaration'] and value is not None and value != '':
+                # Handle regular fields
+                processed_data[self.snake_case(key)] = value
+                
+        return processed_data
+
+    def snake_case(self, camel_str):
+        """Convert camelCase to snake_case"""
+        s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', camel_str)
+        return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+
+    @action(detail=True, methods=['patch'])
+    def update_status(self, request, pk=None):
+        """Update research paper status"""
+        try:
+            paper = self.get_object()
+            new_status = request.data.get('status')
+            
+            if not new_status:
+                return Response(
+                    {'error': 'Status is required'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            valid_statuses = dict(ResearchPaper.STATUS_CHOICES).keys()
+            if new_status not in valid_statuses:
+                return Response(
+                    {'error': 'Invalid status value'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            paper.status = new_status
+            paper.save(update_fields=['status', 'last_modified'])
+            
+            serializer = self.get_serializer(paper)
+            return Response(serializer.data)
+            
+        except Exception as e:
+            logger.error(f"Error updating paper status: {str(e)}")
+            return Response(
+                {'error': f'Failed to update paper status: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=False, methods=['get'])
+    def analytics(self, request):
+        """Get research paper analytics"""
+        try:
+            # Total papers
+            total_papers = ResearchPaper.objects.count()
+            
+            # Papers by status
+            submitted_count = ResearchPaper.objects.filter(status='Submitted').count()
+            under_review_count = ResearchPaper.objects.filter(status='Under Review').count()
+            revision_required_count = ResearchPaper.objects.filter(status='Revision Required').count()
+            accepted_count = ResearchPaper.objects.filter(status='Accepted').count()
+            published_count = ResearchPaper.objects.filter(status='Published').count()
+            rejected_count = ResearchPaper.objects.filter(status='Rejected').count()
+            
+            # Papers by category
+            papers_by_category = dict(
+                ResearchPaper.objects.values_list('category')
+                .annotate(count=Count('id'))
+                .order_by('-count')
+            )
+            
+            # Papers by research type
+            papers_by_research_type = dict(
+                ResearchPaper.objects.values_list('research_type')
+                .annotate(count=Count('id'))
+                .order_by('-count')
+            )
+            
+            # Papers by status (for charts)
+            papers_by_status = dict(
+                ResearchPaper.objects.values_list('status')
+                .annotate(count=Count('id'))
+                .order_by('-count')
+            )
+            
+            # Total authors count
+            total_authors = 0
+            for paper in ResearchPaper.objects.all():
+                if isinstance(paper.authors, list):
+                    total_authors += len(paper.authors)
+            
+            # Papers with ethics approval
+            papers_with_ethics = ResearchPaper.objects.filter(ethics_approval=True).count()
+            
+            # Average review time (for completed reviews)
+            completed_reviews = ResearchPaperReview.objects.filter(
+                review_status='Completed', 
+                completed_at__isnull=False
+            )
+            avg_review_time = None
+            if completed_reviews.exists():
+                review_times = []
+                for review in completed_reviews:
+                    if review.assigned_at and review.completed_at:
+                        days = (review.completed_at - review.assigned_at).days
+                        review_times.append(days)
+                if review_times:
+                    avg_review_time = sum(review_times) / len(review_times)
+            
+            analytics_data = {
+                'total_papers': total_papers,
+                'submitted': submitted_count,
+                'under_review': under_review_count,
+                'revision_required': revision_required_count,
+                'accepted': accepted_count,
+                'published': published_count,
+                'rejected': rejected_count,
+                'papers_by_category': papers_by_category,
+                'papers_by_research_type': papers_by_research_type,
+                'papers_by_status': papers_by_status,
+                'total_authors': total_authors,
+                'papers_with_ethics_approval': papers_with_ethics,
+                'avg_review_time_days': avg_review_time,
+            }
+            
+            serializer = ResearchPaperAnalyticsSerializer(data=analytics_data)
+            serializer.is_valid(raise_exception=True)
+            return Response(serializer.data)
+            
+        except Exception as e:
+            logger.error(f"Error fetching research paper analytics: {str(e)}")
+            logger.error(traceback.format_exc())
+            return Response(
+                {'error': f'Failed to fetch analytics: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=False, methods=['get'])
+    def categories(self, request):
+        """Get all research paper categories"""
+        try:
+            categories = [choice[0] for choice in ResearchPaper.CATEGORY_CHOICES]
+            return Response(categories)
+            
+        except Exception as e:
+            logger.error(f"Error fetching paper categories: {str(e)}")
+            return Response(
+                {'error': f'Failed to fetch paper categories: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=False, methods=['get'])
+    def research_types(self, request):
+        """Get all research paper types"""
+        try:
+            types = [choice[0] for choice in ResearchPaper.RESEARCH_TYPE_CHOICES]
+            return Response(types)
+            
+        except Exception as e:
+            logger.error(f"Error fetching research types: {str(e)}")
+            return Response(
+                {'error': f'Failed to fetch research types: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=False, methods=['get'])
+    def study_designs(self, request):
+        """Get all study design options"""
+        try:
+            designs = [choice[0] for choice in ResearchPaper.STUDY_DESIGN_CHOICES]
+            return Response(designs)
+            
+        except Exception as e:
+            logger.error(f"Error fetching study designs: {str(e)}")
+            return Response(
+                {'error': f'Failed to fetch study designs: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=True, methods=['get'])
+    def reviews(self, request, pk=None):
+        """Get reviews for a specific research paper"""
+        try:
+            paper = self.get_object()
+            reviews = ResearchPaperReview.objects.filter(research_paper=paper)
+            serializer = ResearchPaperReviewSerializer(reviews, many=True)
+            return Response(serializer.data)
+            
+        except Exception as e:
+            logger.error(f"Error fetching paper reviews: {str(e)}")
+            return Response(
+                {'error': f'Failed to fetch paper reviews: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=True, methods=['post'])
+    def add_review(self, request, pk=None):
+        """Add a review to a research paper"""
+        try:
+            paper = self.get_object()
+            data = request.data.copy()
+            data['research_paper'] = paper.id
+            
+            serializer = ResearchPaperReviewSerializer(data=data)
+            if not serializer.is_valid():
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+            review = serializer.save()
+            return Response(ResearchPaperReviewSerializer(review).data, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            logger.error(f"Error adding paper review: {str(e)}")
+            return Response(
+                {'error': f'Failed to add paper review: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=True, methods=['get'])
+    def comments(self, request, pk=None):
+        """Get comments for a specific research paper"""
+        try:
+            paper = self.get_object()
+            comments = ResearchPaperComment.objects.filter(research_paper=paper)
+            serializer = ResearchPaperCommentSerializer(comments, many=True)
+            return Response(serializer.data)
+            
+        except Exception as e:
+            logger.error(f"Error fetching paper comments: {str(e)}")
+            return Response(
+                {'error': f'Failed to fetch paper comments: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=True, methods=['post'])
+    def add_comment(self, request, pk=None):
+        """Add a comment to a research paper"""
+        try:
+            paper = self.get_object()
+            data = request.data.copy()
+            data['research_paper'] = paper.id
+            
+            serializer = ResearchPaperCommentSerializer(data=data)
+            if not serializer.is_valid():
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+            comment = serializer.save()
+            return Response(ResearchPaperCommentSerializer(comment).data, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            logger.error(f"Error adding paper comment: {str(e)}")
+            return Response(
+                {'error': f'Failed to add paper comment: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=True, methods=['post'])
+    def upload_supplementary_file(self, request, pk=None):
+        """Upload a supplementary file to a research paper"""
+        try:
+            paper = self.get_object()
+            
+            if 'file' not in request.FILES:
+                return Response(
+                    {'error': 'No file provided'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            file = request.FILES['file']
+            file_type = request.data.get('file_type', 'supplementary')
+            description = request.data.get('description', '')
+            
+            # Validate file size (limit to 50MB for supplementary files)
+            if file.size > 50 * 1024 * 1024:
+                return Response(
+                    {'error': 'File size too large. Maximum size is 50MB'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            supplementary_file = ResearchPaperFile.objects.create(
+                research_paper=paper,
+                file=file,
+                file_type=file_type,
+                description=description or f'{file_type.title()} file: {file.name}'
+            )
+            
+            serializer = ResearchPaperFileSerializer(supplementary_file, context={'request': request})
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            logger.error(f"Error uploading supplementary file: {str(e)}")
+            return Response(
+                {'error': f'Failed to upload supplementary file: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     @action(detail=True, methods=['patch'])
     def update_status(self, request, pk=None):
@@ -562,27 +1007,5 @@ class ResearchProjectViewSet(viewsets.ModelViewSet):
             logger.error(f"Error fetching project updates: {str(e)}")
             return Response(
                 {'error': f'Failed to fetch project updates: {str(e)}'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-    @action(detail=True, methods=['post'])
-    def add_update(self, request, pk=None):
-        """Add an update to a research project"""
-        try:
-            project = self.get_object()
-            data = request.data.copy()
-            data['research_project'] = project.id
-            
-            serializer = ResearchProjectUpdateSerializer(data=data)
-            if not serializer.is_valid():
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-            
-            update = serializer.save()
-            return Response(ResearchProjectUpdateSerializer(update).data, status=status.HTTP_201_CREATED)
-            
-        except Exception as e:
-            logger.error(f"Error adding project update: {str(e)}")
-            return Response(
-                {'error': f'Failed to add project update: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
