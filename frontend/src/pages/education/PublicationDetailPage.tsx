@@ -22,6 +22,7 @@ import {
   Clock,
   Printer
 } from 'lucide-react';
+import { useParams } from 'react-router-dom';
 import { publicationsApi, Publication, Author } from '../../services/publicationsAPI';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ScrollToTop from '../../components/common/ScrollToTop';
@@ -33,9 +34,8 @@ const PublicationDetailPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
-
-  // Mock ID for demonstration - in real app this would come from URL params
-  const publicationId = 1;
+  const { id } = useParams<{ id: string }>();
+  const publicationId = id ? parseInt(id) : 0;
 
   useEffect(() => {
     const fetchPublication = async () => {
