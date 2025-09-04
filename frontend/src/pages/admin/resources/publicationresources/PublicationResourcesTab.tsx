@@ -32,7 +32,7 @@ const PublicationResourcesTab = () => {
       case 'publications':
         return <PublicationsTab showCreateModal={showCreateModal} onShowCreateModalChange={setShowCreateModal} />;
       case 'research-projects':
-        return <ResearchProjectsTab />;
+          return <ResearchProjectsTab showCreateModal={showCreateModal} onShowCreateModalChange={setShowCreateModal} />;
       case 'research-papers':
         return <ResearchPapersTab />;
       default:

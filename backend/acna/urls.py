@@ -18,6 +18,7 @@ urlpatterns = [
     path('api/', include('patient_resources.urls')),
     path('api/', include('ebooklets.urls')),
     path('api/', include('publications.urls')),
+    path('api/', include('research_projects.urls')),
 ]
 
 if settings.DEBUG:
