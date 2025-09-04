@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Calendar, 
-  Download, 
-  Share2, 
+import React, { useState, useEffect } from "react";
+import {
+  Calendar,
+  Download,
+  Share2,
   ChevronLeft,
   AlertCircle,
   Star,
@@ -15,17 +15,19 @@ import {
   Target,
   Users,
   Tag,
-  Printer
-} from 'lucide-react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { EBooklet, ebookletsApi } from '../../services/ebookletsApi';
-import LoadingSpinner from '../../components/common/LoadingSpinner';
-import ScrollToTop from '../../components/common/ScrollToTop';
+  Printer,
+} from "lucide-react";
+import { useParams, useNavigate } from "react-router-dom";
+import { EBooklet, ebookletsApi } from "../../../services/ebookletsApi";
+import LoadingSpinner from "../../../components/common/LoadingSpinner";
+import ScrollToTop from "../../../components/common/ScrollToTop";
 
 const EBookletDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'overview' | 'contents' | 'authors' | 'download'>('overview');
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "contents" | "authors" | "download"
+  >("overview");
   const [ebooklet, setEBooklet] = useState<EBooklet | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +36,7 @@ const EBookletDetailPage = () => {
   useEffect(() => {
     const fetchEBooklet = async () => {
       if (!id) return;
-      
+
       try {
         setLoading(true);
         const ebookletData = await ebookletsApi.getById(parseInt(id));
@@ -42,7 +44,9 @@ const EBookletDetailPage = () => {
         // Increment view count
         await ebookletsApi.incrementView(parseInt(id));
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load e-booklet');
+        setError(
+          err instanceof Error ? err.message : "Failed to load e-booklet"
+        );
       } finally {
         setLoading(false);
       }
@@ -58,21 +62,23 @@ const EBookletDetailPage = () => {
     try {
       // Increment download count
       await ebookletsApi.incrementDownload(ebooklet.id);
-      
+
       // Trigger download
       if (ebooklet.fileUrl) {
-        const link = document.createElement('a');
+        const link = document.createElement("a");
         link.href = ebooklet.fileUrl;
         link.download = ebooklet.title;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        
+
         // Update local state
-        setEBooklet(prev => prev ? {...prev, downloadCount: prev.downloadCount + 1} : null);
+        setEBooklet((prev) =>
+          prev ? { ...prev, downloadCount: prev.downloadCount + 1 } : null
+        );
       }
     } catch (err) {
-      console.error('Error downloading file:', err);
+      console.error("Error downloading file:", err);
     } finally {
       setIsDownloading(false);
     }
@@ -80,25 +86,29 @@ const EBookletDetailPage = () => {
 
   const renderRatingStars = (rating?: number) => {
     if (!rating) return null;
-    
+
     return (
       <div className="flex items-center">
         {[1, 2, 3, 4, 5].map((star) => (
           <Star
             key={star}
-            className={`w-4 h-4 ${star <= rating ? 'text-yellow-500 fill-current' : 'text-gray-300'}`}
+            className={`w-4 h-4 ${
+              star <= rating ? "text-yellow-500 fill-current" : "text-gray-300"
+            }`}
           />
         ))}
-        <span className="text-sm text-gray-600 ml-1">({rating.toFixed(1)})</span>
+        <span className="text-sm text-gray-600 ml-1">
+          ({rating.toFixed(1)})
+        </span>
       </div>
     );
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   };
 
@@ -115,9 +125,13 @@ const EBookletDetailPage = () => {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <AlertCircle className="w-16 h-16 text-red-600 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">E-Booklet Not Found</h2>
-          <p className="text-gray-600 mb-4">{error || "The e-booklet you're looking for doesn't exist."}</p>
-          <button 
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            E-Booklet Not Found
+          </h2>
+          <p className="text-gray-600 mb-4">
+            {error || "The e-booklet you're looking for doesn't exist."}
+          </p>
+          <button
             onClick={() => navigate(-1)}
             className="flex items-center text-red-600 hover:text-red-700 font-medium"
           >
@@ -132,11 +146,11 @@ const EBookletDetailPage = () => {
   return (
     <div className="bg-white min-h-screen">
       <ScrollToTop />
-      
+
       {/* Back Navigation */}
       <div className="bg-gray-50 border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-4 py-4">
-          <button 
+          <button
             onClick={() => navigate(-1)}
             className="flex items-center text-red-600 hover:text-red-700 font-medium"
           >
@@ -181,9 +195,11 @@ const EBookletDetailPage = () => {
                 <div className="space-y-3">
                   <div className="flex items-center text-gray-600">
                     <FileText className="w-5 h-5 mr-3 text-red-600" />
-                    <span>{ebooklet.pages} pages • {ebooklet.fileSize}</span>
+                    <span>
+                      {ebooklet.pages} pages • {ebooklet.fileSize}
+                    </span>
                   </div>
-                  
+
                   <div className="flex items-center text-gray-600">
                     <Globe className="w-5 h-5 mr-3 text-red-600" />
                     <span>Language: {ebooklet.language}</span>
@@ -195,12 +211,12 @@ const EBookletDetailPage = () => {
                     <Download className="w-5 h-5 mr-3 text-red-600" />
                     <span>{ebooklet.downloadCount} downloads</span>
                   </div>
-                  
+
                   <div className="flex items-center text-gray-600">
                     <Eye className="w-5 h-5 mr-3 text-red-600" />
                     <span>{ebooklet.viewCount} views</span>
                   </div>
-                  
+
                   {ebooklet.rating && (
                     <div className="flex items-center">
                       {renderRatingStars(ebooklet.rating)}
@@ -210,17 +226,17 @@ const EBookletDetailPage = () => {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4">
-                <button 
+                <button
                   onClick={handleDownload}
                   disabled={isDownloading}
                   className={`bg-red-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors flex items-center justify-center ${
-                    isDownloading ? 'opacity-75 cursor-not-allowed' : ''
+                    isDownloading ? "opacity-75 cursor-not-allowed" : ""
                   }`}
                 >
                   <Download className="w-5 h-5 mr-2" />
-                  {isDownloading ? 'Downloading...' : 'Download E-Booklet'}
+                  {isDownloading ? "Downloading..." : "Download E-Booklet"}
                 </button>
-                
+
                 <div className="flex gap-2">
                   <button className="border border-gray-300 text-gray-700 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors flex items-center">
                     <Share2 className="w-4 h-4 mr-2" />
@@ -242,18 +258,18 @@ const EBookletDetailPage = () => {
         <div className="max-w-6xl mx-auto px-4">
           <nav className="flex space-x-8">
             {[
-              { key: 'overview', label: 'Overview' },
-              { key: 'contents', label: 'Contents' },
-              { key: 'authors', label: 'Authors' },
-              { key: 'download', label: 'Download' }
+              { key: "overview", label: "Overview" },
+              { key: "contents", label: "Contents" },
+              { key: "authors", label: "Authors" },
+              { key: "download", label: "Download" },
             ].map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key as any)}
                 className={`py-4 border-b-2 font-medium text-sm transition-colors ${
                   activeTab === tab.key
-                    ? 'border-red-600 text-red-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                    ? "border-red-600 text-red-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700"
                 }`}
               >
                 {tab.label}
@@ -266,18 +282,22 @@ const EBookletDetailPage = () => {
       {/* Tab Content */}
       <section className="py-16">
         <div className="max-w-6xl mx-auto px-4">
-          {activeTab === 'overview' && (
+          {activeTab === "overview" && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2 space-y-8">
                 {/* About E-Booklet */}
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-4">About This E-Booklet</h2>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                    About This E-Booklet
+                  </h2>
                   <p className="text-gray-700 leading-relaxed whitespace-pre-line">
                     {ebooklet.description}
                   </p>
                   {ebooklet.abstract && (
                     <>
-                      <h3 className="text-xl font-bold text-gray-900 mb-4 mt-6">Abstract</h3>
+                      <h3 className="text-xl font-bold text-gray-900 mb-4 mt-6">
+                        Abstract
+                      </h3>
                       <p className="text-gray-700 leading-relaxed whitespace-pre-line">
                         {ebooklet.abstract}
                       </p>
@@ -294,7 +314,10 @@ const EBookletDetailPage = () => {
                     </h3>
                     <div className="flex flex-wrap gap-2">
                       {ebooklet.keywords.map((keyword, index) => (
-                        <span key={index} className="bg-gray-100 text-gray-800 px-3 py-1 text-sm rounded-full">
+                        <span
+                          key={index}
+                          className="bg-gray-100 text-gray-800 px-3 py-1 text-sm rounded-full"
+                        >
                           {keyword}
                         </span>
                       ))}
@@ -311,7 +334,10 @@ const EBookletDetailPage = () => {
                     </h3>
                     <div className="flex flex-wrap gap-2">
                       {ebooklet.tags.map((tag, index) => (
-                        <span key={index} className="bg-purple-100 text-purple-800 px-3 py-1 text-sm rounded-full">
+                        <span
+                          key={index}
+                          className="bg-purple-100 text-purple-800 px-3 py-1 text-sm rounded-full"
+                        >
                           {tag}
                         </span>
                       ))}
@@ -324,7 +350,9 @@ const EBookletDetailPage = () => {
               <div className="space-y-6">
                 {/* Quick Info */}
                 <div className="bg-gray-50 p-6 rounded-lg">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">Quick Info</h3>
+                  <h3 className="text-lg font-bold text-gray-900 mb-4">
+                    Quick Info
+                  </h3>
                   <div className="space-y-3 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Pages:</span>
@@ -340,7 +368,9 @@ const EBookletDetailPage = () => {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Downloads:</span>
-                      <span className="font-medium text-green-600">{ebooklet.downloadCount}</span>
+                      <span className="font-medium text-green-600">
+                        {ebooklet.downloadCount}
+                      </span>
                     </div>
                     {ebooklet.isbn && (
                       <div className="flex justify-between">
@@ -352,30 +382,38 @@ const EBookletDetailPage = () => {
                 </div>
 
                 {/* Target Audience */}
-                {ebooklet.targetAudience && ebooklet.targetAudience.length > 0 && (
-                  <div className="bg-blue-50 p-6 rounded-lg">
-                    <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                      <Users className="w-5 h-5 mr-2 text-blue-600" />
-                      Target Audience
-                    </h3>
-                    <ul className="space-y-2">
-                      {ebooklet.targetAudience.map((audience, index) => (
-                        <li key={index} className="flex items-start">
-                          <CheckCircle className="w-4 h-4 mr-2 mt-0.5 text-blue-600 flex-shrink-0" />
-                          <span className="text-sm text-gray-700">{audience}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                {ebooklet.targetAudience &&
+                  ebooklet.targetAudience.length > 0 && (
+                    <div className="bg-blue-50 p-6 rounded-lg">
+                      <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                        <Users className="w-5 h-5 mr-2 text-blue-600" />
+                        Target Audience
+                      </h3>
+                      <ul className="space-y-2">
+                        {ebooklet.targetAudience.map((audience, index) => (
+                          <li key={index} className="flex items-start">
+                            <CheckCircle className="w-4 h-4 mr-2 mt-0.5 text-blue-600 flex-shrink-0" />
+                            <span className="text-sm text-gray-700">
+                              {audience}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
 
                 {/* File Formats */}
                 {ebooklet.fileFormats && ebooklet.fileFormats.length > 0 && (
                   <div className="bg-green-50 p-6 rounded-lg">
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">Available Formats</h3>
+                    <h3 className="text-lg font-bold text-gray-900 mb-4">
+                      Available Formats
+                    </h3>
                     <div className="flex flex-wrap gap-2">
                       {ebooklet.fileFormats.map((format, index) => (
-                        <span key={index} className="bg-green-100 text-green-800 px-3 py-1 text-sm rounded-full font-medium">
+                        <span
+                          key={index}
+                          className="bg-green-100 text-green-800 px-3 py-1 text-sm rounded-full font-medium"
+                        >
                           {format}
                         </span>
                       ))}
@@ -386,10 +424,13 @@ const EBookletDetailPage = () => {
             </div>
           )}
 
-          {activeTab === 'contents' && (
+          {activeTab === "contents" && (
             <div className="max-w-4xl">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Table of Contents</h2>
-              {ebooklet.tableOfContents && ebooklet.tableOfContents.length > 0 ? (
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                Table of Contents
+              </h2>
+              {ebooklet.tableOfContents &&
+              ebooklet.tableOfContents.length > 0 ? (
                 <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
                   <div className="p-6">
                     <ol className="space-y-3">
@@ -407,28 +448,36 @@ const EBookletDetailPage = () => {
               ) : (
                 <div className="text-center py-12 bg-gray-50 rounded-lg">
                   <BookOpen className="w-12 h-12 mx-auto text-gray-400" />
-                  <p className="mt-4 text-gray-600">Table of contents will be available soon</p>
+                  <p className="mt-4 text-gray-600">
+                    Table of contents will be available soon
+                  </p>
                 </div>
               )}
             </div>
           )}
 
-          {activeTab === 'authors' && (
+          {activeTab === "authors" && (
             <div className="max-w-4xl">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">Authors</h2>
               {ebooklet.authors && ebooklet.authors.length > 0 ? (
                 <div className="space-y-6">
                   {ebooklet.authors.map((author, index) => (
-                    <div key={index} className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                    <div
+                      key={index}
+                      className="bg-white border border-gray-200 rounded-lg overflow-hidden"
+                    >
                       <div className="p-6">
                         <div className="flex items-start gap-6">
                           <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
                             <User className="w-8 h-8 text-gray-400" />
                           </div>
                           <div className="flex-1">
-                            <h3 className="text-xl font-bold text-gray-900 mb-2">{author}</h3>
+                            <h3 className="text-xl font-bold text-gray-900 mb-2">
+                              {author}
+                            </h3>
                             <p className="text-gray-600 mb-4">
-                              Contributing author with expertise in pediatric neurology and child development.
+                              Contributing author with expertise in pediatric
+                              neurology and child development.
                             </p>
                             <div className="flex flex-wrap gap-2">
                               <span className="bg-blue-100 text-blue-800 px-3 py-1 text-sm rounded-full">
@@ -447,27 +496,34 @@ const EBookletDetailPage = () => {
               ) : (
                 <div className="text-center py-12 bg-gray-50 rounded-lg">
                   <User className="w-12 h-12 mx-auto text-gray-400" />
-                  <p className="mt-4 text-gray-600">Author information will be available soon</p>
+                  <p className="mt-4 text-gray-600">
+                    Author information will be available soon
+                  </p>
                 </div>
               )}
             </div>
           )}
 
-          {activeTab === 'download' && (
+          {activeTab === "download" && (
             <div className="max-w-2xl mx-auto">
               <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">Download E-Booklet</h2>
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                  Download E-Booklet
+                </h2>
                 <p className="text-gray-600">
-                  This resource is available for free download to support education and awareness.
+                  This resource is available for free download to support
+                  education and awareness.
                 </p>
               </div>
-              
+
               {/* Download Options */}
               <div className="bg-white border border-gray-200 rounded-lg p-8">
                 <div className="space-y-6">
                   {/* E-Booklet Summary */}
                   <div className="bg-blue-50 p-6 rounded-lg">
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">Download Summary</h3>
+                    <h3 className="text-lg font-bold text-gray-900 mb-4">
+                      Download Summary
+                    </h3>
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
                         <span className="text-gray-600">Title:</span>
@@ -491,7 +547,9 @@ const EBookletDetailPage = () => {
                       </div>
                       <div>
                         <span className="text-gray-600">Downloads:</span>
-                        <div className="font-medium text-green-600">{ebooklet.downloadCount}</div>
+                        <div className="font-medium text-green-600">
+                          {ebooklet.downloadCount}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -499,26 +557,40 @@ const EBookletDetailPage = () => {
                   {/* Available Formats */}
                   {ebooklet.fileFormats && ebooklet.fileFormats.length > 0 && (
                     <div>
-                      <h3 className="text-lg font-bold text-gray-900 mb-4">Available Formats</h3>
+                      <h3 className="text-lg font-bold text-gray-900 mb-4">
+                        Available Formats
+                      </h3>
                       <div className="grid grid-cols-1 gap-3">
                         {ebooklet.fileFormats.map((format, index) => (
-                          <div key={index} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                          <div
+                            key={index}
+                            className="flex items-center justify-between p-4 border border-gray-200 rounded-lg"
+                          >
                             <div className="flex items-center">
                               <FileText className="w-5 h-5 mr-3 text-red-600" />
                               <div>
-                                <div className="font-medium">{format} Format</div>
-                                <div className="text-sm text-gray-600">Best for {format === 'PDF' ? 'printing and reading' : 'e-readers and mobile devices'}</div>
+                                <div className="font-medium">
+                                  {format} Format
+                                </div>
+                                <div className="text-sm text-gray-600">
+                                  Best for{" "}
+                                  {format === "PDF"
+                                    ? "printing and reading"
+                                    : "e-readers and mobile devices"}
+                                </div>
                               </div>
                             </div>
                             <button
                               onClick={handleDownload}
                               disabled={isDownloading}
                               className={`bg-red-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 transition-colors flex items-center ${
-                                isDownloading ? 'opacity-75 cursor-not-allowed' : ''
+                                isDownloading
+                                  ? "opacity-75 cursor-not-allowed"
+                                  : ""
                               }`}
                             >
                               <Download className="w-4 h-4 mr-2" />
-                              {isDownloading ? 'Downloading...' : 'Download'}
+                              {isDownloading ? "Downloading..." : "Download"}
                             </button>
                           </div>
                         ))}
@@ -535,8 +607,13 @@ const EBookletDetailPage = () => {
                         className="mt-1 h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
                         required
                       />
-                      <label htmlFor="terms" className="ml-3 text-sm text-gray-700">
-                        I agree to use this resource for educational purposes only and acknowledge that it is provided free of charge by ACNA.
+                      <label
+                        htmlFor="terms"
+                        className="ml-3 text-sm text-gray-700"
+                      >
+                        I agree to use this resource for educational purposes
+                        only and acknowledge that it is provided free of charge
+                        by ACNA.
                       </label>
                     </div>
                   </div>
@@ -546,18 +623,23 @@ const EBookletDetailPage = () => {
                     onClick={handleDownload}
                     disabled={isDownloading}
                     className={`w-full bg-red-600 text-white px-6 py-4 rounded-lg font-bold hover:bg-red-700 transition-colors uppercase tracking-wide flex items-center justify-center ${
-                      isDownloading ? 'opacity-75 cursor-not-allowed' : ''
+                      isDownloading ? "opacity-75 cursor-not-allowed" : ""
                     }`}
                   >
                     <Download className="w-5 h-5 mr-2" />
-                    {isDownloading ? 'Downloading E-Booklet...' : 'Download E-Booklet'}
+                    {isDownloading
+                      ? "Downloading E-Booklet..."
+                      : "Download E-Booklet"}
                   </button>
 
                   <div className="text-center text-sm text-gray-600">
                     <p>Free download • No registration required</p>
                     <p className="mt-1">
-                      Questions? Contact us at{' '}
-                      <a href="mailto:resources@acna.org" className="text-red-600 hover:underline">
+                      Questions? Contact us at{" "}
+                      <a
+                        href="mailto:resources@acna.org"
+                        className="text-red-600 hover:underline"
+                      >
                         resources@acna.org
                       </a>
                     </p>

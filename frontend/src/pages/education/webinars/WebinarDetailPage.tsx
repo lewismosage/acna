@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
-import { 
-  Calendar, 
-  Clock, 
-  User, 
-  Users, 
-  Download, 
-  Share2, 
+import { useState, useEffect } from "react";
+import {
+  Calendar,
+  Clock,
+  User,
+  Users,
+  Download,
+  Share2,
   ChevronLeft,
   CheckCircle,
   AlertCircle,
@@ -13,42 +13,47 @@ import {
   Play,
   Bookmark,
   Globe,
-  Mail
-} from 'lucide-react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Webinar, webinarsApi } from '../../services/webinarsApi';
-import LoadingSpinner from '../../components/common/LoadingSpinner';
-import ScrollToTop from '../../components/common/ScrollToTop';
+  Mail,
+} from "lucide-react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Webinar, webinarsApi } from "../../../services/webinarsApi";
+import LoadingSpinner from "../../../components/common/LoadingSpinner";
+import ScrollToTop from "../../../components/common/ScrollToTop";
 
 const WebinarDetailPage = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const [activeTab, setActiveTab] = useState<'overview' | 'speakers' | 'resources' | 'registration'>('overview');
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "speakers" | "resources" | "registration"
+  >("overview");
   const [webinar, setWebinar] = useState<Webinar | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [registrationData, setRegistrationData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    organization: '',
-    profession: '',
-    phone: '',
-    country: ''
+    firstName: "",
+    lastName: "",
+    email: "",
+    organization: "",
+    profession: "",
+    phone: "",
+    country: "",
   });
   const [isRegistering, setIsRegistering] = useState(false);
-  const [registrationStatus, setRegistrationStatus] = useState<{type: 'success' | 'error'; message: string} | null>(null);
+  const [registrationStatus, setRegistrationStatus] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
 
   useEffect(() => {
     const fetchWebinar = async () => {
       if (!id) return;
-      
+
       try {
         setLoading(true);
         const webinarData = await webinarsApi.getById(parseInt(id));
         setWebinar(webinarData);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load webinar');
+        setError(err instanceof Error ? err.message : "Failed to load webinar");
       } finally {
         setLoading(false);
       }
@@ -59,15 +64,17 @@ const WebinarDetailPage = () => {
 
   // Status detection functions (same as in Webinars page)
   const getIsUpcoming = (webinar: Webinar): boolean => {
-    return webinar.status === 'Planning' || webinar.status === 'Registration Open';
+    return (
+      webinar.status === "Planning" || webinar.status === "Registration Open"
+    );
   };
 
   const getIsLive = (webinar: Webinar): boolean => {
-    return webinar.status === 'Live';
+    return webinar.status === "Live";
   };
 
   const getIsRecorded = (webinar: Webinar): boolean => {
-    return webinar.status === 'Completed' || webinar.status === 'Cancelled';
+    return webinar.status === "Completed" || webinar.status === "Cancelled";
   };
 
   const isUpcoming = (webinar: Webinar): boolean => {
@@ -84,7 +91,7 @@ const WebinarDetailPage = () => {
 
   const getStatusBadge = () => {
     if (!webinar) return null;
-    
+
     const isLiveNow = isLive(webinar);
     const isUpcomingNow = isUpcoming(webinar);
     const isRecordedNow = isRecorded(webinar);
@@ -116,7 +123,7 @@ const WebinarDetailPage = () => {
 
   const handleRegistration = async () => {
     if (!webinar) return;
-    
+
     setIsRegistering(true);
     setRegistrationStatus(null);
 
@@ -127,24 +134,25 @@ const WebinarDetailPage = () => {
         email: registrationData.email,
         phone: registrationData.phone,
         organization: registrationData.organization,
-        registrationType: 'Free',
-        country: registrationData.country
+        registrationType: "Free",
+        country: registrationData.country,
       });
-      
+
       setRegistrationStatus({
-        type: 'success',
-        message: 'Registration successful! You will receive a confirmation email with joining details shortly.'
+        type: "success",
+        message:
+          "Registration successful! You will receive a confirmation email with joining details shortly.",
       });
-      
+
       // Reset form
       setRegistrationData({
-        firstName: '',
-        lastName: '',
-        email: '',
-        organization: '',
-        profession: '',
-        phone: '',
-        country: ''
+        firstName: "",
+        lastName: "",
+        email: "",
+        organization: "",
+        profession: "",
+        phone: "",
+        country: "",
       });
 
       // Refresh webinar data to update registration count
@@ -152,8 +160,11 @@ const WebinarDetailPage = () => {
       setWebinar(updatedWebinar);
     } catch (err) {
       setRegistrationStatus({
-        type: 'error',
-        message: err instanceof Error ? err.message : 'Registration failed. Please try again later.'
+        type: "error",
+        message:
+          err instanceof Error
+            ? err.message
+            : "Registration failed. Please try again later.",
       });
     } finally {
       setIsRegistering(false);
@@ -173,9 +184,13 @@ const WebinarDetailPage = () => {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <AlertCircle className="w-16 h-16 text-red-600 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Webinar Not Found</h2>
-          <p className="text-gray-600 mb-4">{error || "The webinar you're looking for doesn't exist."}</p>
-          <button 
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Webinar Not Found
+          </h2>
+          <p className="text-gray-600 mb-4">
+            {error || "The webinar you're looking for doesn't exist."}
+          </p>
+          <button
             onClick={() => navigate(-1)}
             className="flex items-center text-red-600 hover:text-red-700 font-medium"
           >
@@ -196,7 +211,7 @@ const WebinarDetailPage = () => {
       {/* Back Navigation */}
       <div className="bg-gray-50 border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-4 py-4">
-          <button 
+          <button
             onClick={() => navigate(-1)}
             className="flex items-center text-red-600 hover:text-red-700 font-medium"
           >
@@ -219,9 +234,7 @@ const WebinarDetailPage = () => {
                   alt={webinar.title}
                   className="w-full h-64 lg:h-80 object-cover rounded-lg shadow-lg"
                 />
-                <div className="absolute top-4 left-4">
-                  {getStatusBadge()}
-                </div>
+                <div className="absolute top-4 left-4">{getStatusBadge()}</div>
                 {webinar.isFeatured && (
                   <div className="absolute top-4 right-4">
                     <span className="bg-yellow-500 text-white px-3 py-1 text-sm font-bold rounded flex items-center">
@@ -240,7 +253,7 @@ const WebinarDetailPage = () => {
                   {webinar.category}
                 </span>
               </div>
-              
+
               <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6 leading-tight">
                 {webinar.title}
               </h1>
@@ -254,37 +267,38 @@ const WebinarDetailPage = () => {
                       <div className="text-sm">{webinar.time}</div>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center text-gray-600">
                     <Clock className="w-5 h-5 mr-3 text-red-600" />
                     <span>{webinar.duration}</span>
                   </div>
-                  
+
                   <div className="flex items-center text-gray-600">
                     <Users className="w-5 h-5 mr-3 text-red-600" />
-                    <span>For: {webinar.targetAudience.join(', ')}</span>
+                    <span>For: {webinar.targetAudience.join(", ")}</span>
                   </div>
                 </div>
 
                 <div className="space-y-3">
                   <div className="flex items-center text-gray-600">
                     <Globe className="w-5 h-5 mr-3 text-red-600" />
-                    <span>Languages: {webinar.languages.join(', ')}</span>
+                    <span>Languages: {webinar.languages.join(", ")}</span>
                   </div>
-                  
-                  {webinar.registrationCount !== undefined && webinar.registrationCount > 0 && (
-                    <div className="flex items-center text-gray-600">
-                      <User className="w-5 h-5 mr-3 text-red-600" />
-                      <span>{webinar.registrationCount} registered</span>
-                    </div>
-                  )}
+
+                  {webinar.registrationCount !== undefined &&
+                    webinar.registrationCount > 0 && (
+                      <div className="flex items-center text-gray-600">
+                        <User className="w-5 h-5 mr-3 text-red-600" />
+                        <span>{webinar.registrationCount} registered</span>
+                      </div>
+                    )}
                 </div>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4">
                 {webinarIsUpcoming ? (
-                  <button 
-                    onClick={() => setActiveTab('registration')}
+                  <button
+                    onClick={() => setActiveTab("registration")}
                     className="bg-red-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors flex items-center justify-center"
                   >
                     <Mail className="w-5 h-5 mr-2" />
@@ -311,7 +325,7 @@ const WebinarDetailPage = () => {
                     Join Live
                   </a>
                 ) : null}
-                
+
                 <div className="flex gap-2">
                   <button className="border border-gray-300 text-gray-700 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors flex items-center">
                     <Share2 className="w-4 h-4 mr-2" />
@@ -340,18 +354,18 @@ const WebinarDetailPage = () => {
         <div className="max-w-6xl mx-auto px-4">
           <nav className="flex space-x-8">
             {[
-              { key: 'overview', label: 'Overview' },
-              { key: 'speakers', label: 'Speakers' },
-              { key: 'resources', label: 'Resources' },
-              { key: 'registration', label: 'Registration' }
+              { key: "overview", label: "Overview" },
+              { key: "speakers", label: "Speakers" },
+              { key: "resources", label: "Resources" },
+              { key: "registration", label: "Registration" },
             ].map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key as any)}
                 className={`py-4 border-b-2 font-medium text-sm transition-colors ${
                   activeTab === tab.key
-                    ? 'border-red-600 text-red-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                    ? "border-red-600 text-red-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700"
                 }`}
               >
                 {tab.label}
@@ -364,12 +378,14 @@ const WebinarDetailPage = () => {
       {/* Tab Content */}
       <section className="py-16">
         <div className="max-w-6xl mx-auto px-4">
-          {activeTab === 'overview' && (
+          {activeTab === "overview" && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2 space-y-8">
                 {/* Description */}
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-4">About This Webinar</h2>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                    About This Webinar
+                  </h2>
                   <p className="text-gray-700 leading-relaxed whitespace-pre-line">
                     {webinar.description}
                   </p>
@@ -377,7 +393,9 @@ const WebinarDetailPage = () => {
 
                 {/* Learning Objectives */}
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-4">Learning Objectives</h3>
+                  <h3 className="text-xl font-bold text-gray-900 mb-4">
+                    Learning Objectives
+                  </h3>
                   <ul className="space-y-2">
                     {webinar.learningObjectives.map((objective, index) => (
                       <li key={index} className="flex items-start">
@@ -391,7 +409,9 @@ const WebinarDetailPage = () => {
                 {/* Tags */}
                 {webinar.tags.length > 0 && (
                   <div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-4">Topics Covered</h3>
+                    <h3 className="text-xl font-bold text-gray-900 mb-4">
+                      Topics Covered
+                    </h3>
                     <div className="flex flex-wrap gap-2">
                       {webinar.tags.map((tag, index) => (
                         <span
@@ -410,10 +430,15 @@ const WebinarDetailPage = () => {
               <div className="space-y-6">
                 {/* Target Audience */}
                 <div className="bg-gray-50 p-6 rounded-lg">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">Target Audience</h3>
+                  <h3 className="text-lg font-bold text-gray-900 mb-4">
+                    Target Audience
+                  </h3>
                   <ul className="space-y-2">
                     {webinar.targetAudience.map((audience, index) => (
-                      <li key={index} className="flex items-center text-sm text-gray-700">
+                      <li
+                        key={index}
+                        className="flex items-center text-sm text-gray-700"
+                      >
                         <User className="w-4 h-4 mr-2 text-red-600" />
                         {audience}
                       </li>
@@ -424,7 +449,9 @@ const WebinarDetailPage = () => {
                 {/* Technical Requirements */}
                 {webinarIsUpcoming && (
                   <div className="bg-blue-50 p-6 rounded-lg">
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">Technical Requirements</h3>
+                    <h3 className="text-lg font-bold text-gray-900 mb-4">
+                      Technical Requirements
+                    </h3>
                     <ul className="space-y-2 text-sm text-gray-700">
                       <li className="flex items-start">
                         <AlertCircle className="w-4 h-4 mr-2 mt-0.5 text-blue-600 flex-shrink-0" />
@@ -436,7 +463,9 @@ const WebinarDetailPage = () => {
                       </li>
                       <li className="flex items-start">
                         <AlertCircle className="w-4 h-4 mr-2 mt-0.5 text-blue-600 flex-shrink-0" />
-                        <span>Web browser (Chrome, Firefox, Safari, or Edge)</span>
+                        <span>
+                          Web browser (Chrome, Firefox, Safari, or Edge)
+                        </span>
                       </li>
                     </ul>
                   </div>
@@ -445,12 +474,17 @@ const WebinarDetailPage = () => {
             </div>
           )}
 
-          {activeTab === 'speakers' && (
+          {activeTab === "speakers" && (
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Featured Speakers</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                Featured Speakers
+              </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {webinar.speakers.map((speaker, index) => (
-                  <div key={index} className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
+                  <div
+                    key={index}
+                    className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow"
+                  >
                     <div className="p-6">
                       <div className="flex items-start mb-4">
                         {speaker.imageUrl ? (
@@ -465,13 +499,19 @@ const WebinarDetailPage = () => {
                           </div>
                         )}
                         <div>
-                          <h3 className="text-xl font-bold text-gray-900">{speaker.name}</h3>
-                          <p className="text-red-600 font-medium">{speaker.credentials}</p>
+                          <h3 className="text-xl font-bold text-gray-900">
+                            {speaker.name}
+                          </h3>
+                          <p className="text-red-600 font-medium">
+                            {speaker.credentials}
+                          </p>
                           <p className="text-gray-600">{speaker.affiliation}</p>
                         </div>
                       </div>
                       {speaker.bio && (
-                        <p className="text-gray-700 text-sm leading-relaxed mb-4">{speaker.bio}</p>
+                        <p className="text-gray-700 text-sm leading-relaxed mb-4">
+                          {speaker.bio}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -480,11 +520,13 @@ const WebinarDetailPage = () => {
             </div>
           )}
 
-          {activeTab === 'resources' && (
+          {activeTab === "resources" && (
             <div className="space-y-8">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Webinar Resources</h2>
-                
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                  Webinar Resources
+                </h2>
+
                 {webinarIsRecorded ? (
                   <div className="space-y-6">
                     {webinar.recordingLink && (
@@ -493,7 +535,9 @@ const WebinarDetailPage = () => {
                           <Play className="w-5 h-5 mr-2 text-red-600" />
                           Recording
                         </h3>
-                        <p className="text-gray-700 mb-4">Watch the full webinar recording at your convenience.</p>
+                        <p className="text-gray-700 mb-4">
+                          Watch the full webinar recording at your convenience.
+                        </p>
                         <a
                           href={webinar.recordingLink}
                           target="_blank"
@@ -505,14 +549,17 @@ const WebinarDetailPage = () => {
                         </a>
                       </div>
                     )}
-                    
+
                     {webinar.slidesLink && (
                       <div className="bg-gray-50 p-6 rounded-lg">
                         <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
                           <Download className="w-5 h-5 mr-2 text-red-600" />
                           Presentation Slides
                         </h3>
-                        <p className="text-gray-700 mb-4">Download the presentation slides used during the webinar.</p>
+                        <p className="text-gray-700 mb-4">
+                          Download the presentation slides used during the
+                          webinar.
+                        </p>
                         <a
                           href={webinar.slidesLink}
                           target="_blank"
@@ -524,11 +571,14 @@ const WebinarDetailPage = () => {
                         </a>
                       </div>
                     )}
-                    
+
                     <div className="bg-blue-50 p-6 rounded-lg">
-                      <h3 className="text-lg font-bold text-gray-900 mb-4">Additional Resources</h3>
+                      <h3 className="text-lg font-bold text-gray-900 mb-4">
+                        Additional Resources
+                      </h3>
                       <p className="text-gray-700">
-                        For more information on this topic, please visit the ACNA resources section or contact us directly.
+                        For more information on this topic, please visit the
+                        ACNA resources section or contact us directly.
                       </p>
                     </div>
                   </div>
@@ -539,7 +589,8 @@ const WebinarDetailPage = () => {
                       Resources will be available after the webinar
                     </h3>
                     <p className="text-gray-600">
-                      Check back here after the webinar date to access the recording and presentation materials.
+                      Check back here after the webinar date to access the
+                      recording and presentation materials.
                     </p>
                   </div>
                 )}
@@ -547,10 +598,12 @@ const WebinarDetailPage = () => {
             </div>
           )}
 
-          {activeTab === 'registration' && (
+          {activeTab === "registration" && (
             <div className="max-w-2xl mx-auto">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Register for This Webinar</h2>
-              
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                Register for This Webinar
+              </h2>
+
               {!webinar.isUpcoming ? (
                 <div className="text-center py-12">
                   <AlertCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -558,10 +611,11 @@ const WebinarDetailPage = () => {
                     Registration is closed
                   </h3>
                   <p className="text-gray-600 mb-6">
-                    This webinar has already taken place. You can watch the recording on the Resources tab.
+                    This webinar has already taken place. You can watch the
+                    recording on the Resources tab.
                   </p>
-                  <button 
-                    onClick={() => setActiveTab('resources')}
+                  <button
+                    onClick={() => setActiveTab("resources")}
                     className="bg-red-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors"
                   >
                     View Resources
@@ -570,11 +624,15 @@ const WebinarDetailPage = () => {
               ) : (
                 <>
                   <div className="bg-blue-50 p-6 rounded-lg mb-8">
-                    <h3 className="text-lg font-bold text-gray-900 mb-2">Webinar Details</h3>
+                    <h3 className="text-lg font-bold text-gray-900 mb-2">
+                      Webinar Details
+                    </h3>
                     <div className="space-y-2 text-sm text-gray-700">
                       <div className="flex items-center">
                         <Calendar className="w-4 h-4 mr-2 text-blue-600" />
-                        <span>{webinar.date} at {webinar.time}</span>
+                        <span>
+                          {webinar.date} at {webinar.time}
+                        </span>
                       </div>
                       <div className="flex items-center">
                         <Clock className="w-4 h-4 mr-2 text-blue-600" />
@@ -583,9 +641,9 @@ const WebinarDetailPage = () => {
                       {webinar.registrationLink && (
                         <div className="flex items-center">
                           <ExternalLink className="w-4 h-4 mr-2 text-blue-600" />
-                          <a 
-                            href={webinar.registrationLink} 
-                            target="_blank" 
+                          <a
+                            href={webinar.registrationLink}
+                            target="_blank"
                             rel="noopener noreferrer"
                             className="text-blue-600 hover:underline"
                           >
@@ -595,13 +653,15 @@ const WebinarDetailPage = () => {
                       )}
                     </div>
                   </div>
-                  
+
                   {registrationStatus && (
-                    <div className={`mb-6 p-4 rounded-md ${
-                      registrationStatus.type === 'success' 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-red-100 text-red-800'
-                    }`}>
+                    <div
+                      className={`mb-6 p-4 rounded-md ${
+                        registrationStatus.type === "success"
+                          ? "bg-green-100 text-green-800"
+                          : "bg-red-100 text-red-800"
+                      }`}
+                    >
                       {registrationStatus.message}
                     </div>
                   )}
@@ -609,96 +669,152 @@ const WebinarDetailPage = () => {
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="firstName"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                           First Name *
                         </label>
                         <input
                           type="text"
                           id="firstName"
                           value={registrationData.firstName}
-                          onChange={(e) => setRegistrationData(prev => ({...prev, firstName: e.target.value}))}
+                          onChange={(e) =>
+                            setRegistrationData((prev) => ({
+                              ...prev,
+                              firstName: e.target.value,
+                            }))
+                          }
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent"
                           required
                         />
                       </div>
                       <div>
-                        <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="lastName"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                           Last Name *
                         </label>
                         <input
                           type="text"
                           id="lastName"
                           value={registrationData.lastName}
-                          onChange={(e) => setRegistrationData(prev => ({...prev, lastName: e.target.value}))}
+                          onChange={(e) =>
+                            setRegistrationData((prev) => ({
+                              ...prev,
+                              lastName: e.target.value,
+                            }))
+                          }
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent"
                           required
                         />
                       </div>
                     </div>
-                    
+
                     <div>
-                      <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                      <label
+                        htmlFor="email"
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
                         Email Address *
                       </label>
                       <input
                         type="email"
                         id="email"
                         value={registrationData.email}
-                        onChange={(e) => setRegistrationData(prev => ({...prev, email: e.target.value}))}
+                        onChange={(e) =>
+                          setRegistrationData((prev) => ({
+                            ...prev,
+                            email: e.target.value,
+                          }))
+                        }
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent"
                         required
                       />
                     </div>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label htmlFor="organization" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="organization"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                           Organization
                         </label>
                         <input
                           type="text"
                           id="organization"
                           value={registrationData.organization}
-                          onChange={(e) => setRegistrationData(prev => ({...prev, organization: e.target.value}))}
+                          onChange={(e) =>
+                            setRegistrationData((prev) => ({
+                              ...prev,
+                              organization: e.target.value,
+                            }))
+                          }
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent"
                         />
                       </div>
                       <div>
-                        <label htmlFor="profession" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="profession"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                           Profession/Title
                         </label>
                         <input
                           type="text"
                           id="profession"
                           value={registrationData.profession}
-                          onChange={(e) => setRegistrationData(prev => ({...prev, profession: e.target.value}))}
+                          onChange={(e) =>
+                            setRegistrationData((prev) => ({
+                              ...prev,
+                              profession: e.target.value,
+                            }))
+                          }
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent"
                         />
                       </div>
                     </div>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="phone"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                           Phone Number
                         </label>
                         <input
                           type="tel"
                           id="phone"
                           value={registrationData.phone}
-                          onChange={(e) => setRegistrationData(prev => ({...prev, phone: e.target.value}))}
+                          onChange={(e) =>
+                            setRegistrationData((prev) => ({
+                              ...prev,
+                              phone: e.target.value,
+                            }))
+                          }
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent"
                         />
                       </div>
                       <div>
-                        <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="country"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                           Country
                         </label>
                         <input
                           type="text"
                           id="country"
                           value={registrationData.country}
-                          onChange={(e) => setRegistrationData(prev => ({...prev, country: e.target.value}))}
+                          onChange={(e) =>
+                            setRegistrationData((prev) => ({
+                              ...prev,
+                              country: e.target.value,
+                            }))
+                          }
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent"
                         />
                       </div>
@@ -708,14 +824,15 @@ const WebinarDetailPage = () => {
                       onClick={handleRegistration}
                       disabled={isRegistering}
                       className={`w-full bg-red-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors ${
-                        isRegistering ? 'opacity-75 cursor-not-allowed' : ''
+                        isRegistering ? "opacity-75 cursor-not-allowed" : ""
                       }`}
                     >
-                      {isRegistering ? 'Registering...' : 'Register Now'}
+                      {isRegistering ? "Registering..." : "Register Now"}
                     </button>
-                    
+
                     <p className="text-sm text-gray-500 text-center">
-                      By registering, you agree to receive communications about this webinar and related ACNA events.
+                      By registering, you agree to receive communications about
+                      this webinar and related ACNA events.
                     </p>
                   </div>
                 </>

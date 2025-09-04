@@ -158,88 +158,33 @@ const ResearchProjectsTab: React.FC<ResearchProjectsTabProps> = ({
     setExpandedProject(expandedProject === id ? null : id);
   };
 
-  const handleProjectSaved = async (savedProject: ResearchProject) => {
-    try {
-      if (editingProject) {
-        // Update existing project using API
-        const updatedProject = await researchProjectsApi.update(
-          editingProject.id,
-          {
-            title: savedProject.title,
-            description: savedProject.description,
-            type: savedProject.type,
-            status: savedProject.status,
-            principalInvestigator: savedProject.principalInvestigator,
-            investigators: savedProject.investigators,
-            institutions: savedProject.institutions,
-            startDate: savedProject.startDate,
-            endDate: savedProject.endDate,
-            fundingSource: savedProject.fundingSource,
-            fundingAmount: savedProject.fundingAmount,
-            targetPopulation: savedProject.targetPopulation,
-            sampleSize: savedProject.sampleSize,
-            objectives: savedProject.objectives,
-            methodology: savedProject.methodology,
-            ethicsApproval: savedProject.ethicsApproval,
-            registrationNumber: savedProject.registrationNumber,
-            keywords: savedProject.keywords,
-          }
-        );
-
-        setAllProjects((prev) =>
-          prev.map((p) => (p.id === updatedProject.id ? updatedProject : p))
-        );
-        setEditingProject(null);
-
-        setAlertModal({
-          isOpen: true,
-          type: "success",
-          title: "Project Updated",
-          message: `"${updatedProject.title}" has been successfully updated.`,
-        });
-      } else {
-        // Add new project using API
-        const newProject = await researchProjectsApi.create({
-          title: savedProject.title,
-          description: savedProject.description,
-          type: savedProject.type,
-          status: savedProject.status,
-          principalInvestigator: savedProject.principalInvestigator,
-          investigators: savedProject.investigators,
-          institutions: savedProject.institutions,
-          startDate: savedProject.startDate,
-          endDate: savedProject.endDate,
-          fundingSource: savedProject.fundingSource,
-          fundingAmount: savedProject.fundingAmount,
-          targetPopulation: savedProject.targetPopulation,
-          sampleSize: savedProject.sampleSize,
-          objectives: savedProject.objectives,
-          methodology: savedProject.methodology,
-          ethicsApproval: savedProject.ethicsApproval,
-          registrationNumber: savedProject.registrationNumber,
-          keywords: savedProject.keywords,
-        });
-
-        setAllProjects((prev) => [newProject, ...prev]);
-
-        setAlertModal({
-          isOpen: true,
-          type: "success",
-          title: "Project Created",
-          message: `"${newProject.title}" has been successfully created.`,
-        });
-      }
-
-      setShowCreateModal(false);
-    } catch (error: any) {
-      console.error("Error saving project:", error);
+  const handleProjectSaved = (savedProject: ResearchProject) => {
+    if (editingProject) {
+      // Update existing project in the list
+      setAllProjects(prev => 
+        prev.map(p => p.id === savedProject.id ? savedProject : p)
+      );
+      setEditingProject(null);
+      
       setAlertModal({
         isOpen: true,
-        type: "error",
-        title: "Error Saving Project",
-        message: error.message || "Failed to save project. Please try again.",
+        type: "success",
+        title: "Project Updated",
+        message: `"${savedProject.title}" has been successfully updated.`
+      });
+    } else {
+      // Add new project to the beginning of the list
+      setAllProjects(prev => [savedProject, ...prev]);
+      
+      setAlertModal({
+        isOpen: true,
+        type: "success",
+        title: "Project Created",
+        message: `"${savedProject.title}" has been successfully created.`
       });
     }
+    
+    setShowCreateModal(false);
   };
 
   const handleProjectError = (error: string) => {

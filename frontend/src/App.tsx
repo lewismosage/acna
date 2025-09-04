@@ -40,17 +40,17 @@ import EventsTraining from "./pages/homepage/keyfeaturespages/EventsTraining";
 import RecognitionAwards from "./pages/homepage/keyfeaturespages/RecognitionAwards";
 import AnnualConferenceAndMeetings from "./pages/eventsandnews/AnnualConferenceAndMeetings";
 import CallForAbstracts from "./pages/eventsandnews/CallforAbstracts";
-import ResearchPapersPage from "./pages/education/ResearchPapersPublications";
+import ResearchPapersPage from "./pages/education/researchpublications/ResearchPapersPublications";
 import TrainingPrograms from "./pages/education/TrainingPrograms";
 import CultureAndValues from "./pages/careers/CultureValues";
 import Benefits from "./pages/careers/Benefits";
 import FactSheetsAndCaseStudies from "./pages/education/FactSheetsandCaseStudies";
 import PositionStatements from "./pages/education/PositionStatements";
-import PatientCaregiverResources from "./pages/education/PatientandCaregiverResources";
+import PatientCaregiverResources from "./pages/education/patientcare/PatientandCaregiverResources";
 import PolicyBriefs from "./pages/education/PolicyBriefs";
 import JournalWatch from "./pages/education/JournalWatch";
-import EBooklets from "./pages/education/EBooklets";
-import Webinars from "./pages/education/Webinars";
+import EBooklets from "./pages/education/ebooklets/EBooklets";
+import Webinars from "./pages/education/webinars/Webinars";
 import WorkshopsSymposiums from "./pages/education/workshops/WorkshopsandSymposiums";
 import GeneralACNAFAQs from "./pages/about/ACNAFAQs";
 import TermsAndConditions from "./pages/privacy/TermsAndConditions";
@@ -75,11 +75,12 @@ import AwardNominationPage from "./pages/eventsandnews/AwardNominationPage";
 import AbstractSubmissionForm from "./pages/eventsandnews/AbstractSubmissionForm";
 import NewsDetailPage from "./pages/eventsandnews/NewsDetailPage";
 import ConferenceDetailPage from "./pages/eventsandnews/ConferenceDetailPage";
-import WebinarDetailPage from "./pages/education/WebinarDetailPage";
+import WebinarDetailPage from "./pages/education/webinars/WebinarDetailPage";
 import WorkshopDetailPage from "./pages/education/workshops/WorkshopDetailPage";
-import PatientCareDetail from "./pages/education/PatientCareDetailPage";
-import EBookletDetailPage from "./pages/education/EBookletDetailPage";
-import PublicationDetailPage from "./pages/education/PublicationDetailPage";
+import PatientCareDetail from "./pages/education/patientcare/PatientCareDetailPage";
+import EBookletDetailPage from "./pages/education/ebooklets/EBookletDetailPage";
+import PublicationDetailPage from "./pages/education/researchpublications/PublicationDetailPage";
+import ResearchProjectDetailsPage from "./pages/education/researchpublications/ResearchProjectDetailsPage";
 
 // Layout component
 const Layout = ({ children }: { children: React.ReactNode }) => (
@@ -140,7 +141,14 @@ function App() {
               path="/research-papers-and-publications"
               element={<ResearchPapersPage />}
             />
-            <Route path="/publications/:id" element={<PublicationDetailPage />} />
+            <Route
+              path="/publications/:id"
+              element={<PublicationDetailPage />}
+            />
+            <Route
+              path="/research-projects/:id"
+              element={<ResearchProjectDetailsPage />}
+            />
             <Route path="/training-programs" element={<TrainingPrograms />} />
             <Route
               path="/case-studies-and-fact-sheets"

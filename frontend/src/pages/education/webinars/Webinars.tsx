@@ -15,13 +15,15 @@ import {
   AlertCircle,
   ArrowRight,
 } from "lucide-react";
-import ScrollToTop from "../../components/common/ScrollToTop";
-import { Webinar, 
+import ScrollToTop from "../../../components/common/ScrollToTop";
+import {
+  Webinar,
   getAllWebinars,
-  getFeaturedWebinars, 
-  getWebinarCategories, 
-  getWebinarTargetAudiences } from "../../services/webinarsApi";
-import LoadingSpinner from "../../components/common/LoadingSpinner";
+  getFeaturedWebinars,
+  getWebinarCategories,
+  getWebinarTargetAudiences,
+} from "../../../services/webinarsApi";
+import LoadingSpinner from "../../../components/common/LoadingSpinner";
 
 const Webinars = () => {
   const navigate = useNavigate();
@@ -45,19 +47,22 @@ const Webinars = () => {
       try {
         setLoading(true);
         setError(null);
-        const [webinarsData, featuredData, categoriesData, audiencesData] = await Promise.all([
-          getAllWebinars(),
-          getFeaturedWebinars(),
-          getWebinarCategories(),
-          getWebinarTargetAudiences()
-        ]);
+        const [webinarsData, featuredData, categoriesData, audiencesData] =
+          await Promise.all([
+            getAllWebinars(),
+            getFeaturedWebinars(),
+            getWebinarCategories(),
+            getWebinarTargetAudiences(),
+          ]);
 
         setAllWebinars(webinarsData);
         setFeaturedWebinars(featuredData);
         setCategories(["all", ...categoriesData]);
         setAudiences(["all", ...audiencesData]);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load webinars");
+        setError(
+          err instanceof Error ? err.message : "Failed to load webinars"
+        );
       } finally {
         setLoading(false);
       }
@@ -68,25 +73,30 @@ const Webinars = () => {
 
   // FIXED: Correct status detection functions
   const getIsUpcoming = (webinar: Webinar): boolean => {
-    return webinar.status === 'Planning' || webinar.status === 'Registration Open';
+    return (
+      webinar.status === "Planning" || webinar.status === "Registration Open"
+    );
   };
 
   const getIsLive = (webinar: Webinar): boolean => {
-    return webinar.status === 'Live';
+    return webinar.status === "Live";
   };
 
   const getIsRecorded = (webinar: Webinar): boolean => {
-    return webinar.status === 'Completed' || webinar.status === 'Cancelled';
+    return webinar.status === "Completed" || webinar.status === "Cancelled";
   };
 
   const filteredWebinars = allWebinars.filter((webinar) => {
     const isUpcoming = getIsUpcoming(webinar);
     const isLive = getIsLive(webinar);
     const isRecorded = getIsRecorded(webinar);
-    
-    const matchesCategory = selectedCategory === "all" || webinar.category === selectedCategory;
-    const matchesAudience = selectedAudience === "all" || webinar.targetAudience.some(aud => aud === selectedAudience);
-    const matchesStatus = 
+
+    const matchesCategory =
+      selectedCategory === "all" || webinar.category === selectedCategory;
+    const matchesAudience =
+      selectedAudience === "all" ||
+      webinar.targetAudience.some((aud) => aud === selectedAudience);
+    const matchesStatus =
       selectedStatus === "all" ||
       (selectedStatus === "upcoming" && isUpcoming) ||
       (selectedStatus === "recorded" && isRecorded) ||
@@ -94,8 +104,10 @@ const Webinars = () => {
     const matchesSearch =
       webinar.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       webinar.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      webinar.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
-    
+      webinar.tags.some((tag) =>
+        tag.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+
     return matchesCategory && matchesAudience && matchesStatus && matchesSearch;
   });
 
@@ -103,11 +115,11 @@ const Webinars = () => {
   const hasMoreWebinars = visibleWebinars < filteredWebinars.length;
 
   const loadMoreWebinars = () => {
-    setVisibleWebinars(prev => prev + 8);
+    setVisibleWebinars((prev) => prev + 8);
   };
 
-  const displayedFeaturedWebinars = showAllFeatured 
-    ? featuredWebinars 
+  const displayedFeaturedWebinars = showAllFeatured
+    ? featuredWebinars
     : featuredWebinars.slice(0, 3);
 
   const getStatusBadge = (webinar: Webinar) => {
@@ -147,7 +159,7 @@ const Webinars = () => {
 
     if (isUpcoming) {
       return (
-        <button 
+        <button
           onClick={() => navigate(`/webinars/${webinar.id}?tab=registration`)}
           className="w-full bg-red-600 text-white text-center py-2 px-3 rounded-md hover:bg-red-700 transition-colors font-medium text-sm"
         >
@@ -185,10 +197,18 @@ const Webinars = () => {
   };
 
   // Error Card Component (similar to News page)
-  const ErrorCard = ({ message, onRetry }: { message: string; onRetry: () => void }) => (
+  const ErrorCard = ({
+    message,
+    onRetry,
+  }: {
+    message: string;
+    onRetry: () => void;
+  }) => (
     <div className="bg-red-50 border border-red-200 rounded-lg p-8 text-center max-w-md mx-auto">
       <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-      <h3 className="text-lg font-medium text-red-800 mb-2">Error Loading Content</h3>
+      <h3 className="text-lg font-medium text-red-800 mb-2">
+        Error Loading Content
+      </h3>
       <p className="text-red-600 mb-6">{message}</p>
       <button
         onClick={onRetry}
@@ -200,16 +220,16 @@ const Webinars = () => {
   );
 
   // No Content Card Component
-  const NoContentCard = ({ type }: { type: 'featured' | 'all' }) => (
+  const NoContentCard = ({ type }: { type: "featured" | "all" }) => (
     <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center max-w-md mx-auto">
       <Video className="w-16 h-16 text-gray-300 mx-auto mb-4" />
       <h3 className="text-lg font-medium text-gray-900 mb-2">
-        No {type === 'featured' ? 'Featured Webinars' : 'Webinars'} Available
+        No {type === "featured" ? "Featured Webinars" : "Webinars"} Available
       </h3>
       <p className="text-gray-600 mb-4">
-        {type === 'featured' 
-          ? 'Check back later for featured webinars.' 
-          : 'Try adjusting your search or filter criteria.'}
+        {type === "featured"
+          ? "Check back later for featured webinars."
+          : "Try adjusting your search or filter criteria."}
       </p>
     </div>
   );
@@ -224,7 +244,8 @@ const Webinars = () => {
             ACNA Webinars
           </h1>
           <p className="text-xl md:text-2xl text-gray-700 font-light max-w-3xl mx-auto mb-8">
-            Live and recorded educational sessions on pediatric neurology topics relevant to Africa
+            Live and recorded educational sessions on pediatric neurology topics
+            relevant to Africa
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center text-gray-600">
             <div className="flex items-center">
@@ -234,13 +255,15 @@ const Webinars = () => {
             <div className="flex items-center">
               <User className="w-5 h-5 mr-2 text-red-600" />
               <span>
-                {allWebinars.filter(w => getIsUpcoming(w)).length} Upcoming Events
+                {allWebinars.filter((w) => getIsUpcoming(w)).length} Upcoming
+                Events
               </span>
             </div>
             <div className="flex items-center">
               <Play className="w-5 h-5 mr-2 text-red-600" />
               <span>
-                {allWebinars.filter(w => getIsRecorded(w)).length} Recordings Available
+                {allWebinars.filter((w) => getIsRecorded(w)).length} Recordings
+                Available
               </span>
             </div>
           </div>
@@ -259,19 +282,23 @@ const Webinars = () => {
 
           <div className="space-y-6 text-gray-700 leading-relaxed text-lg">
             <p>
-              ACNA's webinar series brings together leading experts in pediatric neurology to share knowledge,
-              discuss challenges, and present solutions tailored to African healthcare contexts. Our sessions
-              cover the full spectrum of child neurological conditions, with a focus on practical approaches
-              for resource-limited settings.
+              ACNA's webinar series brings together leading experts in pediatric
+              neurology to share knowledge, discuss challenges, and present
+              solutions tailored to African healthcare contexts. Our sessions
+              cover the full spectrum of child neurological conditions, with a
+              focus on practical approaches for resource-limited settings.
             </p>
             <p>
-              Participate in live sessions to interact directly with speakers and colleagues across the continent,
-              or access our growing library of recorded webinars at your convenience. Many webinars offer
-              continuing medical education (CME) credits for healthcare professionals.
+              Participate in live sessions to interact directly with speakers
+              and colleagues across the continent, or access our growing library
+              of recorded webinars at your convenience. Many webinars offer
+              continuing medical education (CME) credits for healthcare
+              professionals.
             </p>
             <p>
-              All webinars are free to attend, with recordings and presentation slides available for download
-              afterward (when permitted by speakers).
+              All webinars are free to attend, with recordings and presentation
+              slides available for download afterward (when permitted by
+              speakers).
             </p>
           </div>
         </div>
@@ -329,7 +356,9 @@ const Webinars = () => {
               >
                 {statuses.map((status) => (
                   <option key={status} value={status}>
-                    {status === "all" ? "All Statuses" : status.charAt(0).toUpperCase() + status.slice(1)}
+                    {status === "all"
+                      ? "All Statuses"
+                      : status.charAt(0).toUpperCase() + status.slice(1)}
                   </option>
                 ))}
               </select>
@@ -347,22 +376,25 @@ const Webinars = () => {
               <Bookmark className="w-6 h-6 text-red-600 mr-2" />
               Featured Webinars
             </h2>
-            
+
             {loading ? (
               <LoadingSpinner />
             ) : error ? (
-              <ErrorCard 
-                message={error} 
-                onRetry={() => window.location.reload()} 
+              <ErrorCard
+                message={error}
+                onRetry={() => window.location.reload()}
               />
             ) : featuredWebinars.length > 0 ? (
               <>
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {displayedFeaturedWebinars.map((webinar) => (
-                    <div key={webinar.id} className="bg-white rounded-lg shadow-lg overflow-hidden border-2 border-red-200 hover:border-red-300 transition-all duration-200 hover:shadow-xl">
+                    <div
+                      key={webinar.id}
+                      className="bg-white rounded-lg shadow-lg overflow-hidden border-2 border-red-200 hover:border-red-300 transition-all duration-200 hover:shadow-xl"
+                    >
                       <div className="relative">
-                        <img 
-                          src={webinar.imageUrl} 
+                        <img
+                          src={webinar.imageUrl}
                           alt={webinar.title}
                           className="w-full h-40 object-cover"
                         />
@@ -370,11 +402,15 @@ const Webinars = () => {
                           {getStatusBadge(webinar)}
                         </div>
                       </div>
-                      
+
                       <div className="p-4">
-                        <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 leading-tight">{webinar.title}</h3>
-                        <p className="text-gray-600 text-sm mb-3 line-clamp-2">{webinar.description}</p>
-                        
+                        <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 leading-tight">
+                          {webinar.title}
+                        </h3>
+                        <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+                          {webinar.description}
+                        </p>
+
                         <div className="flex items-center text-xs text-gray-500 gap-3 mb-3">
                           <div className="flex items-center">
                             <Calendar className="w-3 h-3 mr-1" />
@@ -385,29 +421,38 @@ const Webinars = () => {
                             {webinar.duration}
                           </div>
                         </div>
-                        
+
                         <div className="flex flex-wrap gap-1 mb-3">
                           <span className="bg-blue-100 text-blue-800 px-2 py-1 text-xs rounded">
                             {webinar.category}
                           </span>
                           {webinar.tags.slice(0, 1).map((tag, index) => (
-                            <span key={index} className="bg-purple-100 text-purple-800 px-2 py-1 text-xs rounded">
+                            <span
+                              key={index}
+                              className="bg-purple-100 text-purple-800 px-2 py-1 text-xs rounded"
+                            >
                               {tag}
                             </span>
                           ))}
                         </div>
-                        
+
                         <div className="mb-3 text-sm">
-                          <p className="font-medium text-gray-900 text-xs">{webinar.speakers[0]?.name}</p>
-                          <p className="text-gray-600 text-xs">{webinar.speakers[0]?.affiliation}</p>
+                          <p className="font-medium text-gray-900 text-xs">
+                            {webinar.speakers[0]?.name}
+                          </p>
+                          <p className="text-gray-600 text-xs">
+                            {webinar.speakers[0]?.affiliation}
+                          </p>
                           {webinar.speakers.length > 1 && (
-                            <p className="text-xs text-gray-500">+{webinar.speakers.length - 1} more</p>
+                            <p className="text-xs text-gray-500">
+                              +{webinar.speakers.length - 1} more
+                            </p>
                           )}
                         </div>
-                        
+
                         <div className="space-y-2">
                           {getActionButton(webinar)}
-                          <button 
+                          <button
                             onClick={() => handleWebinarClick(webinar.id)}
                             className="w-full text-red-600 hover:text-red-700 font-medium py-2 px-3 border border-red-200 rounded-md hover:bg-red-50 transition-colors text-sm flex items-center justify-center"
                           >
@@ -419,15 +464,21 @@ const Webinars = () => {
                     </div>
                   ))}
                 </div>
-                
+
                 {featuredWebinars.length > 3 && (
                   <div className="text-center mt-6">
                     <button
                       onClick={() => setShowAllFeatured(!showAllFeatured)}
                       className="text-red-600 hover:text-red-700 font-medium flex items-center justify-center mx-auto"
                     >
-                      {showAllFeatured ? 'Show Less' : `View All ${featuredWebinars.length} Featured Webinars`}
-                      <ChevronDown className={`w-4 h-4 ml-1 transition-transform ${showAllFeatured ? 'rotate-180' : ''}`} />
+                      {showAllFeatured
+                        ? "Show Less"
+                        : `View All ${featuredWebinars.length} Featured Webinars`}
+                      <ChevronDown
+                        className={`w-4 h-4 ml-1 transition-transform ${
+                          showAllFeatured ? "rotate-180" : ""
+                        }`}
+                      />
                     </button>
                   </div>
                 )}
@@ -440,29 +491,36 @@ const Webinars = () => {
           {/* All Webinars */}
           <div>
             <h2 className="text-2xl font-bold text-gray-900 mb-6">
-              {selectedStatus === "all" ? "All Webinars" : 
-              selectedStatus === "upcoming" ? "Upcoming Webinars" :
-              selectedStatus === "recorded" ? "Recorded Webinars" : "Live Webinars"}
+              {selectedStatus === "all"
+                ? "All Webinars"
+                : selectedStatus === "upcoming"
+                ? "Upcoming Webinars"
+                : selectedStatus === "recorded"
+                ? "Recorded Webinars"
+                : "Live Webinars"}
               <span className="text-gray-500 text-lg font-normal ml-2">
                 ({filteredWebinars.length})
               </span>
             </h2>
-            
+
             {loading ? (
               <LoadingSpinner />
             ) : error ? (
-              <ErrorCard 
-                message={error} 
-                onRetry={() => window.location.reload()} 
+              <ErrorCard
+                message={error}
+                onRetry={() => window.location.reload()}
               />
             ) : displayedWebinars.length > 0 ? (
               <div className="space-y-6">
                 <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
                   {displayedWebinars.map((webinar) => (
-                    <div key={webinar.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200 overflow-hidden border border-gray-200 hover:border-red-200">
+                    <div
+                      key={webinar.id}
+                      className="bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200 overflow-hidden border border-gray-200 hover:border-red-200"
+                    >
                       <div className="relative">
-                        <img 
-                          src={webinar.imageUrl} 
+                        <img
+                          src={webinar.imageUrl}
                           alt={webinar.title}
                           className="w-full h-32 object-cover"
                         />
@@ -470,33 +528,39 @@ const Webinars = () => {
                           {getStatusBadge(webinar)}
                         </div>
                       </div>
-                      
+
                       <div className="p-3">
-                        <h3 className="text-sm font-bold text-gray-900 mb-2 line-clamp-2 leading-tight">{webinar.title}</h3>
-                        
+                        <h3 className="text-sm font-bold text-gray-900 mb-2 line-clamp-2 leading-tight">
+                          {webinar.title}
+                        </h3>
+
                         <div className="flex flex-wrap gap-1 mb-2">
                           <span className="bg-blue-100 text-blue-800 px-1.5 py-0.5 text-xs rounded">
                             {webinar.category}
                           </span>
                         </div>
-                        
+
                         <div className="flex items-center text-xs text-gray-500 gap-2 mb-2">
                           <div className="flex items-center">
                             <Calendar className="w-3 h-3 mr-1" />
                             <span className="truncate">{webinar.date}</span>
                           </div>
                         </div>
-                        
+
                         <div className="text-xs mb-2">
-                          <p className="font-medium text-gray-900 truncate">{webinar.speakers[0]?.name}</p>
+                          <p className="font-medium text-gray-900 truncate">
+                            {webinar.speakers[0]?.name}
+                          </p>
                           {webinar.speakers.length > 1 && (
-                            <p className="text-gray-500">+{webinar.speakers.length - 1} more</p>
+                            <p className="text-gray-500">
+                              +{webinar.speakers.length - 1} more
+                            </p>
                           )}
                         </div>
-                        
+
                         <div className="space-y-1">
                           {getActionButton(webinar)}
-                          <button 
+                          <button
                             onClick={() => handleWebinarClick(webinar.id)}
                             className="w-full text-red-600 hover:text-red-700 font-medium py-1.5 px-3 border border-red-200 rounded-md hover:bg-red-50 transition-colors text-xs flex items-center justify-center"
                           >
@@ -508,7 +572,7 @@ const Webinars = () => {
                     </div>
                   ))}
                 </div>
-                
+
                 {/* Load More Button */}
                 {hasMoreWebinars && (
                   <div className="text-center mt-8">
@@ -519,7 +583,8 @@ const Webinars = () => {
                       Load More Webinars
                     </button>
                     <p className="text-sm text-gray-500 mt-2">
-                      Showing {displayedWebinars.length} of {filteredWebinars.length} webinars
+                      Showing {displayedWebinars.length} of{" "}
+                      {filteredWebinars.length} webinars
                     </p>
                   </div>
                 )}
@@ -538,7 +603,8 @@ const Webinars = () => {
             Want to Present a Webinar?
           </h2>
           <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
-            Share your expertise with pediatric neurology professionals across Africa.
+            Share your expertise with pediatric neurology professionals across
+            Africa.
           </p>
           <button className="bg-red-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-red-700 transition">
             Propose a Webinar Topic
