@@ -19,7 +19,8 @@ import { publicationsApi, CreatePublicationInput, Publication,
 interface CreatePublicationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (publication: Publication) => void;
+  onSuccess: (publication: Publication) => void;  // Changed from onSave to onSuccess
+  onError: (error: string) => void;               // Added onError callback
   initialData?: Publication;
 }
 
@@ -34,7 +35,8 @@ const categoryOptions = [
 const CreatePublicationModal: React.FC<CreatePublicationModalProps> = ({ 
   isOpen, 
   onClose, 
-  onSave, 
+  onSuccess,  // Updated prop name
+  onError,    // Updated prop name
   initialData 
 }) => {
   // Form state
@@ -324,21 +326,24 @@ const CreatePublicationModal: React.FC<CreatePublicationModalProps> = ({
         savedPublication = await publicationsApi.update(initialData.id, publicationData);
         console.log('Publication updated:', savedPublication);
       } else {
-        // Create new publication - this will now handle both data and image
+        // Create new publication
         savedPublication = await publicationsApi.create(publicationData);
         console.log('Publication created:', savedPublication);
       }
       
-      // Call onSave with the complete publication data from backend
-      onSave(savedPublication);
-      
-      // Close modal and reset form
-      onClose();
+      // Call the success callback with the saved publication
+      onSuccess(savedPublication);
       
     } catch (error: any) {
       console.error('Error saving publication:', error);
+      const errorMessage = error.message || 'Failed to save publication. Please try again.';
+      
+      // Call the error callback
+      onError(errorMessage);
+      
+      // Also set local form error for immediate feedback
       setErrors({
-        form: error.message || 'Failed to save publication. Please try again.'
+        form: errorMessage
       });
     } finally {
       setIsSubmitting(false);
@@ -686,7 +691,7 @@ const CreatePublicationModal: React.FC<CreatePublicationModalProps> = ({
                       name="externalUrl"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                       value={formData.externalUrl || ''}
-                      onChange={(e) => handleChange(e)}
+                      onChange={handleChange}
                       placeholder="https://journal.com/article"
                     />
                   </div>
@@ -834,6 +839,24 @@ const CreatePublicationModal: React.FC<CreatePublicationModalProps> = ({
                     </div>
                   </div>
                 </div>
+              </div>
+
+              {/* Featured Flag */}
+              <div className="bg-yellow-50 p-4 rounded-lg">
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    name="isFeatured"
+                    id="isFeatured"
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    checked={formData.isFeatured}
+                    onChange={handleChange}
+                  />
+                  <label htmlFor="isFeatured" className="ml-2 block text-sm text-gray-900">
+                    Mark as featured publication
+                  </label>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Featured publications will be highlighted and appear first in listings.</p>
               </div>
 
               {/* Action Buttons */}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Edit3, Trash2, Download, FileText, Clock, User, Award, ChevronDown, ChevronUp } from 'lucide-react';
 import CreatePublicationModal from './CreatePublicationModal';
-import { Publication, CreatePublicationInput, PublicationStatus, Author } from './types';
+import { Publication, PublicationStatus, Author } from './types';
 import { publicationsApi } from '../../../../services/publicationsAPI';
 import LoadingSpinner from '../../../../components/common/LoadingSpinner';
 import AlertModal from '../../../../components/common/AlertModal';
@@ -140,47 +140,44 @@ const PublicationsTab: React.FC<PublicationsTabProps> = ({
     setExpandedPublication(expandedPublication === id ? null : id);
   };
 
-  const handleSavePublication = async (publicationData: CreatePublicationInput) => {
-    try {
-      let savedPublication: Publication;
+  // This function only handles the UI updates after a publication is successfully saved
+  const handlePublicationSaved = (savedPublication: Publication) => {
+    if (editingPublication) {
+      // Update existing publication in the list
+      setAllPublications(prev => 
+        prev.map(p => p.id === savedPublication.id ? savedPublication : p)
+      );
+      setEditingPublication(null);
       
-      if (editingPublication) {
-        // Update existing publication
-        savedPublication = await publicationsApi.update(editingPublication.id, publicationData);
-        setAllPublications(prev => 
-          prev.map(p => p.id === savedPublication.id ? savedPublication : p)
-        );
-        setEditingPublication(null);
-        
-        setAlertModal({
-          isOpen: true,
-          type: 'success',
-          title: 'Publication Updated',
-          message: `"${savedPublication.title}" has been successfully updated.`
-        });
-      } else {
-        // Add new publication
-        savedPublication = await publicationsApi.create(publicationData);
-        setAllPublications(prev => [savedPublication, ...prev]);
-        
-        setAlertModal({
-          isOpen: true,
-          type: 'success',
-          title: 'Publication Created',
-          message: `"${savedPublication.title}" has been successfully created.`
-        });
-      }
-      
-      setShowCreateModal(false);
-    } catch (error: any) {
-      console.error('Error saving publication:', error);
       setAlertModal({
         isOpen: true,
-        type: 'error',
-        title: 'Error Saving Publication',
-        message: error.message || 'Failed to save publication. Please check your data and try again.'
+        type: 'success',
+        title: 'Publication Updated',
+        message: `"${savedPublication.title}" has been successfully updated.`
+      });
+    } else {
+      // Add new publication to the beginning of the list
+      setAllPublications(prev => [savedPublication, ...prev]);
+      
+      setAlertModal({
+        isOpen: true,
+        type: 'success',
+        title: 'Publication Created',
+        message: `"${savedPublication.title}" has been successfully created.`
       });
     }
+    
+    setShowCreateModal(false);
+  };
+
+  // Handle errors from the modal
+  const handlePublicationError = (error: string) => {
+    setAlertModal({
+      isOpen: true,
+      type: 'error',
+      title: 'Error Saving Publication',
+      message: error
+    });
   };
 
   const handleEditPublication = (publication: Publication) => {
@@ -463,7 +460,8 @@ const PublicationsTab: React.FC<PublicationsTabProps> = ({
             setShowCreateModal(false);
             setEditingPublication(null);
           }}
-          onSave={handleSavePublication}
+          onSuccess={handlePublicationSaved}
+          onError={handlePublicationError}
           initialData={editingPublication || undefined}
         />
       )}
