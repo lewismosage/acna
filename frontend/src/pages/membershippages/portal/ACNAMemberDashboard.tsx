@@ -396,9 +396,6 @@ const ACNAMemberDashboard = () => {
         isOpen={showResearchPaperModal}
         onClose={() => setShowResearchPaperModal(false)}
         onSubmit={(data) => {
-          // Handle the form submission here
-          console.log('Research paper submitted:', data);
-          // You might want to make an API call here
         }}
       />
 

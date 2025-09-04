@@ -81,6 +81,7 @@ import PatientCareDetail from "./pages/education/patientcare/PatientCareDetailPa
 import EBookletDetailPage from "./pages/education/ebooklets/EBookletDetailPage";
 import PublicationDetailPage from "./pages/education/researchpublications/PublicationDetailPage";
 import ResearchProjectDetailsPage from "./pages/education/researchpublications/ResearchProjectDetailsPage";
+import ResearchPaperDetailPage from "./pages/education/researchpublications/ResearchPaperDetailPage";
 
 // Layout component
 const Layout = ({ children }: { children: React.ReactNode }) => (
@@ -148,6 +149,10 @@ function App() {
             <Route
               path="/research-projects/:id"
               element={<ResearchProjectDetailsPage />}
+            />
+            <Route
+              path="/research-papers/:id"
+              element={<ResearchPaperDetailPage />}
             />
             <Route path="/training-programs" element={<TrainingPrograms />} />
             <Route

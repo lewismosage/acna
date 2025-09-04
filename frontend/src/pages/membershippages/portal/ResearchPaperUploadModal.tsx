@@ -251,7 +251,9 @@ const ResearchPaperUploadModal: React.FC<ResearchPaperUploadModalProps> = ({
   const validateStep = (step: number): boolean => {
     switch (step) {
       case 1:
-        return formData.title.trim() !== '' && formData.abstract.trim() !== '' && formData.keywords.length > 0;
+        return formData.title.trim() !== '' && 
+               formData.abstract.trim() !== '' && 
+               formData.keywords.length >= 3; 
       case 2:
         return formData.authors.every(author => 
           author.name.trim() !== '' && 
@@ -286,7 +288,7 @@ const ResearchPaperUploadModal: React.FC<ResearchPaperUploadModalProps> = ({
           <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Submission Successful!</h2>
           <p className="text-gray-600 mb-4">
-            Your research paper has been submitted for peer review. You will receive a confirmation email shortly.
+            Your research paper has been submitted for peer review.
           </p>
           <p className="text-sm text-gray-500">
             Review process typically takes 2-4 weeks. We'll keep you updated on the progress.
@@ -411,6 +413,12 @@ const ResearchPaperUploadModal: React.FC<ResearchPaperUploadModalProps> = ({
                     </span>
                   ))}
                 </div>
+
+                {formData.keywords.length < 3 && (
+                  <p className="text-red-500 text-sm mt-2">
+                    Please add at least 3 keywords to proceed
+                  </p>
+                )}
               </div>
             </div>
           )}

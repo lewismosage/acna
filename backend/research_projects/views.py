@@ -54,15 +54,15 @@ class ResearchProjectViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = super().get_queryset()
         
-        # Filter by status
-        status_filter = self.request.query_params.get('status', None)
-        if status_filter:
-            queryset = queryset.filter(status=status_filter)
-        
         # Filter by active projects
         active_only = self.request.query_params.get('active_only', None)
         if active_only and active_only.lower() in ['true', '1', 'yes']:
             queryset = queryset.filter(status__in=['Active', 'Recruiting', 'Data Collection'])
+        
+        # Filter by status
+        status_filter = self.request.query_params.get('status', None)
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
         
         # Filter by ethics approval
         ethics_filter = self.request.query_params.get('ethics_approval', None)
@@ -694,38 +694,7 @@ class ResearchPaperViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-    @action(detail=True, methods=['patch'])
-    def update_status(self, request, pk=None):
-        """Update research project status"""
-        try:
-            project = self.get_object()
-            new_status = request.data.get('status')
-            
-            if not new_status:
-                return Response(
-                    {'error': 'Status is required'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
-            valid_statuses = dict(ResearchProject.STATUS_CHOICES).keys()
-            if new_status not in valid_statuses:
-                return Response(
-                    {'error': 'Invalid status value'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
-            project.status = new_status
-            project.save(update_fields=['status', 'updated_at'])
-            
-            serializer = self.get_serializer(project)
-            return Response(serializer.data)
-            
-        except Exception as e:
-            logger.error(f"Error updating status: {str(e)}")
-            return Response(
-                {'error': f'Failed to update status: {str(e)}'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    
 
     @action(detail=True, methods=['post'])
     def increment_view(self, request, pk=None):

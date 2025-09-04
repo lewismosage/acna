@@ -483,10 +483,10 @@ export const researchProjectsApi = {
   // ========== RESEARCH PROJECT-SPECIFIC OPERATIONS ==========
 
   getActive: async (): Promise<ResearchProject[]> => {
-    const response = await fetch(`${API_BASE_URL}/research-projects/active/`, {
+    const response = await fetch(`${API_BASE_URL}/research-projects/?active_only=true`, {
       headers: getAuthHeaders(),
     });
-
+  
     const data = await handleResponse(response);
     return Array.isArray(data) ? data.map(normalizeResearchProject) : [];
   },
