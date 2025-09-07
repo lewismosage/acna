@@ -979,7 +979,7 @@ const EducationalResourcesTab: React.FC = () => {
         <div className="px-6 py-4 border-b border-gray-200">
           <nav className="flex space-x-8 overflow-x-auto">
             {[
-              { id: 'resources', label: 'Resources', count: factSheets.length },
+              { id: 'resources', label: 'Fact Sheet Resources', count: factSheets.length },
               { id: 'submissions', label: 'Case Study Submissions', count: caseStudySubmissions.length },
               { id: 'analytics', label: 'Analytics', count: 0 }
             ].map((tab) => (
