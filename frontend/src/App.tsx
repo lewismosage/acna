@@ -44,7 +44,7 @@ import ResearchPapersPage from "./pages/education/researchpublications/ResearchP
 import TrainingPrograms from "./pages/education/TrainingPrograms";
 import CultureAndValues from "./pages/careers/CultureValues";
 import Benefits from "./pages/careers/Benefits";
-import FactSheetsAndCaseStudies from "./pages/education/FactSheetsandCaseStudies";
+import FactSheetsAndCaseStudies from "./pages/education/educationalresources/FactSheetsandCaseStudies";
 import PositionStatements from "./pages/education/PositionStatements";
 import PatientCaregiverResources from "./pages/education/patientcare/PatientandCaregiverResources";
 import PolicyBriefs from "./pages/education/PolicyBriefs";
