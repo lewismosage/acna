@@ -144,41 +144,41 @@ const normalizeResource = (backendResource: any): EducationalResource => {
     id: backendResource.id || 0,
     title: backendResource.title || '',
     description: backendResource.description || '',
-    fullDescription: backendResource.full_description,
+    fullDescription: backendResource.full_description || backendResource.fullDescription,
     category: backendResource.category || '',
-    type: backendResource.type || 'Fact Sheet',
+    type: backendResource.resource_type || backendResource.type || 'Fact Sheet',
     condition: backendResource.condition,
     status: backendResource.status || 'Draft',
-    isFeatured: backendResource.is_featured || false,
-    isFree: backendResource.is_free !== undefined ? backendResource.is_free : true,
-    imageUrl: backendResource.image_url || backendResource.image_url_display,
-    fileUrl: backendResource.file_url || backendResource.file_url_display,
-    videoUrl: backendResource.video_url,
-    externalUrl: backendResource.external_url,
+    isFeatured: backendResource.is_featured || backendResource.isFeatured || false,
+    isFree: backendResource.is_free !== undefined ? backendResource.is_free : (backendResource.isFree !== undefined ? backendResource.isFree : true),
+    imageUrl: backendResource.image_url_display || backendResource.image_url || backendResource.imageUrl,
+    fileUrl: backendResource.file_url_display || backendResource.file_url || backendResource.fileUrl,
+    videoUrl: backendResource.video_url || backendResource.videoUrl,
+    externalUrl: backendResource.external_url || backendResource.externalUrl,
     languages: safeArray(backendResource.languages),
     tags: safeArray(backendResource.tags),
-    targetAudience: safeArray(backendResource.target_audience),
-    relatedConditions: safeArray(backendResource.related_conditions),
-    learningObjectives: safeArray(backendResource.learning_objectives),
+    targetAudience: safeArray(backendResource.target_audience || backendResource.targetAudience),
+    relatedConditions: safeArray(backendResource.related_conditions || backendResource.relatedConditions),
+    learningObjectives: safeArray(backendResource.learning_objectives || backendResource.learningObjectives),
     prerequisites: safeArray(backendResource.prerequisites),
     references: safeArray(backendResource.references),
-    ageGroup: backendResource.age_group,
+    ageGroup: backendResource.age_group || backendResource.ageGroup,
     difficulty: backendResource.difficulty || 'Beginner',
     duration: backendResource.duration,
-    fileSize: backendResource.file_size,
-    fileFormat: backendResource.file_format,
+    fileSize: backendResource.file_size || backendResource.fileSize,
+    fileFormat: backendResource.file_format || backendResource.fileFormat,
     author: backendResource.author || '',
-    reviewedBy: backendResource.reviewed_by,
+    reviewedBy: backendResource.reviewed_by || backendResource.reviewedBy,
     institution: backendResource.institution,
     location: backendResource.location,
-    impactStatement: backendResource.impact_statement,
+    impactStatement: backendResource.impact_statement || backendResource.impactStatement,
     accreditation: backendResource.accreditation,
-    downloadCount: backendResource.download_count || 0,
-    viewCount: backendResource.view_count || 0,
+    downloadCount: backendResource.download_count || backendResource.downloadCount || 0,
+    viewCount: backendResource.view_count || backendResource.viewCount || 0,
     rating: backendResource.rating,
-    publicationDate: backendResource.publication_date || '',
-    createdAt: backendResource.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
-    updatedAt: backendResource.updated_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+    publicationDate: backendResource.publication_date || backendResource.publicationDate || '',
+    createdAt: backendResource.created_at?.split('T')[0] || backendResource.createdAt || new Date().toISOString().split('T')[0],
+    updatedAt: backendResource.updated_at?.split('T')[0] || backendResource.updatedAt || new Date().toISOString().split('T')[0],
   };
 };
 
@@ -248,15 +248,10 @@ export const educationalResourcesApi = {
     return normalizeResource(data);
   },
 
-  create: async (data: Partial<EducationalResource>): Promise<EducationalResource> => {
+  create: async (data: any): Promise<EducationalResource> => {
+    // Create FormData for file uploads
     const formData = new FormData();
     
-    // Handle array fields by stringifying them
-    const arrayFields = [
-      'languages', 'tags', 'targetAudience', 'relatedConditions', 
-      'learningObjectives', 'prerequisites', 'references'
-    ];
-
     // Field mapping from frontend camelCase to backend snake_case
     const fieldMapping: Record<string, string> = {
       'type': 'resource_type',
@@ -279,9 +274,14 @@ export const educationalResourcesApi = {
       'viewCount': 'view_count',
       'publicationDate': 'publication_date',
     };
-    
+
+    // Handle array fields by stringifying them
+    const arrayFields = [
+      'languages', 'tags', 'targetAudience', 'relatedConditions', 
+      'learningObjectives', 'prerequisites', 'references'
+    ];
+
     Object.entries(data).forEach(([key, value]) => {
-      // Map frontend field names to backend field names
       const backendKey = fieldMapping[key] || key;
       
       if (arrayFields.includes(key) && Array.isArray(value)) {
@@ -294,7 +294,7 @@ export const educationalResourcesApi = {
         formData.append(backendKey, value.toString());
       }
     });
-  
+
     const response = await fetch(`${API_BASE_URL}/resources/`, {
       method: 'POST',
       headers: getAuthHeadersWithoutContentType(),
@@ -304,16 +304,11 @@ export const educationalResourcesApi = {
     const result = await handleResponse(response);
     return normalizeResource(result);
   },
-  
-  update: async (id: number, data: Partial<EducationalResource>): Promise<EducationalResource> => {
+
+  update: async (id: number, data: any): Promise<EducationalResource> => {
+    // Create FormData for file uploads
     const formData = new FormData();
     
-    // Handle array fields by stringifying them
-    const arrayFields = [
-      'languages', 'tags', 'targetAudience', 'relatedConditions', 
-      'learningObjectives', 'prerequisites', 'references'
-    ];
-
     // Field mapping from frontend camelCase to backend snake_case
     const fieldMapping: Record<string, string> = {
       'type': 'resource_type',
@@ -336,9 +331,14 @@ export const educationalResourcesApi = {
       'viewCount': 'view_count',
       'publicationDate': 'publication_date',
     };
-    
+
+    // Handle array fields by stringifying them
+    const arrayFields = [
+      'languages', 'tags', 'targetAudience', 'relatedConditions', 
+      'learningObjectives', 'prerequisites', 'references'
+    ];
+
     Object.entries(data).forEach(([key, value]) => {
-      // Map frontend field names to backend field names
       const backendKey = fieldMapping[key] || key;
       
       if (arrayFields.includes(key) && Array.isArray(value)) {
@@ -351,7 +351,7 @@ export const educationalResourcesApi = {
         formData.append(backendKey, value.toString());
       }
     });
-  
+
     const response = await fetch(`${API_BASE_URL}/resources/${id}/`, {
       method: 'PATCH',
       headers: getAuthHeadersWithoutContentType(),

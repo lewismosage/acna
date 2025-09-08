@@ -95,10 +95,12 @@ class EducationalResourceViewSet(viewsets.ModelViewSet):
     @transaction.atomic
     def create(self, request, *args, **kwargs):
         try:
-            logger.info(f"Creating resource with data: {request.data}")
+            logger.info(f"Creating resource with files: image={bool(request.FILES.get('image'))}, file={bool(request.FILES.get('file'))}")
+            logger.info(f"Form data keys: {list(request.data.keys())}")
             
-            # Extract and process form data
-            processed_data = self.process_form_data(request.data)
+            # Process form data
+            processed_data = self.process_form_data(request.data, request.FILES)
+            logger.info(f"Processed data keys: {list(processed_data.keys())}")
             
             # Create resource
             serializer = self.get_serializer(data=processed_data)
@@ -109,8 +111,8 @@ class EducationalResourceViewSet(viewsets.ModelViewSet):
             resource = serializer.save()
             logger.info(f"Resource created with ID: {resource.id}")
 
-            # Return created resource
-            response_serializer = self.get_serializer(resource)
+            # Return created resource with context for URLs
+            response_serializer = self.get_serializer(resource, context={'request': request})
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
         except Exception as e:
@@ -126,10 +128,12 @@ class EducationalResourceViewSet(viewsets.ModelViewSet):
         try:
             partial = kwargs.pop('partial', False)
             instance = self.get_object()
-            logger.info(f"Updating resource {instance.id} with data: {request.data}")
+            logger.info(f"Updating resource {instance.id} with files: image={bool(request.FILES.get('image'))}, file={bool(request.FILES.get('file'))}")
+            logger.info(f"Form data keys: {list(request.data.keys())}")
             
             # Process form data
-            processed_data = self.process_form_data(request.data)
+            processed_data = self.process_form_data(request.data, request.FILES)
+            logger.info(f"Processed update data keys: {list(processed_data.keys())}")
             
             # Update resource
             serializer = self.get_serializer(instance, data=processed_data, partial=partial)
@@ -138,9 +142,10 @@ class EducationalResourceViewSet(viewsets.ModelViewSet):
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             
             resource = serializer.save()
+            logger.info(f"Resource {resource.id} updated successfully")
             
-            # Return updated resource
-            response_serializer = self.get_serializer(resource)
+            # Return updated resource with context for URLs
+            response_serializer = self.get_serializer(resource, context={'request': request})
             return Response(response_serializer.data)
 
         except Exception as e:
@@ -151,37 +156,84 @@ class EducationalResourceViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-    def process_form_data(self, data):
-        """Process form data, handling files and JSON fields"""
+    def process_form_data(self, form_data, files):
+        """Process form data, handling files and JSON fields properly"""
         processed_data = {}
         
-        for key, value in data.items():
-            if key in ['image', 'file']:
-                # Handle file uploads directly
-                processed_data[key] = value
-            elif key in ['languages', 'tags', 'targetAudience', 'relatedConditions', 
-                        'learningObjectives', 'prerequisites', 'references']:
-                # Handle JSON array fields
-                try:
-                    if isinstance(value, str):
-                        processed_data[self.snake_case(key)] = json.loads(value)
-                    else:
-                        processed_data[self.snake_case(key)] = value
-                except json.JSONDecodeError:
-                    processed_data[self.snake_case(key)] = []
-            elif key in ['isFeatured', 'isFree']:
-                # Handle boolean fields
-                processed_data[self.snake_case(key)] = str(value).lower() in ['true', '1', 'yes'] if isinstance(value, str) else bool(value)
-            elif value is not None and value != '':
-                # Handle regular fields
-                processed_data[self.snake_case(key)] = value
-                
-        return processed_data
+        # Field mapping from frontend camelCase to backend snake_case
+        field_mapping = {
+            'fullDescription': 'full_description',
+            'isFeatured': 'is_featured',
+            'isFree': 'is_free',
+            'imageUrl': 'image_url',
+            'fileUrl': 'file_url',
+            'videoUrl': 'video_url',
+            'externalUrl': 'external_url',
+            'targetAudience': 'target_audience',
+            'relatedConditions': 'related_conditions',
+            'learningObjectives': 'learning_objectives',
+            'ageGroup': 'age_group',
+            'fileSize': 'file_size',
+            'fileFormat': 'file_format',
+            'reviewedBy': 'reviewed_by',
+            'impactStatement': 'impact_statement',
+            'downloadCount': 'download_count',
+            'viewCount': 'view_count',
+            'publicationDate': 'publication_date',
+            'type': 'resource_type',  # Important: map 'type' to 'resource_type'
+        }
 
-    def snake_case(self, camel_str):
-        """Convert camelCase to snake_case"""
-        s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', camel_str)
-        return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+        # JSON array fields
+        json_array_fields = [
+            'languages', 'tags', 'target_audience', 'related_conditions',
+            'learning_objectives', 'prerequisites', 'references'
+        ]
+
+        # Process form data
+        for key, value in form_data.items():
+            # Skip file-related keys that should be handled separately
+            if key in ['imageFile', 'resourceFile']:
+                continue
+                
+            # Map frontend field names to backend field names
+            backend_key = field_mapping.get(key, key)
+            
+            # Handle JSON array fields
+            if backend_key in json_array_fields:
+                try:
+                    if isinstance(value, str) and value.strip():
+                        processed_data[backend_key] = json.loads(value)
+                    elif isinstance(value, list):
+                        processed_data[backend_key] = value
+                    else:
+                        processed_data[backend_key] = []
+                except json.JSONDecodeError:
+                    logger.warning(f"Failed to parse JSON for {backend_key}: {value}")
+                    processed_data[backend_key] = []
+            # Handle boolean fields
+            elif backend_key in ['is_featured', 'is_free']:
+                if isinstance(value, str):
+                    processed_data[backend_key] = value.lower() in ['true', '1', 'yes']
+                else:
+                    processed_data[backend_key] = bool(value)
+            # Handle regular fields
+            elif value is not None and value != '':
+                processed_data[backend_key] = value
+
+        # Handle file uploads from request.FILES
+        if files:
+            # Handle image upload
+            if 'image' in files:
+                processed_data['image'] = files['image']
+                logger.info(f"Image file added: {files['image'].name}")
+            
+            # Handle resource file upload
+            if 'file' in files:
+                processed_data['file'] = files['file']
+                logger.info(f"Resource file added: {files['file'].name}")
+
+        logger.info(f"Final processed data keys: {list(processed_data.keys())}")
+        return processed_data
 
     def track_view(self, request, resource):
         """Track a view for analytics"""
@@ -236,7 +288,7 @@ class EducationalResourceViewSet(viewsets.ModelViewSet):
             resource.status = new_status
             resource.save(update_fields=['status', 'updated_at'])
             
-            serializer = self.get_serializer(resource)
+            serializer = self.get_serializer(resource, context={'request': request})
             return Response(serializer.data)
             
         except Exception as e:
@@ -254,7 +306,7 @@ class EducationalResourceViewSet(viewsets.ModelViewSet):
             resource.is_featured = not resource.is_featured
             resource.save(update_fields=['is_featured', 'updated_at'])
             
-            serializer = self.get_serializer(resource)
+            serializer = self.get_serializer(resource, context={'request': request})
             return Response(serializer.data)
             
         except Exception as e:
@@ -506,7 +558,7 @@ class EducationalResourceViewSet(viewsets.ModelViewSet):
         if file.size > 50 * 1024 * 1024:
             return Response(
                 {'error': 'File size too large. Maximum size is 50MB'}, 
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
         
         try:

@@ -1,15 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, X, Upload, AlertCircle } from 'lucide-react';
+import { Plus, X, Upload, AlertCircle, Edit3 } from 'lucide-react';
 import { educationalResourcesApi, EducationalResource } from '../../../../services/educationalResourcesApi';
 
 interface CreateResourceModalProps {
   isOpen: boolean;
   onClose: () => void;
   onResourceCreated: (resource: EducationalResource) => void;
+  editingResource?: EducationalResource | null;
 }
 
+// Define status type to match the API
+type ResourceStatus = 'Published' | 'Draft' | 'Under Review' | 'Archived';
+type DifficultyLevel = 'Beginner' | 'Intermediate' | 'Advanced';
+
 // Extended interface for form data that includes file fields
-interface CreateResourceFormData extends Partial<EducationalResource> {
+interface CreateResourceFormData extends Omit<Partial<EducationalResource>, 'status' | 'difficulty'> {
+  status?: ResourceStatus;
+  difficulty?: DifficultyLevel;
   imageFile?: File;
   resourceFile?: File;
 }
@@ -17,15 +24,47 @@ interface CreateResourceFormData extends Partial<EducationalResource> {
 const CreateResourceModal: React.FC<CreateResourceModalProps> = ({ 
   isOpen, 
   onClose, 
-  onResourceCreated 
+  onResourceCreated,
+  editingResource = null
 }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const [uploadingFile, setUploadingFile] = useState(false);
   
-  // Form state
-  const [formData, setFormData] = useState({
+  const isEditing = Boolean(editingResource);
+  
+  // Form state with proper status typing
+  const [formData, setFormData] = useState<{
+    title: string;
+    description: string;
+    fullDescription: string;
+    category: string;
+    type: string;
+    condition: string;
+    status: ResourceStatus;
+    isFeatured: boolean;
+    isFree: boolean;
+    imageUrl: string;
+    fileUrl: string;
+    videoUrl: string;
+    externalUrl: string;
+    languages: string[];
+    tags: string[];
+    targetAudience: string[];
+    relatedConditions: string[];
+    learningObjectives: string[];
+    prerequisites: string[];
+    references: string[];
+    ageGroup: string;
+    difficulty: DifficultyLevel;
+    duration: string;
+    author: string;
+    reviewedBy: string;
+    institution: string;
+    location: string;
+    impactStatement: string;
+    accreditation: string;
+    publicationDate: string;
+  }>({
     title: '',
     description: '',
     fullDescription: '',
@@ -39,13 +78,13 @@ const CreateResourceModal: React.FC<CreateResourceModalProps> = ({
     fileUrl: '',
     videoUrl: '',
     externalUrl: '',
-    languages: [] as string[],
-    tags: [] as string[],
-    targetAudience: [] as string[],
-    relatedConditions: [] as string[],
-    learningObjectives: [] as string[],
-    prerequisites: [] as string[],
-    references: [] as string[],
+    languages: [],
+    tags: [],
+    targetAudience: [],
+    relatedConditions: [],
+    learningObjectives: [],
+    prerequisites: [],
+    references: [],
     ageGroup: '',
     difficulty: 'Beginner',
     duration: '',
@@ -67,6 +106,8 @@ const CreateResourceModal: React.FC<CreateResourceModalProps> = ({
   const [languageInput, setLanguageInput] = useState('');
   const [tagInput, setTagInput] = useState('');
   const [audienceInput, setAudienceInput] = useState('');
+  const [objectiveInput, setObjectiveInput] = useState('');
+  const [prerequisiteInput, setPrerequisiteInput] = useState('');
 
   // Available options from API
   const [categories, setCategories] = useState<string[]>([]);
@@ -83,13 +124,17 @@ const CreateResourceModal: React.FC<CreateResourceModalProps> = ({
     'Educational Materials'
   ];
 
-  // Load metadata when modal opens
+  // Load metadata and populate form when modal opens
   useEffect(() => {
     if (isOpen) {
       loadMetadata();
-      resetForm();
+      if (isEditing && editingResource) {
+        populateFormWithEditData();
+      } else {
+        resetForm();
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, isEditing, editingResource]);
 
   const loadMetadata = async () => {
     try {
@@ -101,8 +146,8 @@ const CreateResourceModal: React.FC<CreateResourceModalProps> = ({
       const availableCategories = categoriesData.length > 0 ? categoriesData : defaultCategories;
       setCategories(availableCategories);
 
-      // Set default category if categories are available
-      if (availableCategories.length > 0 && !formData.category) {
+      // Set default category if not editing and categories are available
+      if (!isEditing && availableCategories.length > 0 && !formData.category) {
         setFormData(prev => ({
           ...prev,
           category: availableCategories[0]
@@ -112,12 +157,63 @@ const CreateResourceModal: React.FC<CreateResourceModalProps> = ({
       console.error('Error loading metadata:', err);
       // Fallback to default categories if API fails
       setCategories(defaultCategories);
-      setFormData(prev => ({
-        ...prev,
-        category: defaultCategories[0]
-      }));
-      setError('Could not load some form options, using defaults. You can still create the resource.');
+      if (!isEditing) {
+        setFormData(prev => ({
+          ...prev,
+          category: defaultCategories[0]
+        }));
+      }
+      setError('Could not load some form options, using defaults. You can still save the resource.');
     }
+  };
+
+  const populateFormWithEditData = () => {
+    if (!editingResource) return;
+
+    const publicationDate = editingResource.publicationDate 
+      ? new Date(editingResource.publicationDate).toISOString().split('T')[0]
+      : new Date().toISOString().split('T')[0];
+
+    setFormData({
+      title: editingResource.title || '',
+      description: editingResource.description || '',
+      fullDescription: editingResource.fullDescription || '',
+      category: editingResource.category || '',
+      type: editingResource.type || 'Fact Sheet',
+      condition: editingResource.condition || '',
+      status: (editingResource.status as ResourceStatus) || 'Draft',
+      isFeatured: editingResource.isFeatured || false,
+      isFree: editingResource.isFree !== undefined ? editingResource.isFree : true,
+      imageUrl: editingResource.imageUrl || '',
+      fileUrl: editingResource.fileUrl || '',
+      videoUrl: editingResource.videoUrl || '',
+      externalUrl: editingResource.externalUrl || '',
+      languages: editingResource.languages || [],
+      tags: editingResource.tags || [],
+      targetAudience: editingResource.targetAudience || [],
+      relatedConditions: editingResource.relatedConditions || [],
+      learningObjectives: editingResource.learningObjectives || [],
+      prerequisites: editingResource.prerequisites || [],
+      references: editingResource.references || [],
+      ageGroup: editingResource.ageGroup || '',
+      difficulty: (editingResource.difficulty as DifficultyLevel) || 'Beginner',
+      duration: editingResource.duration || '',
+      author: editingResource.author || '',
+      reviewedBy: editingResource.reviewedBy || '',
+      institution: editingResource.institution || '',
+      location: editingResource.location || '',
+      impactStatement: editingResource.impactStatement || '',
+      accreditation: editingResource.accreditation || '',
+      publicationDate: publicationDate
+    });
+
+    // Set image preview if editing resource has an image
+    if (editingResource.imageUrl) {
+      setImagePreview(editingResource.imageUrl);
+    }
+
+    // Clear any previous errors
+    setError(null);
   };
 
   const resetForm = () => {
@@ -164,6 +260,8 @@ const CreateResourceModal: React.FC<CreateResourceModalProps> = ({
     setLanguageInput('');
     setTagInput('');
     setAudienceInput('');
+    setObjectiveInput('');
+    setPrerequisiteInput('');
   };
 
   const handleInputChange = (field: string, value: any) => {
@@ -239,7 +337,7 @@ const CreateResourceModal: React.FC<CreateResourceModalProps> = ({
       setLoading(true);
       setError(null);
 
-      // Prepare submission data with proper field mapping for backend
+      // Prepare submission data with proper typing
       const submissionData: CreateResourceFormData = {
         ...formData,
         // Add files for FormData submission
@@ -247,14 +345,21 @@ const CreateResourceModal: React.FC<CreateResourceModalProps> = ({
         resourceFile: resourceFile || undefined
       };
 
-      // Create resource
-      const newResource = await educationalResourcesApi.create(submissionData);
+      let updatedResource: EducationalResource;
+
+      if (isEditing && editingResource) {
+        // Update existing resource
+        updatedResource = await educationalResourcesApi.update(editingResource.id, submissionData);
+      } else {
+        // Create new resource
+        updatedResource = await educationalResourcesApi.create(submissionData);
+      }
       
-      onResourceCreated(newResource);
+      onResourceCreated(updatedResource);
       onClose();
     } catch (err) {
-      console.error('Error creating resource:', err);
-      setError(err instanceof Error ? err.message : 'Failed to create resource');
+      console.error(`Error ${isEditing ? 'updating' : 'creating'} resource:`, err);
+      setError(err instanceof Error ? err.message : `Failed to ${isEditing ? 'update' : 'create'} resource`);
     } finally {
       setLoading(false);
     }
@@ -268,8 +373,17 @@ const CreateResourceModal: React.FC<CreateResourceModalProps> = ({
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold flex items-center">
-              <Plus className="w-6 h-6 mr-2 text-blue-600" />
-              Create Educational Resource
+              {isEditing ? (
+                <>
+                  <Edit3 className="w-6 h-6 mr-2 text-blue-600" />
+                  Edit Educational Resource
+                </>
+              ) : (
+                <>
+                  <Plus className="w-6 h-6 mr-2 text-blue-600" />
+                  Create Educational Resource
+                </>
+              )}
             </h2>
             <button 
               type="button"
@@ -347,7 +461,7 @@ const CreateResourceModal: React.FC<CreateResourceModalProps> = ({
                   <label className="block text-sm font-medium text-gray-700 mb-1">Difficulty</label>
                   <select 
                     value={formData.difficulty}
-                    onChange={(e) => handleInputChange('difficulty', e.target.value)}
+                    onChange={(e) => handleInputChange('difficulty', e.target.value as DifficultyLevel)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="Beginner">Beginner</option>
@@ -403,6 +517,9 @@ const CreateResourceModal: React.FC<CreateResourceModalProps> = ({
                           onClick={() => {
                             setImageFile(null);
                             setImagePreview('');
+                            if (isEditing) {
+                              handleInputChange('imageUrl', '');
+                            }
                           }}
                           className="text-red-600 text-sm"
                         >
@@ -447,6 +564,23 @@ const CreateResourceModal: React.FC<CreateResourceModalProps> = ({
                           Remove
                         </button>
                       </div>
+                    ) : isEditing && formData.fileUrl ? (
+                      <div>
+                        <p className="text-sm text-gray-600 mb-2">Current file available</p>
+                        <input 
+                          type="file" 
+                          accept=".pdf,.doc,.docx,.ppt,.pptx"
+                          onChange={handleResourceFileChange}
+                          className="hidden" 
+                          id="file-upload"
+                        />
+                        <label 
+                          htmlFor="file-upload"
+                          className="mt-2 inline-block bg-blue-600 text-white px-4 py-2 rounded cursor-pointer hover:bg-blue-700"
+                        >
+                          Replace File
+                        </label>
+                      </div>
                     ) : (
                       <>
                         <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
@@ -490,6 +624,30 @@ const CreateResourceModal: React.FC<CreateResourceModalProps> = ({
                     onChange={(e) => handleInputChange('externalUrl', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="https://external-resource.com"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Duration</label>
+                  <input
+                    type="text"
+                    value={formData.duration}
+                    onChange={(e) => handleInputChange('duration', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g., 30 minutes, 2 hours"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Age Group</label>
+                  <input
+                    type="text"
+                    value={formData.ageGroup}
+                    onChange={(e) => handleInputChange('ageGroup', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g., 0-18 years, Adults"
                   />
                 </div>
               </div>
@@ -621,6 +779,88 @@ const CreateResourceModal: React.FC<CreateResourceModalProps> = ({
                   ))}
                 </div>
               </div>
+
+              {/* Learning Objectives */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Learning Objectives</label>
+                <div className="flex gap-2 mb-2">
+                  <input
+                    type="text"
+                    value={objectiveInput}
+                    onChange={(e) => setObjectiveInput(e.target.value)}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter learning objectives (comma separated)"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addToArray('learningObjectives', objectiveInput, setObjectiveInput);
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => addToArray('learningObjectives', objectiveInput, setObjectiveInput)}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+                  >
+                    Add
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {formData.learningObjectives.map((objective, index) => (
+                    <span key={index} className="bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full text-sm flex items-center">
+                      {objective}
+                      <button
+                        type="button"
+                        onClick={() => removeFromArray('learningObjectives', index)}
+                        className="ml-2 text-indigo-600 hover:text-indigo-800"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Prerequisites */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Prerequisites</label>
+                <div className="flex gap-2 mb-2">
+                  <input
+                    type="text"
+                    value={prerequisiteInput}
+                    onChange={(e) => setPrerequisiteInput(e.target.value)}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter prerequisites (comma separated)"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addToArray('prerequisites', prerequisiteInput, setPrerequisiteInput);
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => addToArray('prerequisites', prerequisiteInput, setPrerequisiteInput)}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+                  >
+                    Add
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {formData.prerequisites.map((prereq, index) => (
+                    <span key={index} className="bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-sm flex items-center">
+                      {prereq}
+                      <button
+                        type="button"
+                        onClick={() => removeFromArray('prerequisites', index)}
+                        className="ml-2 text-orange-600 hover:text-orange-800"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
             </div>
 
             {/* Author Information */}
@@ -676,6 +916,41 @@ const CreateResourceModal: React.FC<CreateResourceModalProps> = ({
                   />
                 </div>
               </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Reviewed By</label>
+                  <input
+                    type="text"
+                    value={formData.reviewedBy}
+                    onChange={(e) => handleInputChange('reviewedBy', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Reviewer name"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Accreditation</label>
+                  <input
+                    type="text"
+                    value={formData.accreditation}
+                    onChange={(e) => handleInputChange('accreditation', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Accreditation details"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Impact Statement</label>
+                <textarea
+                  value={formData.impactStatement}
+                  onChange={(e) => handleInputChange('impactStatement', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  rows={3}
+                  placeholder="Describe the impact or outcomes of this resource"
+                />
+              </div>
             </div>
 
             {/* Settings */}
@@ -687,13 +962,25 @@ const CreateResourceModal: React.FC<CreateResourceModalProps> = ({
                   <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
                   <select 
                     value={formData.status}
-                    onChange={(e) => handleInputChange('status', e.target.value)}
+                    onChange={(e) => handleInputChange('status', e.target.value as ResourceStatus)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="Draft">Draft</option>
                     <option value="Under Review">Under Review</option>
                     <option value="Published">Published</option>
+                    <option value="Archived">Archived</option>
                   </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Condition</label>
+                  <input
+                    type="text"
+                    value={formData.condition}
+                    onChange={(e) => handleInputChange('condition', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Related medical condition"
+                  />
                 </div>
               </div>
 
@@ -724,23 +1011,23 @@ const CreateResourceModal: React.FC<CreateResourceModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                disabled={loading || uploadingImage || uploadingFile}
+                disabled={loading}
                 className="px-6 py-2 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                disabled={loading || uploadingImage || uploadingFile}
+                disabled={loading}
                 className="px-6 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50 flex items-center"
               >
-                {loading || uploadingImage || uploadingFile ? (
+                {loading ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    {uploadingImage ? 'Uploading Image...' : uploadingFile ? 'Uploading File...' : 'Creating...'}
+                    {isEditing ? 'Updating...' : 'Creating...'}
                   </>
                 ) : (
-                  'Create Resource'
+                  isEditing ? 'Update Resource' : 'Create Resource'
                 )}
               </button>
             </div>

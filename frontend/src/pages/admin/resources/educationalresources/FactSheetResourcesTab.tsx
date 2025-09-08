@@ -14,8 +14,21 @@ import {
   RefreshCw,
   AlertCircle,
   X,
+  ChevronDown,
+  ChevronUp,
+  Calendar,
+  User,
+  MapPin,
+  Tag,
+  Users,
+  Clock,
+  ExternalLink,
+  Play
 } from 'lucide-react';
 import { educationalResourcesApi, EducationalResource } from '../../../../services/educationalResourcesApi';
+import LoadingSpinner from '../../../../components/common/LoadingSpinner';
+import AlertModal, { AlertModalProps } from '../../../../components/common/AlertModal';
+import CreateResourceModal from './CreateResourceModal';
 
 interface FactSheetResourcesTabProps {
   resources: EducationalResource[];
@@ -33,7 +46,22 @@ const FactSheetResourcesTab: React.FC<FactSheetResourcesTabProps> = ({
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterType, setFilterType] = useState<string>('all');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [expandedResource, setExpandedResource] = useState<number | null>(null);
+  
+  // Modal states
+  const [alertModal, setAlertModal] = useState<Partial<AlertModalProps> & { isOpen: boolean }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info'
+  });
+  const [editModal, setEditModal] = useState<{
+    isOpen: boolean;
+    resource: EducationalResource | null;
+  }>({
+    isOpen: false,
+    resource: null
+  });
   
   // Metadata from API
   const [categories, setCategories] = useState<string[]>([]);
@@ -75,6 +103,17 @@ const FactSheetResourcesTab: React.FC<FactSheetResourcesTabProps> = ({
     return matchesSearch && matchesCategory && matchesStatus && matchesType;
   });
 
+  const showAlert = (alertProps: Omit<AlertModalProps, 'isOpen' | 'onClose'>) => {
+    setAlertModal({
+      ...alertProps,
+      isOpen: true
+    });
+  };
+
+  const closeAlert = () => {
+    setAlertModal(prev => ({ ...prev, isOpen: false }));
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Published':
@@ -109,7 +148,6 @@ const FactSheetResourcesTab: React.FC<FactSheetResourcesTabProps> = ({
   const handleResourceStatusChange = async (resourceId: number, newStatus: string) => {
     try {
       setLoading(true);
-      setError(null);
       
       const updatedResource = await educationalResourcesApi.updateStatus(resourceId, newStatus);
       
@@ -118,9 +156,19 @@ const FactSheetResourcesTab: React.FC<FactSheetResourcesTabProps> = ({
           resource.id === resourceId ? updatedResource : resource
         )
       );
+
+      showAlert({
+        title: 'Status Updated',
+        message: `Resource status has been updated to "${newStatus}".`,
+        type: 'success'
+      });
     } catch (err) {
       console.error('Error updating status:', err);
-      setError(err instanceof Error ? err.message : 'Failed to update status');
+      showAlert({
+        title: 'Update Failed',
+        message: err instanceof Error ? err.message : 'Failed to update status',
+        type: 'error'
+      });
     } finally {
       setLoading(false);
     }
@@ -129,7 +177,6 @@ const FactSheetResourcesTab: React.FC<FactSheetResourcesTabProps> = ({
   const handleToggleFeatured = async (resourceId: number) => {
     try {
       setLoading(true);
-      setError(null);
       
       const updatedResource = await educationalResourcesApi.toggleFeatured(resourceId);
       
@@ -138,36 +185,70 @@ const FactSheetResourcesTab: React.FC<FactSheetResourcesTabProps> = ({
           resource.id === resourceId ? updatedResource : resource
         )
       );
+
+      showAlert({
+        title: 'Featured Status Updated',
+        message: `Resource has been ${updatedResource.isFeatured ? 'marked as featured' : 'removed from featured'}.`,
+        type: 'success'
+      });
     } catch (err) {
       console.error('Error toggling featured:', err);
-      setError(err instanceof Error ? err.message : 'Failed to toggle featured status');
+      showAlert({
+        title: 'Update Failed',
+        message: err instanceof Error ? err.message : 'Failed to toggle featured status',
+        type: 'error'
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = async (resourceId: number) => {
-    if (!confirm('Are you sure you want to delete this resource? This action cannot be undone.')) {
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-      
-      await educationalResourcesApi.delete(resourceId);
-      
-      setResources(prev => prev.filter(resource => resource.id !== resourceId));
-    } catch (err) {
-      console.error('Error deleting resource:', err);
-      setError(err instanceof Error ? err.message : 'Failed to delete resource');
-    } finally {
-      setLoading(false);
-    }
+    const resource = resources.find(r => r.id === resourceId);
+    
+    showAlert({
+      title: 'Confirm Deletion',
+      message: `Are you sure you want to delete "${resource?.title}"?\n\nThis action cannot be undone and will permanently remove the resource and all associated data.`,
+      type: 'confirm',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      showCancel: true,
+      onConfirm: async () => {
+        try {
+          setLoading(true);
+          
+          await educationalResourcesApi.delete(resourceId);
+          
+          setResources(prev => prev.filter(resource => resource.id !== resourceId));
+          
+          showAlert({
+            title: 'Resource Deleted',
+            message: 'The resource has been successfully deleted.',
+            type: 'success'
+          });
+        } catch (err) {
+          console.error('Error deleting resource:', err);
+          showAlert({
+            title: 'Deletion Failed',
+            message: err instanceof Error ? err.message : 'Failed to delete resource',
+            type: 'error'
+          });
+        } finally {
+          setLoading(false);
+        }
+      }
+    });
   };
 
   const handleDownload = async (resourceId: number, fileUrl?: string) => {
-    if (!fileUrl) return;
+    if (!fileUrl) {
+      showAlert({
+        title: 'Download Unavailable',
+        message: 'No file is available for download for this resource.',
+        type: 'warning'
+      });
+      return;
+    }
     
     try {
       // Track download
@@ -191,10 +272,43 @@ const FactSheetResourcesTab: React.FC<FactSheetResourcesTabProps> = ({
     }
   };
 
+  const handleEdit = (resource: EducationalResource) => {
+    setEditModal({
+      isOpen: true,
+      resource: resource
+    });
+  };
+
+  const handleEditClose = () => {
+    setEditModal({
+      isOpen: false,
+      resource: null
+    });
+  };
+
+  const handleEditSuccess = (updatedResource: EducationalResource) => {
+    setResources(prev =>
+      prev.map(resource =>
+        resource.id === updatedResource.id ? updatedResource : resource
+      )
+    );
+    
+    showAlert({
+      title: 'Resource Updated',
+      message: 'The resource has been successfully updated.',
+      type: 'success'
+    });
+    
+    handleEditClose();
+  };
+
+  const toggleExpandResource = (resourceId: number) => {
+    setExpandedResource(prev => prev === resourceId ? null : resourceId);
+  };
+
   const refreshData = async () => {
     try {
       setLoading(true);
-      setError(null);
       
       const updatedResources = await educationalResourcesApi.getAll({
         status: filterStatus !== 'all' ? filterStatus : undefined,
@@ -204,29 +318,200 @@ const FactSheetResourcesTab: React.FC<FactSheetResourcesTabProps> = ({
       });
       
       setResources(updatedResources);
+      
+      showAlert({
+        title: 'Data Refreshed',
+        message: 'Resource data has been successfully refreshed.',
+        type: 'success'
+      });
     } catch (err) {
       console.error('Error refreshing data:', err);
-      setError(err instanceof Error ? err.message : 'Failed to refresh data');
+      showAlert({
+        title: 'Refresh Failed',
+        message: err instanceof Error ? err.message : 'Failed to refresh data',
+        type: 'error'
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div className="space-y-6">
-      {/* Error Message */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center">
-          <AlertCircle className="w-5 h-5 text-red-600 mr-3" />
-          <span className="text-red-800">{error}</span>
-          <button 
-            onClick={() => setError(null)}
-            className="ml-auto text-red-600 hover:text-red-800"
-          >
-            <X className="w-4 h-4" />
-          </button>
+  const renderExpandedDetails = (resource: EducationalResource) => (
+    <div className="mt-4 pt-4 border-t border-gray-200 space-y-4">
+      {/* Full Description */}
+      {resource.fullDescription && (
+        <div>
+          <h4 className="font-medium text-gray-900 mb-2">Full Description</h4>
+          <p className="text-gray-600 text-sm whitespace-pre-line">{resource.fullDescription}</p>
         </div>
       )}
+
+      {/* Details Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Author & Publication Info */}
+        <div className="space-y-3">
+          <h4 className="font-medium text-gray-900">Publication Details</h4>
+          <div className="space-y-2 text-sm">
+            <div className="flex items-center text-gray-600">
+              <User className="w-4 h-4 mr-2" />
+              <span>Author: {resource.author}</span>
+            </div>
+            {resource.institution && (
+              <div className="flex items-center text-gray-600">
+                <MapPin className="w-4 h-4 mr-2" />
+                <span>Institution: {resource.institution}</span>
+              </div>
+            )}
+            {resource.location && (
+              <div className="flex items-center text-gray-600">
+                <MapPin className="w-4 h-4 mr-2" />
+                <span>Location: {resource.location}</span>
+              </div>
+            )}
+            <div className="flex items-center text-gray-600">
+              <Calendar className="w-4 h-4 mr-2" />
+              <span>Published: {new Date(resource.createdAt).toLocaleDateString()}</span>
+            </div>
+            {resource.duration && (
+              <div className="flex items-center text-gray-600">
+                <Clock className="w-4 h-4 mr-2" />
+                <span>Duration: {resource.duration}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Technical Details */}
+        <div className="space-y-3">
+          <h4 className="font-medium text-gray-900">Technical Details</h4>
+          <div className="space-y-2 text-sm text-gray-600">
+            <div>Difficulty: {resource.difficulty}</div>
+            {resource.fileSize && <div>File Size: {resource.fileSize}</div>}
+            {resource.fileFormat && <div>Format: {resource.fileFormat}</div>}
+            <div>Downloads: {resource.downloadCount}</div>
+            <div>Views: {resource.viewCount}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Languages */}
+      {resource.languages && resource.languages.length > 0 && (
+        <div>
+          <h4 className="font-medium text-gray-900 mb-2">Languages</h4>
+          <div className="flex flex-wrap gap-2">
+            {resource.languages.map((language, index) => (
+              <span key={index} className="bg-blue-100 text-blue-800 px-2 py-1 text-xs rounded-full">
+                {language}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Target Audience */}
+      {resource.targetAudience && resource.targetAudience.length > 0 && (
+        <div>
+          <h4 className="font-medium text-gray-900 mb-2">Target Audience</h4>
+          <div className="flex flex-wrap gap-2">
+            {resource.targetAudience.map((audience, index) => (
+              <span key={index} className="bg-purple-100 text-purple-800 px-2 py-1 text-xs rounded-full flex items-center">
+                <Users className="w-3 h-3 mr-1" />
+                {audience}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* All Tags */}
+      {resource.tags && resource.tags.length > 0 && (
+        <div>
+          <h4 className="font-medium text-gray-900 mb-2">All Tags</h4>
+          <div className="flex flex-wrap gap-2">
+            {resource.tags.map((tag, index) => (
+              <span key={index} className="bg-green-100 text-green-800 px-2 py-1 text-xs rounded-full flex items-center">
+                <Tag className="w-3 h-3 mr-1" />
+                {tag}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Learning Objectives */}
+      {resource.learningObjectives && resource.learningObjectives.length > 0 && (
+        <div>
+          <h4 className="font-medium text-gray-900 mb-2">Learning Objectives</h4>
+          <ul className="list-disc list-inside space-y-1 text-sm text-gray-600">
+            {resource.learningObjectives.map((objective, index) => (
+              <li key={index}>{objective}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Prerequisites */}
+      {resource.prerequisites && resource.prerequisites.length > 0 && (
+        <div>
+          <h4 className="font-medium text-gray-900 mb-2">Prerequisites</h4>
+          <ul className="list-disc list-inside space-y-1 text-sm text-gray-600">
+            {resource.prerequisites.map((prereq, index) => (
+              <li key={index}>{prereq}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* External Links */}
+      <div className="flex gap-4 pt-2">
+        {resource.videoUrl && (
+          <a
+            href={resource.videoUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center text-red-600 hover:text-red-800 text-sm"
+          >
+            <Play className="w-4 h-4 mr-1" />
+            Watch Video
+          </a>
+        )}
+        {resource.externalUrl && (
+          <a
+            href={resource.externalUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center text-blue-600 hover:text-blue-800 text-sm"
+          >
+            <ExternalLink className="w-4 h-4 mr-1" />
+            External Link
+          </a>
+        )}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        onClose={closeAlert}
+        title={alertModal.title || ''}
+        message={alertModal.message || ''}
+        type={alertModal.type}
+        onConfirm={alertModal.onConfirm}
+        confirmText={alertModal.confirmText}
+        cancelText={alertModal.cancelText}
+        showCancel={alertModal.showCancel}
+      />
+
+      {/* Edit Modal */}
+      <CreateResourceModal
+        isOpen={editModal.isOpen}
+        onClose={handleEditClose}
+        onResourceCreated={handleEditSuccess}
+        editingResource={editModal.resource}
+      />
 
       {/* Filters */}
       <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
@@ -363,12 +648,18 @@ const FactSheetResourcesTab: React.FC<FactSheetResourcesTabProps> = ({
                 <span className="text-xs text-blue-600 font-medium">{resource.category}</span>
                 <div className="flex gap-2">
                   <button 
+                    onClick={() => toggleExpandResource(resource.id)}
                     className="text-blue-600 hover:text-blue-800 p-1"
-                    title="View Details"
+                    title={expandedResource === resource.id ? "Hide Details" : "View Details"}
                   >
-                    <Eye className="w-4 h-4" />
+                    {expandedResource === resource.id ? (
+                      <ChevronUp className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
                   </button>
                   <button 
+                    onClick={() => handleEdit(resource)}
                     className="text-green-600 hover:text-green-800 p-1"
                     title="Edit Resource"
                   >
@@ -419,6 +710,9 @@ const FactSheetResourcesTab: React.FC<FactSheetResourcesTabProps> = ({
                   {resource.isFeatured ? 'Remove Feature' : 'Make Featured'}
                 </button>
               </div>
+
+              {/* Expanded Details */}
+              {expandedResource === resource.id && renderExpandedDetails(resource)}
             </div>
           </div>
         ))}
@@ -438,8 +732,7 @@ const FactSheetResourcesTab: React.FC<FactSheetResourcesTabProps> = ({
 
       {loading && (
         <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-          <span className="ml-3 text-gray-600">Loading...</span>
+          <LoadingSpinner />
         </div>
       )}
     </div>

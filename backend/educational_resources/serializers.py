@@ -87,6 +87,59 @@ class EducationalResourceSerializer(serializers.ModelSerializer):
         
         return [str(item).strip() for item in value if str(item).strip()]
     
+    def create(self, validated_data):
+        """Create a new resource with proper file handling"""
+        # Handle file uploads
+        image_file = validated_data.pop('image', None)
+        resource_file = validated_data.pop('file', None)
+        
+        # Create the resource
+        resource = EducationalResource.objects.create(**validated_data)
+        
+        # Handle file uploads after creation
+        if image_file:
+            resource.image = image_file
+            
+        if resource_file:
+            resource.file = resource_file
+            
+        if image_file or resource_file:
+            resource.save()
+            
+        return resource
+    
+    def update(self, instance, validated_data):
+        """Update a resource with proper file handling"""
+        # Handle file uploads
+        image_file = validated_data.pop('image', None)
+        resource_file = validated_data.pop('file', None)
+        
+        # Update regular fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        
+        # Handle file uploads
+        if image_file:
+            # Delete old image if it exists
+            if instance.image:
+                try:
+                    instance.image.delete(save=False)
+                except:
+                    pass
+            instance.image = image_file
+            
+        if resource_file:
+            # Delete old file if it exists
+            if instance.file:
+                try:
+                    instance.file.delete(save=False)
+                except:
+                    pass
+            instance.file = resource_file
+            
+        instance.save()
+        return instance
+    
     def to_representation(self, instance):
         """Convert snake_case to camelCase for frontend"""
         data = super().to_representation(instance)
@@ -104,6 +157,7 @@ class EducationalResourceSerializer(serializers.ModelSerializer):
             'target_audience': 'targetAudience',
             'related_conditions': 'relatedConditions',
             'learning_objectives': 'learningObjectives',
+            'age_group': 'ageGroup',
             'file_size': 'fileSize',
             'file_format': 'fileFormat',
             'reviewed_by': 'reviewedBy',
@@ -146,6 +200,7 @@ class CaseStudySubmissionSerializer(serializers.ModelSerializer):
             'full_content': 'fullContent',
             'review_notes': 'reviewNotes',
             'reviewed_by': 'reviewedBy',
+            'image_url': 'imageUrl',
             'submission_date': 'submissionDate',
             'review_date': 'reviewDate',
             'published_date': 'publishedDate',
