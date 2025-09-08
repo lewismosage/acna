@@ -19,6 +19,7 @@ urlpatterns = [
     path('api/', include('ebooklets.urls')),
     path('api/', include('publications.urls')),
     path('api/', include('research_projects.urls')),
+    path('api/', include('educational_resources.urls')),
 ]
 
 if settings.DEBUG:

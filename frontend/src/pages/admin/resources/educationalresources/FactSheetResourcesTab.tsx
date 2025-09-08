@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Book, 
   Video, 
@@ -9,61 +9,65 @@ import {
   Edit3, 
   Trash2, 
   Download, 
-  Star
+  Star,
+  Filter,
+  RefreshCw,
+  AlertCircle,
+  X,
 } from 'lucide-react';
-
-// Types
-type ResourceType = 'Fact Sheet' | 'Case Study' | 'Video' | 'Document' | 'Slide Deck' | 'Interactive';
-type ResourceStatus = 'Published' | 'Draft' | 'Under Review' | 'Archived';
-type ResourceCategory = 'Epilepsy' | 'Cerebral Palsy' | 'Neurodevelopment' | 'Nutrition' | 'Seizures' | 'Rehabilitation' | 'General';
-
-interface FactSheet {
-  id: number;
-  title: string;
-  type: ResourceType;
-  category: ResourceCategory;
-  description: string;
-  fullDescription?: string;
-  status: ResourceStatus;
-  author: string;
-  dateCreated: string;
-  datePublished?: string;
-  downloads: number;
-  views: number;
-  fileSize: string;
-  fileFormat: string;
-  tags: string[];
-  targetAudience: string[];
-  isFeatured: boolean;
-  imageUrl?: string;
-  fileUrl?: string;
-  createdAt: string;
-  updatedAt: string;
-}
+import { educationalResourcesApi, EducationalResource } from '../../../../services/educationalResourcesApi';
 
 interface FactSheetResourcesTabProps {
-  factSheets: FactSheet[];
-  setFactSheets: React.Dispatch<React.SetStateAction<FactSheet[]>>;
+  resources: EducationalResource[];
+  setResources: React.Dispatch<React.SetStateAction<EducationalResource[]>>;
   onCreateNew: () => void;
 }
 
 const FactSheetResourcesTab: React.FC<FactSheetResourcesTabProps> = ({
-  factSheets,
-  setFactSheets,
+  resources,
+  setResources,
   onCreateNew
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterType, setFilterType] = useState<string>('all');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Metadata from API
+  const [categories, setCategories] = useState<string[]>([]);
+  const [targetAudiences, setTargetAudiences] = useState<string[]>([]);
+  const [authors, setAuthors] = useState<string[]>([]);
 
-  const categories = ['Epilepsy', 'Cerebral Palsy', 'Neurodevelopment', 'Nutrition', 'Seizures', 'Rehabilitation', 'General'];
   const statuses = ['Published', 'Draft', 'Under Review', 'Archived'];
-  const resourceTypes = ['Fact Sheet', 'Case Study', 'Video', 'Document', 'Slide Deck', 'Interactive'];
+  const resourceTypes = ['Fact Sheet', 'Case Study', 'Video', 'Document', 'Slide Deck', 'Interactive', 'Webinar', 'Toolkit'];
 
-  const filteredResources = factSheets.filter(resource => {
+  // Load metadata on mount
+  useEffect(() => {
+    loadMetadata();
+  }, []);
+
+  const loadMetadata = async () => {
+    try {
+      const [categoriesData, audiencesData, authorsData] = await Promise.all([
+        educationalResourcesApi.getCategories(),
+        educationalResourcesApi.getTargetAudiences(),
+        educationalResourcesApi.getAuthors()
+      ]);
+      
+      setCategories(categoriesData);
+      setTargetAudiences(audiencesData);
+      setAuthors(authorsData);
+    } catch (err) {
+      console.error('Error loading metadata:', err);
+    }
+  };
+
+  const filteredResources = resources.filter(resource => {
     const matchesSearch = resource.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         resource.description.toLowerCase().includes(searchTerm.toLowerCase());
+                         resource.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         resource.author.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = filterCategory === 'all' || resource.category === filterCategory;
     const matchesStatus = filterStatus === 'all' || resource.status === filterStatus;
     const matchesType = filterType === 'all' || resource.type === filterType;
@@ -71,7 +75,7 @@ const FactSheetResourcesTab: React.FC<FactSheetResourcesTabProps> = ({
     return matchesSearch && matchesCategory && matchesStatus && matchesType;
   });
 
-  const getStatusColor = (status: ResourceStatus) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case 'Published':
         return 'bg-green-100 text-green-800 border-green-200';
@@ -86,12 +90,14 @@ const FactSheetResourcesTab: React.FC<FactSheetResourcesTabProps> = ({
     }
   };
 
-  const getTypeIcon = (type: ResourceType) => {
+  const getTypeIcon = (type: string) => {
     switch (type) {
       case 'Video':
+      case 'Webinar':
         return <Video className="w-5 h-5" />;
       case 'Fact Sheet':
       case 'Document':
+      case 'Toolkit':
         return <FileText className="w-5 h-5" />;
       case 'Interactive':
         return <Book className="w-5 h-5" />;
@@ -100,28 +106,128 @@ const FactSheetResourcesTab: React.FC<FactSheetResourcesTabProps> = ({
     }
   };
 
-  const handleResourceStatusChange = (resourceId: number, newStatus: ResourceStatus) => {
-    setFactSheets(prev =>
-      prev.map(resource =>
-        resource.id === resourceId
-          ? { ...resource, status: newStatus }
-          : resource
-      )
-    );
+  const handleResourceStatusChange = async (resourceId: number, newStatus: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const updatedResource = await educationalResourcesApi.updateStatus(resourceId, newStatus);
+      
+      setResources(prev =>
+        prev.map(resource =>
+          resource.id === resourceId ? updatedResource : resource
+        )
+      );
+    } catch (err) {
+      console.error('Error updating status:', err);
+      setError(err instanceof Error ? err.message : 'Failed to update status');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleToggleFeatured = (resourceId: number) => {
-    setFactSheets(prev =>
-      prev.map(resource =>
-        resource.id === resourceId
-          ? { ...resource, isFeatured: !resource.isFeatured }
-          : resource
-      )
-    );
+  const handleToggleFeatured = async (resourceId: number) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const updatedResource = await educationalResourcesApi.toggleFeatured(resourceId);
+      
+      setResources(prev =>
+        prev.map(resource =>
+          resource.id === resourceId ? updatedResource : resource
+        )
+      );
+    } catch (err) {
+      console.error('Error toggling featured:', err);
+      setError(err instanceof Error ? err.message : 'Failed to toggle featured status');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (resourceId: number) => {
+    if (!confirm('Are you sure you want to delete this resource? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      await educationalResourcesApi.delete(resourceId);
+      
+      setResources(prev => prev.filter(resource => resource.id !== resourceId));
+    } catch (err) {
+      console.error('Error deleting resource:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete resource');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDownload = async (resourceId: number, fileUrl?: string) => {
+    if (!fileUrl) return;
+    
+    try {
+      // Track download
+      await educationalResourcesApi.incrementDownload(resourceId);
+      
+      // Open file in new tab
+      window.open(fileUrl, '_blank');
+      
+      // Update download count in UI
+      setResources(prev =>
+        prev.map(resource =>
+          resource.id === resourceId 
+            ? { ...resource, downloadCount: resource.downloadCount + 1 }
+            : resource
+        )
+      );
+    } catch (err) {
+      console.error('Error tracking download:', err);
+      // Still allow download even if tracking fails
+      window.open(fileUrl, '_blank');
+    }
+  };
+
+  const refreshData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const updatedResources = await educationalResourcesApi.getAll({
+        status: filterStatus !== 'all' ? filterStatus : undefined,
+        category: filterCategory !== 'all' ? filterCategory : undefined,
+        type: filterType !== 'all' ? filterType : undefined,
+        search: searchTerm || undefined
+      });
+      
+      setResources(updatedResources);
+    } catch (err) {
+      console.error('Error refreshing data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to refresh data');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="space-y-6">
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center">
+          <AlertCircle className="w-5 h-5 text-red-600 mr-3" />
+          <span className="text-red-800">{error}</span>
+          <button 
+            onClick={() => setError(null)}
+            className="ml-auto text-red-600 hover:text-red-800"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Filters */}
       <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
         <div className="flex flex-col md:flex-row gap-3 flex-1">
@@ -170,13 +276,24 @@ const FactSheetResourcesTab: React.FC<FactSheetResourcesTabProps> = ({
           </select>
         </div>
         
-        <button
-          onClick={onCreateNew}
-          className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 flex items-center font-medium transition-colors"
-        >
-          <Plus className="w-5 h-5 mr-2" />
-          Add Resource
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={refreshData}
+            disabled={loading}
+            className="border border-gray-300 text-gray-600 px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center font-medium transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+          
+          <button
+            onClick={onCreateNew}
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 flex items-center font-medium transition-colors"
+          >
+            <Plus className="w-5 h-5 mr-2" />
+            Add Resource
+          </button>
+        </div>
       </div>
 
       {/* Resources Grid */}
@@ -218,14 +335,14 @@ const FactSheetResourcesTab: React.FC<FactSheetResourcesTabProps> = ({
               
               <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
                 <span>By {resource.author}</span>
-                <span>{resource.dateCreated}</span>
+                <span>{new Date(resource.createdAt).toLocaleDateString()}</span>
               </div>
               
               <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
-                <span>{resource.fileSize} • {resource.fileFormat}</span>
+                <span>{resource.fileSize || 'N/A'} • {resource.fileFormat || 'N/A'}</span>
                 <div className="flex gap-3">
-                  <span>{resource.downloads} downloads</span>
-                  <span>{resource.views} views</span>
+                  <span>{resource.downloadCount} downloads</span>
+                  <span>{resource.viewCount} views</span>
                 </div>
               </div>
               
@@ -245,16 +362,32 @@ const FactSheetResourcesTab: React.FC<FactSheetResourcesTabProps> = ({
               <div className="flex justify-between items-center mb-4">
                 <span className="text-xs text-blue-600 font-medium">{resource.category}</span>
                 <div className="flex gap-2">
-                  <button className="text-blue-600 hover:text-blue-800 p-1">
+                  <button 
+                    className="text-blue-600 hover:text-blue-800 p-1"
+                    title="View Details"
+                  >
                     <Eye className="w-4 h-4" />
                   </button>
-                  <button className="text-green-600 hover:text-green-800 p-1">
+                  <button 
+                    className="text-green-600 hover:text-green-800 p-1"
+                    title="Edit Resource"
+                  >
                     <Edit3 className="w-4 h-4" />
                   </button>
-                  <button className="text-purple-600 hover:text-purple-800 p-1">
-                    <Download className="w-4 h-4" />
-                  </button>
-                  <button className="text-red-600 hover:text-red-800 p-1">
+                  {resource.fileUrl && (
+                    <button 
+                      onClick={() => handleDownload(resource.id, resource.fileUrl)}
+                      className="text-purple-600 hover:text-purple-800 p-1"
+                      title="Download Resource"
+                    >
+                      <Download className="w-4 h-4" />
+                    </button>
+                  )}
+                  <button 
+                    onClick={() => handleDelete(resource.id)}
+                    className="text-red-600 hover:text-red-800 p-1"
+                    title="Delete Resource"
+                  >
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
@@ -264,8 +397,9 @@ const FactSheetResourcesTab: React.FC<FactSheetResourcesTabProps> = ({
               <div className="space-y-2">
                 <select
                   value={resource.status}
-                  onChange={(e) => handleResourceStatusChange(resource.id, e.target.value as ResourceStatus)}
-                  className="w-full px-3 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  onChange={(e) => handleResourceStatusChange(resource.id, e.target.value)}
+                  disabled={loading}
+                  className="w-full px-3 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
                 >
                   <option value="Draft">Draft</option>
                   <option value="Under Review">Under Review</option>
@@ -275,13 +409,14 @@ const FactSheetResourcesTab: React.FC<FactSheetResourcesTabProps> = ({
                 
                 <button 
                   onClick={() => handleToggleFeatured(resource.id)}
-                  className={`w-full px-3 py-1 rounded text-xs font-medium transition-colors ${
+                  disabled={loading}
+                  className={`w-full px-3 py-1 rounded text-xs font-medium transition-colors disabled:opacity-50 ${
                     resource.isFeatured 
                       ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' 
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
-                  {resource.isFeatured ? 'Unfeature' : 'Feature'}
+                  {resource.isFeatured ? 'Remove Feature' : 'Make Featured'}
                 </button>
               </div>
             </div>
@@ -289,7 +424,7 @@ const FactSheetResourcesTab: React.FC<FactSheetResourcesTabProps> = ({
         ))}
       </div>
       
-      {filteredResources.length === 0 && (
+      {filteredResources.length === 0 && !loading && (
         <div className="text-center py-12">
           <Book className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No resources found</h3>
@@ -298,6 +433,13 @@ const FactSheetResourcesTab: React.FC<FactSheetResourcesTabProps> = ({
               ? "Try adjusting your search or filter criteria."
               : "Get started by creating your first educational resource."}
           </p>
+        </div>
+      )}
+
+      {loading && (
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+          <span className="ml-3 text-gray-600">Loading...</span>
         </div>
       )}
     </div>

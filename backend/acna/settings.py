@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     'ebooklets',
     'publications',
     'research_projects',
+    'educational_resources',
 ]
 
 MIDDLEWARE = [
