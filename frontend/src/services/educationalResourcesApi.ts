@@ -103,6 +103,38 @@ export interface CaseStudySubmission {
   publishedDate?: string;
 }
 
+export interface CaseReportSubmissionInput {
+  title: string;
+  submittedBy: string;
+  institution: string;
+  email: string;
+  phone?: string;
+  location: string;
+  category: string;
+  patientDemographics: {
+    ageGroup: string;
+    gender: string;
+    location: string;
+  };
+  clinicalPresentation: string;
+  diagnosticWorkup: string;
+  management: string;
+  outcome: string;
+  lessonLearned: string;
+  discussion?: string;
+  excerpt: string;
+  impact?: string;
+  ethicsApproval: boolean;
+  ethicsNumber?: string;
+  consentObtained: boolean;
+  conflictOfInterest?: string;
+  acknowledgments?: string;
+  references?: string;
+  attachments: File[];
+  images: File[];
+  declaration: boolean;
+}
+
 export interface ResourceAnalytics {
   total: number;
   published: number;
@@ -579,6 +611,126 @@ export const educationalResourcesApi = {
     const data = await handleResponse(response);
     return Array.isArray(data) ? data.map(normalizeCaseStudySubmission) : [];
   },
+
+  // ========== CASE REPORT SUBMISSIONS ==========
+  
+  submitCaseReport: async (data: CaseReportSubmissionInput): Promise<any> => {
+    try {
+      // Prepare the case study submission data
+      const submissionData = {
+        title: data.title,
+        submitted_by: data.submittedBy,
+        institution: data.institution,
+        email: data.email,
+        phone: data.phone || '',
+        location: data.location,
+        category: data.category,
+        excerpt: data.excerpt,
+        full_content: JSON.stringify({
+          patientDemographics: data.patientDemographics,
+          clinicalPresentation: data.clinicalPresentation,
+          diagnosticWorkup: data.diagnosticWorkup,
+          management: data.management,
+          outcome: data.outcome,
+          lessonLearned: data.lessonLearned,
+          discussion: data.discussion || '',
+          ethicsApproval: data.ethicsApproval,
+          ethicsNumber: data.ethicsNumber || '',
+          consentObtained: data.consentObtained,
+          conflictOfInterest: data.conflictOfInterest || '',
+          acknowledgments: data.acknowledgments || '',
+          references: data.references || ''
+        }),
+        impact: data.impact || '',
+        attachments: data.attachments.map(file => file.name), // For now, just file names
+        status: 'Pending Review'
+      };
+
+      const response = await fetch(`${API_BASE_URL}/case-study-submissions/`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(submissionData),
+      });
+      
+      const result = await handleResponse(response);
+      return result;
+    } catch (error: any) {
+      throw new Error(error.message || 'Failed to submit case report');
+    }
+  },
+
+  getCaseReportSubmissions: async (params?: {
+    status?: string;
+    category?: string;
+    search?: string;
+  }): Promise<any[]> => {
+    const searchParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          searchParams.append(key, value.toString());
+        }
+      });
+    }
+    
+    const response = await fetch(`${API_BASE_URL}/case-study-submissions/?${searchParams.toString()}`, {
+      headers: getAuthHeaders(),
+    });
+    
+    const data = await handleResponse(response);
+    return Array.isArray(data) ? data : [];
+  },
+
+  updateCaseReportStatus: async (
+    id: number, 
+    status: string, 
+    reviewNotes?: string, 
+    reviewedBy?: string
+  ): Promise<any> => {
+    const body: any = { status };
+    if (reviewNotes) body.reviewNotes = reviewNotes;
+    if (reviewedBy) body.reviewedBy = reviewedBy;
+    
+    const response = await fetch(`${API_BASE_URL}/case-study-submissions/${id}/update_status/`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(body),
+    });
+    
+    const result = await handleResponse(response);
+    return result;
+  },
+
+  getPendingCaseReports: async (): Promise<any[]> => {
+    const response = await fetch(`${API_BASE_URL}/case-study-submissions/pending/`, {
+      headers: getAuthHeaders(),
+    });
+    
+    const data = await handleResponse(response);
+    return Array.isArray(data) ? data : [];
+  },
+
+  uploadCaseReportFiles: async (files: File[], type: 'attachments' | 'images'): Promise<string[]> => {
+    const uploadedPaths: string[] = [];
+    
+    for (const file of files) {
+      const formData = new FormData();
+      formData.append(type === 'images' ? 'image' : 'file', file);
+      
+      const endpoint = type === 'images' ? 'upload_image' : 'upload_file';
+      
+      const response = await fetch(`${API_BASE_URL}/resources/${endpoint}/`, {
+        method: 'POST',
+        headers: getAuthHeadersWithoutContentType(),
+        body: formData,
+      });
+      
+      const result = await handleResponse(response);
+      uploadedPaths.push(result.path || result.url);
+    }
+    
+    return uploadedPaths;
+  },
 };
 
 // Export individual functions for convenience
@@ -607,4 +759,9 @@ export const {
   deleteSubmission,
   updateSubmissionStatus,
   getPendingSubmissions,
+  submitCaseReport,
+  getCaseReportSubmissions,
+  updateCaseReportStatus,
+  getPendingCaseReports,
+  uploadCaseReportFiles,
 } = educationalResourcesApi;

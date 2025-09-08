@@ -16,6 +16,8 @@ import ScrollToTop from '../../../components/common/ScrollToTop';
 import defaultProfileImage from '../../../assets/default Profile Image.png';
 import { useAuth } from '../../../services/AuthContext';
 import ResearchPaperUploadModal from './ResearchPaperUploadModal';
+import CaseReportSubmissionModal from './CaseReportSubmissionModal';
+import { educationalResourcesApi, CaseReportSubmissionInput } from '../../../services/educationalResourcesApi';
 
 interface LocationState {
   activeTab?: string;
@@ -39,6 +41,38 @@ interface MemberData {
     requiredHours: number;
     certificationsEarned: number;
   };
+}
+
+export interface CaseReportFormData {
+  title: string;
+  submittedBy: string;
+  institution: string;
+  email: string;
+  phone: string;
+  location: string;
+  category: string;
+  patientDemographics: {
+    ageGroup: string;
+    gender: string;
+    location: string;
+  };
+  clinicalPresentation: string;
+  diagnosticWorkup: string;
+  management: string;
+  outcome: string;
+  lessonLearned: string;
+  discussion: string;
+  excerpt: string;
+  impact: string;
+  ethicsApproval: boolean;
+  ethicsNumber: string;
+  consentObtained: boolean;
+  conflictOfInterest: string;
+  acknowledgments: string;
+  references: string;
+  attachments: File[];
+  images: File[];
+  declaration: boolean;
 }
 
 const getProfileImageUrl = (url: string | undefined) => {
@@ -142,7 +176,7 @@ const CpdProgressPanel = ({ memberData }: { memberData: MemberData }) => {
             </tr>
             <tr>
               <td className="py-2 text-gray-600">Certifications:</td>
-              {/*<td className="py-2 font-medium">{cpdData.certificationsEearned}</td> */}
+              <td className="py-2 font-medium">{cpdData.certificationsEarned}</td>
             </tr>
           </tbody>
         </table>
@@ -152,21 +186,28 @@ const CpdProgressPanel = ({ memberData }: { memberData: MemberData }) => {
 };
 
 // Component for Quick Actions Panel
-const QuickActionsPanel = ({ onUploadResearchPaper }: { onUploadResearchPaper: () => void }) => (
+const QuickActionsPanel = ({ 
+  onUploadResearchPaper,
+  onSubmitCaseReport 
+}: { 
+  onUploadResearchPaper: () => void;
+  onSubmitCaseReport: () => void;
+}) => (
   <div className="bg-white border border-gray-300 rounded-lg">
     <div className="bg-gray-100 px-4 py-2 border-b border-gray-300">
       <h2 className="font-semibold text-gray-800">Quick Actions</h2>
     </div>
     <div className="p-3 md:p-4 space-y-2 md:space-y-3">
       {[
-        { icon: Edit3, label: 'Edit Profile', color: 'blue' },
-        { icon: FileText, label: 'Training Programs', color: 'green' },
-        { icon: MessageSquare, label: 'Join Discussion Forum', color: 'purple' },
-        { icon: Users, label: 'View Member Directory', color: 'orange' },
-        { icon: FileText, label: 'Request Collaboration Support', color: 'green' },
-      ].map(({ icon: Icon, label, color }, index) => (
+        { icon: Edit3, label: 'Edit Profile', color: 'blue', onClick: null },
+        { icon: FileText, label: 'Training Programs', color: 'green', onClick: null },
+        { icon: MessageSquare, label: 'Join Discussion Forum', color: 'purple', onClick: null },
+        { icon: Users, label: 'View Member Directory', color: 'orange', onClick: null },
+        { icon: FileText, label: 'Request Collaboration Support', color: 'green', onClick: null },
+      ].map(({ icon: Icon, label, color, onClick }, index) => (
         <button
           key={index}
+          onClick={onClick || undefined}
           className={`w-full flex items-center px-3 py-2 text-xs md:text-sm bg-${color}-50 hover:bg-${color}-100 border border-${color}-200 rounded transition-colors text-left`}
         >
           <Icon className={`w-3 h-3 md:w-4 md:h-4 mr-2 md:mr-3 text-${color}-600`} />
@@ -174,7 +215,7 @@ const QuickActionsPanel = ({ onUploadResearchPaper }: { onUploadResearchPaper: (
         </button>
       ))}
       
-      {/* Add the Upload Research Paper button */}
+      {/* Upload Research Paper button */}
       <button
         onClick={onUploadResearchPaper}
         className="w-full flex items-center px-3 py-2 text-xs md:text-sm bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded transition-colors text-left"
@@ -182,12 +223,27 @@ const QuickActionsPanel = ({ onUploadResearchPaper }: { onUploadResearchPaper: (
         <Upload className="w-3 h-3 md:w-4 md:h-4 mr-2 md:mr-3 text-blue-600" />
         <span className="text-blue-700 font-medium">Upload Research Paper</span>
       </button>
+
+      {/* Submit Case Report button */}
+      <button
+        onClick={onSubmitCaseReport}
+        className="w-full flex items-center px-3 py-2 text-xs md:text-sm bg-green-50 hover:bg-green-100 border border-green-200 rounded transition-colors text-left"
+      >
+        <FileText className="w-3 h-3 md:w-4 md:h-4 mr-2 md:mr-3 text-green-600" />
+        <span className="text-green-700 font-medium">Submit Case Report</span>
+      </button>
     </div>
   </div>
 );
 
 // Tab Content Components
-const HomeTabContent = ({ onUploadResearchPaper }: { onUploadResearchPaper: () => void }) => {
+const HomeTabContent = ({ 
+  onUploadResearchPaper,
+  onSubmitCaseReport 
+}: { 
+  onUploadResearchPaper: () => void;
+  onSubmitCaseReport: () => void;
+}) => {
   const upcomingCourses = [
     {
       title: "Advanced Epilepsy Management",
@@ -251,7 +307,7 @@ const HomeTabContent = ({ onUploadResearchPaper }: { onUploadResearchPaper: () =
 
       <div className="bg-white border border-gray-300 rounded-lg">
         <div className="bg-gray-100 px-4 py-2 border-b border-gray-300">
-        <h2 className="font-semibold text-gray-800">Research & Case Submission</h2>
+          <h2 className="font-semibold text-gray-800">Research & Case Submission</h2>
         </div>
         <div className="p-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
@@ -263,7 +319,10 @@ const HomeTabContent = ({ onUploadResearchPaper }: { onUploadResearchPaper: () =
               <h4 className="font-medium text-sm md:text-base text-gray-900 mb-1">Upload Research Paper</h4>
               <p className="text-xs md:text-sm text-gray-600">Submit your research for peer review</p>
             </div>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 md:p-6 text-center hover:border-green-400 transition-colors cursor-pointer">
+            <div 
+              className="border-2 border-dashed border-gray-300 rounded-lg p-4 md:p-6 text-center hover:border-green-400 transition-colors cursor-pointer"
+              onClick={onSubmitCaseReport}
+            >
               <FileText className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-2 text-gray-400" />
               <h4 className="font-medium text-sm md:text-base text-gray-900 mb-1">Submit Case Report</h4>
               <p className="text-xs md:text-sm text-gray-600">Share interesting clinical cases</p>
@@ -313,6 +372,7 @@ const ACNAMemberDashboard = () => {
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [showResearchPaperModal, setShowResearchPaperModal] = useState(false);
+  const [showCaseReportModal, setShowCaseReportModal] = useState(false);
   const { user } = useAuth();
   
   const handleProfileUpdate = (updatedData: Partial<MemberData>) => {
@@ -320,6 +380,50 @@ const ACNAMemberDashboard = () => {
       ...prev,
       ...updatedData
     }));
+  };
+
+  // Handler for case report submission
+  const handleCaseReportSubmit = async (data: CaseReportFormData) => {
+    try {
+      // Create the case study submission using the API
+      const submissionData: CaseReportSubmissionInput = {
+        title: data.title,
+        submittedBy: data.submittedBy,
+        institution: data.institution,
+        email: data.email,
+        phone: data.phone,
+        location: data.location,
+        category: data.category,
+        patientDemographics: data.patientDemographics,
+        clinicalPresentation: data.clinicalPresentation,
+        diagnosticWorkup: data.diagnosticWorkup,
+        management: data.management,
+        outcome: data.outcome,
+        lessonLearned: data.lessonLearned,
+        discussion: data.discussion,
+        excerpt: data.excerpt,
+        impact: data.impact,
+        ethicsApproval: data.ethicsApproval,
+        ethicsNumber: data.ethicsNumber,
+        consentObtained: data.consentObtained,
+        conflictOfInterest: data.conflictOfInterest,
+        acknowledgments: data.acknowledgments,
+        references: data.references,
+        attachments: data.attachments,
+        images: data.images,
+        declaration: data.declaration
+      };
+
+      // Submit to API
+      const result = await educationalResourcesApi.submitCaseReport(submissionData);
+      console.log('Case report submitted successfully:', result);
+      
+      // You could show a success toast here or update some UI state
+      
+    } catch (error) {
+      console.error('Error submitting case report:', error);
+      // Handle error - show error toast or update UI
+    }
   };
 
   const [memberData, setMemberData] = useState<MemberData>({
@@ -357,7 +461,12 @@ const ACNAMemberDashboard = () => {
   const renderTabContent = () => {
     switch (activeTab) {
       case 'home':
-        return <HomeTabContent onUploadResearchPaper={() => setShowResearchPaperModal(true)} />;
+        return (
+          <HomeTabContent 
+            onUploadResearchPaper={() => setShowResearchPaperModal(true)}
+            onSubmitCaseReport={() => setShowCaseReportModal(true)}
+          />
+        );
       case 'profile':
         return <ProfileTabContent 
           memberData={memberData} 
@@ -374,7 +483,12 @@ const ACNAMemberDashboard = () => {
       case 'directory':
         return <DirectoryTabContent />;
       default:
-        return <HomeTabContent onUploadResearchPaper={() => setShowResearchPaperModal(true)} />;
+        return (
+          <HomeTabContent 
+            onUploadResearchPaper={() => setShowResearchPaperModal(true)}
+            onSubmitCaseReport={() => setShowCaseReportModal(true)}
+          />
+        );
     }
   };
 
@@ -385,6 +499,7 @@ const ACNAMemberDashboard = () => {
   return (
     <div className="min-h-screen bg-gray-100">
       <ScrollToTop />
+      
       {/* Sign Out Modal */}
       <SignOutModal 
         isOpen={showSignOutModal} 
@@ -396,7 +511,15 @@ const ACNAMemberDashboard = () => {
         isOpen={showResearchPaperModal}
         onClose={() => setShowResearchPaperModal(false)}
         onSubmit={(data) => {
+          // Handle research paper submission
         }}
+      />
+
+      {/* Case Report Submission Modal */}
+      <CaseReportSubmissionModal
+        isOpen={showCaseReportModal}
+        onClose={() => setShowCaseReportModal(false)}
+        onSubmit={handleCaseReportSubmit}
       />
 
       {/* Mobile Header - Always visible on mobile */}
@@ -544,7 +667,10 @@ const ACNAMemberDashboard = () => {
               <div className="lg:col-span-1 space-y-4 md:space-y-6">
                 <MemberInfoPanel memberData={memberData} />
                 <CpdProgressPanel memberData={memberData} />
-                <QuickActionsPanel onUploadResearchPaper={() => setShowResearchPaperModal(true)} />
+                <QuickActionsPanel 
+                  onUploadResearchPaper={() => setShowResearchPaperModal(true)}
+                  onSubmitCaseReport={() => setShowCaseReportModal(true)}
+                />
               </div>
 
               {/* Right Column - Dynamic Content Based on Active Tab */}

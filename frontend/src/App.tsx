@@ -82,6 +82,7 @@ import EBookletDetailPage from "./pages/education/ebooklets/EBookletDetailPage";
 import PublicationDetailPage from "./pages/education/researchpublications/PublicationDetailPage";
 import ResearchProjectDetailsPage from "./pages/education/researchpublications/ResearchProjectDetailsPage";
 import ResearchPaperDetailPage from "./pages/education/researchpublications/ResearchPaperDetailPage";
+import FactSheetDetailPage from "./pages/education/educationalresources/FactSheetDetailPage";
 
 // Layout component
 const Layout = ({ children }: { children: React.ReactNode }) => (
@@ -158,6 +159,10 @@ function App() {
             <Route
               path="/case-studies-and-fact-sheets"
               element={<FactSheetsAndCaseStudies />}
+            />
+            <Route
+              path="/resources/fact-sheets/:id"
+              element={<FactSheetDetailPage />}
             />
             <Route
               path="/position-statement"

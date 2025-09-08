@@ -9,6 +9,7 @@ import CaseStudySubmissionsTab from './CaseStudySubmissionsTab';
 import CreateResourceModal from './CreateResourceModal';
 import AnalyticsTab from './AnalyticsTab';
 import { educationalResourcesApi, EducationalResource, CaseStudySubmission, ResourceAnalytics } from '../../../../services/educationalResourcesApi';
+import LoadingSpinner from '../../../../components/common/LoadingSpinner';
 
 const EducationalResourcesTab: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState<'resources' | 'submissions' | 'analytics'>('resources');
@@ -56,8 +57,7 @@ const EducationalResourcesTab: React.FC = () => {
     if (loading) {
       return (
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <span className="ml-3 text-gray-600">Loading...</span>
+          <LoadingSpinner />
         </div>
       );
     }
