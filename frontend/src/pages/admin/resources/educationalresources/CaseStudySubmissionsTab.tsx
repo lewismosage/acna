@@ -7,7 +7,15 @@ import {
   Tag, 
   Download, 
   Users,
-  Trash2 
+  Trash2,
+  MessageCircle,
+  Loader,
+  X,
+  CheckCircle,
+  AlertCircle,
+  Heart,
+  Award,
+  FileText
 } from 'lucide-react';
 import { educationalResourcesApi } from '../../../../services/educationalResourcesApi'; 
 import AlertModal from '../../../../components/common/AlertModal';
@@ -39,6 +47,28 @@ interface CaseStudySubmissionsTabProps {
   setSubmissions: React.Dispatch<React.SetStateAction<CaseStudySubmission[]>>;
 }
 
+interface ParsedFullContent {
+  patient_demographics?: {
+    age_group?: string;
+    gender?: string;
+    location?: string;
+  };
+  clinical_presentation?: string;
+  diagnostic_workup?: string;
+  management?: string;
+  outcome?: string;
+  lesson_learned?: string;
+  discussion?: string;
+  ethics_approval?: boolean;
+  ethics_number?: string;
+  consent_obtained?: boolean;
+  conflict_of_interest?: string;
+  acknowledgments?: string;
+  references?: string;
+  declaration?: boolean;
+  impact?: string;
+}
+
 const CaseStudySubmissionsTab: React.FC<CaseStudySubmissionsTabProps> = ({
   submissions,
   setSubmissions
@@ -53,6 +83,12 @@ const CaseStudySubmissionsTab: React.FC<CaseStudySubmissionsTabProps> = ({
     submissionId: null,
     submissionTitle: ''
   });
+
+  // Comments and notification modal state
+  const [showNotifyModal, setShowNotifyModal] = useState(false);
+  const [currentSubmission, setCurrentSubmission] = useState<CaseStudySubmission | null>(null);
+  const [notificationComments, setNotificationComments] = useState('');
+  const [updating, setUpdating] = useState<number | null>(null);
 
   const getSubmissionStatusColor = (status: string) => {
     switch (status) {
@@ -126,6 +162,45 @@ const CaseStudySubmissionsTab: React.FC<CaseStudySubmissionsTabProps> = ({
     }
   };
 
+  const handleNotifySubmission = (submission: CaseStudySubmission) => {
+    setCurrentSubmission(submission);
+    setNotificationComments(submission.reviewNotes || '');
+    setShowNotifyModal(true);
+  };
+
+  const handleSendNotification = async () => {
+    if (!currentSubmission) return;
+
+    try {
+      setUpdating(currentSubmission.id);
+      
+      // Update the submission with comments and send notification
+      const updatedSubmission = await educationalResourcesApi.updateSubmissionStatus(
+        currentSubmission.id, 
+        currentSubmission.status, 
+        notificationComments,
+        'Admin' // You might want to get the current user's name
+      );
+      
+      // Update local state
+      setSubmissions(prev => 
+        prev.map(submission => 
+          submission.id === currentSubmission.id
+            ? { ...updatedSubmission, reviewNotes: notificationComments, lastUpdated: new Date().toISOString().split('T')[0] }
+            : submission
+        )
+      );
+      
+      setShowNotifyModal(false);
+      // You might want to show a success message here
+    } catch (error) {
+      console.error('Error sending notification:', error);
+      // You might want to show an error message here
+    } finally {
+      setUpdating(null);
+    }
+  };
+
   const formatDate = (dateString: string | undefined) => {
     if (!dateString) return 'N/A';
     try {
@@ -134,6 +209,17 @@ const CaseStudySubmissionsTab: React.FC<CaseStudySubmissionsTabProps> = ({
       return date.toLocaleDateString();
     } catch (error) {
       return dateString;
+    }
+  };
+
+  const parseFullContent = (fullContent: string | undefined): ParsedFullContent => {
+    if (!fullContent) return {};
+    
+    try {
+      return JSON.parse(fullContent);
+    } catch (error) {
+      console.error('Error parsing full content:', error);
+      return {};
     }
   };
 
@@ -163,6 +249,7 @@ const CaseStudySubmissionsTab: React.FC<CaseStudySubmissionsTabProps> = ({
       <div className="space-y-4">
         {submissions.map((submission) => {
           const isExpanded = expandedSubmissions.includes(submission.id);
+          const parsedContent = parseFullContent(submission.fullContent);
 
           return (
             <div key={submission.id} className="bg-white border border-gray-200 rounded-lg">
@@ -237,10 +324,14 @@ const CaseStudySubmissionsTab: React.FC<CaseStudySubmissionsTabProps> = ({
                 </div>
                 
                 {isExpanded && (
-                  <div className="mt-6 pt-6 border-t border-gray-200 space-y-4">
+                  <div className="mt-6 pt-6 border-t border-gray-200 space-y-6">
+                    {/* Basic Information */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
-                        <h4 className="font-medium text-gray-900 mb-2">Contact Information</h4>
+                        <h4 className="font-medium text-gray-900 mb-3 flex items-center">
+                          <User className="w-4 h-4 mr-2 text-blue-600" />
+                          Contact Information
+                        </h4>
                         <div className="space-y-2 text-sm">
                           <div><span className="font-medium">Submitted by:</span> {submission.submittedBy || 'Unknown'}</div>
                           <div><span className="font-medium">Institution:</span> {submission.institution}</div>
@@ -253,7 +344,10 @@ const CaseStudySubmissionsTab: React.FC<CaseStudySubmissionsTabProps> = ({
                       </div>
                       
                       <div>
-                        <h4 className="font-medium text-gray-900 mb-2">Submission Details</h4>
+                        <h4 className="font-medium text-gray-900 mb-3 flex items-center">
+                          <Calendar className="w-4 h-4 mr-2 text-blue-600" />
+                          Submission Details
+                        </h4>
                         <div className="space-y-2 text-sm">
                           <div><span className="font-medium">Category:</span> {submission.category}</div>
                           <div><span className="font-medium">Submitted:</span> {formatDate(submission.submissionDate)}</div>
@@ -267,6 +361,171 @@ const CaseStudySubmissionsTab: React.FC<CaseStudySubmissionsTabProps> = ({
                       </div>
                     </div>
 
+                    {/* Patient Demographics */}
+                    {parsedContent.patient_demographics && (
+                      <div>
+                        <h4 className="font-medium text-gray-900 mb-3 flex items-center">
+                          <Users className="w-4 h-4 mr-2 text-green-600" />
+                          Patient Demographics
+                        </h4>
+                        <div className="bg-blue-50 p-4 rounded-lg">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                            {parsedContent.patient_demographics.age_group && (
+                              <div>
+                                <span className="font-medium text-gray-700">Age Group:</span>
+                                <div className="text-gray-600">{parsedContent.patient_demographics.age_group}</div>
+                              </div>
+                            )}
+                            {parsedContent.patient_demographics.gender && (
+                              <div>
+                                <span className="font-medium text-gray-700">Gender:</span>
+                                <div className="text-gray-600">{parsedContent.patient_demographics.gender}</div>
+                              </div>
+                            )}
+                            {parsedContent.patient_demographics.location && (
+                              <div>
+                                <span className="font-medium text-gray-700">Patient Location:</span>
+                                <div className="text-gray-600">{parsedContent.patient_demographics.location}</div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Case Details */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {parsedContent.clinical_presentation && (
+                        <div>
+                          <h4 className="font-medium text-gray-900 mb-2 flex items-center">
+                            <Heart className="w-4 h-4 mr-2 text-red-500" />
+                            Clinical Presentation
+                          </h4>
+                          <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded whitespace-pre-line">
+                            {parsedContent.clinical_presentation}
+                          </p>
+                        </div>
+                      )}
+
+                      {parsedContent.diagnostic_workup && (
+                        <div>
+                          <h4 className="font-medium text-gray-900 mb-2 flex items-center">
+                            <FileText className="w-4 h-4 mr-2 text-purple-600" />
+                            Diagnostic Workup
+                          </h4>
+                          <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded whitespace-pre-line">
+                            {parsedContent.diagnostic_workup}
+                          </p>
+                        </div>
+                      )}
+
+                      {parsedContent.management && (
+                        <div>
+                          <h4 className="font-medium text-gray-900 mb-2 flex items-center">
+                            <Award className="w-4 h-4 mr-2 text-orange-600" />
+                            Management
+                          </h4>
+                          <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded whitespace-pre-line">
+                            {parsedContent.management}
+                          </p>
+                        </div>
+                      )}
+
+                      {parsedContent.outcome && (
+                        <div>
+                          <h4 className="font-medium text-gray-900 mb-2 flex items-center">
+                            <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+                            Outcome
+                          </h4>
+                          <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded whitespace-pre-line">
+                            {parsedContent.outcome}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Lessons Learned and Discussion */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {parsedContent.lesson_learned && (
+                        <div>
+                          <h4 className="font-medium text-gray-900 mb-2 flex items-center">
+                            <Award className="w-4 h-4 mr-2 text-yellow-600" />
+                            Lesson Learned / Key Points
+                          </h4>
+                          <p className="text-sm text-gray-600 bg-yellow-50 p-3 rounded whitespace-pre-line">
+                            {parsedContent.lesson_learned}
+                          </p>
+                        </div>
+                      )}
+
+                      {parsedContent.discussion && (
+                        <div>
+                          <h4 className="font-medium text-gray-900 mb-2">Discussion</h4>
+                          <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded whitespace-pre-line">
+                            {parsedContent.discussion}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Ethics & Consent */}
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-3 flex items-center">
+                        <AlertCircle className="w-4 h-4 mr-2 text-orange-600" />
+                        Ethics & Consent
+                      </h4>
+                      <div className="bg-yellow-50 p-4 rounded-lg">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="font-medium text-gray-700">Ethics Approval:</span>
+                            <span className={`ml-2 px-2 py-1 rounded text-xs ${parsedContent.ethics_approval ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                              {parsedContent.ethics_approval ? 'Yes' : 'No'}
+                            </span>
+                            {parsedContent.ethics_number && (
+                              <div className="mt-1 text-gray-600">Number: {parsedContent.ethics_number}</div>
+                            )}
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-700">Patient Consent:</span>
+                            <span className={`ml-2 px-2 py-1 rounded text-xs ${parsedContent.consent_obtained ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                              {parsedContent.consent_obtained ? 'Obtained' : 'Not Obtained'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Additional Information */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {parsedContent.conflict_of_interest && (
+                        <div>
+                          <h4 className="font-medium text-gray-900 mb-2">Conflict of Interest</h4>
+                          <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded">
+                            {parsedContent.conflict_of_interest}
+                          </p>
+                        </div>
+                      )}
+
+                      {parsedContent.acknowledgments && (
+                        <div>
+                          <h4 className="font-medium text-gray-900 mb-2">Acknowledgments</h4>
+                          <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded">
+                            {parsedContent.acknowledgments}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {parsedContent.references && (
+                      <div>
+                        <h4 className="font-medium text-gray-900 mb-2">References</h4>
+                        <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded whitespace-pre-line">
+                          {parsedContent.references}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Attachments */}
                     <div>
                       <h4 className="font-medium text-gray-900 mb-2">Attachments</h4>
                       <div className="space-y-2">
@@ -291,6 +550,7 @@ const CaseStudySubmissionsTab: React.FC<CaseStudySubmissionsTabProps> = ({
                       </div>
                     )}
                     
+                    {/* Updated Action Buttons */}
                     <div className="flex gap-3 pt-4 flex-wrap">
                       <select
                         value={submission.status}
@@ -304,12 +564,17 @@ const CaseStudySubmissionsTab: React.FC<CaseStudySubmissionsTabProps> = ({
                         <option value="Rejected">Rejected</option>
                       </select>
                       
-                      <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
-                        Add Review Notes
-                      </button>
-                      
-                      <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm">
-                        Contact Submitter
+                      <button 
+                        onClick={() => handleNotifySubmission(submission)}
+                        disabled={updating === submission.id}
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm flex items-center transition-colors disabled:opacity-50"
+                      >
+                        {updating === submission.id ? (
+                          <Loader className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <MessageCircle className="w-4 h-4 mr-2" />
+                        )}
+                        Add Comments & Notify
                       </button>
 
                       <button 
@@ -333,6 +598,65 @@ const CaseStudySubmissionsTab: React.FC<CaseStudySubmissionsTabProps> = ({
           <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No submissions yet</h3>
           <p className="text-gray-500">Case study submissions will appear here for review.</p>
+        </div>
+      )}
+
+      {/* Comments and Notification Modal */}
+      {showNotifyModal && currentSubmission && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg w-full max-w-2xl">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-bold">Add Comments & Notify Submitter</h3>
+                <button 
+                  onClick={() => setShowNotifyModal(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-2">{currentSubmission.title}</h4>
+                  <p className="text-sm text-gray-600">
+                    Submitted by: {currentSubmission.submittedBy}
+                  </p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Comments for Submitter</label>
+                  <textarea
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    rows={6}
+                    value={notificationComments}
+                    onChange={(e) => setNotificationComments(e.target.value)}
+                    placeholder="Add comments or feedback for the submitter (optional)..."
+                  />
+                </div>
+              </div>
+              
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  onClick={() => setShowNotifyModal(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSendNotification}
+                  disabled={updating === currentSubmission.id}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50 flex items-center transition-colors"
+                >
+                  {updating === currentSubmission.id && (
+                    <Loader className="w-4 h-4 mr-2 animate-spin" />
+                  )}
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  Notify Submitter
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
