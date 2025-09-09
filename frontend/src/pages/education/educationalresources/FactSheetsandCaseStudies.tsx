@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Download,
@@ -18,6 +18,7 @@ import ScrollToTop from "../../../components/common/ScrollToTop";
 import {
   EducationalResource,
   educationalResourcesApi,
+  CaseStudySubmission,
 } from "../../../services/educationalResourcesApi";
 
 const FactSheetsAndCaseStudies = () => {
@@ -28,14 +29,13 @@ const FactSheetsAndCaseStudies = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [factSheets, setFactSheets] = useState<EducationalResource[]>([]);
+  const [caseStudies, setCaseStudies] = useState<CaseStudySubmission[]>([]);
   const [categories, setCategories] = useState<string[]>(["all"]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [visibleFactSheets, setVisibleFactSheets] = useState(9);
 
-  // Case studies count for display (would be passed from CaseStudies component in real app)
-  const caseStudiesCount = 3;
-
+  // Case study categories for filtering
   const caseStudyCategories = [
     "all",
     "Epilepsy Care",
@@ -52,16 +52,28 @@ const FactSheetsAndCaseStudies = () => {
         setLoading(true);
         setError(null);
         
-        // Fetch fact sheets (filter by type = 'Fact Sheet' and status = 'Published')
-        const [factSheetsData, categoriesData] = await Promise.all([
+        // Fetch fact sheets and case studies in parallel
+        const [factSheetsData, categoriesData, caseStudiesData] = await Promise.all([
           educationalResourcesApi.getAll({ 
             type: 'Fact Sheet', 
             status: 'Published' 
           }),
           educationalResourcesApi.getCategories(),
+          // Fetch case studies with either 'Approved' or 'Published' status
+          Promise.all([
+            educationalResourcesApi.getSubmissions({ status: 'Approved' }).catch(() => []),
+            educationalResourcesApi.getSubmissions({ status: 'Published' }).catch(() => [])
+          ]).then(([approved, published]) => {
+            // Combine and deduplicate
+            const allStudies = [...approved, ...published];
+            return allStudies.filter((study, index, self) => 
+              index === self.findIndex(s => s.id === study.id)
+            );
+          })
         ]);
 
         setFactSheets(factSheetsData);
+        setCaseStudies(caseStudiesData);
         setCategories(["all", ...categoriesData]);
       } catch (err) {
         setError(
@@ -92,10 +104,6 @@ const FactSheetsAndCaseStudies = () => {
 
   const loadMoreFactSheets = () => {
     setVisibleFactSheets((prev) => prev + 9);
-  };
-
-  const handleFactSheetClick = (factSheetId: number) => {
-    navigate(`/resources/fact-sheets/${factSheetId}`);
   };
 
   const handleViewMoreClick = async (factSheet: EducationalResource) => {
@@ -175,7 +183,7 @@ const FactSheetsAndCaseStudies = () => {
             </div>
             <div className="flex items-center text-gray-600">
               <Users className="w-5 h-5 mr-2 text-red-600" />
-              <span>{caseStudiesCount} Case Studies Documented</span>
+              <span>{caseStudies.length} Case Studies Documented</span>
             </div>
           </div>
         </div>
@@ -246,7 +254,7 @@ const FactSheetsAndCaseStudies = () => {
                 className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent"
               >
                 {(activeTab === "factsheets" ? categories : caseStudyCategories).map(
-                  (category) => (
+                  (category: string) => (
                     <option key={category} value={category}>
                       {category === "all" ? "All Categories" : category}
                     </option>
