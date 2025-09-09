@@ -90,6 +90,19 @@ const CaseStudySubmissionsTab: React.FC<CaseStudySubmissionsTabProps> = ({
   const [notificationComments, setNotificationComments] = useState('');
   const [updating, setUpdating] = useState<number | null>(null);
 
+  // Alert modal state for notifications
+  const [alertModal, setAlertModal] = useState<{
+    isOpen: boolean;
+    type: 'success' | 'error' | 'confirm';
+    title: string;
+    message: string;
+  }>({
+    isOpen: false,
+    type: 'success',
+    title: '',
+    message: ''
+  });
+
   const getSubmissionStatusColor = (status: string) => {
     switch (status) {
       case 'Approved':
@@ -104,6 +117,24 @@ const CaseStudySubmissionsTab: React.FC<CaseStudySubmissionsTabProps> = ({
       default:
         return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const showAlert = (type: 'success' | 'error', title: string, message: string) => {
+    setAlertModal({
+      isOpen: true,
+      type,
+      title,
+      message
+    });
+  };
+
+  const closeAlert = () => {
+    setAlertModal({
+      isOpen: false,
+      type: 'success',
+      title: '',
+      message: ''
+    });
   };
 
   const toggleSubmissionExpansion = (id: number) => {
@@ -127,8 +158,11 @@ const CaseStudySubmissionsTab: React.FC<CaseStudySubmissionsTabProps> = ({
             : submission
         )
       );
+      
+      showAlert('success', 'Status Updated', `Submission status updated to "${newStatus}" successfully.`);
     } catch (error) {
       console.error('Failed to update submission status:', error);
+      showAlert('error', 'Update Failed', 'Failed to update submission status. Please try again.');
     }
   };
 
@@ -157,8 +191,10 @@ const CaseStudySubmissionsTab: React.FC<CaseStudySubmissionsTabProps> = ({
       setSubmissions(prev => prev.filter(submission => submission.id !== deleteModal.submissionId));
       
       closeDeleteModal();
+      showAlert('success', 'Submission Deleted', 'The submission has been deleted successfully.');
     } catch (error) {
       console.error('Failed to delete submission:', error);
+      showAlert('error', 'Delete Failed', 'Failed to delete the submission. Please try again.');
     }
   };
 
@@ -170,32 +206,45 @@ const CaseStudySubmissionsTab: React.FC<CaseStudySubmissionsTabProps> = ({
 
   const handleSendNotification = async () => {
     if (!currentSubmission) return;
-
+  
     try {
       setUpdating(currentSubmission.id);
       
-      // Update the submission with comments and send notification
-      const updatedSubmission = await educationalResourcesApi.updateSubmissionStatus(
+      // Use the new combined endpoint
+      const result = await educationalResourcesApi.addCommentsAndNotify(
         currentSubmission.id, 
-        currentSubmission.status, 
         notificationComments,
-        'Admin' // You might want to get the current user's name
+        'Admin' 
       );
       
-      // Update local state
-      setSubmissions(prev => 
-        prev.map(submission => 
-          submission.id === currentSubmission.id
-            ? { ...updatedSubmission, reviewNotes: notificationComments, lastUpdated: new Date().toISOString().split('T')[0] }
-            : submission
-        )
-      );
-      
-      setShowNotifyModal(false);
-      // You might want to show a success message here
+      if (result.success && result.submission) {
+        // Update local state with the returned submission data
+        setSubmissions(prev => 
+          prev.map(submission => 
+            submission.id === currentSubmission.id
+              ? { 
+                  ...submission, // Keep all existing properties
+                  reviewNotes: notificationComments, 
+                  reviewedBy: 'Admin',
+                  // Only update the fields that we know exist
+                  status: result.submission?.status || submission.status,
+                  reviewDate: result.submission?.reviewDate || submission.reviewDate,
+                  // Add other fields as needed
+                }
+              : submission
+          )
+        );
+        
+        // Close modal and show success
+        setShowNotifyModal(false);
+        setNotificationComments('');
+        showAlert('success', 'Comments Updated', 'Comments updated and notification sent successfully!');
+      } else {
+        showAlert('error', 'Notification Failed', `Failed to send notification: ${result.message}`);
+      }
     } catch (error) {
       console.error('Error sending notification:', error);
-      // You might want to show an error message here
+      showAlert('error', 'Notification Error', 'Failed to send notification. Please try again.');
     } finally {
       setUpdating(null);
     }
@@ -236,6 +285,17 @@ const CaseStudySubmissionsTab: React.FC<CaseStudySubmissionsTabProps> = ({
         confirmText="Delete"
         cancelText="Cancel"
         showCancel={true}
+      />
+
+      {/* Alert Modal for notifications */}
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        onClose={closeAlert}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+        confirmText="OK"
+        showCancel={false}
       />
 
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">

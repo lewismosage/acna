@@ -14,6 +14,9 @@ from .serializers import (
 )
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
+from django.conf import settings
+from django.template.loader import render_to_string
+from django.core.mail import EmailMultiAlternatives
 import logging
 import uuid
 import json
@@ -749,3 +752,51 @@ class CaseStudySubmissionViewSet(viewsets.ModelViewSet):
                 {'error': f'Failed to delete submission: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+    @action(detail=True, methods=['post'])
+    def add_comments_and_notify(self, request, pk=None):
+        """Add comments and send notification to submitter"""
+        submission = self.get_object()
+        comments = request.data.get('review_notes', '')
+        reviewed_by = request.data.get('reviewed_by', '')
+        
+        # Update comments if provided
+        if comments.strip():
+            submission.review_notes = comments
+            submission.reviewed_by = reviewed_by
+            submission.save()
+        
+        try:
+            # Send email notification
+            subject = f"Case Study Status Update: {submission.title}"
+            from_email = settings.DEFAULT_FROM_EMAIL
+            to = [submission.email]
+            
+            context = {
+                'submission': submission,
+                'status': submission.status,
+                'review_notes': submission.review_notes,
+                'reviewed_by': submission.reviewed_by or 'Admin',
+            }
+            
+            html_content = render_to_string('emails/case_study_status_notification.html', context)
+            text_content = render_to_string('emails/case_study_status_notification.txt', context)
+            
+            msg = EmailMultiAlternatives(subject, text_content, from_email, to)
+            msg.attach_alternative(html_content, "text/html")
+            msg.send()
+            
+            # Return updated submission data
+            serializer = self.get_serializer(submission)
+            return Response({
+                'success': True,
+                'message': f'Comments updated and notification sent to {submission.email}',
+                'submission': serializer.data
+            })
+            
+        except Exception as e:
+            logger.error(f"Failed to send notification: {str(e)}")
+            return Response({
+                'success': False,
+                'error': 'Failed to send notification'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

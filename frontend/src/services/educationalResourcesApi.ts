@@ -616,6 +616,24 @@ export const educationalResourcesApi = {
     return Array.isArray(data) ? data.map(normalizeCaseStudySubmission) : [];
   },
 
+  addCommentsAndNotify: async (
+    id: number, 
+    reviewNotes: string, 
+    reviewedBy?: string
+  ): Promise<{success: boolean; message: string; submission?: CaseStudySubmission}> => {
+    const body: any = { review_notes: reviewNotes };
+    if (reviewedBy) body.reviewed_by = reviewedBy;
+    
+    const response = await fetch(`${API_BASE_URL}/case-study-submissions/${id}/add_comments_and_notify/`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(body),
+    });
+    
+    const result = await handleResponse(response);
+    return result;
+  },
+
   // ========== CASE REPORT SUBMISSIONS ==========
   
   submitCaseReport: async (data: CaseReportSubmissionInput): Promise<any> => {

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Case Study Status Update</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f9f9f9;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 30px;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        .status-pending-review { background-color: #9ca3af; color: white; }
+        .status-under-review { background-color: #3b82f6; color: white; }
+        .status-approved { background-color: #10b981; color: white; }
+        .status-published { background-color: #059669; color: white; }
+        .status-rejected { background-color: #ef4444; color: white; }
+        .case-study-details {
+            background-color: #f8fafc;
+            border-left: 4px solid #3b82f6;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .comments-section {
+            background-color: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .footer {
+            background-color: #f1f5f9;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #64748b;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #3b82f6;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            margin: 20px 0;
+        }
+        .button:hover {
+            background-color: #2563eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>ACNA Case Study Repository</h1>
+            <p>Healthcare Education Resources</p>
+        </div>
+        
+        <div class="content">
+            <h2>Case Study Status Update</h2>
+            <p>Dear {{ submission.submitted_by }},</p>
+            
+            <p>We are writing to inform you about the status of your case study submission:</p>
+            
+            <div class="status-badge status-{{ submission.status|slugify }}">
+                Status: {{ submission.status }}
+            </div>
+            
+            <div class="case-study-details">
+                <h3>Case Study Details:</h3>
+                <p><strong>Title:</strong> {{ submission.title }}</p>
+                <p><strong>Submission ID:</strong> #{{ submission.id }}</p>
+                <p><strong>Category:</strong> {{ submission.category }}</p>
+                <p><strong>Submitted Date:</strong> {{ submission.submission_date }}</p>
+                {% if submission.review_date %}
+                <p><strong>Review Date:</strong> {{ submission.review_date }}</p>
+                {% endif %}
+                {% if submission.reviewed_by %}
+                <p><strong>Reviewed by:</strong> {{ submission.reviewed_by }}</p>
+                {% endif %}
+            </div>
+
+            {% if review_notes %}
+            <div class="comments-section">
+                <h3>Reviewer Comments:</h3>
+                <p>{{ review_notes }}</p>
+            </div>
+            {% endif %}
+
+            <p>
+                {% if submission.status == 'Approved' or submission.status == 'Published' %}
+                Congratulations! Your case study has been approved for inclusion in the ACNA Case Study Repository. 
+                Healthcare professionals across Africa will benefit from your valuable contribution.
+                {% elif submission.status == 'Rejected' %}
+                Thank you for your submission. Unfortunately, your case study was not accepted for publication 
+                at this time. We encourage you to review the feedback and consider submitting again in the future.
+                {% elif submission.status == 'Under Review' %}
+                Your case study is currently under review by our medical education team. 
+                We will notify you of any further updates or if additional information is needed.
+                {% else %}
+                Your case study has been received and is pending initial review. 
+                We appreciate your contribution to African healthcare education.
+                {% endif %}
+            </p>
+
+            <div style="text-align: center;">
+                <a href="{{ site_url }}" class="button">View Case Study Details</a>
+            </div>
+
+            <p>If you have any questions, please contact our case study review team at cases@acna.org.</p>
+            
+            <p>Best regards,<br>
+            ACNA Case Study Review Committee<br>
+            cases@acna.org</p>
+        </div>
+        
+        <div class="footer">
+            <p>© 2026 African Child Neurology Association. All rights reserved.</p>
+            <p>This is an automated message. Please do not reply to this email.</p>
+        </div>
+    </div>
+</body>
+</html>

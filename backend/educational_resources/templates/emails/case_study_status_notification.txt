@@ -1,0 +1,45 @@
+Case Study Status Update
+
+Dear {{ submission.submitted_by }},
+
+We are writing to inform you about the status of your case study submission:
+
+Status: {{ submission.status }}
+
+Case Study Details:
+Title: {{ submission.title }}
+Submission ID: #{{ submission.id }}
+Category: {{ submission.category }}
+Submitted Date: {{ submission.submission_date }}
+{% if submission.review_date %}Review Date: {{ submission.review_date }}{% endif %}
+{% if submission.reviewed_by %}Reviewed by: {{ submission.reviewed_by }}{% endif %}
+
+{% if review_notes %}
+Reviewer Comments:
+{{ review_notes }}
+{% endif %}
+
+{% if submission.status == 'Approved' or submission.status == 'Published' %}
+Congratulations! Your case study has been approved for inclusion in the ACNA Case Study Repository. 
+Healthcare professionals across Africa will benefit from your valuable contribution.
+{% elif submission.status == 'Rejected' %}
+Thank you for your submission. Unfortunately, your case study was not accepted for publication 
+at this time. We encourage you to review the feedback and consider submitting again in the future.
+{% elif submission.status == 'Under Review' %}
+Your case study is currently under review by our medical education team. 
+We will notify you of any further updates or if additional information is needed.
+{% else %}
+Your case study has been received and is pending initial review. 
+We appreciate your contribution to African healthcare education.
+{% endif %}
+
+View your case study details: {{ site_url }}
+
+If you have any questions, please contact our case study review team at cases@acna.org.
+
+Best regards,
+ACNA Case Study Review Committee
+cases@acna.org
+
+© 2026 African Child Neurology Association. All rights reserved.
+This is an automated message. Please do not reply to this email.
