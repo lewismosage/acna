@@ -6,29 +6,32 @@ import {
   Mail, 
   Tag, 
   Download, 
-  Users 
+  Users,
+  Trash2 
 } from 'lucide-react';
+import { educationalResourcesApi } from '../../../../services/educationalResourcesApi'; 
+import AlertModal from '../../../../components/common/AlertModal';
 
 interface CaseStudySubmission {
   id: number;
   title: string;
-  submittedBy: string;
+  submittedBy: string; 
   institution: string;
   email: string;
   phone?: string;
   location: string;
   category: string;
-  submissionDate: string;
+  submissionDate: string; 
   status: 'Pending Review' | 'Under Review' | 'Approved' | 'Published' | 'Rejected';
   excerpt: string;
-  fullContent?: string;
+  fullContent?: string; 
   attachments: string[];
-  reviewNotes?: string;
-  reviewedBy?: string;
-  reviewDate?: string;
-  publishedDate?: string;
+  reviewNotes?: string; 
+  reviewedBy?: string; 
+  reviewDate?: string; 
+  publishedDate?: string; 
   impact?: string;
-  imageUrl?: string;
+  imageUrl?: string; 
 }
 
 interface CaseStudySubmissionsTabProps {
@@ -41,6 +44,15 @@ const CaseStudySubmissionsTab: React.FC<CaseStudySubmissionsTabProps> = ({
   setSubmissions
 }) => {
   const [expandedSubmissions, setExpandedSubmissions] = useState<number[]>([]);
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean;
+    submissionId: number | null;
+    submissionTitle: string;
+  }>({
+    isOpen: false,
+    submissionId: null,
+    submissionTitle: ''
+  });
 
   const getSubmissionStatusColor = (status: string) => {
     switch (status) {
@@ -66,18 +78,80 @@ const CaseStudySubmissionsTab: React.FC<CaseStudySubmissionsTabProps> = ({
     );
   };
 
-  const handleStatusChange = (submissionId: number, newStatus: string) => {
-    setSubmissions(prev =>
-      prev.map(submission =>
-        submission.id === submissionId
-          ? { ...submission, status: newStatus as CaseStudySubmission['status'] }
-          : submission
-      )
-    );
+  const handleStatusChange = async (submissionId: number, newStatus: string) => {
+    try {
+      // Update status via API
+      await educationalResourcesApi.updateSubmissionStatus(submissionId, newStatus);
+      
+      // Update local state
+      setSubmissions(prev =>
+        prev.map(submission =>
+          submission.id === submissionId
+            ? { ...submission, status: newStatus as CaseStudySubmission['status'] }
+            : submission
+        )
+      );
+    } catch (error) {
+      console.error('Failed to update submission status:', error);
+    }
+  };
+
+  const openDeleteModal = (submissionId: number, submissionTitle: string) => {
+    setDeleteModal({
+      isOpen: true,
+      submissionId,
+      submissionTitle
+    });
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteModal({
+      isOpen: false,
+      submissionId: null,
+      submissionTitle: ''
+    });
+  };
+
+  const handleDeleteSubmission = async () => {
+    if (!deleteModal.submissionId) return;
+
+    try {
+      await educationalResourcesApi.deleteSubmission(deleteModal.submissionId);
+      
+      setSubmissions(prev => prev.filter(submission => submission.id !== deleteModal.submissionId));
+      
+      closeDeleteModal();
+    } catch (error) {
+      console.error('Failed to delete submission:', error);
+    }
+  };
+
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return 'N/A';
+    try {
+      // Handle both ISO string and date-only formats
+      const date = new Date(dateString);
+      return date.toLocaleDateString();
+    } catch (error) {
+      return dateString;
+    }
   };
 
   return (
     <div className="space-y-6">
+      {/* Alert Modal for delete confirmation */}
+      <AlertModal
+        isOpen={deleteModal.isOpen}
+        onClose={closeDeleteModal}
+        onConfirm={handleDeleteSubmission}
+        title="Delete Submission"
+        message={`Are you sure you want to delete the submission "${deleteModal.submissionTitle}"? This action cannot be undone.`}
+        type="confirm"
+        confirmText="Delete"
+        cancelText="Cancel"
+        showCancel={true}
+      />
+
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <h3 className="font-medium text-blue-900 mb-2">Case Study Submissions</h3>
         <p className="text-blue-700 text-sm">
@@ -89,7 +163,7 @@ const CaseStudySubmissionsTab: React.FC<CaseStudySubmissionsTabProps> = ({
       <div className="space-y-4">
         {submissions.map((submission) => {
           const isExpanded = expandedSubmissions.includes(submission.id);
-          
+
           return (
             <div key={submission.id} className="bg-white border border-gray-200 rounded-lg">
               <div className="p-6">
@@ -106,11 +180,13 @@ const CaseStudySubmissionsTab: React.FC<CaseStudySubmissionsTabProps> = ({
                       <div className="space-y-2">
                         <div className="flex items-center">
                           <User className="w-4 h-4 mr-2 text-gray-400" />
-                          <span className="font-medium">{submission.submittedBy}</span>
+                          <span className="font-medium">
+                            {submission.submittedBy || 'Unknown Submitter'}
+                          </span>
                         </div>
                         <div className="flex items-center">
                           <Calendar className="w-4 h-4 mr-2 text-gray-400" />
-                          <span>{submission.submissionDate}</span>
+                          <span>{formatDate(submission.submissionDate)}</span>
                         </div>
                         {submission.phone && (
                           <div className="flex items-center">
@@ -147,7 +223,7 @@ const CaseStudySubmissionsTab: React.FC<CaseStudySubmissionsTabProps> = ({
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-gray-500">
-                          {submission.attachments.length} attachment{submission.attachments.length !== 1 ? 's' : ''}
+                          {submission.attachments?.length || 0} attachment{(submission.attachments?.length || 0) !== 1 ? 's' : ''}
                         </span>
                       </div>
                       <button
@@ -166,26 +242,45 @@ const CaseStudySubmissionsTab: React.FC<CaseStudySubmissionsTabProps> = ({
                       <div>
                         <h4 className="font-medium text-gray-900 mb-2">Contact Information</h4>
                         <div className="space-y-2 text-sm">
+                          <div><span className="font-medium">Submitted by:</span> {submission.submittedBy || 'Unknown'}</div>
                           <div><span className="font-medium">Institution:</span> {submission.institution}</div>
                           <div><span className="font-medium">Email:</span> {submission.email}</div>
                           {submission.phone && (
                             <div><span className="font-medium">Phone:</span> {submission.phone}</div>
                           )}
+                          <div><span className="font-medium">Location:</span> {submission.location}</div>
                         </div>
                       </div>
                       
                       <div>
-                        <h4 className="font-medium text-gray-900 mb-2">Attachments</h4>
-                        <div className="space-y-2">
-                          {submission.attachments.map((attachment, index) => (
-                            <div key={index} className="flex items-center justify-between text-sm">
-                              <span className="text-gray-600">{attachment}</span>
-                              <button className="text-blue-600 hover:text-blue-800">
-                                <Download className="w-4 h-4" />
-                              </button>
-                            </div>
-                          ))}
+                        <h4 className="font-medium text-gray-900 mb-2">Submission Details</h4>
+                        <div className="space-y-2 text-sm">
+                          <div><span className="font-medium">Category:</span> {submission.category}</div>
+                          <div><span className="font-medium">Submitted:</span> {formatDate(submission.submissionDate)}</div>
+                          {submission.reviewDate && (
+                            <div><span className="font-medium">Reviewed:</span> {formatDate(submission.reviewDate)}</div>
+                          )}
+                          {submission.reviewedBy && (
+                            <div><span className="font-medium">Reviewed by:</span> {submission.reviewedBy}</div>
+                          )}
                         </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-2">Attachments</h4>
+                      <div className="space-y-2">
+                        {(submission.attachments || []).map((attachment, index) => (
+                          <div key={index} className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600">{attachment}</span>
+                            <button className="text-blue-600 hover:text-blue-800">
+                              <Download className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                        {(!submission.attachments || submission.attachments.length === 0) && (
+                          <p className="text-sm text-gray-500">No attachments</p>
+                        )}
                       </div>
                     </div>
                     
@@ -196,7 +291,7 @@ const CaseStudySubmissionsTab: React.FC<CaseStudySubmissionsTabProps> = ({
                       </div>
                     )}
                     
-                    <div className="flex gap-3 pt-4">
+                    <div className="flex gap-3 pt-4 flex-wrap">
                       <select
                         value={submission.status}
                         onChange={(e) => handleStatusChange(submission.id, e.target.value)}
@@ -215,6 +310,14 @@ const CaseStudySubmissionsTab: React.FC<CaseStudySubmissionsTabProps> = ({
                       
                       <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm">
                         Contact Submitter
+                      </button>
+
+                      <button 
+                        onClick={() => openDeleteModal(submission.id, submission.title)}
+                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm flex items-center gap-2"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Delete
                       </button>
                     </div>
                   </div>

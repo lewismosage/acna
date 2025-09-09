@@ -648,6 +648,36 @@ class CaseStudySubmissionViewSet(viewsets.ModelViewSet):
     ordering_fields = ['submission_date', 'review_date', 'published_date']
     ordering = ['-submission_date']
 
+    def create(self, request, *args, **kwargs):
+        """Override create to add debugging and proper handling"""
+        try:
+            # Log the incoming data
+            logger.info(f"Creating case study submission with data: {request.data}")
+            
+            # Create the serializer with the data
+            serializer = self.get_serializer(data=request.data)
+            
+            # Check if data is valid
+            if not serializer.is_valid():
+                logger.error(f"Validation errors: {serializer.errors}")
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Save the instance
+            instance = serializer.save()
+            logger.info(f"Created submission with ID: {instance.id}, submitted_by: {instance.submitted_by}")
+            
+            # Return the created instance
+            response_serializer = self.get_serializer(instance)
+            return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            logger.error(f"Error creating case study submission: {str(e)}")
+            logger.error(traceback.format_exc())
+            return Response(
+                {'error': f'Failed to create submission: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
     @action(detail=True, methods=['patch'])
     def update_status(self, request, pk=None):
         """Update case study submission status"""
@@ -704,5 +734,18 @@ class CaseStudySubmissionViewSet(viewsets.ModelViewSet):
             logger.error(f"Error fetching pending submissions: {str(e)}")
             return Response(
                 {'error': f'Failed to fetch pending submissions: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    def destroy(self, request, *args, **kwargs):
+        """Delete a case study submission"""
+        try:
+            instance = self.get_object()
+            instance.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Exception as e:
+            logger.error(f"Error deleting submission: {str(e)}")
+            return Response(
+                {'error': f'Failed to delete submission: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )

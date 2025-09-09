@@ -223,23 +223,27 @@ const normalizeCaseStudySubmission = (backendSubmission: any): CaseStudySubmissi
   return {
     id: backendSubmission.id || 0,
     title: backendSubmission.title || '',
-    submittedBy: backendSubmission.submitted_by || '',
+    submittedBy: backendSubmission.submittedBy || backendSubmission.submitted_by || '',
     institution: backendSubmission.institution || '',
     email: backendSubmission.email || '',
     phone: backendSubmission.phone,
     location: backendSubmission.location || '',
     category: backendSubmission.category || '',
     excerpt: backendSubmission.excerpt || '',
-    fullContent: backendSubmission.full_content,
+    fullContent: backendSubmission.fullContent || backendSubmission.full_content,
     impact: backendSubmission.impact,
     status: backendSubmission.status || 'Pending Review',
-    reviewNotes: backendSubmission.review_notes,
-    reviewedBy: backendSubmission.reviewed_by,
+    reviewNotes: backendSubmission.reviewNotes || backendSubmission.review_notes,
+    reviewedBy: backendSubmission.reviewedBy || backendSubmission.reviewed_by,
     attachments: safeArray(backendSubmission.attachments),
-    imageUrl: backendSubmission.image_url,
-    submissionDate: backendSubmission.submission_date?.split('T')[0] || new Date().toISOString().split('T')[0],
-    reviewDate: backendSubmission.review_date?.split('T')[0],
-    publishedDate: backendSubmission.published_date?.split('T')[0],
+    imageUrl: backendSubmission.imageUrl || backendSubmission.image_url,
+    submissionDate: backendSubmission.submissionDate || 
+                   (backendSubmission.submission_date?.split('T')[0]) || 
+                   new Date().toISOString().split('T')[0],
+    reviewDate: backendSubmission.reviewDate || 
+                (backendSubmission.review_date?.split('T')[0]),
+    publishedDate: backendSubmission.publishedDate || 
+                   (backendSubmission.published_date?.split('T')[0]),
   };
 };
 
@@ -616,10 +620,10 @@ export const educationalResourcesApi = {
   
   submitCaseReport: async (data: CaseReportSubmissionInput): Promise<any> => {
     try {
-      // Prepare the case study submission data
+      // Prepare the case study submission data in the format backend expects (snake_case)
       const submissionData = {
         title: data.title,
-        submitted_by: data.submittedBy,
+        submitted_by: data.submittedBy,  // Convert to snake_case
         institution: data.institution,
         email: data.email,
         phone: data.phone || '',
@@ -627,34 +631,51 @@ export const educationalResourcesApi = {
         category: data.category,
         excerpt: data.excerpt,
         full_content: JSON.stringify({
-          patientDemographics: data.patientDemographics,
-          clinicalPresentation: data.clinicalPresentation,
-          diagnosticWorkup: data.diagnosticWorkup,
+          patient_demographics: {  // Convert to snake_case
+            age_group: data.patientDemographics.ageGroup,
+            gender: data.patientDemographics.gender,
+            location: data.patientDemographics.location
+          },
+          clinical_presentation: data.clinicalPresentation,
+          diagnostic_workup: data.diagnosticWorkup,
           management: data.management,
           outcome: data.outcome,
-          lessonLearned: data.lessonLearned,
+          lesson_learned: data.lessonLearned,
           discussion: data.discussion || '',
-          ethicsApproval: data.ethicsApproval,
-          ethicsNumber: data.ethicsNumber || '',
-          consentObtained: data.consentObtained,
-          conflictOfInterest: data.conflictOfInterest || '',
+          ethics_approval: data.ethicsApproval,
+          ethics_number: data.ethicsNumber || '',
+          consent_obtained: data.consentObtained,
+          conflict_of_interest: data.conflictOfInterest || '',
           acknowledgments: data.acknowledgments || '',
-          references: data.references || ''
+          references: data.references || '',
+          declaration: data.declaration,
+          impact: data.impact || ''
         }),
         impact: data.impact || '',
-        attachments: data.attachments.map(file => file.name), // For now, just file names
+        attachments: data.attachments.map(file => file.name),
         status: 'Pending Review'
       };
-
+  
+      console.log('Submitting case report:', submissionData);
+      console.log('Data being sent to backend:', submissionData);
+      console.log('Specifically submitted_by:', submissionData.submitted_by);
+  
       const response = await fetch(`${API_BASE_URL}/case-study-submissions/`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify(submissionData),
       });
       
-      const result = await handleResponse(response);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Backend error response:', errorData);
+        throw new Error(errorData.error || errorData.detail || `HTTP error! status: ${response.status}`);
+      }
+      
+      const result = await response.json();
       return result;
     } catch (error: any) {
+      console.error('Error in submitCaseReport:', error);
       throw new Error(error.message || 'Failed to submit case report');
     }
   },

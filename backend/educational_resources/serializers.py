@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import EducationalResource, CaseStudySubmission, ResourceView, ResourceDownload
 import json
 from django.core.files.storage import default_storage
+from django.utils import timezone
 
 
 class EducationalResourceSerializer(serializers.ModelSerializer):
@@ -44,18 +45,8 @@ class EducationalResourceSerializer(serializers.ModelSerializer):
     
     def validate_languages(self, value):
         """Ensure languages is a list of non-empty strings"""
-        if isinstance(value, str):
-            try:
-                value = json.loads(value)
-            except json.JSONDecodeError:
-                value = [value] if value.strip() else []
-        
-        if not isinstance(value, list):
-            raise serializers.ValidationError("Languages must be a list")
-        
-        return [str(lang).strip() for lang in value if str(lang).strip()]
+        return self._validate_json_array(value, "Languages")
     
-    # Similar validation methods for other JSON fields
     def validate_tags(self, value):
         return self._validate_json_array(value, "Tags")
     
@@ -89,20 +80,16 @@ class EducationalResourceSerializer(serializers.ModelSerializer):
     
     def create(self, validated_data):
         """Create a new resource with proper file handling"""
-        # Handle file uploads
         image_file = validated_data.pop('image', None)
         resource_file = validated_data.pop('file', None)
         
-        # Create the resource
         resource = EducationalResource.objects.create(**validated_data)
         
-        # Handle file uploads after creation
         if image_file:
             resource.image = image_file
-            
         if resource_file:
             resource.file = resource_file
-            
+        
         if image_file or resource_file:
             resource.save()
             
@@ -110,17 +97,13 @@ class EducationalResourceSerializer(serializers.ModelSerializer):
     
     def update(self, instance, validated_data):
         """Update a resource with proper file handling"""
-        # Handle file uploads
         image_file = validated_data.pop('image', None)
         resource_file = validated_data.pop('file', None)
         
-        # Update regular fields
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         
-        # Handle file uploads
         if image_file:
-            # Delete old image if it exists
             if instance.image:
                 try:
                     instance.image.delete(save=False)
@@ -129,7 +112,6 @@ class EducationalResourceSerializer(serializers.ModelSerializer):
             instance.image = image_file
             
         if resource_file:
-            # Delete old file if it exists
             if instance.file:
                 try:
                     instance.file.delete(save=False)
@@ -144,7 +126,6 @@ class EducationalResourceSerializer(serializers.ModelSerializer):
         """Convert snake_case to camelCase for frontend"""
         data = super().to_representation(instance)
         
-        # Rename fields for frontend compatibility
         camel_case_mapping = {
             'resource_type': 'type',
             'full_description': 'fullDescription',
@@ -185,35 +166,92 @@ class CaseStudySubmissionSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'title', 'submitted_by', 'institution', 'email', 'phone',
             'location', 'category', 'excerpt', 'full_content', 'impact',
-            'status', 'review_notes', 'reviewed_by', 'attachments',
-            'image_url', 'submission_date', 'review_date', 'published_date'
+            'status', 'review_notes', 'reviewed_by', 'attachments', 'image_url',
+            'submission_date', 'review_date', 'published_date'
         ]
-        read_only_fields = ['id', 'submission_date']
-    
+        read_only_fields = ['id', 'submission_date', 'review_date', 'published_date']
+
+    def validate_attachments(self, value):
+        """Ensure attachments is a valid list"""
+        if isinstance(value, str):
+            try:
+                value = json.loads(value)
+            except json.JSONDecodeError:
+                value = [value] if value.strip() else []
+        
+        if not isinstance(value, list):
+            raise serializers.ValidationError("Attachments must be a list")
+        
+        return [str(attachment).strip() for attachment in value if str(attachment).strip()]
+
+    def create(self, validated_data):
+        """Handle creation with proper field mapping"""
+        return CaseStudySubmission.objects.create(**validated_data)
+
+    def update(self, instance, validated_data):
+        """Handle update with proper field mapping"""
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        
+        # Update review/published dates based on status changes
+        if 'status' in validated_data:
+            new_status = validated_data['status']
+            if new_status in ['Approved', 'Published', 'Rejected'] and not instance.review_date:
+                instance.review_date = timezone.now()
+            if new_status == 'Published' and not instance.published_date:
+                instance.published_date = timezone.now()
+        
+        instance.save()
+        return instance
+
     def to_representation(self, instance):
-        """Convert snake_case to camelCase for frontend"""
+        """Convert to camelCase for frontend response"""
         data = super().to_representation(instance)
         
-        # Rename fields for frontend compatibility
-        camel_case_mapping = {
-            'submitted_by': 'submittedBy',
-            'full_content': 'fullContent',
-            'review_notes': 'reviewNotes',
-            'reviewed_by': 'reviewedBy',
-            'image_url': 'imageUrl',
-            'submission_date': 'submissionDate',
-            'review_date': 'reviewDate',
-            'published_date': 'publishedDate',
+        # Convert snake_case to camelCase for frontend
+        return {
+            'id': data['id'],
+            'title': data['title'],
+            'submittedBy': data['submitted_by'], 
+            'institution': data['institution'],
+            'email': data['email'],
+            'phone': data.get('phone'),
+            'location': data['location'],
+            'category': data['category'],
+            'excerpt': data['excerpt'],
+            'fullContent': data.get('full_content'),
+            'impact': data.get('impact'),
+            'status': data['status'],
+            'reviewNotes': data.get('review_notes'),
+            'reviewedBy': data.get('reviewed_by'),
+            'attachments': data.get('attachments', []),
+            'imageUrl': data.get('image_url'),
+            'submissionDate': data.get('submission_date'),
+            'reviewDate': data.get('review_date'),
+            'publishedDate': data.get('published_date'),
+        }
+
+    def to_internal_value(self, data):
+        """Convert camelCase to snake_case for backend processing"""
+        field_mapping = {
+            'submittedBy': 'submitted_by',
+            'fullContent': 'full_content',
+            'reviewNotes': 'review_notes',
+            'reviewedBy': 'reviewed_by',
+            'imageUrl': 'image_url',
+            'submissionDate': 'submission_date',
+            'reviewDate': 'review_date',
+            'publishedDate': 'published_date'
         }
         
-        result = {}
+        converted_data = {}
         for key, value in data.items():
-            if key in camel_case_mapping:
-                result[camel_case_mapping[key]] = value
+            if key in field_mapping:
+                converted_data[field_mapping[key]] = value
             else:
-                result[key] = value
+                converted_data[key] = value
         
-        return result
+        return super().to_internal_value(converted_data)
 
 
 class ResourceAnalyticsSerializer(serializers.Serializer):

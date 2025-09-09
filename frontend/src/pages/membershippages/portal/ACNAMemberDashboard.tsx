@@ -382,48 +382,8 @@ const ACNAMemberDashboard = () => {
     }));
   };
 
-  // Handler for case report submission
   const handleCaseReportSubmit = async (data: CaseReportFormData) => {
-    try {
-      // Create the case study submission using the API
-      const submissionData: CaseReportSubmissionInput = {
-        title: data.title,
-        submittedBy: data.submittedBy,
-        institution: data.institution,
-        email: data.email,
-        phone: data.phone,
-        location: data.location,
-        category: data.category,
-        patientDemographics: data.patientDemographics,
-        clinicalPresentation: data.clinicalPresentation,
-        diagnosticWorkup: data.diagnosticWorkup,
-        management: data.management,
-        outcome: data.outcome,
-        lessonLearned: data.lessonLearned,
-        discussion: data.discussion,
-        excerpt: data.excerpt,
-        impact: data.impact,
-        ethicsApproval: data.ethicsApproval,
-        ethicsNumber: data.ethicsNumber,
-        consentObtained: data.consentObtained,
-        conflictOfInterest: data.conflictOfInterest,
-        acknowledgments: data.acknowledgments,
-        references: data.references,
-        attachments: data.attachments,
-        images: data.images,
-        declaration: data.declaration
-      };
-
-      // Submit to API
-      const result = await educationalResourcesApi.submitCaseReport(submissionData);
-      console.log('Case report submitted successfully:', result);
-      
-      // You could show a success toast here or update some UI state
-      
-    } catch (error) {
-      console.error('Error submitting case report:', error);
-      // Handle error - show error toast or update UI
-    }
+    setShowCaseReportModal(false);
   };
 
   const [memberData, setMemberData] = useState<MemberData>({
