@@ -104,6 +104,11 @@ const CaseStudies: React.FC<CaseStudiesProps> = ({ selectedCategory, searchTerm 
     return imageAttachment || null;
   };
 
+  // Get the full URL for an image using the API function
+  const getImageUrl = (imagePath: string): string => {
+    return educationalResourcesApi.getFileUrl(imagePath);
+  };
+
   // Error Card Component
   const ErrorCard = ({
     message,
@@ -168,9 +173,10 @@ const CaseStudies: React.FC<CaseStudiesProps> = ({ selectedCategory, searchTerm 
         ) : displayedCaseStudies.length > 0 ? (
           <div className="space-y-8">
             {displayedCaseStudies.map((study) => {
-              const firstImage = getFirstImage(study.attachments) || study.imageUrl;
+              const firstImagePath = getFirstImage(study.attachments) || study.imageUrl;
+              const firstImageUrl = firstImagePath ? getImageUrl(firstImagePath) : null;
               const parsedContent = parseFullContent(study.fullContent);
-              const hasImage = !!firstImage;
+              const hasImage = !!firstImageUrl;
 
               return (
                 <div
@@ -182,7 +188,7 @@ const CaseStudies: React.FC<CaseStudiesProps> = ({ selectedCategory, searchTerm 
                     {hasImage && (
                       <div className="relative md:w-80 h-48 md:h-auto flex-shrink-0">
                         <img
-                          src={firstImage}
+                          src={firstImageUrl}
                           alt={study.title}
                           className="w-full h-full object-cover cursor-pointer"
                           onClick={() => handleCaseStudyClick(study.id)}

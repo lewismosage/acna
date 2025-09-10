@@ -97,6 +97,7 @@ export interface CaseStudySubmission {
   reviewNotes?: string;
   reviewedBy?: string;
   attachments: string[];
+  attachmentUrls?: string[];  // New property for full URLs
   imageUrl?: string;
   submissionDate: string;
   reviewDate?: string;
@@ -236,7 +237,8 @@ const normalizeCaseStudySubmission = (backendSubmission: any): CaseStudySubmissi
     reviewNotes: backendSubmission.reviewNotes || backendSubmission.review_notes,
     reviewedBy: backendSubmission.reviewedBy || backendSubmission.reviewed_by,
     attachments: safeArray(backendSubmission.attachments),
-    imageUrl: backendSubmission.imageUrl || backendSubmission.image_url,
+    attachmentUrls: safeArray(backendSubmission.attachmentUrls || backendSubmission.attachment_urls), // Handle both formats
+    imageUrl: backendSubmission.imageUrl || backendSubmission.image_url_display || backendSubmission.image_url,
     submissionDate: backendSubmission.submissionDate || 
                    (backendSubmission.submission_date?.split('T')[0]) || 
                    new Date().toISOString().split('T')[0],
@@ -254,9 +256,23 @@ export const educationalResourcesApi = {
     return 'http://127.0.0.1:8000';  // Base URL without /api
   },
 
-  // Helper to construct file URLs
+  // Helper to construct file URLs - UPDATED to handle media URLs properly
   getFileUrl: (filePath: string): string => {
+    if (!filePath) return '';
+    
+    // If it's already a full URL, return it
+    if (filePath.startsWith('http')) {
+      return filePath;
+    }
+    
     const baseUrl = educationalResourcesApi.getBaseUrl();
+    
+    // If it's a media file path, construct proper media URL
+    if (filePath.includes('case_submissions/') || filePath.includes('resources/')) {
+      return `${baseUrl}/media/${filePath.replace(/^\/+/, '')}`;
+    }
+    
+    // Default handling for other paths
     return `${baseUrl}${filePath.startsWith('/') ? filePath : `/${filePath}`}`;
   },
 
@@ -688,19 +704,28 @@ export const educationalResourcesApi = {
         impact: data.impact || ''
       }));
       
-      // Add all attachments with unique field names
+      // Add attachments - use simple field names that Django can process
       data.attachments.forEach((file, index) => {
-        formData.append(`attachments[${index}]`, file);
+        formData.append(`attachments`, file); // Use simple field name
       });
       
-      // Add all images with unique field names
+      // Add images - use simple field names that Django can process
       data.images.forEach((file, index) => {
-        formData.append(`images[${index}]`, file);
+        formData.append(`images`, file); // Use simple field name
       });
   
       console.log('Submitting case report with FormData');
       console.log('Attachments count:', data.attachments.length);
       console.log('Images count:', data.images.length);
+  
+      // Log FormData contents for debugging
+      for (let pair of formData.entries()) {
+        if (pair[1] instanceof File) {
+          console.log(`${pair[0]}: File - ${pair[1].name}`);
+        } else {
+          console.log(`${pair[0]}: ${pair[1]}`);
+        }
+      }
   
       const response = await fetch(`${API_BASE_URL}/case-study-submissions/`, {
         method: 'POST',
@@ -715,6 +740,7 @@ export const educationalResourcesApi = {
       }
       
       const result = await response.json();
+      console.log('Submission successful:', result);
       return result;
     } catch (error: any) {
       console.error('Error in submitCaseReport:', error);

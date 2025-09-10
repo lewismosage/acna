@@ -1,23 +1,15 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Calendar,
   ChevronLeft,
   AlertCircle,
-  Star,
   FileText,
   User,
   MapPin,
-  Eye,
   CheckCircle,
-  Target,
-  Users,
-  Tag,
   Printer,
   Share2,
-  Clock,
   Building,
-  Mail,
-  Phone,
   Download,
   Activity,
   Image as ImageIcon,
@@ -28,13 +20,18 @@ import { CaseStudySubmission, educationalResourcesApi } from "../../../services/
 import LoadingSpinner from "../../../components/common/LoadingSpinner";
 import ScrollToTop from "../../../components/common/ScrollToTop";
 
+// Extend the CaseStudySubmission interface to include attachmentUrls
+interface ExtendedCaseStudySubmission extends CaseStudySubmission {
+  attachmentUrls?: string[];
+}
+
 const CaseStudyDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<
     "overview" | "clinical" | "outcome" | "attachments"
   >("overview");
-  const [caseStudy, setCaseStudy] = useState<CaseStudySubmission | null>(null);
+  const [caseStudy, setCaseStudy] = useState<ExtendedCaseStudySubmission | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,7 +42,7 @@ const CaseStudyDetailPage = () => {
       try {
         setLoading(true);
         const caseStudyData = await educationalResourcesApi.getSubmissionById(parseInt(id));
-        setCaseStudy(caseStudyData);
+        setCaseStudy(caseStudyData as ExtendedCaseStudySubmission);
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Failed to load case study"
@@ -93,65 +90,28 @@ const CaseStudyDetailPage = () => {
     }
   };
 
-  const getFirstImage = (attachments: string[]): string | null => {
-    if (!attachments || attachments.length === 0) return null;
-    
-    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'];
-    const imageAttachment = attachments.find(attachment => 
-      imageExtensions.some(ext => attachment.toLowerCase().endsWith(ext))
-    );
-    
-    return imageAttachment || null;
+  const isImageFile = (url: string): boolean => {
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg'];
+    return imageExtensions.some(ext => url.toLowerCase().includes(ext));
   };
 
-  // Fix the getFileUrl function to handle the correct directory structure
-const getFileUrl = (filePath: string): string => {
-  if (!filePath) return '';
-  
-  // If it's already a full URL, return it
-  if (filePath.startsWith('http')) {
-    return filePath;
-  }
-  
-  // If it's a relative path that starts with /media/, construct the full URL
-  if (filePath.startsWith('/media/')) {
-    return educationalResourcesApi.getBaseUrl() + filePath;
-  }
-  
-  // Check if this is an image or attachment based on the file path or extension
-  const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'];
-  const isImage = imageExtensions.some(ext => filePath.toLowerCase().endsWith(ext));
-  
-  // If it's just a filename, construct the path based on file type
-  if (!filePath.includes('/')) {
-    if (isImage) {
-      return `${educationalResourcesApi.getBaseUrl()}/media/case_submissions/images/${filePath}`;
-    } else {
-      return `${educationalResourcesApi.getBaseUrl()}/media/case_submissions/attachments/${filePath}`;
-    }
-  }
-  
-  // For any other relative paths, construct the full URL
-  return educationalResourcesApi.getBaseUrl() + (filePath.startsWith('/') ? filePath : `/${filePath}`);
-};
-
-  const getFileType = (fileName: string): string => {
-    const ext = fileName.toLowerCase().split('.').pop();
-    if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(ext || '')) {
+  const getFileType = (url: string): string => {
+    const lowerUrl = url.toLowerCase();
+    if (isImageFile(url)) {
       return 'image';
-    } else if (['pdf'].includes(ext || '')) {
+    } else if (lowerUrl.includes('.pdf')) {
       return 'pdf';
-    } else if (['doc', 'docx'].includes(ext || '')) {
+    } else if (lowerUrl.includes('.doc') || lowerUrl.includes('.docx')) {
       return 'word';
-    } else if (['xls', 'xlsx'].includes(ext || '')) {
+    } else if (lowerUrl.includes('.xls') || lowerUrl.includes('.xlsx')) {
       return 'excel';
     } else {
       return 'file';
     }
   };
 
-  const getFileIcon = (fileName: string) => {
-    const fileType = getFileType(fileName);
+  const getFileIcon = (url: string) => {
+    const fileType = getFileType(url);
     switch (fileType) {
       case 'image':
         return <ImageIcon className="w-5 h-5 text-blue-600" />;
@@ -163,6 +123,40 @@ const getFileUrl = (filePath: string): string => {
         return <FileText className="w-5 h-5 text-green-600" />;
       default:
         return <File className="w-5 h-5 text-gray-600" />;
+    }
+  };
+
+  const getFileName = (url: string): string => {
+    try {
+      // Extract filename from URL
+      const urlParts = url.split('/');
+      const filename = urlParts[urlParts.length - 1];
+      
+      // Decode URL encoding and clean up
+      return decodeURIComponent(filename).replace(/_[a-f0-9]{8}(\.[^.]+)?$/i, '$1');
+    } catch {
+      return 'Unknown file';
+    }
+  };
+
+  const downloadFile = async (url: string, filename: string) => {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('File not found');
+      
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      console.error('Download failed:', error);
+      // Fallback: try to open in new tab
+      window.open(url, '_blank');
     }
   };
 
@@ -198,17 +192,17 @@ const getFileUrl = (filePath: string): string => {
   }
 
   const parsedContent = parseFullContent(caseStudy.fullContent);
-  const firstImage = getFirstImage(caseStudy.attachments) || caseStudy.imageUrl;
-  const imageAttachments = caseStudy.attachments?.filter(attachment => 
-    ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'].some(ext => 
-      attachment.toLowerCase().endsWith(ext)
-    )
-  ) || [];
-  const documentAttachments = caseStudy.attachments?.filter(attachment => 
-    !['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'].some(ext => 
-      attachment.toLowerCase().endsWith(ext)
-    )
-  ) || [];
+  
+  // Use the new attachmentUrls property if available, otherwise fall back to constructing URLs
+  const attachmentUrls = caseStudy.attachmentUrls && caseStudy.attachmentUrls.length > 0 
+    ? caseStudy.attachmentUrls 
+    : (caseStudy.attachments || []).map(attachment => educationalResourcesApi.getFileUrl(attachment));
+
+  const imageAttachments = attachmentUrls.filter(url => isImageFile(url));
+  const documentAttachments = attachmentUrls.filter(url => !isImageFile(url));
+
+  // Get the first image for hero section
+  const firstImage = caseStudy.imageUrl || (imageAttachments.length > 0 ? imageAttachments[0] : null);
 
   return (
     <div className="bg-white min-h-screen">
@@ -236,7 +230,7 @@ const getFileUrl = (filePath: string): string => {
               <div className="lg:w-2/5">
                 <div className="relative">
                   <img
-                    src={getFileUrl(firstImage)}
+                    src={educationalResourcesApi.getFileUrl(firstImage)}
                     alt={caseStudy.title}
                     className="w-full h-64 lg:h-80 object-cover rounded-lg shadow-lg"
                     onError={(e) => {
@@ -665,8 +659,8 @@ const getFileUrl = (filePath: string): string => {
                       </h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {imageAttachments.map((attachment, index) => {
-                          const fileName = attachment.split('/').pop() || attachment;
-                          const fileUrl = getFileUrl(attachment);
+                          const fileName = getFileName(attachment);
+                          const fileUrl = educationalResourcesApi.getFileUrl(attachment);
                           return (
                             <div key={index} className="group relative">
                               <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
@@ -718,8 +712,8 @@ const getFileUrl = (filePath: string): string => {
                       </h3>
                       <div className="space-y-4">
                         {documentAttachments.map((attachment, index) => {
-                          const fileName = attachment.split('/').pop() || attachment;
-                          const fileUrl = getFileUrl(attachment);
+                          const fileName = getFileName(attachment);
+                          const fileUrl = educationalResourcesApi.getFileUrl(attachment);
                           return (
                             <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                               <div className="flex items-center">

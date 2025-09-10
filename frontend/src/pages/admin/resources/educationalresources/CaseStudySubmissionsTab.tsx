@@ -19,7 +19,7 @@ import {
   Image as ImageIcon,
   ZoomIn
 } from 'lucide-react';
-import { educationalResourcesApi } from '../../../../services/educationalResourcesApi'; 
+import { educationalResourcesApi, getFileUrl } from '../../../../services/educationalResourcesApi';
 import AlertModal from '../../../../components/common/AlertModal';
 
 interface CaseStudySubmission {
@@ -152,8 +152,8 @@ const CaseStudySubmissionsTab: React.FC<CaseStudySubmissionsTabProps> = ({
 
   const handleFileClick = (filename: string) => {
     const fileType = getFileType(filename);
-    // Construct the full URL - adjust this based on your backend setup
-    const fileUrl = `http://127.0.0.1:8000${filename.startsWith('/') ? filename : `/${filename}`}`;
+    // Use the API function to get the proper URL
+    const fileUrl = educationalResourcesApi.getFileUrl(filename);
     
     if (fileType === 'pdf') {
       // Open PDF in new tab

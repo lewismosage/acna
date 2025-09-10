@@ -6,6 +6,7 @@ from django.utils import timezone
 import os
 import uuid
 from django.core.files.base import ContentFile
+from django.conf import settings
 
 
 class EducationalResourceSerializer(serializers.ModelSerializer):
@@ -164,15 +165,89 @@ class EducationalResourceSerializer(serializers.ModelSerializer):
 
 
 class CaseStudySubmissionSerializer(serializers.ModelSerializer):
+    attachment_urls = serializers.SerializerMethodField()
+    image_url_display = serializers.SerializerMethodField()
+    
     class Meta:
         model = CaseStudySubmission
         fields = [
             'id', 'title', 'submitted_by', 'institution', 'email', 'phone',
             'location', 'category', 'excerpt', 'full_content', 'impact',
-            'status', 'review_notes', 'reviewed_by', 'attachments', 'image_url',
-            'submission_date', 'review_date', 'published_date'
+            'status', 'review_notes', 'reviewed_by', 'attachments', 'attachment_urls',
+            'image_url', 'image_url_display', 'submission_date', 'review_date', 
+            'published_date'
         ]
-        read_only_fields = ['id', 'submission_date', 'review_date', 'published_date', 'attachments', 'image_url']
+        read_only_fields = ['id', 'submission_date', 'review_date', 'published_date', 
+                          'attachments', 'image_url', 'attachment_urls', 'image_url_display']
+
+    def _build_file_url(self, file_path):
+        """Build proper file URL from path with improved error handling"""
+        if not file_path:
+            return None
+            
+        # If it's already a full URL, return it
+        if file_path.startswith('http'):
+            return file_path
+        
+        # Clean the file path
+        clean_path = file_path.strip()
+        if not clean_path:
+            return None
+            
+        # Handle different path formats
+        if clean_path.startswith('/media/'):
+            # Remove /media/ prefix as Django's url() will add it
+            clean_path = clean_path[7:]
+        elif clean_path.startswith('media/'):
+            # Remove media/ prefix
+            clean_path = clean_path[6:]
+        
+        # Ensure proper case_submissions directory structure
+        if not clean_path.startswith('case_submissions/'):
+            # If it's just a filename, assume it's in attachments folder
+            if '/' not in clean_path:
+                clean_path = f"case_submissions/attachments/{clean_path}"
+            else:
+                clean_path = f"case_submissions/{clean_path}"
+        
+        try:
+            # Check if file exists in storage
+            if default_storage.exists(clean_path):
+                url = default_storage.url(clean_path)
+                request = self.context.get('request')
+                if request:
+                    return request.build_absolute_uri(url)
+                return url
+            else:
+                # File doesn't exist - log warning but don't break the response
+                print(f"Warning: File not found in storage: {clean_path}")
+                # Try to construct URL anyway - Django will handle 404s
+                url = default_storage.url(clean_path)
+                request = self.context.get('request')
+                if request:
+                    return request.build_absolute_uri(url)
+                return url
+        except Exception as e:
+            print(f"Error building file URL for {clean_path}: {str(e)}")
+            return None
+
+    def get_attachment_urls(self, obj):
+        """Get full URLs for all attachments"""
+        if not obj.attachments:
+            return []
+        
+        urls = []
+        for attachment_path in obj.attachments:
+            url = self._build_file_url(attachment_path)
+            if url:
+                urls.append(url)
+        return urls
+
+    def get_image_url_display(self, obj):
+        """Get the image URL with proper absolute URL"""
+        if obj.image_url:
+            return self._build_file_url(obj.image_url)
+        return None
 
     def validate_attachments(self, value):
         """Ensure attachments is a valid list"""
@@ -189,47 +264,60 @@ class CaseStudySubmissionSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         """Handle creation with file uploads - manually process files from request"""
-        # Get the request from context to access FILES
         request = self.context.get('request')
         
+        # Create the submission first
         submission = CaseStudySubmission.objects.create(**validated_data)
         
         # Handle attachments from request.FILES
         if request and hasattr(request, 'FILES'):
-            # Process attachments (files with field names like 'attachments[0]', 'attachments[1]', etc.)
-            for field_name, files in request.FILES.lists():
-                if field_name.startswith('attachments['):
-                    for file in files:
-                        # Generate unique filename
-                        ext = os.path.splitext(file.name)[1]
-                        filename = f"{uuid.uuid4()}{ext}"
-                        file_path = os.path.join('case_submissions', 'attachments', filename)
-                        
-                        # Save file
-                        saved_path = default_storage.save(file_path, ContentFile(file.read()))
-                        
-                        # Add to submission attachments
-                        submission.attachments.append(saved_path)
+            attachment_paths = []
+            image_paths = []
+            
+            # Process all files in request.FILES
+            for field_name in request.FILES.keys():
+                files = request.FILES.getlist(field_name)
+                print(f"Processing field '{field_name}' with {len(files)} files")
                 
-                # Process images (files with field names like 'images[0]', 'images[1]', etc.)
-                elif field_name.startswith('images['):
-                    for file in files:
-                        # Generate unique filename
-                        ext = os.path.splitext(file.name)[1]
-                        filename = f"{uuid.uuid4()}{ext}"
-                        file_path = os.path.join('case_submissions', 'images', filename)
+                for file in files:
+                    try:
+                        # Generate unique filename while preserving extension
+                        name, ext = os.path.splitext(file.name)
+                        # Clean the original filename
+                        clean_name = "".join(c for c in name if c.isalnum() or c in (' ', '-', '_')).strip()
+                        clean_name = clean_name[:50]  # Limit length
+                        unique_filename = f"{clean_name}_{uuid.uuid4().hex[:8]}{ext}"
                         
-                        # Save file
-                        saved_path = default_storage.save(file_path, ContentFile(file.read()))
+                        # Determine file category and save path
+                        if field_name in ['attachments'] or field_name.startswith('attachments'):
+                            file_path = f"case_submissions/attachments/{unique_filename}"
+                            saved_path = default_storage.save(file_path, ContentFile(file.read()))
+                            attachment_paths.append(saved_path)
+                            print(f"Saved attachment: {saved_path}")
                         
-                        # Set as main image if not already set
-                        if not submission.image_url:
-                            submission.image_url = default_storage.url(saved_path)
-                        else:
-                            # Add to attachments if already have a main image
-                            submission.attachments.append(saved_path)
+                        elif field_name in ['images'] or field_name.startswith('images'):
+                            file_path = f"case_submissions/images/{unique_filename}"
+                            saved_path = default_storage.save(file_path, ContentFile(file.read()))
+                            image_paths.append(saved_path)
+                            print(f"Saved image: {saved_path}")
+                    except Exception as e:
+                        print(f"Error saving file {file.name}: {str(e)}")
+                        continue
+            
+            # Update submission with file paths
+            if attachment_paths or image_paths:
+                # Store all file paths in attachments
+                all_files = attachment_paths + image_paths
+                submission.attachments = all_files
+                
+                # Set the first image as the main image URL
+                if image_paths:
+                    submission.image_url = image_paths[0]
+                
+                submission.save()
+                print(f"Final submission attachments: {submission.attachments}")
+                print(f"Main image URL: {submission.image_url}")
         
-        submission.save()
         return submission
 
     def update(self, instance, validated_data):
@@ -269,7 +357,8 @@ class CaseStudySubmissionSerializer(serializers.ModelSerializer):
             'reviewNotes': data.get('review_notes'),
             'reviewedBy': data.get('reviewed_by'),
             'attachments': data.get('attachments', []),
-            'imageUrl': data.get('image_url'),
+            'attachmentUrls': data.get('attachment_urls', []),  # This will include full URLs
+            'imageUrl': data.get('image_url_display'),
             'submissionDate': data.get('submission_date'),
             'reviewDate': data.get('review_date'),
             'publishedDate': data.get('published_date'),
