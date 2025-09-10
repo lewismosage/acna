@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Download,
   FileText,
@@ -23,8 +23,9 @@ import {
 
 const FactSheetsAndCaseStudies = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<"factsheets" | "casestudies">(
-    "factsheets"
+    (searchParams.get('tab') as "factsheets" | "casestudies") || "factsheets"
   );
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -117,6 +118,12 @@ const FactSheetsAndCaseStudies = () => {
       navigate(`/resources/fact-sheets/${factSheet.id}`);
     }
   };
+
+  useEffect(() => {
+    const newSearchParams = new URLSearchParams(searchParams);
+    newSearchParams.set('tab', activeTab);
+    setSearchParams(newSearchParams);
+  }, [activeTab, searchParams, setSearchParams]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Users, Eye, AlertCircle } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import VideoCaseStudies from "./VideoCaseStudies";
 import LoadingSpinner from "../../../components/common/LoadingSpinner";
 import { educationalResourcesApi, CaseStudySubmission } from "../../../services/educationalResourcesApi";
@@ -12,6 +12,7 @@ interface CaseStudiesProps {
 
 const CaseStudies: React.FC<CaseStudiesProps> = ({ selectedCategory, searchTerm }) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [caseStudies, setCaseStudies] = useState<CaseStudySubmission[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -65,7 +66,8 @@ const CaseStudies: React.FC<CaseStudiesProps> = ({ selectedCategory, searchTerm 
   };
 
   const handleCaseStudyClick = (caseStudyId: number) => {
-    navigate(`/case-studies/${caseStudyId}`);
+    // Preserve the tab parameter when navigating to detail page
+    navigate(`/case-studies/${caseStudyId}?tab=casestudies`);
   };
 
   const formatDate = (dateString: string) => {
