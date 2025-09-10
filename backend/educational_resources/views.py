@@ -652,12 +652,13 @@ class CaseStudySubmissionViewSet(viewsets.ModelViewSet):
     ordering = ['-submission_date']
 
     def create(self, request, *args, **kwargs):
-        """Override create to add debugging and proper handling"""
+        """Override create to handle file uploads"""
         try:
             # Log the incoming data
             logger.info(f"Creating case study submission with data: {request.data}")
+            logger.info(f"Files received: {request.FILES}")
             
-            # Create the serializer with the data
+            # Create the serializer with the data and files
             serializer = self.get_serializer(data=request.data)
             
             # Check if data is valid
@@ -668,6 +669,8 @@ class CaseStudySubmissionViewSet(viewsets.ModelViewSet):
             # Save the instance
             instance = serializer.save()
             logger.info(f"Created submission with ID: {instance.id}, submitted_by: {instance.submitted_by}")
+            logger.info(f"Attachments: {instance.attachments}")
+            logger.info(f"Image URL: {instance.image_url}")
             
             # Return the created instance
             response_serializer = self.get_serializer(instance)

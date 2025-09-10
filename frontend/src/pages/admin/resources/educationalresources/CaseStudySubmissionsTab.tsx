@@ -5,7 +5,6 @@ import {
   Phone, 
   Mail, 
   Tag, 
-  Download, 
   Users,
   Trash2,
   MessageCircle,
@@ -15,7 +14,10 @@ import {
   AlertCircle,
   Heart,
   Award,
-  FileText
+  FileText,
+  ExternalLink,
+  Image as ImageIcon,
+  ZoomIn
 } from 'lucide-react';
 import { educationalResourcesApi } from '../../../../services/educationalResourcesApi'; 
 import AlertModal from '../../../../components/common/AlertModal';
@@ -84,6 +86,17 @@ const CaseStudySubmissionsTab: React.FC<CaseStudySubmissionsTabProps> = ({
     submissionTitle: ''
   });
 
+  // Image modal state
+  const [imageModal, setImageModal] = useState<{
+    isOpen: boolean;
+    imageUrl: string;
+    imageName: string;
+  }>({
+    isOpen: false,
+    imageUrl: '',
+    imageName: ''
+  });
+
   // Comments and notification modal state
   const [showNotifyModal, setShowNotifyModal] = useState(false);
   const [currentSubmission, setCurrentSubmission] = useState<CaseStudySubmission | null>(null);
@@ -119,6 +132,45 @@ const CaseStudySubmissionsTab: React.FC<CaseStudySubmissionsTabProps> = ({
     }
   };
 
+  const getFileType = (filename: string): 'pdf' | 'image' | 'other' => {
+    const extension = filename.toLowerCase().split('.').pop();
+    if (extension === 'pdf') return 'pdf';
+    if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'].includes(extension || '')) return 'image';
+    return 'other';
+  };
+
+  const getFileIcon = (fileType: 'pdf' | 'image' | 'other') => {
+    switch (fileType) {
+      case 'pdf':
+        return <FileText className="w-4 h-4" />;
+      case 'image':
+        return <ImageIcon className="w-4 h-4" />;
+      default:
+        return <FileText className="w-4 h-4" />;
+    }
+  };
+
+  const handleFileClick = (filename: string) => {
+    const fileType = getFileType(filename);
+    // Construct the full URL - adjust this based on your backend setup
+    const fileUrl = `http://127.0.0.1:8000${filename.startsWith('/') ? filename : `/${filename}`}`;
+    
+    if (fileType === 'pdf') {
+      // Open PDF in new tab
+      window.open(fileUrl, '_blank');
+    } else if (fileType === 'image') {
+      // Open image in modal
+      setImageModal({
+        isOpen: true,
+        imageUrl: fileUrl,
+        imageName: filename.split('/').pop() || filename
+      });
+    } else {
+      // For other file types, open in new tab
+      window.open(fileUrl, '_blank');
+    }
+  };
+
   const showAlert = (type: 'success' | 'error', title: string, message: string) => {
     setAlertModal({
       isOpen: true,
@@ -147,10 +199,8 @@ const CaseStudySubmissionsTab: React.FC<CaseStudySubmissionsTabProps> = ({
 
   const handleStatusChange = async (submissionId: number, newStatus: string) => {
     try {
-      // Update status via API
       await educationalResourcesApi.updateSubmissionStatus(submissionId, newStatus);
       
-      // Update local state
       setSubmissions(prev =>
         prev.map(submission =>
           submission.id === submissionId
@@ -210,7 +260,6 @@ const CaseStudySubmissionsTab: React.FC<CaseStudySubmissionsTabProps> = ({
     try {
       setUpdating(currentSubmission.id);
       
-      // Use the new combined endpoint
       const result = await educationalResourcesApi.addCommentsAndNotify(
         currentSubmission.id, 
         notificationComments,
@@ -218,24 +267,20 @@ const CaseStudySubmissionsTab: React.FC<CaseStudySubmissionsTabProps> = ({
       );
       
       if (result.success && result.submission) {
-        // Update local state with the returned submission data
         setSubmissions(prev => 
           prev.map(submission => 
             submission.id === currentSubmission.id
               ? { 
-                  ...submission, // Keep all existing properties
+                  ...submission,
                   reviewNotes: notificationComments, 
                   reviewedBy: 'Admin',
-                  // Only update the fields that we know exist
                   status: result.submission?.status || submission.status,
                   reviewDate: result.submission?.reviewDate || submission.reviewDate,
-                  // Add other fields as needed
                 }
               : submission
           )
         );
         
-        // Close modal and show success
         setShowNotifyModal(false);
         setNotificationComments('');
         showAlert('success', 'Comments Updated', 'Comments updated and notification sent successfully!');
@@ -253,7 +298,6 @@ const CaseStudySubmissionsTab: React.FC<CaseStudySubmissionsTabProps> = ({
   const formatDate = (dateString: string | undefined) => {
     if (!dateString) return 'N/A';
     try {
-      // Handle both ISO string and date-only formats
       const date = new Date(dateString);
       return date.toLocaleDateString();
     } catch (error) {
@@ -270,6 +314,23 @@ const CaseStudySubmissionsTab: React.FC<CaseStudySubmissionsTabProps> = ({
       console.error('Error parsing full content:', error);
       return {};
     }
+  };
+
+  // Separate images and non-image attachments
+  const categorizeAttachments = (attachments: string[]) => {
+    const images: string[] = [];
+    const documents: string[] = [];
+    
+    attachments.forEach(attachment => {
+      const fileType = getFileType(attachment);
+      if (fileType === 'image') {
+        images.push(attachment);
+      } else {
+        documents.push(attachment);
+      }
+    });
+    
+    return { images, documents };
   };
 
   return (
@@ -298,6 +359,28 @@ const CaseStudySubmissionsTab: React.FC<CaseStudySubmissionsTabProps> = ({
         showCancel={false}
       />
 
+      {/* Image Modal */}
+      {imageModal.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
+          <div className="relative max-w-4xl max-h-full">
+            <button 
+              onClick={() => setImageModal({ isOpen: false, imageUrl: '', imageName: '' })}
+              className="absolute top-4 right-4 text-white hover:text-gray-300 z-10"
+            >
+              <X className="w-8 h-8" />
+            </button>
+            <img 
+              src={imageModal.imageUrl} 
+              alt={imageModal.imageName}
+              className="max-w-full max-h-full object-contain rounded-lg"
+            />
+            <div className="absolute bottom-4 left-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded">
+              {imageModal.imageName}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <h3 className="font-medium text-blue-900 mb-2">Case Study Submissions</h3>
         <p className="text-blue-700 text-sm">
@@ -310,6 +393,7 @@ const CaseStudySubmissionsTab: React.FC<CaseStudySubmissionsTabProps> = ({
         {submissions.map((submission) => {
           const isExpanded = expandedSubmissions.includes(submission.id);
           const parsedContent = parseFullContent(submission.fullContent);
+          const { images, documents } = categorizeAttachments(submission.attachments || []);
 
           return (
             <div key={submission.id} className="bg-white border border-gray-200 rounded-lg">
@@ -368,9 +452,12 @@ const CaseStudySubmissionsTab: React.FC<CaseStudySubmissionsTabProps> = ({
                     )}
                     
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-gray-500">
-                          {submission.attachments?.length || 0} attachment{(submission.attachments?.length || 0) !== 1 ? 's' : ''}
+                      <div className="flex items-center gap-4 text-sm text-gray-500">
+                        <span>
+                          {documents.length} document{documents.length !== 1 ? 's' : ''}
+                        </span>
+                        <span>
+                          {images.length} image{images.length !== 1 ? 's' : ''}
                         </span>
                       </div>
                       <button
@@ -585,22 +672,105 @@ const CaseStudySubmissionsTab: React.FC<CaseStudySubmissionsTabProps> = ({
                       </div>
                     )}
 
-                    {/* Attachments */}
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-2">Attachments</h4>
-                      <div className="space-y-2">
-                        {(submission.attachments || []).map((attachment, index) => (
-                          <div key={index} className="flex items-center justify-between text-sm">
-                            <span className="text-gray-600">{attachment}</span>
-                            <button className="text-blue-600 hover:text-blue-800">
-                              <Download className="w-4 h-4" />
-                            </button>
+                    {/* Updated Attachments Section */}
+                    <div className="space-y-4">
+                      {/* Document Attachments */}
+                      {documents.length > 0 && (
+                        <div>
+                          <h4 className="font-medium text-gray-900 mb-3 flex items-center">
+                            <FileText className="w-4 h-4 mr-2 text-blue-600" />
+                            Documents ({documents.length})
+                          </h4>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {documents.map((attachment, index) => {
+                              const fileType = getFileType(attachment);
+                              const fileName = attachment.split('/').pop() || attachment;
+                              
+                              return (
+                                <div 
+                                  key={index} 
+                                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer border"
+                                  onClick={() => handleFileClick(attachment)}
+                                >
+                                  <div className="flex items-center flex-1 min-w-0">
+                                    <div className={`p-2 rounded mr-3 ${fileType === 'pdf' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+                                      {getFileIcon(fileType)}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <p className="text-sm font-medium text-gray-900 truncate">
+                                        {fileName}
+                                      </p>
+                                      <p className="text-xs text-gray-500 capitalize">
+                                        {fileType} file
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center ml-2">
+                                    <ExternalLink className="w-4 h-4 text-gray-400" />
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
-                        ))}
-                        {(!submission.attachments || submission.attachments.length === 0) && (
-                          <p className="text-sm text-gray-500">No attachments</p>
-                        )}
-                      </div>
+                        </div>
+                      )}
+
+                      {/* Image Attachments */}
+                      {images.length > 0 && (
+                        <div>
+                          <h4 className="font-medium text-gray-900 mb-3 flex items-center">
+                            <ImageIcon className="w-4 h-4 mr-2 text-green-600" />
+                            Images ({images.length})
+                          </h4>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                            {images.map((image, index) => {
+                              const imageUrl = getFileUrl(image);
+                              const imageName = image.split('/').pop() || image;
+                              
+                              return (
+                                <div 
+                                  key={index} 
+                                  className="relative group cursor-pointer bg-gray-50 rounded-lg overflow-hidden border aspect-square"
+                                  onClick={() => handleFileClick(image)}
+                                >
+                                  <img 
+                                    src={imageUrl} 
+                                    alt={imageName}
+                                    className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.className = "w-full h-full flex items-center justify-center bg-gray-200 text-gray-400";
+                                      target.alt = "Image not found";
+                                    }}
+                                  />
+                                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity flex items-center justify-center">
+                                    <ZoomIn className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                                  </div>
+                                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-2">
+                                    <p className="text-xs text-white truncate font-medium">
+                                      {imageName}
+                                    </p>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* No attachments message */}
+                      {(!submission.attachments || submission.attachments.length === 0) && (
+                        <div>
+                          <h4 className="font-medium text-gray-900 mb-3 flex items-center">
+                            <FileText className="w-4 h-4 mr-2 text-gray-400" />
+                            Attachments
+                          </h4>
+                          <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+                            <FileText className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                            <p className="text-sm text-gray-500">No attachments uploaded</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                     
                     {submission.reviewNotes && (
@@ -610,7 +780,7 @@ const CaseStudySubmissionsTab: React.FC<CaseStudySubmissionsTabProps> = ({
                       </div>
                     )}
                     
-                    {/* Updated Action Buttons */}
+                    {/* Action Buttons */}
                     <div className="flex gap-3 pt-4 flex-wrap">
                       <select
                         value={submission.status}

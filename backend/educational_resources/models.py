@@ -169,6 +169,20 @@ class CaseStudySubmission(models.Model):
     def __str__(self):
         return self.title
 
+    def get_attachment_urls(self):
+        """Get full URLs for all attachments"""
+        urls = []
+        for attachment_path in self.attachments:
+            if attachment_path:
+                urls.append(default_storage.url(attachment_path))
+        return urls
+    
+    def get_image_url_display(self):
+        """Get the image URL"""
+        if self.image_url:
+            return self.image_url
+        return None
+
 
 class ResourceView(models.Model):
     resource = models.ForeignKey(EducationalResource, on_delete=models.CASCADE, related_name='views')

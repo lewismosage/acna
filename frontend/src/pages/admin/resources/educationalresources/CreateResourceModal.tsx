@@ -21,6 +21,18 @@ interface CreateResourceFormData extends Omit<Partial<EducationalResource>, 'sta
   resourceFile?: File;
 }
 
+// Hard-coded categories
+const CATEGORIES = [
+  'Neurology',
+  'Pediatric Neurology', 
+  'Epilepsy',
+  'Developmental Disorders',
+  'Research',
+  'Treatment Guidelines',
+  'Case Studies',
+  'Educational Materials'
+];
+
 const CreateResourceModal: React.FC<CreateResourceModalProps> = ({ 
   isOpen, 
   onClose, 
@@ -68,7 +80,7 @@ const CreateResourceModal: React.FC<CreateResourceModalProps> = ({
     title: '',
     description: '',
     fullDescription: '',
-    category: '',
+    category: CATEGORIES[0],
     type: 'Fact Sheet',
     condition: '',
     status: 'Draft',
@@ -109,25 +121,9 @@ const CreateResourceModal: React.FC<CreateResourceModalProps> = ({
   const [objectiveInput, setObjectiveInput] = useState('');
   const [prerequisiteInput, setPrerequisiteInput] = useState('');
 
-  // Available options from API
-  const [categories, setCategories] = useState<string[]>([]);
-
-  // Default categories if API doesn't return any
-  const defaultCategories = [
-    'Neurology',
-    'Pediatric Neurology', 
-    'Epilepsy',
-    'Developmental Disorders',
-    'Research',
-    'Treatment Guidelines',
-    'Case Studies',
-    'Educational Materials'
-  ];
-
-  // Load metadata and populate form when modal opens
+  // Populate form when modal opens
   useEffect(() => {
     if (isOpen) {
-      loadMetadata();
       if (isEditing && editingResource) {
         populateFormWithEditData();
       } else {
@@ -135,37 +131,6 @@ const CreateResourceModal: React.FC<CreateResourceModalProps> = ({
       }
     }
   }, [isOpen, isEditing, editingResource]);
-
-  const loadMetadata = async () => {
-    try {
-      const [categoriesData] = await Promise.all([
-        educationalResourcesApi.getCategories()
-      ]);
-      
-      // Use fetched categories or fallback to defaults
-      const availableCategories = categoriesData.length > 0 ? categoriesData : defaultCategories;
-      setCategories(availableCategories);
-
-      // Set default category if not editing and categories are available
-      if (!isEditing && availableCategories.length > 0 && !formData.category) {
-        setFormData(prev => ({
-          ...prev,
-          category: availableCategories[0]
-        }));
-      }
-    } catch (err) {
-      console.error('Error loading metadata:', err);
-      // Fallback to default categories if API fails
-      setCategories(defaultCategories);
-      if (!isEditing) {
-        setFormData(prev => ({
-          ...prev,
-          category: defaultCategories[0]
-        }));
-      }
-      setError('Could not load some form options, using defaults. You can still save the resource.');
-    }
-  };
 
   const populateFormWithEditData = () => {
     if (!editingResource) return;
@@ -178,7 +143,7 @@ const CreateResourceModal: React.FC<CreateResourceModalProps> = ({
       title: editingResource.title || '',
       description: editingResource.description || '',
       fullDescription: editingResource.fullDescription || '',
-      category: editingResource.category || '',
+      category: editingResource.category || CATEGORIES[0],
       type: editingResource.type || 'Fact Sheet',
       condition: editingResource.condition || '',
       status: (editingResource.status as ResourceStatus) || 'Draft',
@@ -217,13 +182,11 @@ const CreateResourceModal: React.FC<CreateResourceModalProps> = ({
   };
 
   const resetForm = () => {
-    const defaultCategory = categories.length > 0 ? categories[0] : defaultCategories[0];
-    
     setFormData({
       title: '',
       description: '',
       fullDescription: '',
-      category: defaultCategory,
+      category: CATEGORIES[0],
       type: 'Fact Sheet',
       condition: '',
       status: 'Draft',
@@ -447,13 +410,9 @@ const CreateResourceModal: React.FC<CreateResourceModalProps> = ({
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   >
-                    {categories.length === 0 ? (
-                      <option value="">Loading categories...</option>
-                    ) : (
-                      categories.map(category => (
-                        <option key={category} value={category}>{category}</option>
-                      ))
-                    )}
+                    {CATEGORIES.map(category => (
+                      <option key={category} value={category}>{category}</option>
+                    ))}
                   </select>
                 </div>
 

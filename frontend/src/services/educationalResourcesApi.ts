@@ -248,6 +248,18 @@ const normalizeCaseStudySubmission = (backendSubmission: any): CaseStudySubmissi
 };
 
 export const educationalResourcesApi = {
+  // ========== BASE URL HELPER ==========
+  
+  getBaseUrl: () => {
+    return 'http://127.0.0.1:8000';  // Base URL without /api
+  },
+
+  // Helper to construct file URLs
+  getFileUrl: (filePath: string): string => {
+    const baseUrl = educationalResourcesApi.getBaseUrl();
+    return `${baseUrl}${filePath.startsWith('/') ? filePath : `/${filePath}`}`;
+  },
+
   // ========== RESOURCE CRUD OPERATIONS ==========
   
   getAll: async (params?: {
@@ -638,50 +650,62 @@ export const educationalResourcesApi = {
   
   submitCaseReport: async (data: CaseReportSubmissionInput): Promise<any> => {
     try {
-      // Prepare the case study submission data in the format backend expects (snake_case)
-      const submissionData = {
-        title: data.title,
-        submitted_by: data.submittedBy,  // Convert to snake_case
-        institution: data.institution,
-        email: data.email,
-        phone: data.phone || '',
-        location: data.location,
-        category: data.category,
-        excerpt: data.excerpt,
-        full_content: JSON.stringify({
-          patient_demographics: {  // Convert to snake_case
-            age_group: data.patientDemographics.ageGroup,
-            gender: data.patientDemographics.gender,
-            location: data.patientDemographics.location
-          },
-          clinical_presentation: data.clinicalPresentation,
-          diagnostic_workup: data.diagnosticWorkup,
-          management: data.management,
-          outcome: data.outcome,
-          lesson_learned: data.lessonLearned,
-          discussion: data.discussion || '',
-          ethics_approval: data.ethicsApproval,
-          ethics_number: data.ethicsNumber || '',
-          consent_obtained: data.consentObtained,
-          conflict_of_interest: data.conflictOfInterest || '',
-          acknowledgments: data.acknowledgments || '',
-          references: data.references || '',
-          declaration: data.declaration,
-          impact: data.impact || ''
-        }),
-        impact: data.impact || '',
-        attachments: data.attachments.map(file => file.name),
-        status: 'Pending Review'
-      };
+      // Use FormData to handle file uploads
+      const formData = new FormData();
+      
+      // Add all text fields
+      formData.append('title', data.title);
+      formData.append('submitted_by', data.submittedBy);
+      formData.append('institution', data.institution);
+      formData.append('email', data.email);
+      formData.append('phone', data.phone || '');
+      formData.append('location', data.location);
+      formData.append('category', data.category);
+      formData.append('excerpt', data.excerpt);
+      formData.append('impact', data.impact || '');
+      formData.append('status', 'Pending Review');
+      
+      // Add the full_content as JSON
+      formData.append('full_content', JSON.stringify({
+        patient_demographics: {
+          age_group: data.patientDemographics.ageGroup,
+          gender: data.patientDemographics.gender,
+          location: data.patientDemographics.location
+        },
+        clinical_presentation: data.clinicalPresentation,
+        diagnostic_workup: data.diagnosticWorkup,
+        management: data.management,
+        outcome: data.outcome,
+        lesson_learned: data.lessonLearned,
+        discussion: data.discussion || '',
+        ethics_approval: data.ethicsApproval,
+        ethics_number: data.ethicsNumber || '',
+        consent_obtained: data.consentObtained,
+        conflict_of_interest: data.conflictOfInterest || '',
+        acknowledgments: data.acknowledgments || '',
+        references: data.references || '',
+        declaration: data.declaration,
+        impact: data.impact || ''
+      }));
+      
+      // Add all attachments with unique field names
+      data.attachments.forEach((file, index) => {
+        formData.append(`attachments[${index}]`, file);
+      });
+      
+      // Add all images with unique field names
+      data.images.forEach((file, index) => {
+        formData.append(`images[${index}]`, file);
+      });
   
-      console.log('Submitting case report:', submissionData);
-      console.log('Data being sent to backend:', submissionData);
-      console.log('Specifically submitted_by:', submissionData.submitted_by);
+      console.log('Submitting case report with FormData');
+      console.log('Attachments count:', data.attachments.length);
+      console.log('Images count:', data.images.length);
   
       const response = await fetch(`${API_BASE_URL}/case-study-submissions/`, {
         method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(submissionData),
+        headers: getAuthHeadersWithoutContentType(), 
+        body: formData,
       });
       
       if (!response.ok) {
@@ -803,4 +827,6 @@ export const {
   updateCaseReportStatus,
   getPendingCaseReports,
   uploadCaseReportFiles,
+  getBaseUrl,
+  getFileUrl,
 } = educationalResourcesApi;

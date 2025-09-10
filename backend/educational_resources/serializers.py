@@ -3,6 +3,9 @@ from .models import EducationalResource, CaseStudySubmission, ResourceView, Reso
 import json
 from django.core.files.storage import default_storage
 from django.utils import timezone
+import os
+import uuid
+from django.core.files.base import ContentFile
 
 
 class EducationalResourceSerializer(serializers.ModelSerializer):
@@ -169,7 +172,7 @@ class CaseStudySubmissionSerializer(serializers.ModelSerializer):
             'status', 'review_notes', 'reviewed_by', 'attachments', 'image_url',
             'submission_date', 'review_date', 'published_date'
         ]
-        read_only_fields = ['id', 'submission_date', 'review_date', 'published_date']
+        read_only_fields = ['id', 'submission_date', 'review_date', 'published_date', 'attachments', 'image_url']
 
     def validate_attachments(self, value):
         """Ensure attachments is a valid list"""
@@ -185,8 +188,49 @@ class CaseStudySubmissionSerializer(serializers.ModelSerializer):
         return [str(attachment).strip() for attachment in value if str(attachment).strip()]
 
     def create(self, validated_data):
-        """Handle creation with proper field mapping"""
-        return CaseStudySubmission.objects.create(**validated_data)
+        """Handle creation with file uploads - manually process files from request"""
+        # Get the request from context to access FILES
+        request = self.context.get('request')
+        
+        submission = CaseStudySubmission.objects.create(**validated_data)
+        
+        # Handle attachments from request.FILES
+        if request and hasattr(request, 'FILES'):
+            # Process attachments (files with field names like 'attachments[0]', 'attachments[1]', etc.)
+            for field_name, files in request.FILES.lists():
+                if field_name.startswith('attachments['):
+                    for file in files:
+                        # Generate unique filename
+                        ext = os.path.splitext(file.name)[1]
+                        filename = f"{uuid.uuid4()}{ext}"
+                        file_path = os.path.join('case_submissions', 'attachments', filename)
+                        
+                        # Save file
+                        saved_path = default_storage.save(file_path, ContentFile(file.read()))
+                        
+                        # Add to submission attachments
+                        submission.attachments.append(saved_path)
+                
+                # Process images (files with field names like 'images[0]', 'images[1]', etc.)
+                elif field_name.startswith('images['):
+                    for file in files:
+                        # Generate unique filename
+                        ext = os.path.splitext(file.name)[1]
+                        filename = f"{uuid.uuid4()}{ext}"
+                        file_path = os.path.join('case_submissions', 'images', filename)
+                        
+                        # Save file
+                        saved_path = default_storage.save(file_path, ContentFile(file.read()))
+                        
+                        # Set as main image if not already set
+                        if not submission.image_url:
+                            submission.image_url = default_storage.url(saved_path)
+                        else:
+                            # Add to attachments if already have a main image
+                            submission.attachments.append(saved_path)
+        
+        submission.save()
+        return submission
 
     def update(self, instance, validated_data):
         """Handle update with proper field mapping"""
