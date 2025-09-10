@@ -13,12 +13,16 @@ import {
   Trash2,
   Globe,
   Database,
+  FileSearch,
+  ClipboardList,
 } from "lucide-react";
 import PublicationResourcesTab from "../publicationresources/PublicationResourcesTab";
 import EBookletsTab from "../ebooksresources/EBookletsTab";
 import TrainingProgramsTab from "../trainingprogramsresources/TrainingProgramsTab";
 import PatientCaregiverResourcesTab from "../patientcareresources/PatientCaregiverResourcesTab";
 import EducationalResourcesTab from "../educationalresources/EducationalResourcesTab";
+import JournalWatchTab from "../journal/JournalWatchTab";
+import PositionStatementsTab from "../positionstatements/PositionStatementsTab";
 
 const ResourceManagement = () => {
   const [activeTab, setActiveTab] = useState<string>("home");
@@ -30,6 +34,8 @@ const ResourceManagement = () => {
     eBooks: 187,
     trainingPrograms: 42,
     patientResources: 382,
+    journalWatch: 67,
+    positionStatements: 33,
   };
 
   const mockRecentResources = [
@@ -61,6 +67,20 @@ const ResourceManagement = () => {
       date: "2025-07-15",
       views: 203,
     },
+    {
+      id: 5,
+      title: "Latest Alzheimer's Research Findings",
+      type: "Journal Watch",
+      date: "2025-08-12",
+      views: 91,
+    },
+    {
+      id: 6,
+      title: "Position Statement on Telemedicine",
+      type: "Position Statement",
+      date: "2025-08-08",
+      views: 145,
+    },
   ];
 
   const tabs = [
@@ -70,6 +90,8 @@ const ResourceManagement = () => {
     { id: "training", label: "TRAINING PROGRAMS", icon: Users },
     { id: "patient", label: "PATIENT & CAREGIVER RESOURCES", icon: Award },
     { id: "educational", label: "EDUCATIONAL RESOURCES", icon: Globe },
+    { id: "journal", label: "JOURNAL WATCH", icon: FileSearch },
+    { id: "positions", label: "POSITION STATEMENTS & POLICY BELIEFS", icon: ClipboardList },
   ];
 
   // Stats Card Component
@@ -132,6 +154,18 @@ const ResourceManagement = () => {
                       action: () => setActiveTab("patient"),
                     },
                     {
+                      icon: Plus,
+                      label: "Add Journal Entry",
+                      color: "teal",
+                      action: () => setActiveTab("journal"),
+                    },
+                    {
+                      icon: Plus,
+                      label: "Create Position Statement",
+                      color: "indigo",
+                      action: () => setActiveTab("positions"),
+                    },
+                    {
                       icon: Download,
                       label: "Export Resources",
                       color: "red",
@@ -180,6 +214,18 @@ const ResourceManagement = () => {
                   value={mockResourceStats.trainingPrograms}
                   icon={Users}
                   color="orange"
+                />
+                <StatsCard
+                  title="Journal Watch"
+                  value={mockResourceStats.journalWatch}
+                  icon={FileSearch}
+                  color="teal"
+                />
+                <StatsCard
+                  title="Position Statements"
+                  value={mockResourceStats.positionStatements}
+                  icon={ClipboardList}
+                  color="indigo"
                 />
               </div>
 
@@ -241,6 +287,10 @@ const ResourceManagement = () => {
         return <PatientCaregiverResourcesTab />;
       case "educational":
         return <EducationalResourcesTab />;
+      case "journal":
+        return <JournalWatchTab />;
+      case "positions":
+        return <PositionStatementsTab />;
       default:
         return (
           <div className="bg-white border border-gray-300 rounded-lg p-6 text-center">
