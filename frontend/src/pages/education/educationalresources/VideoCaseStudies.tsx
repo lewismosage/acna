@@ -1,6 +1,6 @@
 // components/CaseStudiesVideos.tsx
 import { useState, useEffect } from "react";
-import { Play, X, MapPin, Clock, Users, Video } from "lucide-react";
+import { Play, X, MapPin, Clock, Users, Video, AlertCircle } from "lucide-react";
 import Section from "../../../components/common/Section";
 import { educationalResourcesApi, EducationalResource } from "../../../services/educationalResourcesApi";
 
@@ -9,38 +9,75 @@ interface CaseStudyVideo extends EducationalResource {
   videoUrl?: string;
 }
 
+// Error Card Component
+const ErrorCard = ({
+  message,
+  onRetry,
+}: {
+  message: string;
+  onRetry: () => void;
+}) => (
+  <div className="bg-red-50 border border-red-200 rounded-lg p-8 text-center max-w-md mx-auto">
+    <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
+    <h3 className="text-lg font-medium text-red-800 mb-2">
+      Error Loading Videos
+    </h3>
+    <p className="text-red-600 mb-6">{message}</p>
+    <button
+      onClick={onRetry}
+      className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-md font-medium transition-colors duration-300"
+    >
+      Try Again
+    </button>
+  </div>
+);
+
+// No Content Card Component
+const NoContentCard = () => (
+  <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center max-w-md mx-auto">
+    <Video className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+    <h3 className="text-lg font-medium text-gray-900 mb-2">
+      No Videos Available
+    </h3>
+    <p className="text-gray-600 mb-4">
+      Check back later for new case study videos and resources.
+    </p>
+  </div>
+);
+
 const CaseStudiesVideos = () => {
   const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
   const [caseStudyVideos, setCaseStudyVideos] = useState<CaseStudyVideo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchCaseStudyVideos = async () => {
-      try {
-        setLoading(true);
-        // Fetch all published resources first
-        const allResources = await educationalResourcesApi.getAll({
-          status: "Published"
-        });
-        
-        // Filter for videos - look for resources with videoUrl or type containing "video"
-        const videoResources = allResources.filter(resource => 
-          resource.videoUrl || 
-          resource.type?.toLowerCase().includes('video') ||
-          resource.tags?.some(tag => tag.toLowerCase().includes('video')) ||
-          resource.category?.toLowerCase().includes('video')
-        );
-        
-        setCaseStudyVideos(videoResources);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load case studies");
-        console.error("Error fetching case study videos:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchCaseStudyVideos = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      // Fetch all published resources first
+      const allResources = await educationalResourcesApi.getAll({
+        status: "Published"
+      });
+      
+      // Filter for videos - look for resources with videoUrl or type containing "video"
+      const videoResources = allResources.filter(resource => 
+        resource.videoUrl || 
+        resource.type?.toLowerCase().includes('video') ||
+        resource.tags?.some(tag => tag.toLowerCase().includes('video')) ||
+        resource.category?.toLowerCase().includes('video')
+      );
+      
+      setCaseStudyVideos(videoResources);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load case studies");
+      console.error("Error fetching case study videos:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchCaseStudyVideos();
   }, []);
 
@@ -122,16 +159,6 @@ const CaseStudiesVideos = () => {
     );
   }
 
-  if (error) {
-    return (
-      <Section className="py-16 bg-gray-50">
-        <div className="text-center text-red-600">
-          <p>Error loading case studies: {error}</p>
-        </div>
-      </Section>
-    );
-  }
-
   return (
     <Section className="py-16 bg-gray-50">
       <div className="text-center mb-12">
@@ -147,15 +174,16 @@ const CaseStudiesVideos = () => {
         </p>
       </div>
 
-      {caseStudyVideos.length === 0 ? (
-        <div className="text-center py-12">
-          <Video className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-gray-600 mb-2">
-            No Case Study Videos Available
-          </h3>
-          <p className="text-gray-500">
-            Check back later for new case study videos and resources.
-          </p>
+      {error ? (
+        <div className="flex justify-center">
+          <ErrorCard
+            message={error}
+            onRetry={fetchCaseStudyVideos}
+          />
+        </div>
+      ) : caseStudyVideos.length === 0 ? (
+        <div className="flex justify-center">
+          <NoContentCard />
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
