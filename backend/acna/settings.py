@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     'publications',
     'research_projects',
     'educational_resources',
+    'journal_watch',
 ]
 
 MIDDLEWARE = [

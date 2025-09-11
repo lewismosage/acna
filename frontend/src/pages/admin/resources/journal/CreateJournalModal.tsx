@@ -6,19 +6,19 @@ import {
   Minus,
   BookOpen,
   User,
-  Calendar,
   Globe,
   Hash,
   FileText,
   AlertCircle,
 } from "lucide-react";
+import { CreateJournalArticleInput } from "../../../../services/journalWatchAPI";
 
 interface JournalArticle {
   id: number;
   title: string;
   authors: string;
   journal: string;
-  publicationDate: string; // This will come from backend
+  publicationDate: string;
   summary: string;
   abstract?: string;
   keyFindings: string[];
@@ -39,7 +39,7 @@ interface JournalArticle {
 interface CreateJournalModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (article: Omit<JournalArticle, 'id' | 'createdAt' | 'updatedAt' | 'viewCount' | 'downloadCount' | 'publicationDate'>) => void;
+  onSave: (article: CreateJournalArticleInput) => Promise<void>;
   editingArticle?: JournalArticle;
 }
 
@@ -206,7 +206,7 @@ const CreateJournalModal: React.FC<CreateJournalModalProps> = ({
 
     setIsSubmitting(true);
     try {
-      const cleanedData = {
+      const cleanedData: CreateJournalArticleInput = {
         ...formData,
         keyFindings: keyFindings.filter(finding => finding.trim()),
         countryFocus: countryFocus.filter(country => country.trim()),
@@ -217,6 +217,7 @@ const CreateJournalModal: React.FC<CreateJournalModalProps> = ({
       onClose();
     } catch (error) {
       console.error("Error saving article:", error);
+      // The error will be handled by the parent component
     } finally {
       setIsSubmitting(false);
     }

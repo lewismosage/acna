@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   BookOpen,
   Plus,
@@ -7,9 +7,6 @@ import {
   Search,
   FileText,
   User,
-  Clock,
-  BarChart3,
-  Upload,
   ChevronDown,
   ChevronUp,
   Eye,
@@ -20,55 +17,12 @@ import {
   TrendingUp,
   Filter,
   Calendar,
-  Globe,
   Hash,
+  BarChart3,
 } from "lucide-react";
 import LoadingSpinner from "../../../../components/common/LoadingSpinner";
 import CreateJournalModal from "./CreateJournalModal";
-
-// Types matching the JournalWatch interface
-interface JournalArticle {
-  id: number;
-  title: string;
-  authors: string;
-  journal: string;
-  publicationDate: string;
-  summary: string;
-  abstract?: string;
-  keyFindings: string[];
-  relevance: "High" | "Medium" | "Low";
-  studyType: string;
-  population: string;
-  countryFocus: string[];
-  tags: string[];
-  access: "Open" | "Subscription";
-  commentary?: string;
-  status: "Published" | "Draft" | "Archived";
-  createdAt: string;
-  updatedAt: string;
-  viewCount: number;
-  downloadCount: number;
-}
-
-interface JournalAnalytics {
-  total: number;
-  totalViews: number;
-  totalDownloads: number;
-  monthlyViews: number;
-  monthlyDownloads: number;
-  published: number;
-  draft: number;
-  archived: number;
-  articlesByStudyType?: Record<string, number>;
-  articlesByCountry?: Record<string, number>;
-  topArticles?: Array<{
-    id: number;
-    title: string;
-    studyType: string;
-    viewCount: number;
-    downloadCount: number;
-  }>;
-}
+import { journalArticlesApi, JournalArticle, JournalAnalytics, CreateJournalArticleInput } from "../../../../services/journalWatchAPI";
 
 type JournalStatus = "Published" | "Draft" | "Archived";
 
@@ -85,17 +39,25 @@ const JournalWatchTab = () => {
   const [editingArticle, setEditingArticle] = useState<JournalArticle | undefined>(undefined);
   const [selectedStudyType, setSelectedStudyType] = useState("all");
   const [selectedRelevance, setSelectedRelevance] = useState("all");
+  const [error, setError] = useState<string | null>(null);
 
   // Load articles from API
   const loadArticles = async () => {
     setLoading(true);
+    setError(null);
     try {
-      // Replace with actual API call
-      const response = await fetch('/api/journal-articles');
-      const data = await response.json();
+      const params = {
+        status: selectedTab !== "all" ? selectedTab : undefined,
+        search: searchTerm || undefined,
+        studyType: selectedStudyType !== "all" ? selectedStudyType : undefined,
+        relevance: selectedRelevance !== "all" ? selectedRelevance : undefined,
+      };
+      
+      const data = await journalArticlesApi.getAll(params);
       setArticles(data);
     } catch (error) {
       console.error("Error loading articles:", error);
+      setError(error instanceof Error ? error.message : "Failed to load articles");
       setArticles([]);
     } finally {
       setLoading(false);
@@ -105,9 +67,7 @@ const JournalWatchTab = () => {
   // Load analytics from API
   const loadAnalytics = async () => {
     try {
-      // Replace with actual API call
-      const response = await fetch('/api/journal-analytics');
-      const data = await response.json();
+      const data = await journalArticlesApi.getAnalytics();
       setAnalyticsData(data);
     } catch (error) {
       console.error("Error loading analytics:", error);
@@ -117,48 +77,44 @@ const JournalWatchTab = () => {
 
   useEffect(() => {
     loadArticles();
-    loadAnalytics();
-  }, []);
+    if (selectedTab === "analytics") {
+      loadAnalytics();
+    }
+  }, [selectedTab, selectedStudyType, selectedRelevance]);
+
+  // Debounced search effect
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      loadArticles();
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm]);
 
   // Handle saving articles (create or update)
-  const handleSaveArticle = async (articleData: Omit<JournalArticle, 'id' | 'createdAt' | 'updatedAt' | 'viewCount' | 'downloadCount'>) => {
+  const handleSaveArticle = async (articleData: CreateJournalArticleInput) => {
+    setError(null);
     try {
       if (editingArticle) {
         // Update existing article
-        const response = await fetch(`/api/journal-articles/${editingArticle.id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(articleData),
-        });
-        
-        if (response.ok) {
-          const updatedArticle = await response.json();
-          setArticles(prev => prev.map(article => 
-            article.id === editingArticle.id ? updatedArticle : article
-          ));
-        }
+        const updatedArticle = await journalArticlesApi.update(editingArticle.id, articleData);
+        setArticles(prev => prev.map(article => 
+          article.id === editingArticle.id ? updatedArticle : article
+        ));
       } else {
         // Create new article
-        const response = await fetch('/api/journal-articles', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(articleData),
-        });
-        
-        if (response.ok) {
-          const newArticle = await response.json();
-          setArticles(prev => [...prev, newArticle]);
-        }
+        const newArticle = await journalArticlesApi.create(articleData);
+        setArticles(prev => [newArticle, ...prev]);
       }
       
       // Refresh analytics after changes
       loadAnalytics();
+      setShowUploadModal(false);
+      setEditingArticle(undefined);
     } catch (error) {
       console.error("Error saving article:", error);
+      setError(error instanceof Error ? error.message : "Failed to save article");
+      throw error; // Re-throw so the modal can handle it
     }
   };
 
@@ -202,24 +158,16 @@ const JournalWatchTab = () => {
   };
 
   const handleStatusChange = async (articleId: number, newStatus: JournalStatus) => {
+    setError(null);
     try {
-      const response = await fetch(`/api/journal-articles/${articleId}/status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      
-      if (response.ok) {
-        const updatedArticle = await response.json();
-        setArticles(prev => prev.map(article => 
-          article.id === articleId ? updatedArticle : article
-        ));
-        loadAnalytics();
-      }
+      const updatedArticle = await journalArticlesApi.updateStatus(articleId, newStatus);
+      setArticles(prev => prev.map(article => 
+        article.id === articleId ? updatedArticle : article
+      ));
+      loadAnalytics();
     } catch (error) {
       console.error("Error updating status:", error);
+      setError(error instanceof Error ? error.message : "Failed to update status");
     }
   };
 
@@ -229,17 +177,14 @@ const JournalWatchTab = () => {
         "Are you sure you want to delete this journal article? This action cannot be undone."
       )
     ) {
+      setError(null);
       try {
-        const response = await fetch(`/api/journal-articles/${articleId}`, {
-          method: 'DELETE',
-        });
-        
-        if (response.ok) {
-          setArticles(prev => prev.filter((article) => article.id !== articleId));
-          loadAnalytics();
-        }
+        await journalArticlesApi.delete(articleId);
+        setArticles(prev => prev.filter((article) => article.id !== articleId));
+        loadAnalytics();
       } catch (error) {
         console.error("Error deleting article:", error);
+        setError(error instanceof Error ? error.message : "Failed to delete article");
       }
     }
   };
@@ -426,7 +371,7 @@ const JournalWatchTab = () => {
     );
   };
 
-  if (loading) {
+  if (loading && articles.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
         <LoadingSpinner />
@@ -436,6 +381,33 @@ const JournalWatchTab = () => {
 
   return (
     <div className="space-y-6">
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-red-800">{error}</p>
+            </div>
+            <div className="ml-auto pl-3">
+              <button
+                onClick={() => setError(null)}
+                className="inline-flex text-red-400 hover:text-red-600"
+              >
+                <span className="sr-only">Dismiss</span>
+                <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header Section */}
       <div className="bg-white border border-gray-300 rounded-lg">
         <div className="bg-red-50 px-6 py-4 border-b border-gray-300">
@@ -581,6 +553,12 @@ const JournalWatchTab = () => {
             </div>
           ) : (
             <div className="space-y-6">
+              {loading && (
+                <div className="flex items-center justify-center py-8">
+                  <LoadingSpinner />
+                </div>
+              )}
+              
               {filteredArticles.length > 0 ? (
                 filteredArticles.map((article) => {
                   const isExpanded = expandedArticles.includes(article.id);

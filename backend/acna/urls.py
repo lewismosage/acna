@@ -20,6 +20,7 @@ urlpatterns = [
     path('api/', include('publications.urls')),
     path('api/', include('research_projects.urls')),
     path('api/', include('educational_resources.urls')),
+    path('api/', include('journal_watch.urls')),
 ]
 
 if settings.DEBUG:
