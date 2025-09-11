@@ -9,7 +9,7 @@ class JournalArticleAdmin(admin.ModelAdmin):
         'title', 'authors', 'journal', 'status', 'relevance', 'study_type', 
         'view_count', 'download_count', 'created_at'
     ]
-    list_filter = ['status', 'relevance', 'study_type', 'access', 'created_at', 'updated_at']
+    list_filter = ['status', 'relevance', 'study_type', 'created_at', 'updated_at']
     search_fields = ['title', 'authors', 'journal', 'summary', 'abstract', 'tags', 'key_findings']
     list_editable = ['status', 'relevance']
     readonly_fields = [
@@ -25,7 +25,7 @@ class JournalArticleAdmin(admin.ModelAdmin):
         }),
         ('Research Details', {
             'fields': (
-                'relevance', 'study_type', 'population', 'access', 'commentary'
+                'relevance', 'study_type', 'population', 'commentary'
             )
         }),
         ('Content Details', {

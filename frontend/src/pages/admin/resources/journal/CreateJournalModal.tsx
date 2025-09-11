@@ -5,7 +5,6 @@ import {
   Plus,
   Minus,
   BookOpen,
-  User,
   Globe,
   Hash,
   FileText,
@@ -27,7 +26,6 @@ interface JournalArticle {
   population: string;
   countryFocus: string[];
   tags: string[];
-  access: "Open" | "Subscription";
   commentary?: string;
   status: "Published" | "Draft" | "Archived";
   createdAt: string;
@@ -58,7 +56,6 @@ const CreateJournalModal: React.FC<CreateJournalModalProps> = ({
     relevance: "Medium" as "High" | "Medium" | "Low",
     studyType: "",
     population: "",
-    access: "Open" as "Open" | "Subscription",
     commentary: "",
     status: "Draft" as "Published" | "Draft" | "Archived",
   });
@@ -113,7 +110,6 @@ const CreateJournalModal: React.FC<CreateJournalModalProps> = ({
         relevance: editingArticle.relevance,
         studyType: editingArticle.studyType,
         population: editingArticle.population,
-        access: editingArticle.access,
         commentary: editingArticle.commentary || "",
         status: editingArticle.status,
       });
@@ -131,7 +127,6 @@ const CreateJournalModal: React.FC<CreateJournalModalProps> = ({
         relevance: "Medium",
         studyType: "",
         population: "",
-        access: "Open",
         commentary: "",
         status: "Draft",
       });
@@ -217,7 +212,6 @@ const CreateJournalModal: React.FC<CreateJournalModalProps> = ({
       onClose();
     } catch (error) {
       console.error("Error saving article:", error);
-      // The error will be handled by the parent component
     } finally {
       setIsSubmitting(false);
     }
@@ -370,19 +364,6 @@ const CreateJournalModal: React.FC<CreateJournalModalProps> = ({
                 </select>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Access Type
-                </label>
-                <select
-                  value={formData.access}
-                  onChange={(e) => handleInputChange("access", e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-                >
-                  <option value="Open">Open Access</option>
-                  <option value="Subscription">Subscription Required</option>
-                </select>
-              </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">

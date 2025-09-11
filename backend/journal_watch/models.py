@@ -17,10 +17,6 @@ class JournalArticle(models.Model):
         ('Archived', 'Archived'),
     ]
     
-    ACCESS_CHOICES = [
-        ('Open', 'Open Access'),
-        ('Subscription', 'Subscription Required'),
-    ]
     
     # Basic Information
     title = models.CharField(max_length=500)
@@ -33,7 +29,6 @@ class JournalArticle(models.Model):
     relevance = models.CharField(max_length=10, choices=RELEVANCE_CHOICES, default='Medium')
     study_type = models.CharField(max_length=100)
     population = models.CharField(max_length=300)
-    access = models.CharField(max_length=20, choices=ACCESS_CHOICES, default='Open')
     commentary = models.TextField(blank=True, null=True, help_text="ACNA commentary on the article")
     
     # JSON Fields for arrays

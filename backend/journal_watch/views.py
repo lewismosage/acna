@@ -27,7 +27,7 @@ class JournalArticleViewSet(viewsets.ModelViewSet):
     queryset = JournalArticle.objects.all().order_by('-created_at')
     serializer_class = JournalArticleSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['status', 'relevance', 'study_type', 'access']
+    filterset_fields = ['status', 'relevance', 'study_type']
     search_fields = ['title', 'authors', 'journal', 'summary', 'abstract', 'tags', 'key_findings']
     ordering_fields = ['created_at', 'updated_at', 'publication_date', 'download_count', 'view_count', 'title']
     ordering = ['-created_at']

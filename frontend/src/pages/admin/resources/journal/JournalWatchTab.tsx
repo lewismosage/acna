@@ -600,13 +600,7 @@ const JournalWatchTab = () => {
                               <span className="bg-blue-100 text-blue-800 px-2 py-1 text-xs font-medium rounded border border-blue-200">
                                 {article.studyType}
                               </span>
-                              <span className={`px-2 py-1 text-xs font-medium rounded ${
-                                article.access === "Open" 
-                                  ? "bg-green-100 text-green-800 border border-green-200" 
-                                  : "bg-orange-100 text-orange-800 border border-orange-200"
-                              }`}>
-                                {article.access} Access
-                              </span>
+                              
                               {article.countryFocus.map((country, index) => (
                                 <span key={index} className="bg-purple-100 text-purple-800 px-2 py-1 text-xs font-medium rounded border border-purple-200">
                                   {country}

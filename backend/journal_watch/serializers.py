@@ -9,7 +9,7 @@ class JournalArticleSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'title', 'authors', 'journal', 'summary', 'abstract',
             'key_findings', 'relevance', 'study_type', 'population', 
-            'country_focus', 'tags', 'access', 'commentary', 'status',
+            'country_focus', 'tags', 'commentary', 'status',
             'view_count', 'download_count', 'publication_date', 
             'created_at', 'updated_at', 'last_updated'
         ]
@@ -124,7 +124,6 @@ class JournalArticleSerializer(serializers.ModelSerializer):
             'population': data['population'],
             'countryFocus': data.get('country_focus', []),
             'tags': data.get('tags', []),
-            'access': data['access'],
             'commentary': data.get('commentary'),
             'status': data['status'],
             'viewCount': data.get('view_count', 0),

@@ -48,7 +48,7 @@ import FactSheetsAndCaseStudies from "./pages/education/educationalresources/Fac
 import PositionStatements from "./pages/education/PositionStatements";
 import PatientCaregiverResources from "./pages/education/patientcare/PatientandCaregiverResources";
 import PolicyBriefs from "./pages/education/PolicyBriefs";
-import JournalWatch from "./pages/education/JournalWatch";
+import JournalWatch from "./pages/education/journals/JournalWatch";
 import EBooklets from "./pages/education/ebooklets/EBooklets";
 import Webinars from "./pages/education/webinars/Webinars";
 import WorkshopsSymposiums from "./pages/education/workshops/WorkshopsandSymposiums";
@@ -84,6 +84,7 @@ import ResearchProjectDetailsPage from "./pages/education/researchpublications/R
 import ResearchPaperDetailPage from "./pages/education/researchpublications/ResearchPaperDetailPage";
 import FactSheetDetailPage from "./pages/education/educationalresources/FactSheetDetailPage";
 import CaseStudyDetailPage from "./pages/education/educationalresources/CaseStudyDetailPage";
+import JournalArticleDetailPage from "./pages/education/journals/JournalArticleDetailPage";
 
 // Layout component
 const Layout = ({ children }: { children: React.ReactNode }) => (
@@ -165,10 +166,7 @@ function App() {
               path="/resources/fact-sheets/:id"
               element={<FactSheetDetailPage />}
             />
-            <Route
-              path="/case-studies/:id"
-              element={<CaseStudyDetailPage />}
-            />
+            <Route path="/case-studies/:id" element={<CaseStudyDetailPage />} />
             <Route
               path="/position-statement"
               element={<PositionStatements />}
@@ -183,6 +181,7 @@ function App() {
             />
             <Route path="/policy-briefs" element={<PolicyBriefs />} />
             <Route path="/journal-watch" element={<JournalWatch />} />
+            <Route path="/journal-watch/:id" element={<JournalArticleDetailPage />} />
             <Route path="/e-booklets" element={<EBooklets />} />
             <Route path="/e-booklets/:id" element={<EBookletDetailPage />} />
             <Route path="/webinars" element={<Webinars />} />

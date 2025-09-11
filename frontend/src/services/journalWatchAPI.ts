@@ -45,7 +45,6 @@ export interface JournalArticle {
   population: string;
   countryFocus: string[];
   tags: string[];
-  access: "Open" | "Subscription";
   commentary?: string;
   status: "Published" | "Draft" | "Archived";
   createdAt: string;
@@ -66,7 +65,6 @@ export interface CreateJournalArticleInput {
   population: string;
   countryFocus: string[];
   tags: string[];
-  access: "Open" | "Subscription";
   commentary?: string;
   status: "Published" | "Draft" | "Archived";
 }
@@ -111,7 +109,6 @@ const normalizeJournalArticle = (backendArticle: any): JournalArticle => {
     population: backendArticle.population || '',
     countryFocus: safeArray(backendArticle.countryFocus || backendArticle.country_focus),
     tags: safeArray(backendArticle.tags),
-    access: backendArticle.access || 'Open',
     commentary: backendArticle.commentary,
     status: backendArticle.status || 'Draft',
     createdAt: backendArticle.createdAt || backendArticle.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
@@ -172,7 +169,6 @@ export const journalArticlesApi = {
       population: data.population,
       country_focus: data.countryFocus,
       tags: data.tags,
-      access: data.access,
       commentary: data.commentary,
       status: data.status,
     };
