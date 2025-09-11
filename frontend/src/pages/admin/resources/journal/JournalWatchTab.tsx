@@ -46,14 +46,26 @@ const JournalWatchTab = () => {
     setLoading(true);
     setError(null);
     try {
+      const statusMapping = {
+        'all': undefined,
+        'published': 'Published',
+        'drafts': 'Draft', 
+        'archived': 'Archived',
+        'analytics': undefined
+      };
+  
       const params = {
-        status: selectedTab !== "all" ? selectedTab : undefined,
+        status: statusMapping[selectedTab],
         search: searchTerm || undefined,
         studyType: selectedStudyType !== "all" ? selectedStudyType : undefined,
         relevance: selectedRelevance !== "all" ? selectedRelevance : undefined,
       };
       
-      const data = await journalArticlesApi.getAll(params);
+      const cleanParams = Object.fromEntries(
+        Object.entries(params).filter(([_, value]) => value !== undefined)
+      );
+      
+      const data = await journalArticlesApi.getAll(cleanParams);
       setArticles(data);
     } catch (error) {
       console.error("Error loading articles:", error);
@@ -201,18 +213,18 @@ const JournalWatchTab = () => {
       (selectedTab === "published" && article.status === "Published") ||
       (selectedTab === "drafts" && article.status === "Draft") ||
       (selectedTab === "archived" && article.status === "Archived");
-
+  
     const matchesSearch =
       article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       article.summary.toLowerCase().includes(searchTerm.toLowerCase()) ||
       article.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
-
+  
     const matchesStudyType =
       selectedStudyType === "all" || article.studyType === selectedStudyType;
-
+  
     const matchesRelevance =
       selectedRelevance === "all" || article.relevance === selectedRelevance;
-
+  
     return matchesTab && matchesSearch && matchesStudyType && matchesRelevance;
   });
 
