@@ -41,13 +41,13 @@ import RecognitionAwards from "./pages/homepage/keyfeaturespages/RecognitionAwar
 import AnnualConferenceAndMeetings from "./pages/eventsandnews/AnnualConferenceAndMeetings";
 import CallForAbstracts from "./pages/eventsandnews/CallforAbstracts";
 import ResearchPapersPage from "./pages/education/researchpublications/ResearchPapersPublications";
-import TrainingPrograms from "./pages/education/TrainingPrograms";
+import TrainingPrograms from "./pages/education/trainingprograms/TrainingPrograms";
 import CultureAndValues from "./pages/careers/CultureValues";
 import Benefits from "./pages/careers/Benefits";
 import FactSheetsAndCaseStudies from "./pages/education/educationalresources/FactSheetsandCaseStudies";
-import PositionStatements from "./pages/education/PositionStatements";
+import PositionStatements from "./pages/education/positionstatements/PositionStatements";
 import PatientCaregiverResources from "./pages/education/patientcare/PatientandCaregiverResources";
-import PolicyBriefs from "./pages/education/PolicyBriefs";
+import PolicyBriefs from "./pages/education/policies/PolicyBriefs";
 import JournalWatch from "./pages/education/journals/JournalWatch";
 import EBooklets from "./pages/education/ebooklets/EBooklets";
 import Webinars from "./pages/education/webinars/Webinars";
@@ -181,7 +181,10 @@ function App() {
             />
             <Route path="/policy-briefs" element={<PolicyBriefs />} />
             <Route path="/journal-watch" element={<JournalWatch />} />
-            <Route path="/journal-watch/:id" element={<JournalArticleDetailPage />} />
+            <Route
+              path="/journal-watch/:id"
+              element={<JournalArticleDetailPage />}
+            />
             <Route path="/e-booklets" element={<EBooklets />} />
             <Route path="/e-booklets/:id" element={<EBookletDetailPage />} />
             <Route path="/webinars" element={<Webinars />} />

@@ -1,6 +1,6 @@
 import React from "react";
 import { ArrowRight, Clock, Users, Award, Globe } from "lucide-react";
-import ScrollToTop from "../../components/common/ScrollToTop";
+import ScrollToTop from "../../../components/common/ScrollToTop";
 
 const TrainingPrograms = () => {
   const featuredPrograms = [
