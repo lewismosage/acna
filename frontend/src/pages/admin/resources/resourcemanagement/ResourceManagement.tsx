@@ -22,7 +22,7 @@ import TrainingProgramsTab from "../trainingprogramsresources/TrainingProgramsTa
 import PatientCaregiverResourcesTab from "../patientcareresources/PatientCaregiverResourcesTab";
 import EducationalResourcesTab from "../educationalresources/EducationalResourcesTab";
 import JournalWatchTab from "../journal/JournalWatchTab";
-import PositionStatementsTab from "../positionstatements/PositionStatementsTab";
+import PositionStatementsTab from "../positionstatements/PolicyManagementTab";
 
 const ResourceManagement = () => {
   const [activeTab, setActiveTab] = useState<string>("home");

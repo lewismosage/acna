@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     'research_projects',
     'educational_resources',
     'journal_watch',
+    'policy_management',
 ]
 
 MIDDLEWARE = [

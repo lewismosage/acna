@@ -21,6 +21,7 @@ urlpatterns = [
     path('api/', include('research_projects.urls')),
     path('api/', include('educational_resources.urls')),
     path('api/', include('journal_watch.urls')),
+    path('api/', include('policy_management.urls')),
 ]
 
 if settings.DEBUG:
