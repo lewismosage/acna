@@ -16,7 +16,52 @@ import {
   Upload,
   Trash2,
 } from "lucide-react";
-import { policyManagementApi } from "../../../../services/policyManagementApi";
+
+// Hardcoded arrays for frontend - moved to top
+const defaultCategories = [
+  "Epilepsy & Seizures",
+  "Early Detection & Prevention",
+  "Healthcare Access",
+  "Nutrition & Development",
+  "Social Inclusion & Rights",
+  "Emergency & Crisis Response",
+  "Technology & Innovation",
+  "Mental Health",
+  "Education & Inclusion"
+];
+
+const defaultRegions = [
+  "North Africa",
+  "East Africa",
+  "West Africa",
+  "Central Africa",
+  "Southern Africa",
+  "All Regions"
+];
+
+const defaultCountries = [
+  "Nigeria", "Ethiopia", "Egypt", "DR Congo", "Tanzania",
+  "South Africa", "Kenya", "Uganda", "Algeria", "Sudan",
+  "Morocco", "Angola", "Mozambique", "Ghana", "Madagascar",
+  "Cameroon", "Côte d'Ivoire", "Niger", "Burkina Faso", "Mali",
+  "Malawi", "Zambia", "Senegal", "Chad", "Somalia",
+  "Zimbabwe", "Guinea", "Rwanda", "Benin", "Burundi",
+  "Tunisia", "South Sudan", "Togo", "Sierra Leone", "Libya",
+  "Congo", "Liberia", "Central African Republic", "Mauritania", "Eritrea",
+  "Namibia", "Gambia", "Botswana", "Gabon", "Lesotho",
+  "Guinea-Bissau", "Equatorial Guinea", "Mauritius", "Eswatini", "Djibouti",
+  "Comoros", "Cabo Verde", "Sao Tome & Principe", "Seychelles"
+];
+
+const targetAudienceOptionsList = [
+  "Policy Makers", "Health Ministers", "WHO Regional Offices", "Pharmaceutical Companies",
+  "Pediatricians", "Midwives", "Health System Administrators", "UNICEF", "NGOs",
+  "International Donors", "Nutrition Program Directors", "Public Health Officials",
+  "Food Security Organizations", "Education Ministers", "School Administrators",
+  "Teachers Associations", "Parent Groups", "Rehabilitation Specialists",
+  "Community Health Workers", "Disability Organizations", "Health Technology Officers",
+  "Hospital Administrators", "Innovation Hubs", "Medical Schools"
+];
 
 interface BaseContentItem {
   id?: number;
@@ -94,111 +139,12 @@ const CreateContentModal: React.FC<CreateContentModalProps> = ({
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [categories, setCategories] = useState<string[]>([]);
-  const [regions, setRegions] = useState<string[]>([]);
-  const [countries, setCountries] = useState<string[]>([]);
-  const [targetAudienceOptions, setTargetAudienceOptions] = useState<string[]>([]);
 
-  // Load metadata from API
-  useEffect(() => {
-    const loadMetadata = async () => {
-      try {
-        const [cats, regs, cntrs, audience] = await Promise.all([
-          policyManagementApi.getCategories(),
-          policyManagementApi.getRegions(),
-          policyManagementApi.getCountries(),
-          policyManagementApi.getTargetAudienceOptions()
-        ]);
-        
-        // Use default values if empty
-        const defaultCategories = [
-          "Epilepsy & Seizures",
-          "Early Detection & Prevention",
-          "Healthcare Access",
-          "Nutrition & Development",
-          "Social Inclusion & Rights",
-          "Emergency & Crisis Response",
-          "Technology & Innovation",
-          "Mental Health",
-          "Education & Inclusion"
-        ];
-        
-        const defaultRegions = [
-          "North Africa",
-          "East Africa",
-          "West Africa",
-          "Central Africa",
-          "Southern Africa",
-          "All Regions"
-        ];
-        
-        const defaultCountries = [
-          "Nigeria", "Ethiopia", "Egypt", "DR Congo", "Tanzania",
-          "South Africa", "Kenya", "Uganda", "Algeria", "Sudan",
-          "Morocco", "Angola", "Mozambique", "Ghana", "Madagascar",
-          "Cameroon", "Côte d'Ivoire", "Niger", "Burkina Faso", "Mali",
-          "Malawi", "Zambia", "Senegal", "Chad", "Somalia",
-          "Zimbabwe", "Guinea", "Rwanda", "Benin", "Burundi",
-          "Tunisia", "South Sudan", "Togo", "Sierra Leone", "Libya",
-          "Congo", "Liberia", "Central African Republic", "Mauritania", "Eritrea",
-          "Namibia", "Gambia", "Botswana", "Gabon", "Lesotho",
-          "Guinea-Bissau", "Equatorial Guinea", "Mauritius", "Eswatini", "Djibouti",
-          "Comoros", "Cabo Verde", "Sao Tome & Principe", "Seychelles"
-        ];
-        
-        setCategories(cats.length > 0 ? cats : defaultCategories);
-        setRegions(regs.length > 0 ? regs : defaultRegions);
-        setCountries(cntrs.length > 0 ? cntrs : defaultCountries);
-        setTargetAudienceOptions(audience);
-      } catch (error) {
-        console.error("Error loading metadata:", error);
-        // Set default values on error
-        const defaultCategories = [
-          "Epilepsy & Seizures",
-          "Early Detection & Prevention",
-          "Healthcare Access",
-          "Nutrition & Development",
-          "Social Inclusion & Rights",
-          "Emergency & Crisis Response",
-          "Technology & Innovation",
-          "Mental Health",
-          "Education & Inclusion"
-        ];
-        
-        const defaultRegions = [
-          "North Africa",
-          "East Africa",
-          "West Africa",
-          "Central Africa",
-          "Southern Africa",
-          "All Regions"
-        ];
-        
-        const defaultCountries = [
-          "Nigeria", "Ethiopia", "Egypt", "DR Congo", "Tanzania",
-          "South Africa", "Kenya", "Uganda", "Algeria", "Sudan",
-          "Morocco", "Angola", "Mozambique", "Ghana", "Madagascar",
-          "Cameroon", "Côte d'Ivoire", "Niger", "Burkina Faso", "Mali",
-          "Malawi", "Zambia", "Senegal", "Chad", "Somalia",
-          "Zimbabwe", "Guinea", "Rwanda", "Benin", "Burundi",
-          "Tunisia", "South Sudan", "Togo", "Sierra Leone", "Libya",
-          "Congo", "Liberia", "Central African Republic", "Mauritania", "Eritrea",
-          "Namibia", "Gambia", "Botswana", "Gabon", "Lesotho",
-          "Guinea-Bissau", "Equatorial Guinea", "Mauritius", "Eswatini", "Djibouti",
-          "Comoros", "Cabo Verde", "Sao Tome & Principe", "Seychelles"
-        ];
-        
-        setCategories(defaultCategories);
-        setRegions(defaultRegions);
-        setCountries(defaultCountries);
-        setTargetAudienceOptions([]);
-      }
-    };
-  
-    if (isOpen) {
-      loadMetadata();
-    }
-  }, [isOpen]);
+  // Use hardcoded arrays directly
+  const categories = defaultCategories;
+  const regions = defaultRegions;
+  const countries = defaultCountries;
+  const targetAudienceOptions = targetAudienceOptionsList;
 
   // Load editing data when modal opens
   useEffect(() => {
@@ -382,105 +328,35 @@ const CreateContentModal: React.FC<CreateContentModalProps> = ({
     setIsSubmitting(true);
     
     try {
-      const currentTimestamp = new Date().toISOString();
-      
-      // Prepare form data for file upload
-      const formDataToSend = new FormData();
-      
-      // Add common fields - use the local state values, not formData.title (which doesn't exist)
-      formDataToSend.append('title', formData.title);
-      formDataToSend.append('category', formData.category);
-      formDataToSend.append('summary', formData.summary);
-      formDataToSend.append('status', formData.status);
-      formDataToSend.append('tags', JSON.stringify(tags.filter(tag => tag.trim())));
-      
-      if (formData.imageUrl) {
-        formDataToSend.append('image_url', formData.imageUrl);
-      }
-      
-      // Add image file if uploaded
-      if (imageFile) {
-        formDataToSend.append('image', imageFile);
-      }
-      
-      // Add type-specific fields
+      // Prepare the data for onSave (parent component will handle API call)
+      const itemData = {
+        ...formData,
+        type: contentType,
+        tags: tags.filter(tag => tag.trim()),
+        imageFile: imageFile || undefined,
+      } as any;
+  
+      // Add type-specific data
       if (contentType === "PolicyBelief") {
-        formDataToSend.append('type', 'PolicyBelief');
-        formDataToSend.append('priority', policySpecificData.priority);
-        formDataToSend.append('target_audience', JSON.stringify(policySpecificData.targetAudience.filter(aud => aud.trim())));
-        formDataToSend.append('key_recommendations', JSON.stringify(policySpecificData.keyRecommendations.filter(rec => rec.trim())));
-        formDataToSend.append('region', JSON.stringify(policySpecificData.region.filter(region => region.trim())));
+        itemData.priority = policySpecificData.priority;
+        itemData.targetAudience = policySpecificData.targetAudience.filter(aud => aud.trim());
+        itemData.keyRecommendations = policySpecificData.keyRecommendations.filter(rec => rec.trim());
+        itemData.region = policySpecificData.region.filter(region => region.trim());
       } else {
-        formDataToSend.append('type', 'PositionalStatement');
-        formDataToSend.append('page_count', statementSpecificData.pageCount.toString());
-        formDataToSend.append('key_points', JSON.stringify(statementSpecificData.keyPoints.filter(point => point.trim())));
-        formDataToSend.append('country_focus', JSON.stringify(statementSpecificData.countryFocus.filter(country => country.trim())));
-        formDataToSend.append('related_policies', JSON.stringify(statementSpecificData.relatedPolicies.filter(policy => policy.trim())));
-      }
-      
-      // Add required timestamp fields
-      if (editingItem) {
-        formDataToSend.append('updated_at', currentTimestamp);
-        // Preserve original creation date
-        formDataToSend.append('created_at', editingItem.createdAt);
-      } else {
-        formDataToSend.append('created_at', currentTimestamp);
-        formDataToSend.append('updated_at', currentTimestamp);
-        formDataToSend.append('view_count', '0');
-        formDataToSend.append('download_count', '0');
+        itemData.keyPoints = statementSpecificData.keyPoints.filter(point => point.trim());
+        itemData.pageCount = statementSpecificData.pageCount;
+        itemData.countryFocus = statementSpecificData.countryFocus.filter(country => country.trim());
+        itemData.relatedPolicies = statementSpecificData.relatedPolicies.filter(policy => policy.trim());
       }
   
-      // Make the API call with formData
-      let result: any;
-      if (editingItem && editingItem.id) {
-        result = await policyManagementApi.update(editingItem.id, formDataToSend);
-        
-        // Call the parent onSave function instead of trying to update local state here
-        await onSave({
-          ...formData,
-          type: contentType,
-          priority: policySpecificData.priority,
-          targetAudience: policySpecificData.targetAudience,
-          keyRecommendations: policySpecificData.keyRecommendations,
-          region: policySpecificData.region,
-          keyPoints: statementSpecificData.keyPoints,
-          pageCount: statementSpecificData.pageCount,
-          countryFocus: statementSpecificData.countryFocus,
-          relatedPolicies: statementSpecificData.relatedPolicies,
-          tags: tags,
-          imageFile: imageFile || undefined,
-          createdAt: editingItem.createdAt,
-          updatedAt: currentTimestamp,
-          viewCount: editingItem.viewCount,
-          downloadCount: editingItem.downloadCount,
-        } as any);
-      } else {
-        result = await policyManagementApi.create(formDataToSend);
-        
-        // Call the parent onSave function
-        await onSave({
-          ...formData,
-          type: contentType,
-          priority: policySpecificData.priority,
-          targetAudience: policySpecificData.targetAudience,
-          keyRecommendations: policySpecificData.keyRecommendations,
-          region: policySpecificData.region,
-          keyPoints: statementSpecificData.keyPoints,
-          pageCount: statementSpecificData.pageCount,
-          countryFocus: statementSpecificData.countryFocus,
-          relatedPolicies: statementSpecificData.relatedPolicies,
-          tags: tags,
-          imageFile: imageFile || undefined,
-          createdAt: currentTimestamp,
-          updatedAt: currentTimestamp,
-          viewCount: 0,
-          downloadCount: 0,
-        } as any);
-      }
+      // Call parent's onSave function - this should handle the API call
+      await onSave(itemData);
+      
+      // Close modal on success
+      handleClose();
       
     } catch (error) {
       console.error("Error saving item:", error);
-      // Use setErrors instead of setError
       setErrors({...errors, submit: error instanceof Error ? error.message : "Failed to save content"});
       
       // Re-throw the error so the form can stay open with validation errors
@@ -529,7 +405,7 @@ const CreateContentModal: React.FC<CreateContentModalProps> = ({
         <div className="overflow-y-auto max-h-[calc(90vh-160px)] p-6 space-y-6">
           {/* Basic Information */}
           <div className="bg-white border border-gray-200 rounded-lg p-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
               <BookOpen className="w-5 h-5 mr-2 text-red-600" />
               Basic Information
             </h3>
@@ -705,7 +581,7 @@ const CreateContentModal: React.FC<CreateContentModalProps> = ({
                   }`}
                   placeholder="Brief summary of the content"
                 />
-                {errors.summary && (
+                                {errors.summary && (
                   <p className="text-red-600 text-xs mt-1 flex items-center">
                     <AlertCircle className="w-3 h-3 mr-1" />
                     {errors.summary}
@@ -852,7 +728,7 @@ const CreateContentModal: React.FC<CreateContentModalProps> = ({
                 </div>
                 
                 <div className="space-y-3">
-                {policySpecificData.region.map((region, index) => (
+                  {policySpecificData.region.map((region, index) => (
                     <div key={index} className="flex gap-2">
                       <select
                         value={region}
@@ -897,7 +773,7 @@ const CreateContentModal: React.FC<CreateContentModalProps> = ({
             <>
               {/* Key Points */}
               <div className="bg-white border border-gray-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-gray-900 flex items-center">
                     <Hash className="w-5 h-5 mr-2 text-red-600" />
                     Key Points *
@@ -1012,7 +888,7 @@ const CreateContentModal: React.FC<CreateContentModalProps> = ({
 
               {/* Related Policies */}
               <div className="bg-white border border-gray-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-gray-900 flex items-center">
                     <FileText className="w-5 h-5 mr-2 text-red-600" />
                     Related Policies

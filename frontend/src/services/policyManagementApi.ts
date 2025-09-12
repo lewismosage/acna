@@ -339,43 +339,6 @@ export const policyManagementApi = {
   },
 
   // ========== METADATA OPERATIONS ==========
-  
-  getCategories: async (): Promise<string[]> => {
-    const response = await fetch(`${API_BASE_URL}/content/categories/`, {
-      headers: getAuthHeaders(),
-    });
-    
-    const data = await handleResponse(response);
-    return Array.isArray(data) ? data : [];
-  },
-
-  getTargetAudienceOptions: async (): Promise<string[]> => {
-    const response = await fetch(`${API_BASE_URL}/content/target_audience_options/`, {
-      headers: getAuthHeaders(),
-    });
-    
-    const data = await handleResponse(response);
-    return Array.isArray(data) ? data : [];
-  },
-
-  getRegions: async (): Promise<string[]> => {
-    const response = await fetch(`${API_BASE_URL}/content/regions/`, {
-      headers: getAuthHeaders(),
-    });
-    
-    const data = await handleResponse(response);
-    return Array.isArray(data) ? data : [];
-  },
-
-  getCountries: async (): Promise<string[]> => {
-    const response = await fetch(`${API_BASE_URL}/content/countries/`, {
-      headers: getAuthHeaders(),
-    });
-    
-    const data = await handleResponse(response);
-    return Array.isArray(data) ? data : [];
-  },
-
   getTags: async (): Promise<string[]> => {
     const response = await fetch(`${API_BASE_URL}/content/tags/`, {
       headers: getAuthHeaders(),
@@ -419,9 +382,5 @@ export const {
   updateStatus,
   incrementDownload,
   incrementView,
-  getCategories,
-  getTargetAudienceOptions,
-  getRegions,
-  getCountries,
   getTags,
 } = policyManagementApi;

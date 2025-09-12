@@ -5,7 +5,6 @@ import {
   Download,
   Edit3,
   Search,
-  User,
   ChevronDown,
   ChevronUp,
   Eye,
@@ -18,10 +17,10 @@ import {
   Calendar,
   Hash,
   BarChart3,
-  AlertCircle,
   Globe,
 } from "lucide-react";
 import LoadingSpinner from "../../../../components/common/LoadingSpinner";
+import AlertModal from "../../../../components/common/AlertModal";
 import CreateContentModal from "./CreateContentModal";
 import { policyManagementApi } from "../../../../services/policyManagementApi";
 
@@ -71,6 +70,19 @@ interface ContentAnalytics {
   topContent: ContentItem[];
 }
 
+// Hardcoded categories for frontend
+const defaultCategories = [
+  "Epilepsy & Seizures",
+  "Early Detection & Prevention",
+  "Healthcare Access",
+  "Nutrition & Development",
+  "Social Inclusion & Rights",
+  "Emergency & Crisis Response",
+  "Technology & Innovation",
+  "Mental Health",
+  "Education & Inclusion"
+];
+
 // Main Component
 const PolicyManagementTab = () => {
   const [selectedTab, setSelectedTab] = useState<"policyBeliefs" | "positionalStatements" | "analytics">("policyBeliefs");
@@ -80,18 +92,29 @@ const PolicyManagementTab = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [expandedItems, setExpandedItems] = useState<number[]>([]);
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
-  const [categories, setCategories] = useState<string[]>(["All Categories"]);
+  const [categories] = useState<string[]>(["All Categories", ...defaultCategories]);
   const [loading, setLoading] = useState(false);
   const [analyticsData, setAnalyticsData] = useState<ContentAnalytics | null>(null);
   const [editingItem, setEditingItem] = useState<ContentItem | undefined>(undefined);
-  const [error, setError] = useState<string | null>(null);
+  const [alert, setAlert] = useState<{ 
+    type: 'success' | 'error' | 'warning' | 'info' | 'confirm'; 
+    title: string;
+    message: string; 
+    isOpen: boolean;
+    onConfirm?: () => void;
+    showCancel?: boolean;
+  }>({
+    type: 'info',
+    title: '',
+    message: '',
+    isOpen: false
+  });
 
   const statusOptions = ["All Statuses", "Published", "Draft", "Archived"];
 
   // Load content from API
   const loadContent = async () => {
     setLoading(true);
-    setError(null);
     try {
       const typeMapping = {
         'policyBeliefs': 'PolicyBelief',
@@ -114,7 +137,12 @@ const PolicyManagementTab = () => {
       setContentItems(data);
     } catch (error) {
       console.error("Error loading content:", error);
-      setError(error instanceof Error ? error.message : "Failed to load content");
+      setAlert({
+        type: 'error',
+        title: 'Error',
+        message: error instanceof Error ? error.message : "Failed to load content",
+        isOpen: true
+      });
       setContentItems([]);
     } finally {
       setLoading(false);
@@ -132,44 +160,8 @@ const PolicyManagementTab = () => {
     }
   };
 
-  // Load categories from API
-  const loadCategories = async () => {
-    try {
-      const data = await policyManagementApi.getCategories();
-      // If no categories returned, use default ones
-      const defaultCategories = [
-        "Epilepsy & Seizures",
-        "Early Detection & Prevention",
-        "Healthcare Access",
-        "Nutrition & Development",
-        "Social Inclusion & Rights",
-        "Emergency & Crisis Response",
-        "Technology & Innovation",
-        "Mental Health",
-        "Education & Inclusion"
-      ];
-      setCategories(["All Categories", ...(data.length > 0 ? data : defaultCategories)]);
-    } catch (error) {
-      console.error("Error loading categories:", error);
-      // Use default categories on error
-      const defaultCategories = [
-        "Epilepsy & Seizures",
-        "Early Detection & Prevention",
-        "Healthcare Access",
-        "Nutrition & Development",
-        "Social Inclusion & Rights",
-        "Emergency & Crisis Response",
-        "Technology & Innovation",
-        "Mental Health",
-        "Education & Inclusion"
-      ];
-      setCategories(["All Categories", ...defaultCategories]);
-    }
-  };
-
   useEffect(() => {
     loadContent();
-    loadCategories();
     if (selectedTab === "analytics") {
       loadAnalytics();
     }
@@ -185,7 +177,6 @@ const PolicyManagementTab = () => {
   }, [searchTerm]);
 
   const handleSaveItem = async (itemData: Omit<ContentItem, "id"> & { imageFile?: File }) => {
-    setError(null);
     try {
       // Prepare form data for the API call
       const formData = new FormData();
@@ -204,14 +195,27 @@ const PolicyManagementTab = () => {
         }
       });
   
+      // Use the API directly
       if (editingItem) {
         const updatedItem = await policyManagementApi.update(editingItem.id, formData as any);
         setContentItems(prev => prev.map(item => 
           item.id === editingItem.id ? updatedItem : item
         ));
+        setAlert({
+          type: 'success',
+          title: 'Success',
+          message: 'Content updated successfully!',
+          isOpen: true
+        });
       } else {
         const createdItem = await policyManagementApi.create(formData as any);
         setContentItems(prev => [createdItem, ...prev]);
+        setAlert({
+          type: 'success',
+          title: 'Success',
+          message: 'Content created successfully!',
+          isOpen: true
+        });
       }
       
       loadAnalytics();
@@ -219,7 +223,12 @@ const PolicyManagementTab = () => {
       setEditingItem(undefined);
     } catch (error) {
       console.error("Error saving item:", error);
-      setError(error instanceof Error ? error.message : "Failed to save item");
+      setAlert({
+        type: 'error',
+        title: 'Error',
+        message: error instanceof Error ? error.message : "Failed to save item",
+        isOpen: true
+      });
       throw error;
     }
   };
@@ -264,35 +273,60 @@ const PolicyManagementTab = () => {
   };
 
   const handleStatusChange = async (itemId: number, newStatus: ContentStatus) => {
-    setError(null);
     try {
       const updatedItem = await policyManagementApi.updateStatus(itemId, newStatus);
       setContentItems(prev => prev.map(item => 
         item.id === itemId ? updatedItem : item
       ));
+      setAlert({
+        type: 'success',
+        title: 'Status Updated',
+        message: `Status updated to ${newStatus}`,
+        isOpen: true
+      });
       loadAnalytics();
     } catch (error) {
       console.error("Error updating status:", error);
-      setError(error instanceof Error ? error.message : "Failed to update status");
+      setAlert({
+        type: 'error',
+        title: 'Error',
+        message: error instanceof Error ? error.message : "Failed to update status",
+        isOpen: true
+      });
     }
   };
 
   const handleDeleteItem = async (itemId: number) => {
-    if (
-      window.confirm(
-        "Are you sure you want to delete this item? This action cannot be undone."
-      )
-    ) {
-      setError(null);
-      try {
-        await policyManagementApi.delete(itemId);
-        setContentItems(prev => prev.filter((item) => item.id !== itemId));
-        loadAnalytics();
-      } catch (error) {
-        console.error("Error deleting item:", error);
-        setError(error instanceof Error ? error.message : "Failed to delete item");
-      }
+    try {
+      await policyManagementApi.delete(itemId);
+      setContentItems(prev => prev.filter((item) => item.id !== itemId));
+      setAlert({
+        type: 'success',
+        title: 'Deleted',
+        message: 'Content deleted successfully!',
+        isOpen: true
+      });
+      loadAnalytics();
+    } catch (error) {
+      console.error("Error deleting item:", error);
+      setAlert({
+        type: 'error',
+        title: 'Error',
+        message: error instanceof Error ? error.message : "Failed to delete item",
+        isOpen: true
+      });
     }
+  };
+
+  const confirmDelete = (itemId: number) => {
+    setAlert({
+      type: 'confirm',
+      title: 'Confirm Delete',
+      message: 'Are you sure you want to delete this item? This action cannot be undone.',
+      isOpen: true,
+      onConfirm: () => handleDeleteItem(itemId),
+      showCancel: true
+    });
   };
 
   const toggleExpand = (id: number) => {
@@ -486,30 +520,16 @@ const PolicyManagementTab = () => {
 
   return (
     <div className="space-y-6">
-      {/* Error Display */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <AlertCircle className="h-5 w-5 text-red-400" />
-            </div>
-            <div className="ml-3">
-              <p className="text-sm font-medium text-red-800">{error}</p>
-            </div>
-            <div className="ml-auto pl-3">
-              <button
-                onClick={() => setError(null)}
-                className="inline-flex text-red-400 hover:text-red-600"
-              >
-                <span className="sr-only">Dismiss</span>
-                <svg className="h-5 w-5" viewBox="0 0 20 20" fill="CurrentColor">
-                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={alert.isOpen}
+        onClose={() => setAlert({ ...alert, isOpen: false })}
+        type={alert.type}
+        title={alert.title}
+        message={alert.message}
+        onConfirm={alert.onConfirm}
+        showCancel={alert.showCancel}
+      />
 
       {/* Header Section */}
       <div className="bg-white border border-gray-300 rounded-lg">
@@ -915,7 +935,7 @@ const PolicyManagementTab = () => {
                             </div>
 
                             <button
-                              onClick={() => handleDeleteItem(item.id)}
+                              onClick={() => confirmDelete(item.id)}
                               className="border border-red-300 text-red-600 px-4 py-2 rounded-lg hover:bg-red-50 flex items-center text-sm font-medium transition-colors"
                             >
                               <Trash2 className="w-4 h-4 mr-2" />
