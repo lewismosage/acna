@@ -312,22 +312,25 @@ const CreateContentModal: React.FC<CreateContentModalProps> = ({
         setErrors(prev => ({ ...prev, image: "Please select an image file" }));
         return;
       }
-
+  
       // Check file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         setErrors(prev => ({ ...prev, image: "Image must be less than 5MB" }));
         return;
       }
-
+  
       setImageFile(file);
       setErrors(prev => ({ ...prev, image: "" }));
-
+  
       // Create preview
       const reader = new FileReader();
       reader.onload = (e) => {
         setImagePreview(e.target?.result as string);
       };
       reader.readAsDataURL(file);
+      
+      // Also clear any existing image URL when uploading a new file
+      handleInputChange("imageUrl", "");
     }
   };
 
@@ -377,58 +380,111 @@ const CreateContentModal: React.FC<CreateContentModalProps> = ({
     if (!validateForm()) return;
   
     setIsSubmitting(true);
+    
     try {
       const currentTimestamp = new Date().toISOString();
       
+      // Prepare form data for file upload
+      const formDataToSend = new FormData();
+      
+      // Add common fields - use the local state values, not formData.title (which doesn't exist)
+      formDataToSend.append('title', formData.title);
+      formDataToSend.append('category', formData.category);
+      formDataToSend.append('summary', formData.summary);
+      formDataToSend.append('status', formData.status);
+      formDataToSend.append('tags', JSON.stringify(tags.filter(tag => tag.trim())));
+      
+      if (formData.imageUrl) {
+        formDataToSend.append('image_url', formData.imageUrl);
+      }
+      
+      // Add image file if uploaded
+      if (imageFile) {
+        formDataToSend.append('image', imageFile);
+      }
+      
+      // Add type-specific fields
       if (contentType === "PolicyBelief") {
-        const itemData: Omit<PolicyBelief, "id"> & { imageFile?: File } = {
-          type: "PolicyBelief",
-          title: formData.title,
-          category: formData.category,
-          summary: formData.summary,
-          status: formData.status,
-          tags: tags.filter(tag => tag.trim()),
-          priority: policySpecificData.priority,
-          targetAudience: policySpecificData.targetAudience.filter(aud => aud.trim()),
-          keyRecommendations: policySpecificData.keyRecommendations.filter(rec => rec.trim()),
-          region: policySpecificData.region.filter(region => region.trim()),
-          // Required properties with defaults
-          createdAt: editingItem?.createdAt || currentTimestamp,
-          updatedAt: currentTimestamp,
-          viewCount: editingItem?.viewCount || 0,
-          downloadCount: editingItem?.downloadCount || 0,
-          imageUrl: editingItem?.imageUrl || "",
-          imageFile: imageFile || undefined,
-        };
-        
-        await onSave(itemData);
+        formDataToSend.append('type', 'PolicyBelief');
+        formDataToSend.append('priority', policySpecificData.priority);
+        formDataToSend.append('target_audience', JSON.stringify(policySpecificData.targetAudience.filter(aud => aud.trim())));
+        formDataToSend.append('key_recommendations', JSON.stringify(policySpecificData.keyRecommendations.filter(rec => rec.trim())));
+        formDataToSend.append('region', JSON.stringify(policySpecificData.region.filter(region => region.trim())));
       } else {
-        const itemData: Omit<PositionalStatement, "id"> & { imageFile?: File } = {
-          type: "PositionalStatement",
-          title: formData.title,
-          category: formData.category,
-          summary: formData.summary,
-          status: formData.status,
-          tags: tags.filter(tag => tag.trim()),
-          keyPoints: statementSpecificData.keyPoints.filter(point => point.trim()),
-          pageCount: statementSpecificData.pageCount,
-          countryFocus: statementSpecificData.countryFocus.filter(country => country.trim()),
-          relatedPolicies: statementSpecificData.relatedPolicies.filter(policy => policy.trim()),
-          // Required properties
-          createdAt: editingItem?.createdAt || currentTimestamp,
-          updatedAt: currentTimestamp,
-          viewCount: editingItem?.viewCount || 0,
-          downloadCount: editingItem?.downloadCount || 0,
-          imageUrl: editingItem?.imageUrl || "",
-          imageFile: imageFile || undefined,
-        };
-        
-        await onSave(itemData);
+        formDataToSend.append('type', 'PositionalStatement');
+        formDataToSend.append('page_count', statementSpecificData.pageCount.toString());
+        formDataToSend.append('key_points', JSON.stringify(statementSpecificData.keyPoints.filter(point => point.trim())));
+        formDataToSend.append('country_focus', JSON.stringify(statementSpecificData.countryFocus.filter(country => country.trim())));
+        formDataToSend.append('related_policies', JSON.stringify(statementSpecificData.relatedPolicies.filter(policy => policy.trim())));
+      }
+      
+      // Add required timestamp fields
+      if (editingItem) {
+        formDataToSend.append('updated_at', currentTimestamp);
+        // Preserve original creation date
+        formDataToSend.append('created_at', editingItem.createdAt);
+      } else {
+        formDataToSend.append('created_at', currentTimestamp);
+        formDataToSend.append('updated_at', currentTimestamp);
+        formDataToSend.append('view_count', '0');
+        formDataToSend.append('download_count', '0');
       }
   
-      onClose();
+      // Make the API call with formData
+      let result: any;
+      if (editingItem && editingItem.id) {
+        result = await policyManagementApi.update(editingItem.id, formDataToSend);
+        
+        // Call the parent onSave function instead of trying to update local state here
+        await onSave({
+          ...formData,
+          type: contentType,
+          priority: policySpecificData.priority,
+          targetAudience: policySpecificData.targetAudience,
+          keyRecommendations: policySpecificData.keyRecommendations,
+          region: policySpecificData.region,
+          keyPoints: statementSpecificData.keyPoints,
+          pageCount: statementSpecificData.pageCount,
+          countryFocus: statementSpecificData.countryFocus,
+          relatedPolicies: statementSpecificData.relatedPolicies,
+          tags: tags,
+          imageFile: imageFile || undefined,
+          createdAt: editingItem.createdAt,
+          updatedAt: currentTimestamp,
+          viewCount: editingItem.viewCount,
+          downloadCount: editingItem.downloadCount,
+        } as any);
+      } else {
+        result = await policyManagementApi.create(formDataToSend);
+        
+        // Call the parent onSave function
+        await onSave({
+          ...formData,
+          type: contentType,
+          priority: policySpecificData.priority,
+          targetAudience: policySpecificData.targetAudience,
+          keyRecommendations: policySpecificData.keyRecommendations,
+          region: policySpecificData.region,
+          keyPoints: statementSpecificData.keyPoints,
+          pageCount: statementSpecificData.pageCount,
+          countryFocus: statementSpecificData.countryFocus,
+          relatedPolicies: statementSpecificData.relatedPolicies,
+          tags: tags,
+          imageFile: imageFile || undefined,
+          createdAt: currentTimestamp,
+          updatedAt: currentTimestamp,
+          viewCount: 0,
+          downloadCount: 0,
+        } as any);
+      }
+      
     } catch (error) {
       console.error("Error saving item:", error);
+      // Use setErrors instead of setError
+      setErrors({...errors, submit: error instanceof Error ? error.message : "Failed to save content"});
+      
+      // Re-throw the error so the form can stay open with validation errors
+      throw error;
     } finally {
       setIsSubmitting(false);
     }

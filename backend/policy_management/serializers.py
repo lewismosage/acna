@@ -4,16 +4,25 @@ import json
 
 
 class PolicyBeliefSerializer(serializers.ModelSerializer):
-    image_url_final = serializers.ReadOnlyField()
+    image_url_display = serializers.SerializerMethodField()
     
     class Meta:
         model = PolicyBelief
         fields = [
-            'id', 'title', 'category', 'summary', 'status', 'image', 'image_url', 'image_url_final',
+            'id', 'title', 'category', 'summary', 'status', 'image', 'image_url', 'image_url_display',
             'tags', 'priority', 'target_audience', 'key_recommendations', 'region',
             'view_count', 'download_count', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'view_count', 'download_count', 'created_at', 'updated_at', 'image_url_final']
+        read_only_fields = ['id', 'view_count', 'download_count', 'created_at', 'updated_at']
+
+    def get_image_url_display(self, obj):
+        """Get the image URL, prioritizing uploaded file over URL field"""
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return obj.image_url
     
     def validate_target_audience(self, value):
         """Ensure target_audience is a list of non-empty strings"""
@@ -112,17 +121,17 @@ class PolicyBeliefSerializer(serializers.ModelSerializer):
         # Convert snake_case to camelCase for frontend
         camel_case_data = {
             'id': data['id'],
-            'type': 'PolicyBelief',
+            'type': 'PolicyBelief',  # Changed from 'PositionalStatement'
             'title': data['title'],
             'category': data['category'],
             'summary': data['summary'],
             'status': data['status'],
-            'imageUrl': data.get('image_url_final', ''),
+            'imageUrl': data.get('image_url_display', ''),
             'tags': data.get('tags', []),
-            'priority': data['priority'],
-            'targetAudience': data.get('target_audience', []),
-            'keyRecommendations': data.get('key_recommendations', []),
-            'region': data.get('region', []),
+            'priority': data['priority'],  # Added priority field
+            'targetAudience': data.get('target_audience', []),  # Added targetAudience
+            'keyRecommendations': data.get('key_recommendations', []),  # Added keyRecommendations
+            'region': data.get('region', []),  # Added region
             'viewCount': data.get('view_count', 0),
             'downloadCount': data.get('download_count', 0),
             'createdAt': data['created_at'].split('T')[0] if 'T' in str(data['created_at']) else str(data['created_at']),
@@ -133,16 +142,25 @@ class PolicyBeliefSerializer(serializers.ModelSerializer):
 
 
 class PositionalStatementSerializer(serializers.ModelSerializer):
-    image_url_final = serializers.ReadOnlyField()
+    image_url_display = serializers.SerializerMethodField()  
     
     class Meta:
         model = PositionalStatement
         fields = [
-            'id', 'title', 'category', 'summary', 'status', 'image', 'image_url', 'image_url_final',
+            'id', 'title', 'category', 'summary', 'status', 'image', 'image_url', 'image_url_display',
             'tags', 'page_count', 'key_points', 'country_focus', 'related_policies',
             'view_count', 'download_count', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'view_count', 'download_count', 'created_at', 'updated_at', 'image_url_final']
+        read_only_fields = ['id', 'view_count', 'download_count', 'created_at', 'updated_at']
+
+    def get_image_url_display(self, obj):
+        """Get the image URL, prioritizing uploaded file over URL field"""
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return obj.image_url
     
     def validate_key_points(self, value):
         """Ensure key_points is a list of non-empty strings"""
@@ -250,7 +268,7 @@ class PositionalStatementSerializer(serializers.ModelSerializer):
             'category': data['category'],
             'summary': data['summary'],
             'status': data['status'],
-            'imageUrl': data.get('image_url_final', ''),
+            'imageUrl': data.get('image_url_display', ''),
             'tags': data.get('tags', []),
             'pageCount': data['page_count'],
             'keyPoints': data.get('key_points', []),

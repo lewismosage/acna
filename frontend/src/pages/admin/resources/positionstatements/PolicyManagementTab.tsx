@@ -187,25 +187,30 @@ const PolicyManagementTab = () => {
   const handleSaveItem = async (itemData: Omit<ContentItem, "id"> & { imageFile?: File }) => {
     setError(null);
     try {
+      // Prepare form data for the API call
+      const formData = new FormData();
+      
+      // Add all fields to formData
+      Object.entries(itemData).forEach(([key, value]) => {
+        if (key === 'imageFile' && value instanceof File) {
+          formData.append('image', value);
+        } else if (value !== null && value !== undefined) {
+          // Handle array fields by converting to JSON
+          if (Array.isArray(value)) {
+            formData.append(key, JSON.stringify(value));
+          } else {
+            formData.append(key, value.toString());
+          }
+        }
+      });
+  
       if (editingItem) {
-        const updatedItem = await policyManagementApi.update(editingItem.id, {
-          ...itemData,
-          updatedAt: new Date().toISOString()
-        } as any);
+        const updatedItem = await policyManagementApi.update(editingItem.id, formData as any);
         setContentItems(prev => prev.map(item => 
           item.id === editingItem.id ? updatedItem : item
         ));
       } else {
-        const completeItemData = {
-          ...itemData,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          viewCount: 0,
-          downloadCount: 0,
-          imageUrl: itemData.imageFile ? "" : itemData.imageUrl // Will be set by server after upload
-        };
-        
-        const createdItem = await policyManagementApi.create(completeItemData as any);
+        const createdItem = await policyManagementApi.create(formData as any);
         setContentItems(prev => [createdItem, ...prev]);
       }
       

@@ -1,6 +1,6 @@
 from django.db import models
 from django.utils import timezone
-from django.core.validators import MaxValueValidator, MinValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator, FileExtensionValidator
 import json
 
 
@@ -20,8 +20,13 @@ class BaseContent(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Draft')
     
     # Media
-    image = models.ImageField(upload_to='content_images/', blank=True, null=True)
-    image_url = models.URLField(blank=True, null=True, help_text="Alternative to uploaded image")
+    image = models.ImageField(
+        upload_to='content_images/',
+        blank=True,
+        null=True,
+        validators=[FileExtensionValidator(['jpg', 'jpeg', 'png', 'gif', 'webp'])]  # FIXED
+    )
+    image_url = models.URLField(blank=True, null=True)
     
     # JSON Fields for arrays
     tags = models.JSONField(default=list, help_text="Tags for categorization and search")

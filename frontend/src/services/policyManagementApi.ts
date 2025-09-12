@@ -126,6 +126,12 @@ const normalizeContentItem = (backendItem: any): ContentItem => {
     return arr.filter((item: any) => typeof item === 'string' && item.trim());
   };
 
+  // Get proper image URL
+  const imageUrl = backendItem.image_url_display || 
+                  backendItem.image_url || 
+                  backendItem.imageUrl ||
+                  (backendItem.image ? getFileUrl(backendItem.image) : '');
+
   const baseItem = {
     id: backendItem.id || 0,
     title: backendItem.title || '',
@@ -136,7 +142,7 @@ const normalizeContentItem = (backendItem: any): ContentItem => {
     summary: backendItem.summary || '',
     viewCount: backendItem.viewCount || backendItem.view_count || 0,
     downloadCount: backendItem.downloadCount || backendItem.download_count || 0,
-    imageUrl: backendItem.imageUrl || backendItem.image_url || '',
+    imageUrl: imageUrl,
     tags: safeArray(backendItem.tags),
   };
 
@@ -233,48 +239,22 @@ export const policyManagementApi = {
     return normalizeContentItem(data);
   },
 
-  create: async (data: ContentInput): Promise<ContentItem> => {
-    const formData = prepareContentForBackend(data);
-    
+  create: async (data: FormData): Promise<ContentItem> => {
     const response = await fetch(`${API_BASE_URL}/content/`, {
       method: 'POST',
       headers: getAuthHeadersMultipart(),
-      body: formData,
+      body: data, 
     });
     
     const result = await handleResponse(response);
     return normalizeContentItem(result);
   },
   
-  update: async (id: number, data: Partial<ContentInput>): Promise<ContentItem> => {
-    const formData = new FormData();
-    
-    // Add only the fields that are provided
-    if (data.title !== undefined) formData.append('title', data.title);
-    if (data.category !== undefined) formData.append('category', data.category);
-    if (data.summary !== undefined) formData.append('summary', data.summary);
-    if (data.status !== undefined) formData.append('status', data.status);
-    if (data.tags !== undefined) formData.append('tags', JSON.stringify(data.tags));
-    if (data.imageUrl !== undefined) formData.append('image_url', data.imageUrl);
-    if (data.imageFile !== undefined) formData.append('image', data.imageFile);
-    
-    // Type-specific fields
-    if (data.type === 'PolicyBelief') {
-      if (data.priority !== undefined) formData.append('priority', data.priority);
-      if (data.targetAudience !== undefined) formData.append('target_audience', JSON.stringify(data.targetAudience));
-      if (data.keyRecommendations !== undefined) formData.append('key_recommendations', JSON.stringify(data.keyRecommendations));
-      if (data.region !== undefined) formData.append('region', JSON.stringify(data.region));
-    } else if (data.type === 'PositionalStatement') {
-      if (data.pageCount !== undefined) formData.append('page_count', data.pageCount.toString());
-      if (data.keyPoints !== undefined) formData.append('key_points', JSON.stringify(data.keyPoints));
-      if (data.countryFocus !== undefined) formData.append('country_focus', JSON.stringify(data.countryFocus));
-      if (data.relatedPolicies !== undefined) formData.append('related_policies', JSON.stringify(data.relatedPolicies));
-    }
-
+  update: async (id: number, data: FormData): Promise<ContentItem> => {
     const response = await fetch(`${API_BASE_URL}/content/${id}/`, {
       method: 'PATCH',
       headers: getAuthHeadersMultipart(),
-      body: formData,
+      body: data,
     });
     
     const result = await handleResponse(response);
@@ -404,6 +384,26 @@ export const policyManagementApi = {
     const data = await handleResponse(response);
     return Array.isArray(data) ? data : [];
   },
+};
+
+const getFileUrl = (filePath: string): string => {
+  if (!filePath) return '';
+  
+  // If it's already a full URL, return it
+  if (filePath.startsWith('http')) {
+    return filePath;
+  }
+  
+  // Extract base URL from API_BASE_URL (remove /api suffix)
+  const baseUrl = API_BASE_URL.replace('/api', '');
+  
+  // If it's a media file path, construct proper media URL
+  if (filePath.includes('content_images/') || filePath.includes('policy_files/')) {
+    return `${baseUrl}/media/${filePath.replace(/^\/+/, '')}`;
+  }
+  
+  // Default handling for other paths
+  return `${baseUrl}${filePath.startsWith('/') ? filePath : `/${filePath}`}`;
 };
 
 // Export individual functions for convenience

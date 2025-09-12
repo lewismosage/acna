@@ -143,10 +143,10 @@ class ContentViewSet(viewsets.ViewSet):
     def create(self, request):
         """Create new content item"""
         try:
-            logger.info(f"Creating content with data: {request.data}")
+            logger.info(f"Creating content with files: image={bool(request.FILES.get('image'))}")
             
-            # Process form data
-            processed_data = self.process_form_data(request.data)
+            # Process form data including files
+            processed_data = self.process_form_data(request.data, request.FILES)
             content_type = processed_data.get('type')
 
             if content_type == 'PolicyBelief':
@@ -183,7 +183,7 @@ class ContentViewSet(viewsets.ViewSet):
             logger.info(f"Updating content {pk} with data: {request.data}")
             
             # Process form data
-            processed_data = self.process_form_data(request.data)
+            processed_data = self.process_form_data(request.data, request.FILES)
 
             # Find the instance
             instance = None
@@ -252,12 +252,12 @@ class ContentViewSet(viewsets.ViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-    def process_form_data(self, data):
+    def process_form_data(self, data, files=None):
         """Process form data, handling camelCase to snake_case conversion and JSON fields"""
         processed_data = {}
         
         # Field mappings from frontend camelCase to backend snake_case
-        field_mappings = {
+        field_mapping = {
             'targetAudience': 'target_audience',
             'keyRecommendations': 'key_recommendations',
             'keyPoints': 'key_points',
@@ -267,12 +267,14 @@ class ContentViewSet(viewsets.ViewSet):
             'imageUrl': 'image_url',
         }
         
+        # Process form data
         for key, value in data.items():
-            # Convert camelCase to snake_case
-            backend_key = field_mappings.get(key, self.camel_to_snake(key))
+            # Map frontend field names to backend field names
+            backend_key = field_mapping.get(key, key)
             
             # Handle JSON array fields
-            if key in ['targetAudience', 'keyRecommendations', 'keyPoints', 'countryFocus', 'relatedPolicies', 'tags']:
+            if backend_key in ['target_audience', 'key_recommendations', 'key_points', 
+                              'country_focus', 'related_policies', 'tags', 'region']:
                 try:
                     if isinstance(value, str):
                         processed_data[backend_key] = json.loads(value)
@@ -282,10 +284,14 @@ class ContentViewSet(viewsets.ViewSet):
                         processed_data[backend_key] = []
                 except json.JSONDecodeError:
                     processed_data[backend_key] = []
+            # Handle regular fields
             elif value is not None and value != '':
-                # Handle regular fields
                 processed_data[backend_key] = value
-                
+
+        # Handle file uploads
+        if files and 'image' in files:
+            processed_data['image'] = files['image']
+        
         return processed_data
 
     def camel_to_snake(self, name):
