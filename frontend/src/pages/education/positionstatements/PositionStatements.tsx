@@ -1,161 +1,139 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   FileText,
-  Download,
   Calendar,
-  Users,
   AlertCircle,
   Eye,
   Filter,
   Search,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
-
-interface PositionStatement {
-  id: number;
-  title: string;
-  category: string;
-  issueDate: string;
-  lastUpdated: string;
-  status: "Current" | "Under Review" | "Draft";
-  priority: "High" | "Medium" | "Low";
-  summary: string;
-  keyPoints: string[];
-  downloadCount: string;
-  pageCount: number;
-  relatedPolicies?: string[];
-  targetAudience: string[];
-  imageUrl: string;
-}
+import ScrollToTop from "../../../components/common/ScrollToTop";
+import LoadingSpinner from "../../../components/common/LoadingSpinner";
+import {
+  policyManagementApi,
+  PositionalStatement,
+} from "../../../services/policyManagementApi";
 
 const PositionStatements = () => {
+  const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState<string>("");
-  const [expandedStatement, setExpandedStatement] = useState<number | null>(
-    null
-  );
+  const [expandedStatement, setExpandedStatement] = useState<number | null>(null);
+  const [positionStatements, setPositionStatements] = useState<PositionalStatement[]>([]);
+  const [categories, setCategories] = useState<string[]>(["all"]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [visibleStatements, setVisibleStatements] = useState(8);
 
-  const positionStatements: PositionStatement[] = [
-    {
-      id: 1,
-      title: "Universal Access to Anti-Epileptic Drugs for African Children",
-      category: "Epilepsy & Seizures",
-      issueDate: "July 2025",
-      lastUpdated: "July 2025",
-      status: "Current",
-      priority: "High",
-      summary:
-        "ACNA advocates for immediate policy reforms to ensure universal access to essential anti-epileptic drugs for all African children, addressing the critical treatment gap that affects over 5 million children across the continent.",
-      keyPoints: [
-        "Elimination of import tariffs on essential anti-epileptic medications",
-        "Development of generic drug manufacturing capabilities within Africa",
-        "Integration of epilepsy care into primary healthcare systems",
-        "Training programs for primary healthcare workers in seizure management",
-        "Community-based distribution systems for remote areas",
-      ],
-      downloadCount: "3.2K",
-      pageCount: 12,
-      targetAudience: [
-        "Policy Makers",
-        "Health Ministers",
-        "WHO Regional Offices",
-        "Pharmaceutical Companies",
-      ],
-      relatedPolicies: [
-        "WHO Essential Medicines List",
-        "African Union Health Strategy",
-      ],
-      imageUrl:
-        "https://images.pexels.com/photos/4260325/pexels-photo-4260325.jpeg?auto=compress&cs=tinysrgb&w=600",
-    },
-    {
-      id: 2,
-      title: "Mandatory Newborn Neurological Screening Programs",
-      category: "Early Detection & Prevention",
-      issueDate: "June 2025",
-      lastUpdated: "June 2025",
-      status: "Current",
-      priority: "High",
-      summary:
-        "ACNA calls for the implementation of standardized newborn neurological screening programs across all African healthcare systems to enable early detection and intervention for neurodevelopmental disorders.",
-      keyPoints: [
-        "Implementation of universal newborn neurological assessments",
-        "Development of culturally appropriate screening tools",
-        "Training of healthcare workers in early detection methods",
-        "Establishment of referral pathways for specialized care",
-        "Integration with existing maternal and child health programs",
-      ],
-      downloadCount: "2.8K",
-      pageCount: 15,
-      targetAudience: [
-        "Pediatricians",
-        "Midwives",
-        "Health System Administrators",
-        "UNICEF",
-      ],
-      relatedPolicies: [
-        "Sustainable Development Goals",
-        "Every Newborn Action Plan",
-      ],
-      imageUrl:
-        "https://images.pexels.com/photos/3985163/pexels-photo-3985163.jpeg?auto=compress&cs=tinysrgb&w=600",
-    },
-    
-  ];
+  const statuses = ["all", "Published"];
 
-  const categories = [
-    "all",
-    "Epilepsy & Seizures",
-    "Early Detection & Prevention",
-    "Social Inclusion & Rights",
-    "Emergency & Crisis Response",
-    "Technology & Innovation",
-    "Nutrition & Development",
-    "Professional Development",
-    "Environmental Health",
-  ];
-  const statuses = ["all", "Current", "Under Review", "Draft"];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch only published positional statements
+        const data = await policyManagementApi.getAll({
+          type: "PositionalStatement",
+          status: "Published",
+        });
+
+        const publishedStatements = data.filter(
+          (item): item is PositionalStatement => 
+            item.type === "PositionalStatement" && item.status === "Published"
+        );
+
+        setPositionStatements(publishedStatements);
+
+        // Extract unique categories
+        const uniqueCategories = Array.from(
+          new Set(publishedStatements.map(statement => statement.category))
+        ).filter(Boolean);
+        
+        setCategories(["all", ...uniqueCategories]);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Failed to load position statements"
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const filteredStatements = positionStatements.filter((statement) => {
-    const matchesCategory =
-      selectedCategory === "all" || statement.category === selectedCategory;
-    const matchesStatus =
-      selectedStatus === "all" || statement.status === selectedStatus;
+    const matchesCategory = selectedCategory === "all" || statement.category === selectedCategory;
+    const matchesStatus = selectedStatus === "all" || statement.status === selectedStatus;
     const matchesSearch =
       statement.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      statement.summary.toLowerCase().includes(searchTerm.toLowerCase());
+      statement.summary.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      statement.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
     return matchesCategory && matchesStatus && matchesSearch;
   });
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Current":
-        return "bg-green-100 text-green-800";
-      case "Under Review":
-        return "bg-yellow-100 text-yellow-800";
-      case "Draft":
-        return "bg-gray-100 text-gray-800";
-      default:
-        return "bg-gray-100 text-gray-800";
+  const displayedStatements = filteredStatements.slice(0, visibleStatements);
+  const hasMoreStatements = visibleStatements < filteredStatements.length;
+
+  const loadMoreStatements = () => {
+    setVisibleStatements(prev => prev + 8);
+  };
+
+  const handleViewDetails = async (id: number) => {
+    try {
+      await policyManagementApi.incrementView(id, "PositionalStatement");
+      navigate(`/position-statements/${id}`);
+    } catch (error) {
+      console.error("Error incrementing view count:", error);
     }
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "High":
-        return "text-red-600";
-      case "Medium":
-        return "text-orange-600";
-      case "Low":
-        return "text-green-600";
-      default:
-        return "text-gray-600";
-    }
-  };
+  // Error Card Component
+  const ErrorCard = ({
+    message,
+    onRetry,
+  }: {
+    message: string;
+    onRetry: () => void;
+  }) => (
+    <div className="bg-red-50 border border-red-200 rounded-lg p-8 text-center max-w-md mx-auto">
+      <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
+      <h3 className="text-lg font-medium text-red-800 mb-2">
+        Error Loading Content
+      </h3>
+      <p className="text-red-600 mb-6">{message}</p>
+      <button
+        onClick={onRetry}
+        className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-md font-medium transition-colors duration-300"
+      >
+        Try Again
+      </button>
+    </div>
+  );
+
+  // No Content Card Component
+  const NoContentCard = () => (
+    <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center max-w-md mx-auto">
+      <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+      <h3 className="text-lg font-medium text-gray-900 mb-2">
+        No position statements found
+      </h3>
+      <p className="text-gray-600">
+        Try adjusting your search or filter criteria.
+      </p>
+    </div>
+  );
 
   return (
     <div className="bg-white min-h-screen">
+      <ScrollToTop />
       {/* Hero Section */}
       <section className="py-20 bg-gradient-to-r from-blue-50 to-indigo-50">
         <div className="max-w-6xl mx-auto px-4 text-center">
@@ -174,8 +152,7 @@ const PositionStatements = () => {
             <div className="flex items-center">
               <AlertCircle className="w-5 h-5 mr-2 text-red-600" />
               <span>
-                {positionStatements.filter((s) => s.priority === "High").length}{" "}
-                High Priority Issues
+                {positionStatements.length} Published Statements
               </span>
             </div>
           </div>
@@ -270,162 +247,211 @@ const PositionStatements = () => {
       {/* Position Statements List */}
       <section className="py-16">
         <div className="max-w-6xl mx-auto px-4">
-          <div className="space-y-8">
-            {filteredStatements.map((statement) => (
-              <div
-                key={statement.id}
-                className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 overflow-hidden border border-gray-200"
-              >
-                <div className="flex flex-col lg:flex-row">
-                  {/* Image */}
-                  <div className="lg:w-64 h-48 lg:h-auto flex-shrink-0">
-                    <img
-                      src={statement.imageUrl}
-                      alt={statement.title}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
+          {loading ? (
+            <LoadingSpinner />
+          ) : error ? (
+            <ErrorCard
+              message={error}
+              onRetry={() => window.location.reload()}
+            />
+          ) : displayedStatements.length > 0 ? (
+            <div className="space-y-8">
+              {displayedStatements.map((statement) => (
+                <div
+                  key={statement.id}
+                  className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 overflow-hidden border border-gray-200"
+                >
+                  <div className="flex flex-col lg:flex-row">
+                    {/* Image */}
+                    {statement.imageUrl && (
+                      <div className="lg:w-64 h-48 lg:h-auto flex-shrink-0">
+                        <img
+                          src={statement.imageUrl}
+                          alt={statement.title}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
 
-                  {/* Content */}
-                  <div className="flex-1 p-6">
-                    {/* Header */}
-                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-4">
-                      <div className="flex-1">
-                        <div className="flex flex-wrap gap-2 mb-3">
-                          <span
-                            className={`px-2 py-1 text-xs font-medium rounded ${getStatusColor(
-                              statement.status
-                            )}`}
-                          >
-                            {statement.status}
-                          </span>
-                          <span className="bg-blue-100 text-blue-800 px-2 py-1 text-xs font-medium rounded">
-                            {statement.category}
-                          </span>
-                          <span
-                            className={`text-xs font-medium ${getPriorityColor(
-                              statement.priority
-                            )}`}
-                          >
-                            {statement.priority} Priority
-                          </span>
+                    {/* Content */}
+                    <div className="flex-1 p-6">
+                      {/* Header */}
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-4">
+                        <div className="flex-1">
+                          <div className="flex flex-wrap gap-2 mb-3">
+                            <span className="bg-green-100 text-green-800 px-2 py-1 text-xs font-medium rounded">
+                              Published
+                            </span>
+                            <span className="bg-blue-100 text-blue-800 px-2 py-1 text-xs font-medium rounded">
+                              {statement.category}
+                            </span>
+                            {statement.countryFocus && statement.countryFocus.length > 0 && (
+                              statement.countryFocus.map((country, index) => (
+                                <span key={index} className="bg-purple-100 text-purple-800 px-2 py-1 text-xs font-medium rounded">
+                                  {country}
+                                </span>
+                              ))
+                            )}
+                          </div>
+
+                          <h3 className="text-xl font-bold text-gray-900 mb-2 leading-tight hover:text-red-600 transition-colors cursor-pointer">
+                            {statement.title}
+                          </h3>
                         </div>
 
-                        <h3 className="text-xl font-bold text-gray-900 mb-2 leading-tight hover:text-red-600 transition-colors cursor-pointer">
-                          {statement.title}
-                        </h3>
+                        <div className="flex items-center gap-4 text-sm text-gray-500 mt-2 sm:mt-0">
+                          <div className="flex items-center">
+                            <Calendar className="w-4 h-4 mr-1" />
+                            {new Date(statement.updatedAt).toLocaleDateString()}
+                          </div>
+                          <div className="flex items-center">
+                            <Eye className="w-4 h-4 mr-1" />
+                            {statement.viewCount}
+                          </div>
+                          {statement.pageCount > 0 && (
+                            <span>{statement.pageCount} pages</span>
+                          )}
+                        </div>
                       </div>
 
-                      <div className="flex items-center gap-4 text-sm text-gray-500 mt-2 sm:mt-0">
-                        <div className="flex items-center">
-                          <Calendar className="w-4 h-4 mr-1" />
-                          {statement.issueDate}
-                        </div>
-                        <div className="flex items-center">
-                          <Download className="w-4 h-4 mr-1" />
-                          {statement.downloadCount}
-                        </div>
-                        <span>{statement.pageCount} pages</span>
-                      </div>
-                    </div>
+                      {/* Summary */}
+                      <p className="text-gray-600 mb-4 leading-relaxed">
+                        {statement.summary}
+                      </p>
 
-                    {/* Summary */}
-                    <p className="text-gray-600 mb-4 leading-relaxed">
-                      {statement.summary}
-                    </p>
+                      {/* Key Points Preview */}
+                      {expandedStatement === statement.id ? (
+                        <div className="mb-4">
+                          <h4 className="font-semibold text-gray-900 mb-2">
+                            Key Policy Points:
+                          </h4>
+                          <ul className="space-y-1 text-sm text-gray-600">
+                            {statement.keyPoints.map((point, index) => (
+                              <li key={index} className="flex items-start">
+                                <ChevronRight className="w-4 h-4 mr-1 mt-0.5 text-red-600 flex-shrink-0" />
+                                {point}
+                              </li>
+                            ))}
+                          </ul>
 
-                    {/* Key Points Preview */}
-                    {expandedStatement === statement.id ? (
-                      <div className="mb-4">
-                        <h4 className="font-semibold text-gray-900 mb-2">
-                          Key Policy Recommendations:
-                        </h4>
-                        <ul className="space-y-1 text-sm text-gray-600">
-                          {statement.keyPoints.map((point, index) => (
-                            <li key={index} className="flex items-start">
-                              <ChevronRight className="w-4 h-4 mr-1 mt-0.5 text-red-600 flex-shrink-0" />
-                              {point}
-                            </li>
-                          ))}
-                        </ul>
-
-                        {statement.targetAudience && (
-                          <div className="mt-4">
-                            <h4 className="font-semibold text-gray-900 mb-2">
-                              Target Audience:
-                            </h4>
-                            <div className="flex flex-wrap gap-1">
-                              {statement.targetAudience.map(
-                                (audience, index) => (
+                          {statement.relatedPolicies && statement.relatedPolicies.length > 0 && (
+                            <div className="mt-4">
+                              <h4 className="font-semibold text-gray-900 mb-2">
+                                Related Policies:
+                              </h4>
+                              <div className="flex flex-wrap gap-1">
+                                {statement.relatedPolicies.map((policy, index) => (
                                   <span
                                     key={index}
                                     className="bg-gray-100 text-gray-700 px-2 py-1 text-xs rounded"
                                   >
-                                    {audience}
+                                    {policy}
                                   </span>
-                                )
-                              )}
+                                ))}
+                              </div>
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="mb-4">
-                        <p className="text-sm text-gray-600">
-                          Key areas:{" "}
-                          {statement.keyPoints.slice(0, 2).join(", ")}
-                          {statement.keyPoints.length > 2 &&
-                            ` and ${statement.keyPoints.length - 2} more...`}
-                        </p>
-                      </div>
-                    )}
+                          )}
 
-                    {/* Actions */}
-                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-                      <button
-                        onClick={() =>
-                          setExpandedStatement(
-                            expandedStatement === statement.id
-                              ? null
-                              : statement.id
-                          )
-                        }
-                        className="text-red-600 font-medium hover:text-red-700 text-sm self-start"
-                      >
-                        {expandedStatement === statement.id
-                          ? "Show Less"
-                          : "Read More"}{" "}
-                        →
-                      </button>
+                          {statement.tags && statement.tags.length > 0 && (
+                            <div className="mt-4">
+                              <h4 className="font-semibold text-gray-900 mb-2">
+                                Tags:
+                              </h4>
+                              <div className="flex flex-wrap gap-1">
+                                {statement.tags.map((tag, index) => (
+                                  <span
+                                    key={index}
+                                    className="bg-gray-100 text-gray-700 px-2 py-1 text-xs rounded"
+                                  >
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="mb-4">
+                          <p className="text-sm text-gray-600">
+                            Key areas:{" "}
+                            {statement.keyPoints.slice(0, 2).join(", ")}
+                            {statement.keyPoints.length > 2 &&
+                              ` and ${statement.keyPoints.length - 2} more...`}
+                          </p>
+                        </div>
+                      )}
 
-                      <div className="flex gap-3">
-                        <button className="flex items-center bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors text-sm font-medium">
-                          <Download className="w-4 h-4 mr-2" />
-                          Download PDF
+                      {/* Actions */}
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+                        <button
+                          onClick={() =>
+                            setExpandedStatement(
+                              expandedStatement === statement.id
+                                ? null
+                                : statement.id
+                            )
+                          }
+                          className="text-red-600 font-medium hover:text-red-700 text-sm self-start"
+                        >
+                          {expandedStatement === statement.id
+                            ? "Show Less"
+                            : "Read More"}{" "}
+                          {expandedStatement === statement.id ? (
+                            <ChevronUp className="inline ml-1 w-4 h-4" />
+                          ) : (
+                            <ChevronDown className="inline ml-1 w-4 h-4" />
+                          )}
                         </button>
-                        <button className="flex items-center border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors text-sm font-medium">
-                          <Eye className="w-4 h-4 mr-2" />
-                          View Details
-                        </button>
+
+                        <div className="flex gap-3">
+                          <button 
+                            onClick={() => handleViewDetails(statement.id)}
+                            className="flex items-center border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors text-sm font-medium"
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            View Details
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
 
-          {filteredStatements.length === 0 && (
-            <div className="text-center py-12">
-              <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                No position statements found
-              </h3>
-              <p className="text-gray-600">
-                Try adjusting your search or filter criteria.
-              </p>
+              {/* Load More Button */}
+              {hasMoreStatements && (
+                <div className="text-center mt-8">
+                  <button
+                    onClick={loadMoreStatements}
+                    className="bg-red-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors"
+                  >
+                    Load More Statements
+                  </button>
+                  <p className="text-sm text-gray-500 mt-2">
+                    Showing {displayedStatements.length} of{" "}
+                    {filteredStatements.length} position statements
+                  </p>
+                </div>
+              )}
             </div>
+          ) : (
+            <NoContentCard />
           )}
+        </div>
+      </section>
+
+      {/* Call to Action */}
+      <section className="py-16 bg-blue-50">
+        <div className="max-w-4xl mx-auto px-4 text-center">
+          <h2 className="text-3xl font-bold text-gray-900 mb-6">
+            Have a Position Statement Topic?
+          </h2>
+          <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
+            ACNA welcomes input on critical issues that require official position statements to guide policy and practice.
+          </p>
+          <button className="bg-red-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-red-700 transition">
+            Suggest a Topic
+          </button>
         </div>
       </section>
     </div>

@@ -85,6 +85,8 @@ import ResearchPaperDetailPage from "./pages/education/researchpublications/Rese
 import FactSheetDetailPage from "./pages/education/educationalresources/FactSheetDetailPage";
 import CaseStudyDetailPage from "./pages/education/educationalresources/CaseStudyDetailPage";
 import JournalArticleDetailPage from "./pages/education/journals/JournalArticleDetailPage";
+import PolicyBeliefDetailPage from "./pages/education/policies/PolicyBriefsDetailsPage";
+import PositionStatementDetailPage from "./pages/education/positionstatements/PositionStatementDetailPage";
 
 // Layout component
 const Layout = ({ children }: { children: React.ReactNode }) => (
@@ -172,6 +174,10 @@ function App() {
               element={<PositionStatements />}
             />
             <Route
+              path="/position-statements/:id"
+              element={<PositionStatementDetailPage />}
+            />
+            <Route
               path="/patient-caregiver-resources"
               element={<PatientCaregiverResources />}
             />
@@ -180,6 +186,7 @@ function App() {
               element={<PatientCareDetail />}
             />
             <Route path="/policy-briefs" element={<PolicyBriefs />} />
+            <Route path="/policy-briefs/:id" element={<PolicyBeliefDetailPage />} />
             <Route path="/journal-watch" element={<JournalWatch />} />
             <Route
               path="/journal-watch/:id"
