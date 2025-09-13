@@ -440,20 +440,7 @@ const PositionStatements = () => {
         </div>
       </section>
 
-      {/* Call to Action */}
-      <section className="py-16 bg-blue-50">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-6">
-            Have a Position Statement Topic?
-          </h2>
-          <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
-            ACNA welcomes input on critical issues that require official position statements to guide policy and practice.
-          </p>
-          <button className="bg-red-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-red-700 transition">
-            Suggest a Topic
-          </button>
-        </div>
-      </section>
+      
     </div>
   );
 };

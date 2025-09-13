@@ -866,27 +866,6 @@ Generated from ACNA Policy Management System
           )}
         </div>
       </section>
-
-      {/* Call to Action */}
-      <section className="py-16 bg-blue-50">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-6">
-            Support Policy Implementation
-          </h2>
-          <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
-            Help us advocate for better neurological care policies across Africa. 
-            Your support can make a difference in improving healthcare outcomes for children.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="bg-red-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-red-700 transition">
-              Contact Policymakers
-            </button>
-            <button className="border border-red-600 text-red-600 px-8 py-3 rounded-lg font-semibold hover:bg-red-50 transition">
-              Share This Policy
-            </button>
-          </div>
-        </div>
-      </section>
     </div>
   );
 };

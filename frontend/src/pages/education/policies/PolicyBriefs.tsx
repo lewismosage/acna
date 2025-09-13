@@ -485,21 +485,6 @@ const PolicyBriefs = () => {
           )}
         </div>
       </section>
-
-      {/* Call to Action */}
-      <section className="py-16 bg-blue-50">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-6">
-            Need Custom Policy Recommendations?
-          </h2>
-          <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
-            Our team can develop tailored policy briefs and recommendations for your specific context or region.
-          </p>
-          <button className="bg-red-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-red-700 transition">
-            Request Policy Support
-          </button>
-        </div>
-      </section>
     </div>
   );
 };
