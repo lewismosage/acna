@@ -37,6 +37,7 @@ import {
   TrainingProgramAnalytics,
   CreateTrainingProgramInput
 } from '../../../../services/trainingProgramsApi';
+import LoadingSpinner from "../../../../components/common/LoadingSpinner";
 
 const TrainingProgramsTab = () => {
   const [selectedTab, setSelectedTab] = useState<
@@ -744,8 +745,7 @@ const TrainingProgramsTab = () => {
   if (initialLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full"></div>
-        <span className="ml-3 text-gray-600">Loading training programs...</span>
+        <LoadingSpinner />
       </div>
     );
   }
