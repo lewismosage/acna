@@ -8,23 +8,9 @@ import {
   Upload,
 } from 'lucide-react';
 
-// Types
-interface ProgramAnalytics {
-  totalPrograms: number;
-  totalEnrollments: number;
-  totalRevenue: number;
-  averageFillRate: number;
-  programsByStatus: {
-    published: number;
-    draft: number;
-    archived: number;
-    featured: number;
-  };
-  programsByType: Record<string, number>;
-  monthlyRevenue: number;
-  upcomingPrograms: number;
-}
+import { TrainingProgramAnalytics, trainingProgramsApi } from '../../../../services/trainingProgramsApi';
 
+// Alert Modal Component
 interface AlertModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -37,7 +23,6 @@ interface AlertModalProps {
   showCancel?: boolean;
 }
 
-// Alert Modal Component
 const AlertModal: React.FC<AlertModalProps> = ({
   isOpen,
   onClose,
@@ -161,20 +146,60 @@ const AlertModal: React.FC<AlertModalProps> = ({
 };
 
 interface AnalyticsTabProps {
-  analyticsData: ProgramAnalytics;
+  analyticsData: TrainingProgramAnalytics;
 }
 
 const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ analyticsData }) => {
   const [alertModal, setAlertModal] = useState<Omit<AlertModalProps, 'isOpen' | 'onClose'> | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   const closeAlertModal = () => {
     setAlertModal(null);
   };
 
-  const handleFeatureComingSoon = (feature: string) => {
+  const handleExportData = async () => {
+    setIsExporting(true);
+    try {
+      const blob = await trainingProgramsApi.exportToCSV();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = 'training_programs_analytics.csv';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      setAlertModal({
+        title: "Export Successful",
+        message: "Analytics data has been exported successfully.",
+        type: "success"
+      });
+    } catch (error) {
+      console.error('Error exporting data:', error);
+      setAlertModal({
+        title: "Export Error",
+        message: "Failed to export analytics data. Please try again.",
+        type: "error"
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleGenerateReport = () => {
     setAlertModal({
       title: "Feature Coming Soon",
-      message: `${feature} functionality is under development.`,
+      message: "Advanced report generation functionality is under development. You can currently export the raw data using the export button.",
+      type: "info"
+    });
+  };
+
+  const handleBulkUpdate = () => {
+    setAlertModal({
+      title: "Feature Coming Soon",
+      message: "Bulk update functionality is under development and will allow you to update multiple programs at once.",
       type: "info"
     });
   };
@@ -229,6 +254,31 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ analyticsData }) => {
           </div>
         </div>
 
+        {/* Additional Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-yellow-600 text-sm font-medium">Monthly Revenue</p>
+                <p className="text-2xl font-bold text-yellow-900">${analyticsData.monthlyRevenue.toLocaleString()}</p>
+              </div>
+              <TrendingUp className="w-8 h-8 text-yellow-600" />
+            </div>
+            <p className="text-yellow-600 text-sm mt-2">Current month</p>
+          </div>
+
+          <div className="bg-teal-50 border border-teal-200 rounded-lg p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-teal-600 text-sm font-medium">Upcoming Programs</p>
+                <p className="text-2xl font-bold text-teal-900">{analyticsData.upcomingPrograms}</p>
+              </div>
+              <BookOpen className="w-8 h-8 text-teal-600" />
+            </div>
+            <p className="text-teal-600 text-sm mt-2">Starting soon</p>
+          </div>
+        </div>
+
         {/* Status Breakdown */}
         <div className="bg-white border border-gray-200 rounded-lg p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Program Status Breakdown</h3>
@@ -269,26 +319,48 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ analyticsData }) => {
           </div>
         )}
 
+        {/* Top Performing Programs */}
+        {analyticsData.topPrograms && analyticsData.topPrograms.length > 0 && (
+          <div className="bg-white border border-gray-200 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Performing Programs</h3>
+            <div className="space-y-3">
+              {analyticsData.topPrograms.map((program) => (
+                <div key={program.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <h4 className="font-medium text-gray-900">{program.title}</h4>
+                    <p className="text-sm text-gray-600">{program.category}</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-medium text-gray-900">{program.enrollments} enrollments</div>
+                    <div className="text-sm text-gray-600">${program.revenue.toLocaleString()} revenue</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Quick Actions */}
         <div className="bg-white border border-gray-200 rounded-lg p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <button 
-              onClick={() => handleFeatureComingSoon("Program data export")}
-              className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              onClick={handleExportData}
+              disabled={isExporting}
+              className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
             >
               <span className="text-sm font-medium">Export Program Data</span>
-              <FileText className="w-4 h-4 text-gray-400" />
+              <FileText className={`w-4 h-4 text-gray-400 ${isExporting ? 'animate-pulse' : ''}`} />
             </button>
             <button 
-              onClick={() => handleFeatureComingSoon("Report generation")}
+              onClick={handleGenerateReport}
               className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
             >
               <span className="text-sm font-medium">Generate Report</span>
               <BarChart3 className="w-4 h-4 text-gray-400" />
             </button>
             <button 
-              onClick={() => handleFeatureComingSoon("Bulk update")}
+              onClick={handleBulkUpdate}
               className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
             >
               <span className="text-sm font-medium">Bulk Update Programs</span>
@@ -356,6 +428,27 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ analyticsData }) => {
                     style={{ 
                       width: `${analyticsData.totalPrograms > 0 
                         ? Math.min((analyticsData.programsByStatus.published / analyticsData.totalPrograms) * 100, 100)
+                        : 0}%` 
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-gray-600">Featured Programs Rate</span>
+                  <span className="font-medium">
+                    {analyticsData.totalPrograms > 0 
+                      ? ((analyticsData.programsByStatus.featured / analyticsData.totalPrograms) * 100).toFixed(1)
+                      : 0}%
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-yellow-500 h-2 rounded-full"
+                    style={{ 
+                      width: `${analyticsData.totalPrograms > 0 
+                        ? Math.min((analyticsData.programsByStatus.featured / analyticsData.totalPrograms) * 100, 100)
                         : 0}%` 
                     }}
                   />

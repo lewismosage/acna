@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   BookOpen,
   Plus,
@@ -22,211 +22,21 @@ import {
   Star,
   FileText,
   User,
+  RefreshCw,
+  Download,
 } from "lucide-react";
 
 import RegistrationsTab from "./RegistrationsTab";
 import CreateProgramModal from "./CreateProgramModal";
 import AnalyticsTab from "./AnalyticsTab";
-
-// Types
-type ProgramStatus = "Published" | "Draft" | "Archived";
-type ProgramType = "Conference" | "Workshop" | "Fellowship" | "Online Course" | "Masterclass";
-type ProgramFormat = "In-person" | "Virtual" | "Hybrid";
-
-interface TrainingProgram {
-  id: number;
-  title: string;
-  description: string;
-  type: ProgramType;
-  category: string;
-  status: ProgramStatus;
-  isFeatured: boolean;
-  duration: string;
-  format: ProgramFormat;
-  location: string;
-  maxParticipants: number;
-  currentEnrollments: number;
-  instructor: string;
-  startDate: string;
-  endDate: string;
-  price: number;
-  currency: string;
-  imageUrl: string;
-  createdAt: string;
-  updatedAt: string;
-  registrationDeadline: string;
-  prerequisites: string[];
-  learningOutcomes: string[];
-  certificationType: string;
-  cmeCredits: number;
-}
-
-interface Registration {
-  id: number;
-  programId: number;
-  programTitle: string;
-  participantName: string;
-  participantEmail: string;
-  participantPhone: string;
-  organization: string;
-  profession: string;
-  experience: string;
-  registrationDate: string;
-  status: "Pending" | "Confirmed" | "Waitlisted" | "Cancelled";
-  paymentStatus: "Pending" | "Paid" | "Refunded";
-  specialRequests: string;
-}
-
-interface ProgramAnalytics {
-  totalPrograms: number;
-  totalEnrollments: number;
-  totalRevenue: number;
-  averageFillRate: number;
-  programsByStatus: {
-    published: number;
-    draft: number;
-    archived: number;
-    featured: number;
-  };
-  programsByType: Record<string, number>;
-  monthlyRevenue: number;
-  upcomingPrograms: number;
-}
-
-// Alert Modal Component
-interface AlertModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm?: () => void;
-  title: string;
-  message: string;
-  type?: 'info' | 'warning' | 'error' | 'success' | 'confirm';
-  confirmText?: string;
-  cancelText?: string;
-  showCancel?: boolean;
-}
-
-const AlertModal: React.FC<AlertModalProps> = ({
-  isOpen,
-  onClose,
-  onConfirm,
-  title,
-  message,
-  type = 'info',
-  confirmText = 'OK',
-  cancelText = 'Cancel',
-  showCancel = false
-}) => {
-  if (!isOpen) return null;
-
-  const getIconAndColor = () => {
-    switch (type) {
-      case 'warning':
-        return {
-          iconColor: 'text-yellow-600',
-          bgColor: 'bg-yellow-50',
-          borderColor: 'border-yellow-200'
-        };
-      case 'error':
-        return {
-          iconColor: 'text-red-600',
-          bgColor: 'bg-red-50',
-          borderColor: 'border-red-200'
-        };
-      case 'success':
-        return {
-          iconColor: 'text-green-600',
-          bgColor: 'bg-green-50',
-          borderColor: 'border-green-200'
-        };
-      case 'confirm':
-        return {
-          iconColor: 'text-orange-600',
-          bgColor: 'bg-orange-50',
-          borderColor: 'border-orange-200'
-        };
-      default:
-        return {
-          iconColor: 'text-blue-600',
-          bgColor: 'bg-blue-50',
-          borderColor: 'border-blue-200'
-        };
-    }
-  };
-
-  const { iconColor, bgColor, borderColor } = getIconAndColor();
-
-  const handleConfirm = () => {
-    if (onConfirm) {
-      onConfirm();
-    }
-    onClose();
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-        <div 
-          className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" 
-          onClick={onClose}
-        ></div>
-        <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
-          &#8203;
-        </span>
-        <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
-          <div className="sm:flex sm:items-start">
-            <div className={`mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full ${bgColor} ${borderColor} border sm:mx-0 sm:h-10 sm:w-10`}>
-              <div className={iconColor}>
-                <Star className="w-6 h-6" />
-              </div>
-            </div>
-            
-            <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left flex-1">
-              <h3 className="text-lg leading-6 font-medium text-gray-900">
-                {title}
-              </h3>
-              <div className="mt-2">
-                <p className="text-sm text-gray-500 whitespace-pre-line">
-                  {message}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse sm:gap-3">
-            {onConfirm && (
-              <button
-                type="button"
-                className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm ${
-                  type === 'error' || type === 'confirm'
-                    ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500'
-                    : type === 'warning'
-                    ? 'bg-yellow-600 hover:bg-yellow-700 focus:ring-yellow-500'
-                    : type === 'success'
-                    ? 'bg-green-600 hover:bg-green-700 focus:ring-green-500'
-                    : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
-                }`}
-                onClick={handleConfirm}
-              >
-                {confirmText}
-              </button>
-            )}
-            
-            {(showCancel || onConfirm) && (
-              <button
-                type="button"
-                className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm"
-                onClick={onClose}
-              >
-                {onConfirm ? cancelText : 'Close'}
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
+import AlertModal from "../../../../components/common/AlertModal";
+import { 
+  trainingProgramsApi, 
+  TrainingProgram,
+  Registration,
+  TrainingProgramAnalytics,
+  CreateTrainingProgramInput
+} from '../../../../services/trainingProgramsApi';
 
 const TrainingProgramsTab = () => {
   const [selectedTab, setSelectedTab] = useState<
@@ -235,16 +45,140 @@ const TrainingProgramsTab = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedPrograms, setExpandedPrograms] = useState<number[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [loading] = useState(false);
-  const [alertModal, setAlertModal] = useState<Omit<AlertModalProps, 'isOpen' | 'onClose'> | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [alertModal, setAlertModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type?: 'info' | 'warning' | 'error' | 'success' | 'confirm';
+    onConfirm?: () => void;
+    confirmText?: string;
+    cancelText?: string;
+    showCancel?: boolean;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+  });
   
   // Modal states
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingProgram, setEditingProgram] = useState<TrainingProgram | undefined>(undefined);
 
-  // Empty data arrays - no mock data
+  // Data states
   const [programs, setPrograms] = useState<TrainingProgram[]>([]);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
+  const [analyticsData, setAnalyticsData] = useState<TrainingProgramAnalytics>({
+    totalPrograms: 0,
+    totalEnrollments: 0,
+    totalRevenue: 0,
+    averageFillRate: 0,
+    programsByStatus: {
+      published: 0,
+      draft: 0,
+      archived: 0,
+      featured: 0,
+    },
+    programsByType: {},
+    monthlyRevenue: 0,
+    upcomingPrograms: 0,
+  });
+  const [categories, setCategories] = useState<string[]>([]);
+
+  // Load initial data
+  useEffect(() => {
+    loadInitialData();
+  }, []);
+
+  const loadInitialData = async () => {
+    setInitialLoading(true);
+    try {
+      await Promise.all([
+        loadPrograms(),
+        loadRegistrations(),
+        loadAnalytics(),
+        loadCategories(),
+      ]);
+    } catch (error) {
+      console.error('Error loading initial data:', error);
+      setAlertModal({
+        isOpen: true,
+        title: "Loading Error",
+        message: "Failed to load program data. Please refresh the page or try again.",
+        type: "error"
+      });
+    } finally {
+      setInitialLoading(false);
+    }
+  };
+
+  const loadPrograms = async () => {
+    try {
+      const data = await trainingProgramsApi.getAll();
+      setPrograms(data);
+    } catch (error) {
+      console.error('Error loading programs:', error);
+      throw error;
+    }
+  };
+
+  const loadRegistrations = async () => {
+    try {
+      const data = await trainingProgramsApi.getRegistrations();
+      setRegistrations(data);
+    } catch (error) {
+      console.error('Error loading registrations:', error);
+      throw error;
+    }
+  };
+
+  const loadAnalytics = async () => {
+    try {
+      const data = await trainingProgramsApi.getAnalytics();
+      setAnalyticsData(data);
+    } catch (error) {
+      console.error('Error loading analytics:', error);
+      throw error;
+    }
+  };
+
+  const loadCategories = async () => {
+    try {
+      const data = await trainingProgramsApi.getCategories();
+      setCategories(data);
+    } catch (error) {
+      console.error('Error loading categories:', error);
+      // Don't throw here as categories are not critical
+    }
+  };
+
+  // Refresh data
+  const refreshData = async () => {
+    setLoading(true);
+    try {
+      await Promise.all([
+        loadPrograms(),
+        loadRegistrations(),
+        loadAnalytics(),
+      ]);
+      setAlertModal({
+        isOpen: true,
+        title: "Data Refreshed",
+        message: "All data has been refreshed successfully.",
+        type: "success"
+      });
+    } catch (error) {
+      setAlertModal({
+        isOpen: true,
+        title: "Refresh Error",
+        message: "Failed to refresh data. Please try again.",
+        type: "error"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Modal handlers
   const handleCreateProgram = () => {
@@ -262,47 +196,41 @@ const TrainingProgramsTab = () => {
     setEditingProgram(undefined);
   };
 
-  const handleSubmitProgram = async (programData: any) => {
+  const handleSubmitProgram = async (programData: CreateTrainingProgramInput) => {
     try {
+      let result: TrainingProgram;
+      
       if (editingProgram) {
         // Update existing program
+        result = await trainingProgramsApi.update(editingProgram.id, programData);
         setPrograms(prev => prev.map(p => 
-          p.id === editingProgram.id 
-            ? { 
-                ...p, 
-                ...programData, 
-                updatedAt: new Date().toISOString().split("T")[0],
-                imageUrl: programData.imageFile ? URL.createObjectURL(programData.imageFile) : p.imageUrl
-              }
-            : p
+          p.id === editingProgram.id ? result : p
         ));
         setAlertModal({
+          isOpen: true,
           title: "Program Updated",
           message: "The training program has been successfully updated.",
           type: "success"
         });
       } else {
         // Create new program
-        const newProgram: TrainingProgram = {
-          id: Math.max(...programs.map(p => p.id), 0) + 1,
-          ...programData,
-          currentEnrollments: 0,
-          createdAt: new Date().toISOString().split("T")[0],
-          updatedAt: new Date().toISOString().split("T")[0],
-          imageUrl: programData.imageFile 
-            ? URL.createObjectURL(programData.imageFile) 
-            : "/api/placeholder/400/250"
-        };
-        setPrograms(prev => [...prev, newProgram]);
+        result = await trainingProgramsApi.create(programData);
+        setPrograms(prev => [...prev, result]);
         setAlertModal({
+          isOpen: true,
           title: "Program Created",
           message: "The training program has been successfully created.",
           type: "success"
         });
       }
+      
+      // Refresh analytics after creating/updating
+      await loadAnalytics();
+      
     } catch (error) {
       console.error('Error saving program:', error);
       setAlertModal({
+        isOpen: true,
         title: "Error",
         message: "There was an error saving the program. Please try again.",
         type: "error"
@@ -312,38 +240,46 @@ const TrainingProgramsTab = () => {
   };
 
   // Registration handlers
-  const handleUpdateRegistration = (id: number, updates: Partial<Registration>) => {
-    setRegistrations(prev => prev.map(r => 
-      r.id === id ? { ...r, ...updates } : r
-    ));
+  const handleUpdateRegistration = async (id: number, updates: Partial<Registration>) => {
+    try {
+      const updatedRegistration = await trainingProgramsApi.updateRegistration(id, updates);
+      setRegistrations(prev => prev.map(r => 
+        r.id === id ? updatedRegistration : r
+      ));
+      
+      setAlertModal({
+        isOpen: true,
+        title: "Registration Updated",
+        message: "The registration has been updated successfully.",
+        type: "success"
+      });
+    } catch (error) {
+      console.error('Error updating registration:', error);
+      setAlertModal({
+        isOpen: true,
+        title: "Update Error",
+        message: "Failed to update the registration. Please try again.",
+        type: "error"
+      });
+    }
   };
 
-  const handleDeleteRegistration = (id: number) => {
-    setRegistrations(prev => prev.filter(r => r.id !== id));
+  const handleDeleteRegistration = async (id: number) => {
+    try {
+      await trainingProgramsApi.deleteRegistration(id);
+      setRegistrations(prev => prev.filter(r => r.id !== id));
+    } catch (error) {
+      console.error('Error deleting registration:', error);
+      setAlertModal({
+        isOpen: true,
+        title: "Delete Error",
+        message: "Failed to delete the registration. Please try again.",
+        type: "error"
+      });
+    }
   };
 
-  // Analytics data
-  const analyticsData: ProgramAnalytics = {
-    totalPrograms: programs.length,
-    totalEnrollments: programs.reduce((sum, p) => sum + p.currentEnrollments, 0),
-    totalRevenue: programs.reduce((sum, p) => sum + (p.currentEnrollments * p.price), 0),
-    averageFillRate: programs.length > 0 ? 
-      programs.reduce((sum, p) => sum + ((p.currentEnrollments / p.maxParticipants) * 100), 0) / programs.length : 0,
-    programsByStatus: {
-      published: programs.filter((p) => p.status === "Published").length,
-      draft: programs.filter((p) => p.status === "Draft").length,
-      archived: programs.filter((p) => p.status === "Archived").length,
-      featured: programs.filter((p) => p.isFeatured).length,
-    },
-    programsByType: programs.reduce((acc, p) => {
-      acc[p.type] = (acc[p.type] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>),
-    monthlyRevenue: programs.reduce((sum, p) => sum + (p.currentEnrollments * p.price), 0),
-    upcomingPrograms: programs.filter((p) => new Date(p.startDate) > new Date()).length,
-  };
-
-  const getStatusColor = (status: ProgramStatus | string) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case "Published":
       case "Confirmed":
@@ -364,7 +300,7 @@ const TrainingProgramsTab = () => {
     }
   };
 
-  const getStatusIcon = (status: ProgramStatus) => {
+  const getStatusIcon = (status: string) => {
     switch (status) {
       case "Published":
         return <CheckCircle className="w-4 h-4" />;
@@ -383,43 +319,119 @@ const TrainingProgramsTab = () => {
     );
   };
 
-  const handleStatusChange = (programId: number, newStatus: ProgramStatus) => {
-    setPrograms((prev) =>
-      prev.map((program) =>
-        program.id === programId
-          ? { ...program, status: newStatus, updatedAt: new Date().toISOString().split("T")[0] }
-          : program
-      )
-    );
+  const handleStatusChange = async (programId: number, newStatus: string) => {
+    try {
+      const updatedProgram = await trainingProgramsApi.updateStatus(programId, newStatus);
+      setPrograms((prev) =>
+        prev.map((program) =>
+          program.id === programId ? updatedProgram : program
+        )
+      );
+      
+      // Refresh analytics after status change
+      await loadAnalytics();
+      
+    } catch (error) {
+      console.error('Error updating status:', error);
+      setAlertModal({
+        isOpen: true,
+        title: "Status Update Error",
+        message: "Failed to update program status. Please try again.",
+        type: "error"
+      });
+    }
   };
 
-  const handleToggleFeatured = (programId: number) => {
-    setPrograms((prev) =>
-      prev.map((program) =>
-        program.id === programId
-          ? { ...program, isFeatured: !program.isFeatured }
-          : program
-      )
-    );
+  const handleToggleFeatured = async (programId: number) => {
+    try {
+      const updatedProgram = await trainingProgramsApi.toggleFeatured(programId);
+      setPrograms((prev) =>
+        prev.map((program) =>
+          program.id === programId ? updatedProgram : program
+        )
+      );
+      
+      // Refresh analytics after featured toggle
+      await loadAnalytics();
+      
+    } catch (error) {
+      console.error('Error toggling featured:', error);
+      setAlertModal({
+        isOpen: true,
+        title: "Featured Toggle Error",
+        message: "Failed to toggle featured status. Please try again.",
+        type: "error"
+      });
+    }
   };
 
   const handleDeleteProgram = (programId: number) => {
+    const program = programs.find(p => p.id === programId);
+    if (!program) return;
+    
     setAlertModal({
+      isOpen: true,
       title: "Confirm Deletion",
-      message: "Are you sure you want to delete this program? This action cannot be undone.",
+      message: `Are you sure you want to delete "${program.title}"? This action cannot be undone and will also delete all associated registrations.`,
       type: "confirm",
       confirmText: "Delete",
       showCancel: true,
-      onConfirm: () => {
-        setPrograms(prev => prev.filter(p => p.id !== programId));
-        setRegistrations(prev => prev.filter(r => r.programId !== programId));
-        setAlertModal({
-          title: "Program Deleted",
-          message: "The training program has been successfully deleted.",
-          type: "success"
-        });
+      onConfirm: async () => {
+        try {
+          await trainingProgramsApi.delete(programId);
+          setPrograms(prev => prev.filter(p => p.id !== programId));
+          setRegistrations(prev => prev.filter(r => r.programId !== programId));
+          
+          // Refresh analytics after deletion
+          await loadAnalytics();
+          
+          setAlertModal({
+            isOpen: true,
+            title: "Program Deleted",
+            message: "The training program has been successfully deleted.",
+            type: "success"
+          });
+        } catch (error) {
+          console.error('Error deleting program:', error);
+          setAlertModal({
+            isOpen: true,
+            title: "Delete Error",
+            message: "Failed to delete the program. Please try again.",
+            type: "error"
+          });
+        }
       }
     });
+  };
+
+  const handleExportData = async () => {
+    try {
+      const blob = await trainingProgramsApi.exportToCSV();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = 'training_programs.csv';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      setAlertModal({
+        isOpen: true,
+        title: "Export Successful",
+        message: "Training programs data has been exported successfully.",
+        type: "success"
+      });
+    } catch (error) {
+      console.error('Error exporting data:', error);
+      setAlertModal({
+        isOpen: true,
+        title: "Export Error",
+        message: "Failed to export data. Please try again.",
+        type: "error"
+      });
+    }
   };
 
   const filteredPrograms = programs.filter((program) => {
@@ -432,7 +444,8 @@ const TrainingProgramsTab = () => {
 
     const matchesSearch =
       program.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      program.description.toLowerCase().includes(searchTerm.toLowerCase());
+      program.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      program.instructor.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesCategory =
       selectedCategory === "all" || program.category === selectedCategory;
@@ -441,7 +454,7 @@ const TrainingProgramsTab = () => {
   });
 
   const closeAlertModal = () => {
-    setAlertModal(null);
+    setAlertModal(prev => ({ ...prev, isOpen: false }));
   };
 
   const renderProgramsContent = () => (
@@ -575,7 +588,7 @@ const TrainingProgramsTab = () => {
                           </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {program.prerequisites.length > 0 && (
+                            {program.prerequisites && program.prerequisites.length > 0 && (
                               <div className="bg-white p-4 rounded-lg border border-gray-200">
                                 <h4 className="font-medium text-gray-900 mb-2">Prerequisites</h4>
                                 <ul className="space-y-1 text-sm text-gray-600">
@@ -586,7 +599,7 @@ const TrainingProgramsTab = () => {
                               </div>
                             )}
 
-                            {program.learningOutcomes.length > 0 && (
+                            {program.learningOutcomes && program.learningOutcomes.length > 0 && (
                               <div className="bg-white p-4 rounded-lg border border-gray-200">
                                 <h4 className="font-medium text-gray-900 mb-2">Learning Outcomes</h4>
                                 <ul className="space-y-1 text-sm text-gray-600">
@@ -662,7 +675,7 @@ const TrainingProgramsTab = () => {
                     <div className="relative">
                       <select
                         value={program.status}
-                        onChange={(e) => handleStatusChange(program.id, e.target.value as ProgramStatus)}
+                        onChange={(e) => handleStatusChange(program.id, e.target.value)}
                         className="border border-gray-300 px-3 py-2 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                       >
                         <option value="Published">Published</option>
@@ -728,10 +741,11 @@ const TrainingProgramsTab = () => {
     </div>
   );
 
-  if (loading) {
+  if (initialLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full"></div>
+        <span className="ml-3 text-gray-600">Loading training programs...</span>
       </div>
     );
   }
@@ -753,6 +767,21 @@ const TrainingProgramsTab = () => {
                 </p>
               </div>
               <div className="flex gap-3">
+                <button 
+                  onClick={refreshData}
+                  disabled={loading}
+                  className="border border-indigo-600 text-indigo-600 px-4 py-2 rounded-lg hover:bg-indigo-50 flex items-center font-medium transition-colors disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-5 h-5 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </button>
+                <button 
+                  onClick={handleExportData}
+                  className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center font-medium transition-colors"
+                >
+                  <Download className="w-5 h-5 mr-2" />
+                  Export
+                </button>
                 <button 
                   onClick={handleCreateProgram}
                   className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 flex items-center font-medium transition-colors"
@@ -820,7 +849,7 @@ const TrainingProgramsTab = () => {
                     className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                   >
                     <option value="all">All Categories</option>
-                    {Array.from(new Set(programs.map((p) => p.category))).map((category) => (
+                    {categories.map((category) => (
                       <option key={category} value={category}>
                         {category}
                       </option>
@@ -857,6 +886,7 @@ const TrainingProgramsTab = () => {
                 </div>
                 <RegistrationsTab
                   registrations={registrations}
+                  programs={programs}
                   onUpdateRegistration={handleUpdateRegistration}
                   onDeleteRegistration={handleDeleteRegistration}
                 />
@@ -872,13 +902,11 @@ const TrainingProgramsTab = () => {
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Overview</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center p-4 rounded-lg bg-indigo-50">
-              <div className="text-2xl font-bold text-indigo-800">{programs.length}</div>
+              <div className="text-2xl font-bold text-indigo-800">{analyticsData.totalPrograms}</div>
               <div className="text-sm text-indigo-600">Total Programs</div>
             </div>
             <div className="text-center p-4 rounded-lg bg-green-50">
-              <div className="text-2xl font-bold text-green-800">
-                {programs.reduce((sum, p) => sum + p.currentEnrollments, 0)}
-              </div>
+              <div className="text-2xl font-bold text-green-800">{analyticsData.totalEnrollments}</div>
               <div className="text-sm text-green-600">Total Enrollments</div>
             </div>
             <div className="text-center p-4 rounded-lg bg-yellow-50">
@@ -887,7 +915,7 @@ const TrainingProgramsTab = () => {
             </div>
             <div className="text-center p-4 rounded-lg bg-purple-50">
               <div className="text-2xl font-bold text-purple-800">
-                ${programs.reduce((sum, p) => sum + (p.currentEnrollments * p.price), 0).toLocaleString()}
+                ${analyticsData.totalRevenue.toLocaleString()}
               </div>
               <div className="text-sm text-purple-600">Total Revenue</div>
             </div>
@@ -896,13 +924,17 @@ const TrainingProgramsTab = () => {
       </div>
 
       {/* Alert Modal */}
-      {alertModal && (
-        <AlertModal
-          isOpen={true}
-          onClose={closeAlertModal}
-          {...alertModal}
-        />
-      )}
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        onClose={closeAlertModal}
+        onConfirm={alertModal.onConfirm}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+        confirmText={alertModal.confirmText}
+        cancelText={alertModal.cancelText}
+        showCancel={alertModal.showCancel}
+      />
 
       {/* Create/Edit Program Modal */}
       <CreateProgramModal
@@ -915,4 +947,4 @@ const TrainingProgramsTab = () => {
   );
 };
 
-export default TrainingProgramsTab;
+export default TrainingProgramsTab

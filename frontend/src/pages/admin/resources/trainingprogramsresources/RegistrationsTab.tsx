@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Search,
   Filter,
@@ -13,174 +13,77 @@ import {
   Phone,
   User,
   AlertCircle,
+  RefreshCw,
+  Download,
 } from 'lucide-react';
 
-// Types
-interface Registration {
-  id: number;
-  programId: number;
-  programTitle: string;
-  participantName: string;
-  participantEmail: string;
-  participantPhone: string;
-  organization: string;
-  profession: string;
-  experience: string;
-  registrationDate: string;
-  status: "Pending" | "Confirmed" | "Waitlisted" | "Cancelled";
-  paymentStatus: "Pending" | "Paid" | "Refunded";
-  specialRequests: string;
-}
-
-interface AlertModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm?: () => void;
-  title: string;
-  message: string;
-  type?: 'info' | 'warning' | 'error' | 'success' | 'confirm';
-  confirmText?: string;
-  cancelText?: string;
-  showCancel?: boolean;
-}
-
-// Alert Modal Component
-const AlertModal: React.FC<AlertModalProps> = ({
-  isOpen,
-  onClose,
-  onConfirm,
-  title,
-  message,
-  type = 'info',
-  confirmText = 'OK',
-  cancelText = 'Cancel',
-  showCancel = false
-}) => {
-  if (!isOpen) return null;
-
-  const getIconAndColor = () => {
-    switch (type) {
-      case 'warning':
-        return {
-          iconColor: 'text-yellow-600',
-          bgColor: 'bg-yellow-50',
-          borderColor: 'border-yellow-200'
-        };
-      case 'error':
-        return {
-          iconColor: 'text-red-600',
-          bgColor: 'bg-red-50',
-          borderColor: 'border-red-200'
-        };
-      case 'success':
-        return {
-          iconColor: 'text-green-600',
-          bgColor: 'bg-green-50',
-          borderColor: 'border-green-200'
-        };
-      case 'confirm':
-        return {
-          iconColor: 'text-orange-600',
-          bgColor: 'bg-orange-50',
-          borderColor: 'border-orange-200'
-        };
-      default:
-        return {
-          iconColor: 'text-blue-600',
-          bgColor: 'bg-blue-50',
-          borderColor: 'border-blue-200'
-        };
-    }
-  };
-
-  const { iconColor, bgColor, borderColor } = getIconAndColor();
-
-  const handleConfirm = () => {
-    if (onConfirm) {
-      onConfirm();
-    }
-    onClose();
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-        <div 
-          className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" 
-          onClick={onClose}
-        ></div>
-        <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
-          &#8203;
-        </span>
-        <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
-          <div className="sm:flex sm:items-start">
-            <div className={`mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full ${bgColor} ${borderColor} border sm:mx-0 sm:h-10 sm:w-10`}>
-              <div className={iconColor}>
-                <AlertCircle className="w-6 h-6" />
-              </div>
-            </div>
-            
-            <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left flex-1">
-              <h3 className="text-lg leading-6 font-medium text-gray-900">
-                {title}
-              </h3>
-              <div className="mt-2">
-                <p className="text-sm text-gray-500 whitespace-pre-line">
-                  {message}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse sm:gap-3">
-            {onConfirm && (
-              <button
-                type="button"
-                className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm ${
-                  type === 'error' || type === 'confirm'
-                    ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500'
-                    : type === 'warning'
-                    ? 'bg-yellow-600 hover:bg-yellow-700 focus:ring-yellow-500'
-                    : type === 'success'
-                    ? 'bg-green-600 hover:bg-green-700 focus:ring-green-500'
-                    : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
-                }`}
-                onClick={handleConfirm}
-              >
-                {confirmText}
-              </button>
-            )}
-            
-            {(showCancel || onConfirm) && (
-              <button
-                type="button"
-                className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm"
-                onClick={onClose}
-              >
-                {onConfirm ? cancelText : 'Close'}
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
+import AlertModal from '../../../../components/common/AlertModal';
+import { trainingProgramsApi, Registration, TrainingProgram } from '../../../../services/trainingProgramsApi';
 
 interface RegistrationsTabProps {
   registrations: Registration[];
-  onUpdateRegistration?: (id: number, updates: Partial<Registration>) => void;
-  onDeleteRegistration?: (id: number) => void;
+  programs: TrainingProgram[];
+  onUpdateRegistration: (id: number, updates: Partial<Registration>) => Promise<void>;
+  onDeleteRegistration: (id: number) => Promise<void>;
+  programId?: number; // Optional - if provided, only show registrations for this program
 }
 
-const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
-  registrations = [],
+const RegistrationsTab: React.FC<RegistrationsTabProps> = ({ 
+  registrations: propRegistrations,
+  programs,
   onUpdateRegistration,
-  onDeleteRegistration
+  onDeleteRegistration,
+  programId 
 }) => {
+  const [registrations, setRegistrations] = useState<Registration[]>(propRegistrations);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRegistrationStatus, setSelectedRegistrationStatus] = useState("all");
-  const [alertModal, setAlertModal] = useState<Omit<AlertModalProps, 'isOpen' | 'onClose'> | null>(null);
+  const [alertModal, setAlertModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type?: 'info' | 'warning' | 'error' | 'success' | 'confirm';
+    onConfirm?: () => void;
+    confirmText?: string;
+    cancelText?: string;
+    showCancel?: boolean;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  // Update local state when prop changes
+  useEffect(() => {
+    setRegistrations(propRegistrations);
+  }, [propRegistrations]);
+
+  const refreshRegistrations = async () => {
+    setIsRefreshing(true);
+    try {
+      const data = await trainingProgramsApi.getRegistrations(programId);
+      setRegistrations(data);
+      setAlertModal({
+        isOpen: true,
+        title: "Refreshed Successfully",
+        message: "Registration data has been updated.",
+        type: "success"
+      });
+    } catch (error) {
+      console.error('Error refreshing registrations:', error);
+      setAlertModal({
+        isOpen: true,
+        title: "Refresh Error",
+        message: "Failed to refresh registrations. Please try again.",
+        type: "error"
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -212,39 +115,130 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
     return matchesSearch && matchesStatus;
   });
 
-  const handleConfirmRegistration = (registration: Registration) => {
-    if (onUpdateRegistration) {
-      onUpdateRegistration(registration.id, { status: "Confirmed" });
+  const handleConfirmRegistration = async (registration: Registration) => {
+    try {
+      await onUpdateRegistration(registration.id, { status: "Confirmed" });
+      
+      // Update local state
+      setRegistrations(prev => 
+        prev.map(r => r.id === registration.id ? { ...r, status: "Confirmed" } : r)
+      );
+      
       setAlertModal({
+        isOpen: true,
         title: "Registration Confirmed",
         message: `${registration.participantName}'s registration has been confirmed successfully.`,
         type: "success"
+      });
+    } catch (error) {
+      console.error('Error confirming registration:', error);
+      setAlertModal({
+        isOpen: true,
+        title: "Update Error",
+        message: "Failed to confirm registration. Please try again.",
+        type: "error"
       });
     }
   };
 
   const handleDeleteRegistration = (registration: Registration) => {
     setAlertModal({
+      isOpen: true,
       title: "Confirm Deletion",
       message: `Are you sure you want to delete ${registration.participantName}'s registration? This action cannot be undone.`,
       type: "confirm",
       confirmText: "Delete",
       showCancel: true,
-      onConfirm: () => {
-        if (onDeleteRegistration) {
-          onDeleteRegistration(registration.id);
+      onConfirm: async () => {
+        try {
+          await onDeleteRegistration(registration.id);
+          
+          // Update local state
+          setRegistrations(prev => prev.filter(r => r.id !== registration.id));
+          
           setAlertModal({
+            isOpen: true,
             title: "Registration Deleted",
             message: "The registration has been successfully deleted.",
             type: "success"
+          });
+        } catch (error) {
+          console.error('Error deleting registration:', error);
+          setAlertModal({
+            isOpen: true,
+            title: "Delete Error",
+            message: "Failed to delete registration. Please try again.",
+            type: "error"
           });
         }
       }
     });
   };
 
+  const handleUpdateRegistrationStatus = async (registration: Registration, newStatus: Registration['status']) => {
+    try {
+      await onUpdateRegistration(registration.id, { status: newStatus });
+      
+      // Update local state
+      setRegistrations(prev => 
+        prev.map(r => r.id === registration.id ? { ...r, status: newStatus } : r)
+      );
+      
+      setAlertModal({
+        isOpen: true,
+        title: "Status Updated",
+        message: `Registration status has been updated to ${newStatus}.`,
+        type: "success"
+      });
+    } catch (error) {
+      console.error('Error updating registration status:', error);
+      setAlertModal({
+        isOpen: true,
+        title: "Update Error",
+        message: "Failed to update registration status. Please try again.",
+        type: "error"
+      });
+    }
+  };
+
+  const handleExportRegistrations = async () => {
+    setIsExporting(true);
+    try {
+      // Note: This assumes the API has a similar export function for registrations
+      // You may need to modify the API to include registration export functionality
+      const blob = await trainingProgramsApi.exportToCSV({ type: 'registrations' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = 'registrations_export.csv';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      setAlertModal({
+        isOpen: true,
+        title: "Export Successful",
+        message: "Registration data has been exported successfully.",
+        type: "success"
+      });
+    } catch (error) {
+      console.error('Error exporting registrations:', error);
+      setAlertModal({
+        isOpen: true,
+        title: "Export Error",
+        message: "Failed to export registration data. Please try again.",
+        type: "error"
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const handleSendEmail = (registration: Registration) => {
     setAlertModal({
+      isOpen: true,
       title: "Email Feature",
       message: "Email functionality is not yet implemented. This feature will allow you to send customized emails to participants.",
       type: "info"
@@ -252,36 +246,68 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
   };
 
   const closeAlertModal = () => {
-    setAlertModal(null);
+    setAlertModal(prev => ({ ...prev, isOpen: false }));
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <RefreshCw className="w-8 h-8 text-indigo-600 animate-spin mr-3" />
+        <span className="text-lg text-gray-600">Loading registrations...</span>
+      </div>
+    );
+  }
 
   return (
     <>
       <div className="space-y-6">
-        <div className="flex flex-col lg:flex-row gap-4 items-center">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search registrations..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent"
-            />
+        {/* Header with Actions */}
+        <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
+          <div className="flex flex-col lg:flex-row gap-4 items-center flex-1">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search registrations..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-gray-600" />
+              <select
+                value={selectedRegistrationStatus}
+                onChange={(e) => setSelectedRegistrationStatus(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+              >
+                <option value="all">All Status</option>
+                <option value="Confirmed">Confirmed</option>
+                <option value="Pending">Pending</option>
+                <option value="Waitlisted">Waitlisted</option>
+                <option value="Cancelled">Cancelled</option>
+              </select>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-gray-600" />
-            <select
-              value={selectedRegistrationStatus}
-              onChange={(e) => setSelectedRegistrationStatus(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+          
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            <button 
+              onClick={refreshRegistrations}
+              disabled={isRefreshing}
+              className="flex items-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
             >
-              <option value="all">All Status</option>
-              <option value="Confirmed">Confirmed</option>
-              <option value="Pending">Pending</option>
-              <option value="Waitlisted">Waitlisted</option>
-              <option value="Cancelled">Cancelled</option>
-            </select>
+              <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+            <button 
+              onClick={handleExportRegistrations}
+              disabled={isExporting}
+              className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+            >
+              <Download className={`w-4 h-4 mr-2 ${isExporting ? 'animate-pulse' : ''}`} />
+              Export
+            </button>
           </div>
         </div>
 
@@ -390,13 +416,26 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
                         <Eye className="w-4 h-4 mr-2" />
                         View Details
                       </button>
-                      <button 
-                        onClick={() => handleConfirmRegistration(registration)}
-                        className="border border-green-300 text-green-600 px-4 py-2 rounded-lg hover:bg-green-50 flex items-center text-sm font-medium transition-colors"
-                      >
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        Confirm Registration
-                      </button>
+                      
+                      {registration.status === "Pending" && (
+                        <button 
+                          onClick={() => handleConfirmRegistration(registration)}
+                          className="border border-green-300 text-green-600 px-4 py-2 rounded-lg hover:bg-green-50 flex items-center text-sm font-medium transition-colors"
+                        >
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          Confirm Registration
+                        </button>
+                      )}
+                      
+                      {registration.status === "Confirmed" && (
+                        <button 
+                          onClick={() => handleUpdateRegistrationStatus(registration, "Waitlisted")}
+                          className="border border-blue-300 text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-50 flex items-center text-sm font-medium transition-colors"
+                        >
+                          Move to Waitlist
+                        </button>
+                      )}
+                      
                       <button 
                         onClick={() => handleSendEmail(registration)}
                         className="border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center text-sm font-medium transition-colors"
@@ -404,6 +443,7 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
                         <Mail className="w-4 h-4 mr-2" />
                         Send Email
                       </button>
+                      
                       <button 
                         onClick={() => handleDeleteRegistration(registration)}
                         className="border border-red-300 text-red-600 px-4 py-2 rounded-lg hover:bg-red-50 flex items-center text-sm font-medium transition-colors"
@@ -429,13 +469,17 @@ const RegistrationsTab: React.FC<RegistrationsTabProps> = ({
       </div>
 
       {/* Alert Modal */}
-      {alertModal && (
-        <AlertModal
-          isOpen={true}
-          onClose={closeAlertModal}
-          {...alertModal}
-        />
-      )}
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        onClose={closeAlertModal}
+        onConfirm={alertModal.onConfirm}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+        confirmText={alertModal.confirmText}
+        cancelText={alertModal.cancelText}
+        showCancel={alertModal.showCancel}
+      />
     </>
   );
 };

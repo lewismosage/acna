@@ -14,44 +14,20 @@ import BasicInfoStep from "./BasicInfoStep";
 import ScheduleLogisticsStep from "./ScheduleLogisticsStep";
 import ContentRequirementsStep from "./ContentRequirementsStep";
 import ReviewStep from "./ReviewStep";
+import AlertModal from "../../../../components/common/AlertModal";
+
+// Import API and types
+import { trainingProgramsApi, TrainingProgram, CreateTrainingProgramInput } from "../../../../services/trainingProgramsApi";
 
 // Types
 type ProgramStatus = "Published" | "Draft" | "Archived";
 type ProgramType = "Conference" | "Workshop" | "Fellowship" | "Online Course" | "Masterclass";
 type ProgramFormat = "In-person" | "Virtual" | "Hybrid";
 
-interface TrainingProgram {
-  id: number;
-  title: string;
-  description: string;
-  type: ProgramType;
-  category: string;
-  status: ProgramStatus;
-  isFeatured: boolean;
-  duration: string;
-  format: ProgramFormat;
-  location: string;
-  maxParticipants: number;
-  currentEnrollments: number;
-  instructor: string;
-  startDate: string;
-  endDate: string;
-  price: number;
-  currency: string;
-  imageUrl: string;
-  createdAt: string;
-  updatedAt: string;
-  registrationDeadline: string;
-  prerequisites: string[];
-  learningOutcomes: string[];
-  certificationType: string;
-  cmeCredits: number;
-}
-
 interface CreateProgramModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (program: any) => void;
+  onSubmit: (program: TrainingProgram) => void;
   editingProgram?: TrainingProgram;
 }
 
@@ -152,6 +128,17 @@ const CreateProgramModal: React.FC<CreateProgramModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [alertModal, setAlertModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type?: 'success' | 'error' | 'warning' | 'info';
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info'
+  });
 
   const steps = [
     { number: 1, title: "Basic Info", icon: BookOpen },
@@ -171,7 +158,7 @@ const CreateProgramModal: React.FC<CreateProgramModalProps> = ({
         status: editingProgram.status || "Draft",
         isFeatured: editingProgram.isFeatured || false,
         duration: editingProgram.duration || "",
-        format: (editingProgram.format as ProgramFormat) || "In-person",
+        format: editingProgram.format || "In-person",
         location: editingProgram.location || "",
         maxParticipants: editingProgram.maxParticipants?.toString() || "",
         instructor: editingProgram.instructor || "",
@@ -182,19 +169,19 @@ const CreateProgramModal: React.FC<CreateProgramModalProps> = ({
         currency: editingProgram.currency || "USD",
         imageFile: null,
         imageUrl: editingProgram.imageUrl || "",
-        prerequisites: editingProgram.prerequisites?.length > 0 ? editingProgram.prerequisites : [""],
-        learningOutcomes: editingProgram.learningOutcomes?.length > 0 ? editingProgram.learningOutcomes : [""],
+        prerequisites: editingProgram.prerequisites && editingProgram.prerequisites.length > 0 ? editingProgram.prerequisites : [""],
+        learningOutcomes: editingProgram.learningOutcomes && editingProgram.learningOutcomes.length > 0 ? editingProgram.learningOutcomes : [""],
         certificationType: editingProgram.certificationType || "CME Certificate",
         cmeCredits: editingProgram.cmeCredits?.toString() || "",
-        schedule: [{ day: "Day 1", time: "", activity: "", speaker: "" }],
-        speakers: [{ name: "", title: "", organization: "", bio: "" }],
-        topics: [""],
-        targetAudience: ["Healthcare Providers"],
-        language: "English",
-        timezone: "GMT",
-        materials: [""],
-        assessmentMethod: "None",
-        passingScore: "",
+        schedule: (editingProgram.schedule && editingProgram.schedule.length > 0) ? editingProgram.schedule : [{ day: "Day 1", time: "", activity: "", speaker: "" }],
+        speakers: (editingProgram.speakers && editingProgram.speakers.length > 0) ? editingProgram.speakers : [{ name: "", title: "", organization: "", bio: "" }],
+        topics: (editingProgram.topics && editingProgram.topics.length > 0) ? editingProgram.topics : [""],
+        targetAudience: (editingProgram.targetAudience && editingProgram.targetAudience.length > 0) ? editingProgram.targetAudience : ["Healthcare Providers"],
+        language: editingProgram.language || "English",
+        timezone: editingProgram.timezone || "GMT",
+        materials: (editingProgram.materials && editingProgram.materials.length > 0) ? editingProgram.materials : [""],
+        assessmentMethod: editingProgram.assessmentMethod || "None",
+        passingScore: editingProgram.passingScore?.toString() || "",
       });
     } else {
       // Reset form for new program
@@ -352,6 +339,10 @@ const CreateProgramModal: React.FC<CreateProgramModalProps> = ({
     setCurrentStep((prev) => Math.max(prev - 1, 1));
   };
 
+  const showAlert = (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
+    setAlertModal({ isOpen: true, title, message, type });
+  };
+
   const handleSubmit = async () => {
     if (!validateStep(3)) return;
 
@@ -359,7 +350,8 @@ const CreateProgramModal: React.FC<CreateProgramModalProps> = ({
     setUploadProgress(10);
 
     try {
-      const submissionData = {
+      // Prepare data for API
+      const submissionData: CreateTrainingProgramInput = {
         title: formData.title,
         description: formData.description,
         type: formData.type,
@@ -389,19 +381,43 @@ const CreateProgramModal: React.FC<CreateProgramModalProps> = ({
         timezone: formData.timezone,
         materials: formData.materials.filter(m => m.trim()),
         assessmentMethod: formData.assessmentMethod,
-        passingScore: formData.passingScore ? parseInt(formData.passingScore) : null,
+        passingScore: formData.passingScore ? parseInt(formData.passingScore) : undefined,
       };
 
-      setUploadProgress(100);
-      await onSubmit(submissionData);
+      setUploadProgress(50);
+
+      let result: TrainingProgram;
       
+      if (editingProgram) {
+        // Update existing program
+        result = await trainingProgramsApi.update(editingProgram.id, submissionData);
+        showAlert("Success", "Training program updated successfully!", "success");
+      } else {
+        // Create new program
+        result = await trainingProgramsApi.create(submissionData);
+        showAlert("Success", "Training program created successfully!", "success");
+      }
+
+      setUploadProgress(100);
+      
+      // Call the parent's onSubmit callback
+      onSubmit(result);
+      
+      // Close modal after a brief delay
       setTimeout(() => {
         onClose();
-      }, 500);
+        setUploadProgress(0);
+      }, 1500);
 
     } catch (error) {
-      console.error('Error creating program:', error);
-      setErrors({ general: 'Failed to create program. Please try again.' });
+      console.error('Error submitting program:', error);
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+      showAlert(
+        "Error", 
+        `Failed to ${editingProgram ? 'update' : 'create'} program: ${errorMessage}`, 
+        "error"
+      );
+      setUploadProgress(0);
     } finally {
       setIsSubmitting(false);
     }
@@ -485,99 +501,114 @@ const CreateProgramModal: React.FC<CreateProgramModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg w-full max-w-5xl max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="bg-indigo-50 px-6 py-4 border-b border-indigo-200 flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-indigo-900 flex items-center">
-            <BookOpen className="w-6 h-6 mr-3" />
-            {editingProgram ? "Edit Training Program" : "Create Training Program"}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-indigo-700 hover:text-indigo-900 p-1 rounded-lg hover:bg-indigo-100"
-          >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
-
-        {/* Step Indicator */}
-        <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-          {renderStepIndicator()}
-          <div className="text-center text-sm text-gray-600">
-            Step {currentStep} of 4:{" "}
-            {currentStep === 1
-              ? "Basic Information"
-              : currentStep === 2
-              ? "Schedule & Logistics"
-              : currentStep === 3
-              ? "Content & Requirements"
-              : "Review & Publish"}
-          </div>
-        </div>
-
-        {/* Form Content */}
-        <div className="px-6 py-6 overflow-y-auto max-h-[calc(95vh-200px)]">
-          {renderCurrentStep()}
-        </div>
-
-        {/* Footer Navigation */}
-        <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            {currentStep > 1 && (
-              <button
-                type="button"
-                onClick={handlePrevious}
-                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 font-medium"
-              >
-                Previous
-              </button>
-            )}
-          </div>
-
-          <div className="flex items-center gap-4">
+    <>
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg w-full max-w-5xl max-h-[90vh] overflow-y-auto">
+          {/* Header */}
+          <div className="bg-indigo-50 px-6 py-4 border-b border-indigo-200 flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-indigo-900 flex items-center">
+              <BookOpen className="w-6 h-6 mr-3" />
+              {editingProgram ? "Edit Training Program" : "Create Training Program"}
+            </h2>
             <button
-              type="button"
               onClick={onClose}
-              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 font-medium"
+              className="text-indigo-700 hover:text-indigo-900 p-1 rounded-lg hover:bg-indigo-100"
+              disabled={isSubmitting}
             >
-              Cancel
+              <X className="w-6 h-6" />
             </button>
+          </div>
 
-            {currentStep < 4 ? (
+          {/* Step Indicator */}
+          <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+            {renderStepIndicator()}
+            <div className="text-center text-sm text-gray-600">
+              Step {currentStep} of 4:{" "}
+              {currentStep === 1
+                ? "Basic Information"
+                : currentStep === 2
+                ? "Schedule & Logistics"
+                : currentStep === 3
+                ? "Content & Requirements"
+                : "Review & Publish"}
+            </div>
+          </div>
+
+          {/* Form Content */}
+          <div className="px-6 py-6 overflow-y-auto max-h-[calc(95vh-200px)]">
+            {renderCurrentStep()}
+          </div>
+
+          {/* Footer Navigation */}
+          <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              {currentStep > 1 && (
+                <button
+                  type="button"
+                  onClick={handlePrevious}
+                  disabled={isSubmitting}
+                  className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 font-medium disabled:opacity-50"
+                >
+                  Previous
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-4">
               <button
                 type="button"
-                onClick={handleNext}
-                className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium"
-              >
-                Next Step
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleSubmit}
+                onClick={onClose}
                 disabled={isSubmitting}
-                className={`px-8 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium flex items-center ${
-                  isSubmitting ? "opacity-75 cursor-not-allowed" : ""
-                }`}
+                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 font-medium disabled:opacity-50"
               >
-                {isSubmitting ? (
-                  <>
-                    <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2" />
-                    Creating...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-4 h-4 mr-2" />
-                    {editingProgram ? "Update Program" : "Create Program"}
-                  </>
-                )}
+                Cancel
               </button>
-            )}
+
+              {currentStep < 4 ? (
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  disabled={isSubmitting}
+                  className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium disabled:opacity-50"
+                >
+                  Next Step
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={isSubmitting}
+                  className={`px-8 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium flex items-center ${
+                    isSubmitting ? "opacity-75 cursor-not-allowed" : ""
+                  }`}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                      {editingProgram ? "Updating..." : "Creating..."}
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4 mr-2" />
+                      {editingProgram ? "Update Program" : "Create Program"}
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+      />
+    </>
   );
 };
 
