@@ -87,6 +87,7 @@ import CaseStudyDetailPage from "./pages/education/educationalresources/CaseStud
 import JournalArticleDetailPage from "./pages/education/journals/JournalArticleDetailPage";
 import PolicyBeliefDetailPage from "./pages/education/policies/PolicyBriefsDetailsPage";
 import PositionStatementDetailPage from "./pages/education/positionstatements/PositionStatementDetailPage";
+import TrainingProgramDetailPage from "./pages/education/trainingprograms/TrainingProgramDetailPage";
 
 // Layout component
 const Layout = ({ children }: { children: React.ReactNode }) => (
@@ -160,6 +161,7 @@ function App() {
               element={<ResearchPaperDetailPage />}
             />
             <Route path="/training-programs" element={<TrainingPrograms />} />
+            <Route path="/training-programs/:id" element={<TrainingProgramDetailPage />}/>
             <Route
               path="/case-studies-and-fact-sheets"
               element={<FactSheetsAndCaseStudies />}
