@@ -81,34 +81,72 @@ class TrainingProgramSerializer(serializers.ModelSerializer):
     
     def validate_max_participants(self, value):
         """Validate max participants is positive"""
+        if value is None:
+            return 1  # Default minimum
         if value <= 0:
             raise serializers.ValidationError("Maximum participants must be greater than 0")
         return value
     
     def validate_price(self, value):
         """Validate price is not negative"""
+        if value is None:
+            return 0.0  # Default to free
         if value < 0:
             raise serializers.ValidationError("Price cannot be negative")
         return value
     
     def validate_cme_credits(self, value):
         """Validate CME credits"""
+        if value is None:
+            return 0  # Default to no credits
         if value < 0:
             raise serializers.ValidationError("CME credits cannot be negative")
         return value
     
+    def validate_image_url(self, value):
+        """Validate image URL - allow empty values"""
+        if not value or not value.strip():
+            return ""  # Allow empty image URLs
+        return value
+    
     def validate(self, data):
-        """Cross-field validation"""
+        """Cross-field validation with better error handling"""
+        # Provide defaults for missing required fields
+        if 'start_date' not in data or not data['start_date']:
+            raise serializers.ValidationError({
+                'start_date': 'Start date is required'
+            })
+        if 'end_date' not in data or not data['end_date']:
+            raise serializers.ValidationError({
+                'end_date': 'End date is required'
+            })
+        if 'registration_deadline' not in data or not data['registration_deadline']:
+            raise serializers.ValidationError({
+                'registration_deadline': 'Registration deadline is required'
+            })
+            
         start_date = data.get('start_date')
         end_date = data.get('end_date')
         registration_deadline = data.get('registration_deadline')
         
         if start_date and end_date and start_date > end_date:
-            raise serializers.ValidationError("Start date cannot be after end date")
+            raise serializers.ValidationError({
+                'end_date': 'End date cannot be before start date'
+            })
         
         if registration_deadline and start_date and registration_deadline > start_date:
-            raise serializers.ValidationError("Registration deadline cannot be after start date")
+            raise serializers.ValidationError({
+                'registration_deadline': 'Registration deadline cannot be after start date'
+            })
         
+        # Ensure required numeric fields have valid values
+        if 'max_participants' not in data or data['max_participants'] is None:
+            data['max_participants'] = 1
+        if 'price' not in data or data['price'] is None:
+            data['price'] = 0.0
+        if 'cme_credits' not in data or data['cme_credits'] is None:
+            data['cme_credits'] = 0
+            
         return data
     
     def validate_prerequisites(self, value):

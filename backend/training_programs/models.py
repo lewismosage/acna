@@ -88,7 +88,7 @@ class TrainingProgram(models.Model):
         null=True,
         validators=[FileExtensionValidator(['jpg', 'jpeg', 'png', 'gif', 'webp'])]
     )
-    image_url = models.URLField(blank=True, null=True)
+    image_url = models.URLField(blank=True, null=True, help_text="Optional: External image URL if no file uploaded")
     
     # JSON Fields for Arrays
     prerequisites = models.JSONField(default=list, help_text="List of prerequisites")

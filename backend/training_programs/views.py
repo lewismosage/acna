@@ -72,9 +72,11 @@ class TrainingProgramViewSet(viewsets.ModelViewSet):
         """Create new training program"""
         try:
             logger.info(f"Creating training program with files: image={bool(request.FILES.get('image'))}")
+            logger.info(f"Raw request data: {dict(request.data)}")
             
             # Process form data including files
             processed_data = self.process_form_data(request.data, request.FILES)
+            logger.info(f"Processed data: {processed_data}")
             
             serializer = self.get_serializer(data=processed_data)
             if not serializer.is_valid():
