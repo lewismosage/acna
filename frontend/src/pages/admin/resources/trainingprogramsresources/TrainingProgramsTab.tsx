@@ -7,7 +7,6 @@ import {
   Users,
   Clock,
   BarChart3,
-  Upload,
   ChevronDown,
   ChevronUp,
   Eye,
@@ -15,7 +14,6 @@ import {
   CheckCircle,
   Archive,
   Settings,
-  TrendingUp,
   Filter,
   Calendar,
   MapPin,
@@ -28,6 +26,7 @@ import {
 
 import RegistrationsTab from "./RegistrationsTab";
 import CreateProgramModal from "./CreateProgramModal";
+import AnalyticsTab from "./AnalyticsTab";
 
 // Types
 type ProgramStatus = "Published" | "Draft" | "Archived";
@@ -445,137 +444,6 @@ const TrainingProgramsTab = () => {
     setAlertModal(null);
   };
 
-  const renderAnalyticsTab = () => (
-    <div className="space-y-6">
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-indigo-600 text-sm font-medium">Total Programs</p>
-              <p className="text-3xl font-bold text-indigo-900">{analyticsData.totalPrograms}</p>
-            </div>
-            <BookOpen className="w-8 h-8 text-indigo-600" />
-          </div>
-          <p className="text-indigo-600 text-sm mt-2">All time</p>
-        </div>
-
-        <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-green-600 text-sm font-medium">Total Enrollments</p>
-              <p className="text-3xl font-bold text-green-900">{analyticsData.totalEnrollments.toLocaleString()}</p>
-            </div>
-            <Users className="w-8 h-8 text-green-600" />
-          </div>
-          <p className="text-green-600 text-sm mt-2">Across all programs</p>
-        </div>
-
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-blue-600 text-sm font-medium">Total Revenue</p>
-              <p className="text-3xl font-bold text-blue-900">${analyticsData.totalRevenue.toLocaleString()}</p>
-            </div>
-            <TrendingUp className="w-8 h-8 text-blue-600" />
-          </div>
-          <p className="text-blue-600 text-sm mt-2">USD</p>
-        </div>
-
-        <div className="bg-purple-50 border border-purple-200 rounded-lg p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-purple-600 text-sm font-medium">Avg Fill Rate</p>
-              <p className="text-3xl font-bold text-purple-900">{analyticsData.averageFillRate.toFixed(1)}%</p>
-            </div>
-            <BarChart3 className="w-8 h-8 text-purple-600" />
-          </div>
-          <p className="text-purple-600 text-sm mt-2">Enrollment capacity</p>
-        </div>
-      </div>
-
-      {/* Status Breakdown */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Program Status Breakdown</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="text-center p-4 rounded-lg bg-green-50">
-            <div className="text-2xl font-bold text-green-800">{analyticsData.programsByStatus.published}</div>
-            <div className="text-sm text-green-600">Published</div>
-          </div>
-          <div className="text-center p-4 rounded-lg bg-yellow-50">
-            <div className="text-2xl font-bold text-yellow-800">{analyticsData.programsByStatus.draft}</div>
-            <div className="text-sm text-yellow-600">Draft</div>
-          </div>
-          <div className="text-center p-4 rounded-lg bg-gray-50">
-            <div className="text-2xl font-bold text-gray-800">{analyticsData.programsByStatus.archived}</div>
-            <div className="text-sm text-gray-600">Archived</div>
-          </div>
-          <div className="text-center p-4 rounded-lg bg-indigo-50">
-            <div className="text-2xl font-bold text-indigo-800">{analyticsData.programsByStatus.featured}</div>
-            <div className="text-sm text-indigo-600">Featured</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Programs by Type */}
-      {Object.keys(analyticsData.programsByType).length > 0 && (
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Programs by Type</h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {Object.entries(analyticsData.programsByType).map(([type, count]) => (
-              <div key={type} className="bg-indigo-50 p-4 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <span className="text-indigo-800 font-medium">{type}</span>
-                  <span className="text-indigo-600 font-bold">{count}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Quick Actions */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button 
-            onClick={() => setAlertModal({
-              title: "Feature Coming Soon",
-              message: "Program data export functionality is under development.",
-              type: "info"
-            })}
-            className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50"
-          >
-            <span className="text-sm font-medium">Export Program Data</span>
-            <FileText className="w-4 h-4 text-gray-400" />
-          </button>
-          <button 
-            onClick={() => setAlertModal({
-              title: "Feature Coming Soon",
-              message: "Report generation functionality is under development.",
-              type: "info"
-            })}
-            className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50"
-          >
-            <span className="text-sm font-medium">Generate Report</span>
-            <BarChart3 className="w-4 h-4 text-gray-400" />
-          </button>
-          <button 
-            onClick={() => setAlertModal({
-              title: "Feature Coming Soon",
-              message: "Bulk update functionality is under development.",
-              type: "info"
-            })}
-            className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50"
-          >
-            <span className="text-sm font-medium">Bulk Update Programs</span>
-            <Upload className="w-4 h-4 text-gray-400" />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
   const renderProgramsContent = () => (
     <div className="space-y-6">
       {filteredPrograms.length > 0 ? (
@@ -975,7 +843,7 @@ const TrainingProgramsTab = () => {
                     Comprehensive analytics and insights about your training programs
                   </p>
                 </div>
-                {renderAnalyticsTab()}
+                <AnalyticsTab analyticsData={analyticsData} />
               </div>
             ) : selectedTab === "registrations" ? (
               <div>
