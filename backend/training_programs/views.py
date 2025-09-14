@@ -1,3 +1,5 @@
+# views.py - Complete fixed version
+
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -13,7 +15,6 @@ import logging
 import json
 import csv
 import traceback
-import re
 
 from .models import TrainingProgram, Registration, ScheduleItem, Speaker
 from .serializers import (
@@ -69,22 +70,34 @@ class TrainingProgramViewSet(viewsets.ModelViewSet):
 
     @transaction.atomic
     def create(self, request):
-        """Create new training program"""
+        """Create new training program with improved error handling"""
         try:
-            logger.info(f"Creating training program with files: image={bool(request.FILES.get('image'))}")
-            logger.info(f"Raw request data: {dict(request.data)}")
+            logger.info(f"Creating training program")
+            logger.info(f"Raw request data keys: {list(request.data.keys())}")
+            logger.info(f"Files: {list(request.FILES.keys()) if request.FILES else 'None'}")
             
             # Process form data including files
             processed_data = self.process_form_data(request.data, request.FILES)
-            logger.info(f"Processed data: {processed_data}")
+            logger.info(f"Processed data keys: {list(processed_data.keys())}")
+            
+            # Log specific field values for debugging
+            debug_fields = ['start_date', 'end_date', 'registration_deadline', 'max_participants', 'price']
+            for field in debug_fields:
+                if field in processed_data:
+                    logger.info(f"{field}: {processed_data[field]} (type: {type(processed_data[field])})")
             
             serializer = self.get_serializer(data=processed_data)
             if not serializer.is_valid():
                 logger.error(f"Training program validation errors: {serializer.errors}")
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                # Return detailed validation errors
+                return Response({
+                    'error': 'Validation failed',
+                    'details': serializer.errors,
+                    'processed_data': {k: str(v) for k, v in processed_data.items() if k != 'image'}  # Don't log file data
+                }, status=status.HTTP_400_BAD_REQUEST)
 
             instance = serializer.save()
-            logger.info(f"Training program created with ID: {instance.id}")
+            logger.info(f"Training program created successfully with ID: {instance.id}")
 
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -96,36 +109,8 @@ class TrainingProgramViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-    @transaction.atomic
-    def update(self, request, *args, **kwargs):
-        """Update existing training program"""
-        try:
-            partial = kwargs.pop('partial', False)
-            instance = self.get_object()
-            
-            logger.info(f"Updating training program {instance.id} with data: {request.data}")
-            
-            # Process form data
-            processed_data = self.process_form_data(request.data, request.FILES)
-            
-            serializer = self.get_serializer(instance, data=processed_data, partial=partial)
-            if not serializer.is_valid():
-                logger.error(f"Training program update validation errors: {serializer.errors}")
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-            instance = serializer.save()
-            return Response(serializer.data)
-
-        except Exception as e:
-            logger.error(f"Error updating training program: {str(e)}")
-            logger.error(traceback.format_exc())
-            return Response(
-                {'error': f'Failed to update training program: {str(e)}'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
     def process_form_data(self, data, files=None):
-        """Process form data, handling camelCase to snake_case conversion and JSON fields"""
+        """Process form data with improved handling of required fields"""
         processed_data = {}
         
         # Field mappings from frontend camelCase to backend snake_case
@@ -144,47 +129,188 @@ class TrainingProgramViewSet(viewsets.ModelViewSet):
             'passingScore': 'passing_score',
         }
         
-        # Process form data
+        # Required fields that must have values
+        required_fields = {
+            'title': '',
+            'description': '',
+            'category': '',
+            'instructor': '',
+            'start_date': None,
+            'end_date': None,
+            'registration_deadline': None,
+            'max_participants': 1,
+            'price': 0.0,
+            'cme_credits': 0
+        }
+        
+        logger.info("Processing form data...")
+        
+        # Process all data fields
         for key, value in data.items():
+            # Skip file fields (they're handled separately)
+            if hasattr(value, 'file'):
+                continue
+                
             # Map frontend field names to backend field names
             backend_key = field_mapping.get(key, key)
             
-            # Handle JSON array fields
+            # Log the processing of each field
+            logger.debug(f"Processing {key} -> {backend_key}: {value} (type: {type(value)})")
+            
+            # Handle specific field types
             if backend_key in ['prerequisites', 'learning_outcomes', 'topics', 
                               'target_audience', 'materials', 'schedule', 'speakers']:
-                try:
-                    if isinstance(value, str):
-                        processed_data[backend_key] = json.loads(value)
-                    elif isinstance(value, list):
-                        processed_data[backend_key] = value
-                    else:
-                        processed_data[backend_key] = []
-                except json.JSONDecodeError:
-                    processed_data[backend_key] = []
-            # Handle boolean fields
+                # Handle JSON array fields
+                processed_data[backend_key] = self._process_json_field(value, backend_key)
             elif backend_key == 'is_featured':
-                if isinstance(value, str):
-                    processed_data[backend_key] = value.lower() == 'true'
-                else:
-                    processed_data[backend_key] = bool(value)
-            # Handle numeric fields
-            elif backend_key in ['max_participants', 'price', 'cme_credits', 'passing_score']:
-                try:
-                    if backend_key == 'price':
-                        processed_data[backend_key] = float(value) if value else 0.0
-                    else:
-                        processed_data[backend_key] = int(value) if value else 0
-                except (ValueError, TypeError):
-                    processed_data[backend_key] = 0
-            # Handle regular fields
-            elif value is not None and value != '':
-                processed_data[backend_key] = value
+                # Handle boolean fields
+                processed_data[backend_key] = self._process_boolean_field(value)
+            elif backend_key in ['max_participants', 'cme_credits', 'passing_score']:
+                # Handle integer fields
+                processed_data[backend_key] = self._process_integer_field(value, backend_key)
+            elif backend_key == 'price':
+                # Handle decimal fields
+                processed_data[backend_key] = self._process_decimal_field(value)
+            elif backend_key in ['start_date', 'end_date', 'registration_deadline']:
+                # Handle date fields - these are required
+                processed_value = self._process_date_field(value, backend_key)
+                if processed_value is not None:
+                    processed_data[backend_key] = processed_value
+            elif backend_key == 'image_url':
+                # Handle URL fields
+                processed_data[backend_key] = self._process_url_field(value)
+            else:
+                # Handle regular string fields
+                if value is not None and str(value).strip():
+                    processed_data[backend_key] = str(value).strip()
 
         # Handle file uploads
-        if files and 'image' in files:
-            processed_data['image'] = files['image']
+        if files:
+            if 'image' in files:
+                processed_data['image'] = files['image']
+                logger.info(f"Image file added: {files['image'].name}")
+
+        # Ensure all required fields have values
+        for field, default_value in required_fields.items():
+            if field not in processed_data:
+                if default_value is not None:
+                    processed_data[field] = default_value
+                    logger.warning(f"Required field {field} missing, using default: {default_value}")
+                else:
+                    logger.error(f"Required field {field} is missing and has no default value")
         
+        # Validate that we have the minimum required fields
+        missing_required = []
+        for field in ['title', 'description', 'category', 'instructor', 'start_date', 'end_date', 'registration_deadline']:
+            if field not in processed_data or not processed_data[field]:
+                missing_required.append(field)
+        
+        if missing_required:
+            logger.error(f"Missing required fields: {missing_required}")
+        
+        logger.info(f"Final processed data keys: {list(processed_data.keys())}")
         return processed_data
+
+    def _process_json_field(self, value, field_name):
+        """Process JSON array fields"""
+        try:
+            if isinstance(value, str) and value.strip():
+                return json.loads(value)
+            elif isinstance(value, list):
+                return value
+            else:
+                return []
+        except json.JSONDecodeError:
+            logger.warning(f"Failed to parse JSON for {field_name}: {value}")
+            return []
+
+    def _process_boolean_field(self, value):
+        """Process boolean fields"""
+        if isinstance(value, str):
+            return value.lower() in ['true', '1', 'yes']
+        return bool(value)
+
+    def _process_integer_field(self, value, field_name):
+        """Process integer fields with validation"""
+        if not value or str(value).strip() == '':
+            return 1 if field_name == 'max_participants' else 0
+        try:
+            int_value = int(float(str(value)))  # Handle decimal strings like "50.0"
+            if field_name == 'max_participants' and int_value <= 0:
+                return 1  # Minimum 1 participant
+            return max(0, int_value)  # Ensure non-negative
+        except (ValueError, TypeError):
+            logger.warning(f"Invalid integer value for {field_name}: {value}")
+            return 1 if field_name == 'max_participants' else 0
+
+    def _process_decimal_field(self, value):
+        """Process decimal fields"""
+        if not value or str(value).strip() == '':
+            return 0.0
+        try:
+            return max(0.0, float(value))  # Ensure non-negative
+        except (ValueError, TypeError):
+            logger.warning(f"Invalid decimal value for price: {value}")
+            return 0.0
+
+    def _process_date_field(self, value, field_name):
+        """Process date fields"""
+        if not value or str(value).strip() == '':
+            logger.error(f"Empty date value for required field {field_name}")
+            return None
+        
+        # Value should be in YYYY-MM-DD format
+        date_str = str(value).strip()
+        if len(date_str) >= 10:  # At least YYYY-MM-DD
+            return date_str[:10]  # Take only the date part
+        
+        logger.error(f"Invalid date format for {field_name}: {value}")
+        return None
+
+    def _process_url_field(self, value):
+        """Process URL fields"""
+        if not value or str(value).strip() == '':
+            return ''
+        
+        url_str = str(value).strip()
+        # Basic validation - just check if it looks like a URL
+        if url_str.startswith(('http://', 'https://')) or url_str == '':
+            return url_str
+        else:
+            logger.warning(f"Invalid URL format: {url_str}")
+            return ''  # Return empty string for invalid URLs
+
+    @transaction.atomic
+    def update(self, request, *args, **kwargs):
+        """Update existing training program"""
+        try:
+            partial = kwargs.pop('partial', False)
+            instance = self.get_object()
+            
+            logger.info(f"Updating training program {instance.id}")
+            
+            # Process form data
+            processed_data = self.process_form_data(request.data, request.FILES)
+            
+            serializer = self.get_serializer(instance, data=processed_data, partial=partial)
+            if not serializer.is_valid():
+                logger.error(f"Training program update validation errors: {serializer.errors}")
+                return Response({
+                    'error': 'Validation failed',
+                    'details': serializer.errors
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            instance = serializer.save()
+            logger.info(f"Training program {instance.id} updated successfully")
+            return Response(serializer.data)
+
+        except Exception as e:
+            logger.error(f"Error updating training program: {str(e)}")
+            logger.error(traceback.format_exc())
+            return Response(
+                {'error': f'Failed to update training program: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     @action(detail=False, methods=['get'])
     def featured(self, request):
