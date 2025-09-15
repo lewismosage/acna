@@ -222,8 +222,8 @@ const normalizeTrainingProgram = (backendProgram: any): TrainingProgram => {
 const normalizeRegistration = (backendRegistration: any): Registration => {
   return {
     id: backendRegistration.id || 0,
-    programId: backendRegistration.programId || backendRegistration.program_id || 0,
-    programTitle: backendRegistration.programTitle || backendRegistration.program_title || '',
+    programId: backendRegistration.programId || backendRegistration.program_id || backendRegistration.program || 0,
+    programTitle: backendRegistration.programTitle || backendRegistration.program_title || backendRegistration.program?.title || '',
     participantName: backendRegistration.participantName || backendRegistration.participant_name || '',
     participantEmail: backendRegistration.participantEmail || backendRegistration.participant_email || '',
     participantPhone: backendRegistration.participantPhone || backendRegistration.participant_phone || '',
@@ -591,9 +591,10 @@ export const trainingProgramsApi = {
   
   getRegistrations: async (programId?: number): Promise<Registration[]> => {
     try {
+      // Use the specific training program registrations endpoint
       const url = programId 
         ? `${API_BASE_URL}/training-programs/${programId}/registrations/`
-        : `${API_BASE_URL}/registrations/`;
+        : `${API_BASE_URL}/training-program-registrations/`;
         
       const response = await fetch(url, {
         headers: getAuthHeaders(),
@@ -609,13 +610,52 @@ export const trainingProgramsApi = {
 
   createRegistration: async (registrationData: Partial<Registration>): Promise<Registration> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/registrations/`, {
+      console.log('Creating registration with data:', registrationData);
+      
+      // Map frontend field names to backend field names
+      const backendData = {
+        program: registrationData.programId,
+        participant_name: registrationData.participantName,
+        participant_email: registrationData.participantEmail,
+        participant_phone: registrationData.participantPhone,
+        organization: registrationData.organization,
+        profession: registrationData.profession,
+        experience: registrationData.experience,
+        special_requests: registrationData.specialRequests || '',
+        status: registrationData.status || 'Pending',
+        payment_status: registrationData.paymentStatus || 'Pending'
+      };
+
+      console.log('Mapped backend data:', backendData);
+
+      // Validate required fields
+      const requiredFields = [
+        { field: 'program', value: backendData.program },
+        { field: 'participant_name', value: backendData.participant_name },
+        { field: 'participant_email', value: backendData.participant_email },
+        { field: 'participant_phone', value: backendData.participant_phone },
+        { field: 'organization', value: backendData.organization },
+        { field: 'profession', value: backendData.profession },
+        { field: 'experience', value: backendData.experience }
+      ];
+
+      const missingFields = requiredFields.filter(
+        ({ value }) => !value || String(value).trim() === ''
+      ).map(({ field }) => field);
+
+      if (missingFields.length > 0) {
+        throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+      }
+
+      // Use the specific training program registrations endpoint
+      const response = await fetch(`${API_BASE_URL}/training-program-registrations/`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify(registrationData),
+        body: JSON.stringify(backendData),
       });
       
       const result = await handleResponse(response);
+      console.log('Registration created successfully:', result);
       return normalizeRegistration(result);
     } catch (error) {
       console.error('Error creating registration:', error);
@@ -625,10 +665,23 @@ export const trainingProgramsApi = {
 
   updateRegistration: async (id: number, updates: Partial<Registration>): Promise<Registration> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/registrations/${id}/`, {
+      // Map frontend updates to backend field names
+      const backendUpdates: any = {};
+      
+      if (updates.participantName !== undefined) backendUpdates.participant_name = updates.participantName;
+      if (updates.participantEmail !== undefined) backendUpdates.participant_email = updates.participantEmail;
+      if (updates.participantPhone !== undefined) backendUpdates.participant_phone = updates.participantPhone;
+      if (updates.organization !== undefined) backendUpdates.organization = updates.organization;
+      if (updates.profession !== undefined) backendUpdates.profession = updates.profession;
+      if (updates.experience !== undefined) backendUpdates.experience = updates.experience;
+      if (updates.status !== undefined) backendUpdates.status = updates.status;
+      if (updates.paymentStatus !== undefined) backendUpdates.payment_status = updates.paymentStatus;
+      if (updates.specialRequests !== undefined) backendUpdates.special_requests = updates.specialRequests;
+
+      const response = await fetch(`${API_BASE_URL}/training-program-registrations/${id}/`, {
         method: 'PATCH',
         headers: getAuthHeaders(),
-        body: JSON.stringify(updates),
+        body: JSON.stringify(backendUpdates),
       });
       
       const result = await handleResponse(response);
@@ -641,7 +694,7 @@ export const trainingProgramsApi = {
 
   deleteRegistration: async (id: number): Promise<void> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/registrations/${id}/`, {
+      const response = await fetch(`${API_BASE_URL}/training-program-registrations/${id}/`, {
         method: 'DELETE',
         headers: getAuthHeadersWithoutContentType(),
       });
