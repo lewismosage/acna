@@ -322,9 +322,6 @@ const prepareFormData = (data: CreateTrainingProgramInput): FormData => {
   formData.append('isFeatured', String(Boolean(data.isFeatured)));
   console.log('Added isFeatured:', Boolean(data.isFeatured));
   
-  // Add URL field (can be empty)
-  //addStringField('imageUrl', data.imageUrl || '');
-  
   // Add array fields
   addArrayField('prerequisites', data.prerequisites);
   addArrayField('learningOutcomes', data.learningOutcomes);
