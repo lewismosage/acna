@@ -252,10 +252,12 @@ class Registration(models.Model):
     ]
     
     EXPERIENCE_CHOICES = [
-        ('Entry Level', 'Entry Level'),
-        ('Mid Level', 'Mid Level'),
-        ('Senior Level', 'Senior Level'),
-        ('Expert', 'Expert'),
+        ('Less than 1 year', 'Less than 1 year'),
+        ('1-2 years', '1-2 years'),
+        ('3-5 years', '3-5 years'),
+        ('6-10 years', '6-10 years'),
+        ('11-15 years', '11-15 years'),
+        ('More than 15 years', 'More than 15 years'),
     ]
     
     # Program relationship
@@ -271,7 +273,11 @@ class Registration(models.Model):
     participant_phone = models.CharField(max_length=20)
     organization = models.CharField(max_length=200)
     profession = models.CharField(max_length=100)
-    experience = models.CharField(max_length=20, choices=EXPERIENCE_CHOICES, default='Mid Level')
+    experience = models.CharField(
+        max_length=50, 
+        choices=EXPERIENCE_CHOICES, 
+        default='1-2 years' 
+    )
     
     # Registration Status
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
