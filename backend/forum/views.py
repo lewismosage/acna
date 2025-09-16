@@ -31,37 +31,35 @@ class ForumCategoryViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         queryset = ForumCategory.objects.filter(is_active=True)
-        
-        # Add annotations for thread and post counts
-        queryset = queryset.annotate(
-            thread_count=Count('forum_threads', filter=Q(forum_threads__is_active=True)),
-            post_count=Count(
-                'forum_threads__forum_posts',
-                filter=Q(
-                    forum_threads__is_active=True,
-                    forum_threads__forum_posts__is_active=True
-                )
-            )
-        )
-        
         return queryset
     
     @action(detail=False, methods=['get'])
     def popular(self, request):
         """Get popular categories based on recent activity"""
         recent_date = timezone.now() - timedelta(days=7)
-        categories = self.get_queryset().annotate(
-            recent_posts=Count(
-                'forum_threads__forum_posts',
-                filter=Q(
-                    forum_threads__forum_posts__created_at__gte=recent_date,
-                    forum_threads__is_active=True,
-                    forum_threads__forum_posts__is_active=True
-                )
-            )
-        ).order_by('-recent_posts')[:5]
         
-        serializer = self.get_serializer(categories, many=True)
+        # Get categories without annotation conflicts
+        categories = ForumCategory.objects.filter(is_active=True)
+        
+        # We can still filter by recent posts, but we'll do it differently
+        categories_with_activity = []
+        for category in categories:
+            recent_posts_count = ForumPost.objects.filter(
+                thread__category=category,
+                thread__is_active=True,
+                is_active=True,
+                created_at__gte=recent_date
+            ).count()
+            
+            # Add recent_posts_count as a temporary attribute
+            category.recent_posts_count = recent_posts_count
+            categories_with_activity.append(category)
+        
+        # Sort by recent activity and take top 5
+        categories_with_activity.sort(key=lambda x: x.recent_posts_count, reverse=True)
+        top_categories = categories_with_activity[:5]
+        
+        serializer = self.get_serializer(top_categories, many=True)
         return Response(serializer.data)
     
     @action(detail=True, methods=['get'])
