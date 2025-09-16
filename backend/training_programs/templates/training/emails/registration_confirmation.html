@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Registration Confirmation</title>
+</head>
+<body>
+    <h2>Registration Confirmation</h2>
+    <p>Dear {{ participant_name }},</p>
+    
+    <p>Thank you for registering for the training program: <strong>{{ program.title }}</strong></p>
+    
+    <h3>Program Details:</h3>
+    <ul>
+        <li><strong>Type:</strong> {{ program.type }}</li>
+        <li><strong>Start Date:</strong> {{ program.start_date }}</li>
+        <li><strong>End Date:</strong> {{ program.end_date }}</li>
+        <li><strong>Format:</strong> {{ program.format }}</li>
+        <li><strong>Location:</strong> {{ program.location }}</li>
+    </ul>
+    
+    <p><strong>Your registration status:</strong> {{ registration.status }}</p>
+    
+    <p>You will receive further details about the program closer to the start date.</p>
+    
+    <p>If you have any questions, please contact us at <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>.</p>
+    
+    <p>Best regards,<br>
+    The {{ company_name }} Team</p>
+</body>
+</html>

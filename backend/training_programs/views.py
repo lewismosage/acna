@@ -15,6 +15,9 @@ import logging
 import json
 import csv
 import traceback
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.conf import settings
 
 from .models import TrainingProgram, Registration, ScheduleItem, Speaker
 from .serializers import (
@@ -674,19 +677,56 @@ class RegistrationViewSet(viewsets.ModelViewSet):
         return queryset
 
     def create(self, request):
-        """Create new registration"""
+        """Create new registration with improved duplicate handling"""
         try:
             serializer = self.get_serializer(data=request.data)
             if not serializer.is_valid():
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                # Extract the specific error message for email duplicates
+                error_message = "Validation failed"
+                if 'participant_email' in serializer.errors:
+                    error_message = serializer.errors['participant_email'][0]
+                elif 'non_field_errors' in serializer.errors:
+                    error_message = serializer.errors['non_field_errors'][0]
+                
+                return Response(
+                    {'error': error_message},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Check for duplicate registration (additional safety check)
+            program = serializer.validated_data['program']
+            participant_email = serializer.validated_data['participant_email']
+            
+            # Check if email is already registered for this program
+            existing_registration = Registration.objects.filter(
+                program=program,
+                participant_email=participant_email.lower().strip()
+            ).first()
+            
+            if existing_registration:
+                return Response(
+                    {
+                        'error': 'You have already registered for this training program.',
+                        'registration_id': existing_registration.id,
+                        'status': existing_registration.status
+                    },
+                    status=status.HTTP_409_CONFLICT
+                )
 
             # Check if program is full
-            program = serializer.validated_data['program']
             if program.is_full:
                 # Create with waitlisted status
                 serializer.validated_data['status'] = 'Waitlisted'
 
             registration = serializer.save()
+            
+            # Send confirmation email
+            try:
+                self.send_registration_confirmation(registration)
+                logger.info(f"Confirmation email sent for registration {registration.id}")
+            except Exception as e:
+                logger.error(f"Failed to send confirmation email: {str(e)}")
+            
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         except Exception as e:
@@ -695,6 +735,73 @@ class RegistrationViewSet(viewsets.ModelViewSet):
                 {'error': f'Failed to create registration: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+    
+    def send_registration_confirmation(self, registration):
+        """Send registration confirmation email"""
+        subject = f"Registration Confirmation: {registration.program.title}"
+        from_email = settings.DEFAULT_FROM_EMAIL
+        to = [registration.participant_email]
+
+        context = {
+            'registration': registration,
+            'program': registration.program,
+            'participant_name': registration.participant_name,
+            'company_name': getattr(settings, 'COMPANY_NAME', 'Our Company'),
+            'contact_email': getattr(settings, 'CONTACT_EMAIL', 'support@example.com'),
+            'frontend_url': getattr(settings, 'FRONTEND_URL', 'https://example.com')
+        }
+
+        try:
+            html_content = render_to_string("training/emails/registration_confirmation.html", context)
+            
+            text_content = f"""Dear {registration.participant_name},
+
+Thank you for registering for the training program: {registration.program.title}
+
+Program Details:
+- Type: {registration.program.type}
+- Start Date: {registration.program.start_date}
+- End Date: {registration.program.end_date}
+- Format: {registration.program.format}
+- Location: {registration.program.location}
+
+Your registration status: {registration.status}
+
+You will receive further details about the program closer to the start date.
+
+If you have any questions, please contact us at {getattr(settings, 'CONTACT_EMAIL', 'support@example.com')}.
+
+Best regards,
+The {getattr(settings, 'COMPANY_NAME', 'Our Company')} Team
+"""
+
+            msg = EmailMultiAlternatives(subject, text_content, from_email, to)
+            msg.attach_alternative(html_content, "text/html")
+            msg.send()
+            
+            logger.info(f"Registration confirmation sent to {registration.participant_email}")
+            
+        except Exception as e:
+            logger.error(f"Failed to send registration confirmation to {registration.participant_email}: {str(e)}")
+            raise
+    
+    @action(detail=True, methods=['post'])
+    def resend_confirmation(self, request, pk=None):
+        """Resend registration confirmation email"""
+        registration = self.get_object()
+        
+        try:
+            self.send_registration_confirmation(registration)
+            return Response({
+                'success': True,
+                'message': f'Confirmation email sent to {registration.participant_email}'
+            })
+        except Exception as e:
+            logger.error(f"Failed to resend confirmation email: {str(e)}")
+            return Response({
+                'success': False,
+                'error': 'Failed to send confirmation email'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def update(self, request, *args, **kwargs):
         """Update registration"""

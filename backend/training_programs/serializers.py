@@ -473,7 +473,7 @@ class RegistrationSerializer(serializers.ModelSerializer):
             ).exclude(pk=self.instance.pk if self.instance else None)
             
             if existing.exists():
-                raise serializers.ValidationError("This email is already registered for this program")
+                raise serializers.ValidationError("This email is already registered for this training program")
         
         return str(value).lower().strip()
     
