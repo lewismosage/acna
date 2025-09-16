@@ -23,6 +23,7 @@ urlpatterns = [
     path('api/', include('journal_watch.urls')),
     path('api/', include('policy_management.urls')),
     path('api/', include('training_programs.urls')),
+    path('api/forum/', include('forum.urls')),
 ]
 
 if settings.DEBUG:

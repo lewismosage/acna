@@ -64,6 +64,7 @@ INSTALLED_APPS = [
     'journal_watch',
     'policy_management',
     'training_programs',
+    'forum',
 ]
 
 MIDDLEWARE = [
