@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { 
-  Search, MessageSquare, ChevronRight, Plus, Pin, 
+  Search, Pin, 
   Star, Eye, MessageCircle, User, Clock, ArrowLeft
 } from 'lucide-react';
 import { Link, useParams, useNavigate } from "react-router-dom";
+import { useAuth } from '../../../../services/AuthContext';
 import ScrollToTop from '../../../../components/common/ScrollToTop';
 import { forumApi, ForumCategory, ForumThread as ForumThreadType, ForumPost, CreateForumPostInput } from '../../../../services/forumApi';
 
 const ForumThread = () => {
+  const { user } = useAuth();
   const { forumId } = useParams();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');

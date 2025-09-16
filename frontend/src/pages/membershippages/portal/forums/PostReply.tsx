@@ -4,11 +4,13 @@ import {
   Bold, Italic, Underline, Link2, List,
   ListOrdered, Code, MoreHorizontal, Heart, Eye
 } from 'lucide-react';
+import { useAuth } from '../../../../services/AuthContext';
 import { useParams, useNavigate, Link } from "react-router-dom";
 import ScrollToTop from '../../../../components/common/ScrollToTop';
 import { forumApi, ForumThread, ForumPost, CreateForumPostInput } from '../../../../services/forumApi';
 
 const PostReply = () => {
+  const { user } = useAuth();
   const { forumId, threadSlug } = useParams();
   const navigate = useNavigate();
   const [replyContent, setReplyContent] = useState('');

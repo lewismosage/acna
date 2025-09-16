@@ -23,7 +23,7 @@ class ForumCategoryViewSet(viewsets.ModelViewSet):
     """ViewSet for forum categories"""
     
     serializer_class = ForumCategorySerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]  # Allow read for anonymous, write for authenticated
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['title', 'description']
     ordering_fields = ['order', 'title', 'created_at']
@@ -38,10 +38,8 @@ class ForumCategoryViewSet(viewsets.ModelViewSet):
         """Get popular categories based on recent activity"""
         recent_date = timezone.now() - timedelta(days=7)
         
-        # Get categories without annotation conflicts
         categories = ForumCategory.objects.filter(is_active=True)
         
-        # We can still filter by recent posts, but we'll do it differently
         categories_with_activity = []
         for category in categories:
             recent_posts_count = ForumPost.objects.filter(
@@ -51,11 +49,9 @@ class ForumCategoryViewSet(viewsets.ModelViewSet):
                 created_at__gte=recent_date
             ).count()
             
-            # Add recent_posts_count as a temporary attribute
             category.recent_posts_count = recent_posts_count
             categories_with_activity.append(category)
         
-        # Sort by recent activity and take top 5
         categories_with_activity.sort(key=lambda x: x.recent_posts_count, reverse=True)
         top_categories = categories_with_activity[:5]
         
@@ -71,14 +67,12 @@ class ForumCategoryViewSet(viewsets.ModelViewSet):
             is_active=True
         ).select_related('author', 'category').prefetch_related('forum_posts')
         
-        # Apply search if provided
         search = request.query_params.get('search', '')
         if search:
             threads = threads.filter(
                 Q(title__icontains=search) | Q(content__icontains=search)
             )
         
-        # Apply ordering
         ordering = request.query_params.get('ordering', '-last_activity')
         if ordering == 'popular':
             threads = threads.order_by('-view_count', '-like_count')
@@ -101,7 +95,7 @@ class ForumCategoryViewSet(viewsets.ModelViewSet):
 class ForumThreadViewSet(viewsets.ModelViewSet):
     """ViewSet for forum threads"""
     
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]  # Allow read for anonymous, write for authenticated
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ['category', 'is_pinned', 'is_locked']
     search_fields = ['title', 'content', 'author__username', 'author__first_name', 'author__last_name']
@@ -117,6 +111,15 @@ class ForumThreadViewSet(viewsets.ModelViewSet):
         if self.action == 'retrieve':
             return ForumThreadDetailSerializer
         return ForumThreadSerializer
+    
+    def create(self, request, *args, **kwargs):
+        """Override create to ensure user is authenticated"""
+        if not request.user.is_authenticated:
+            return Response(
+                {'error': 'Authentication required to create threads'}, 
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        return super().create(request, *args, **kwargs)
     
     def retrieve(self, request, *args, **kwargs):
         """Get thread details and increment view count"""
@@ -144,6 +147,12 @@ class ForumThreadViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def my_threads(self, request):
         """Get threads created by current user"""
+        if not request.user.is_authenticated:
+            return Response(
+                {'error': 'Authentication required'}, 
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        
         threads = self.get_queryset().filter(author=request.user)
         page = self.paginate_queryset(threads)
         if page is not None:
@@ -156,6 +165,12 @@ class ForumThreadViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def like(self, request, pk=None):
         """Like or unlike a thread"""
+        if not request.user.is_authenticated:
+            return Response(
+                {'error': 'Authentication required'}, 
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        
         thread = self.get_object()
         like, created = ForumThreadLike.objects.get_or_create(
             thread=thread,
@@ -163,7 +178,6 @@ class ForumThreadViewSet(viewsets.ModelViewSet):
         )
         
         if not created:
-            # Unlike if already liked
             like.delete()
             return Response({'liked': False, 'like_count': thread.like_count})
         
@@ -172,6 +186,12 @@ class ForumThreadViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def subscribe(self, request, pk=None):
         """Subscribe or unsubscribe to thread notifications"""
+        if not request.user.is_authenticated:
+            return Response(
+                {'error': 'Authentication required'}, 
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        
         thread = self.get_object()
         subscription, created = ForumThreadSubscription.objects.get_or_create(
             thread=thread,
@@ -180,7 +200,6 @@ class ForumThreadViewSet(viewsets.ModelViewSet):
         )
         
         if not created:
-            # Toggle subscription
             subscription.is_active = not subscription.is_active
             subscription.save()
         
@@ -230,7 +249,7 @@ class ForumPostViewSet(viewsets.ModelViewSet):
     """ViewSet for forum posts"""
     
     serializer_class = ForumPostSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]  # Allow read for anonymous, write for authenticated
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ['thread', 'author', 'parent_post']
     search_fields = ['content', 'author__username', 'author__first_name', 'author__last_name']
@@ -244,6 +263,12 @@ class ForumPostViewSet(viewsets.ModelViewSet):
     
     def create(self, request, *args, **kwargs):
         """Create a new post and check if thread is locked"""
+        if not request.user.is_authenticated:
+            return Response(
+                {'error': 'Authentication required to create posts'}, 
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        
         thread_id = request.data.get('thread')
         if thread_id:
             thread = get_object_or_404(ForumThread, id=thread_id, is_active=True)
@@ -258,6 +283,12 @@ class ForumPostViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def my_posts(self, request):
         """Get posts created by current user"""
+        if not request.user.is_authenticated:
+            return Response(
+                {'error': 'Authentication required'}, 
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        
         posts = self.get_queryset().filter(author=request.user)
         page = self.paginate_queryset(posts)
         if page is not None:
@@ -270,6 +301,12 @@ class ForumPostViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def like(self, request, pk=None):
         """Like or unlike a post"""
+        if not request.user.is_authenticated:
+            return Response(
+                {'error': 'Authentication required'}, 
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        
         post = self.get_object()
         like, created = ForumPostLike.objects.get_or_create(
             post=post,
@@ -277,7 +314,6 @@ class ForumPostViewSet(viewsets.ModelViewSet):
         )
         
         if not created:
-            # Unlike if already liked
             like.delete()
             return Response({'liked': False, 'like_count': post.like_count})
         
@@ -301,7 +337,7 @@ class ForumPostViewSet(viewsets.ModelViewSet):
 class ForumAnalyticsViewSet(viewsets.ViewSet):
     """ViewSet for forum analytics"""
     
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.AllowAny]  # Analytics can be public
     
     @action(detail=False, methods=['get'])
     def dashboard(self, request):
@@ -319,7 +355,7 @@ class ForumAnalyticsViewSet(viewsets.ViewSet):
             is_pinned=True
         ).count()
         
-        # Aggregated metrics - Fixed the aggregation
+        # Aggregated metrics
         thread_stats = ForumThread.objects.filter(is_active=True).aggregate(
             total_views=Sum('view_count'),
             total_likes=Sum('like_count')
@@ -339,7 +375,7 @@ class ForumAnalyticsViewSet(viewsets.ViewSet):
             .values_list('category__title', 'count')
         )
         
-        # Top threads by engagement - Fixed the query
+        # Top threads by engagement
         top_threads_queryset = (
             ForumThread.objects.filter(is_active=True)
             .select_related('author', 'category')
@@ -350,7 +386,6 @@ class ForumAnalyticsViewSet(viewsets.ViewSet):
             .order_by('-total_engagement')[:5]
         )
         
-        # Convert to list with proper field access
         top_threads = []
         for thread in top_threads_queryset:
             top_threads.append({
@@ -389,6 +424,12 @@ class ForumAnalyticsViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'])
     def user_stats(self, request):
         """Get current user's forum statistics"""
+        if not request.user.is_authenticated:
+            return Response(
+                {'error': 'Authentication required'}, 
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        
         user = request.user
         
         user_threads = ForumThread.objects.filter(author=user, is_active=True)
@@ -418,7 +459,7 @@ class ForumAnalyticsViewSet(viewsets.ViewSet):
 class ForumSearchViewSet(viewsets.ViewSet):
     """ViewSet for forum search functionality"""
     
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.AllowAny] 
     
     @action(detail=False, methods=['post'])
     def search(self, request):
@@ -496,8 +537,6 @@ class ForumSearchViewSet(viewsets.ViewSet):
     
     def paginate_queryset(self, queryset):
         """Helper method for pagination"""
-        # This would typically use DRF's pagination
-        # For now, we'll return the first 20 results
         return queryset[:20]
     
     def get_paginated_response(self, data):

@@ -5,9 +5,11 @@ import {
   TrendingUp, Filter, SortDesc
 } from 'lucide-react';
 import { Link } from "react-router-dom";
+import { useAuth } from '../../../../services/AuthContext';
 import { forumApi, ForumCategory, ForumThread, ForumAnalytics } from '../../../../services/forumApi';
 
 const ForumComponent = () => {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateThread, setShowCreateThread] = useState(false);

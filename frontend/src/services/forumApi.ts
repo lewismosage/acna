@@ -2,7 +2,7 @@ const API_BASE_URL = 'http://127.0.0.1:8000/api';
 
 // Helper function to get authentication headers
 const getAuthHeaders = (): Record<string, string> => {
-  const token = localStorage.getItem('access_token');
+  const token = localStorage.getItem('token');
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
