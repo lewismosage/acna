@@ -23,28 +23,37 @@ const PostReply = () => {
   const [posts, setPosts] = useState<ForumPost[]>([]);
 
   useEffect(() => {
-    if (threadSlug) {
+    if (forumId && threadSlug) {
       fetchThreadData();
     }
-  }, [threadSlug]);
+  }, [forumId, threadSlug]);
 
   const fetchThreadData = async () => {
-    if (!threadSlug) return;
+    if (!forumId || !threadSlug) return;
     
     try {
       setLoading(true);
       setError(null);
       
-      // Get all threads to find the one matching our slug
-      const threads = await forumApi.getThreads();
-      const matchingThread = threads.find(thread => thread.slug === threadSlug);
+      // First, get the category to find threads in that category
+      const categories = await forumApi.getCategories();
+      const currentCategory = categories.find(cat => cat.slug === forumId);
+      
+      if (!currentCategory) {
+        setError('Forum category not found');
+        return;
+      }
+
+      // Get threads for this category
+      const categoryThreads = await forumApi.getCategoryThreads(currentCategory.id);
+      const matchingThread = categoryThreads.find(thread => thread.slug === threadSlug);
       
       if (!matchingThread) {
         setError('Thread not found');
         return;
       }
       
-      // Get the full thread details with posts
+      // Get the full thread details
       const threadDetails = await forumApi.getThreadById(matchingThread.id);
       setCurrentThread(threadDetails);
       
@@ -144,6 +153,7 @@ const PostReply = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-100">
+        <ScrollToTop />
         <div className="max-w-4xl mx-auto px-4 py-8">
           <div className="animate-pulse">
             <div className="bg-white rounded-lg border border-gray-200 mb-6 p-6">
@@ -165,6 +175,7 @@ const PostReply = () => {
   if (error || !currentThread) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <ScrollToTop />
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
             {error || 'Thread not found'}
@@ -172,12 +183,20 @@ const PostReply = () => {
           <p className="text-gray-600 mb-4">
             {error || "The thread you're looking for doesn't exist."}
           </p>
-          <button
-            onClick={handleBackClick}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
-            Back to Forum
-          </button>
+          <div className="space-x-3">
+            <button
+              onClick={() => fetchThreadData()}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              Try Again
+            </button>
+            <button
+              onClick={handleBackClick}
+              className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+            >
+              Back to Forum
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -272,13 +291,13 @@ const PostReply = () => {
                     <Heart className={`w-4 h-4 mr-1 ${currentThread.is_liked ? 'fill-current' : ''}`} />
                     {currentThread.like_count} {currentThread.like_count === 1 ? 'like' : 'likes'}
                   </button>
-                  <button className="flex items-center text-gray-500 hover:text-blue-600">
+                  <button 
+                    onClick={() => document.getElementById('reply-form')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="flex items-center text-gray-500 hover:text-blue-600"
+                  >
                     <MessageCircle className="w-4 h-4 mr-1" />
                     Reply
                   </button>
-                  <span className="text-gray-500">
-                    🌐 Translate to English
-                  </span>
                   <button className="text-gray-500 hover:text-gray-700">
                     <MoreHorizontal className="w-4 h-4" />
                   </button>
@@ -350,7 +369,7 @@ const PostReply = () => {
         )}
 
         {/* Reply Form */}
-        <form onSubmit={handleReplySubmit} className="bg-white rounded-lg border border-gray-200">
+        <form onSubmit={handleReplySubmit} id="reply-form" className="bg-white rounded-lg border border-gray-200">
           <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
             <h2 className="font-semibold text-gray-800">Post Reply</h2>
           </div>
@@ -392,7 +411,7 @@ const PostReply = () => {
               value={replyContent}
               onChange={(e) => setReplyContent(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-              placeholder="Add details for others to answer your question"
+              placeholder="Add your reply to this discussion..."
               disabled={submitting}
             />
             
@@ -402,7 +421,7 @@ const PostReply = () => {
                 disabled={!replyContent.trim() || submitting}
                 className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {submitting ? 'Posting...' : 'Reply'}
+                {submitting ? 'Posting...' : 'Post Reply'}
               </button>
             </div>
           </div>

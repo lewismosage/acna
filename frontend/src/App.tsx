@@ -273,6 +273,7 @@ function App() {
               path="/forum/:forumId/post/:postId"
               element={<PostReply />}
             />
+            <Route path="/forum/:forumId/thread/:threadSlug" element={<PostReply />} />
             <Route path="forum-guidelines" element={<ForumGuidelines />} />
             {/* Payment Pages */}
             <Route path="/verification" element={<VerificationPage />} />

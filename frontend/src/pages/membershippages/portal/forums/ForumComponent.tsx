@@ -329,7 +329,7 @@ const ForumComponent = () => {
         </div>
       );
     }
-
+  
     return (
       <div className="space-y-4">
         {filteredCategories.map((category) => {
@@ -351,10 +351,15 @@ const ForumComponent = () => {
                         {category.description}
                       </p>
                       <div className="text-xs text-gray-500">
-                        {category.last_post ? (
-                          <>Last post {new Date(category.last_post.created_at).toLocaleDateString()} by {category.last_post.author}</>
+                        {/* Enhanced logic with better user feedback */}
+                        {category.thread_count > 0 ? (
+                          category.last_post ? (
+                            <>Last post {new Date(category.last_post.created_at).toLocaleDateString()} by {category.last_post.author}</>
+                          ) : (
+                            <>Latest thread - ready for replies!</>
+                          )
                         ) : (
-                          'No posts yet'
+                          'No discussions yet - be the first to start!'
                         )}
                       </div>
                     </div>
@@ -365,6 +370,15 @@ const ForumComponent = () => {
                       {category.thread_count.toLocaleString()}
                     </div>
                     <div className="text-xs text-gray-500">threads</div>
+                    {/* Optional: Also show post count if available */}
+                    {category.post_count > 0 && (
+                      <>
+                        <div className="text-sm font-medium text-gray-700 mt-1">
+                          {category.post_count.toLocaleString()}
+                        </div>
+                        <div className="text-xs text-gray-500">posts</div>
+                      </>
+                    )}
                   </div>
                 </div>
                 
