@@ -109,11 +109,8 @@ class ForumThreadSerializer(serializers.ModelSerializer):
     
     author = UserSerializer(read_only=True)
     category = ForumCategorySerializer(read_only=True)
-    category_id = serializers.PrimaryKeyRelatedField(
-        queryset=ForumCategory.objects.all(), 
-        source='category', 
-        write_only=True
-    )
+    category_id = serializers.IntegerField(write_only=True)
+    
     reply_count = serializers.ReadOnlyField()
     last_post = serializers.SerializerMethodField()
     has_new_replies = serializers.ReadOnlyField()
@@ -175,6 +172,14 @@ class ForumThreadSerializer(serializers.ModelSerializer):
     
     def create(self, validated_data):
         """Create thread with current user as author and auto-generated slug"""
+        # Handle category_id
+        category_id = validated_data.pop('category_id')
+        try:
+            category = ForumCategory.objects.get(id=category_id, is_active=True)
+        except ForumCategory.DoesNotExist:
+            raise serializers.ValidationError({'category_id': 'Invalid category ID'})
+        
+        validated_data['category'] = category
         validated_data['author'] = self.context['request'].user
         validated_data['slug'] = slugify(validated_data['title'])
         

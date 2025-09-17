@@ -1,19 +1,18 @@
 import { useState, useEffect } from 'react';
 import { 
   Search, Pin, 
-  Star, Eye, MessageCircle, User, Clock, ArrowLeft
+  Star, Eye, MessageCircle, User, Clock, ArrowLeft, Plus
 } from 'lucide-react';
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useAuth } from '../../../../services/AuthContext';
 import ScrollToTop from '../../../../components/common/ScrollToTop';
-import { forumApi, ForumCategory, ForumThread as ForumThreadType, ForumPost, CreateForumPostInput } from '../../../../services/forumApi';
+import { forumApi, ForumCategory, ForumThread as ForumThreadType } from '../../../../services/forumApi';
 
 const ForumThread = () => {
   const { user } = useAuth();
   const { forumId } = useParams();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
-  const [newPostContent, setNewPostContent] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -21,6 +20,14 @@ const ForumThread = () => {
   const [category, setCategory] = useState<ForumCategory | null>(null);
   const [threads, setThreads] = useState<ForumThreadType[]>([]);
   const [sortBy, setSortBy] = useState('recent');
+
+  // Create thread modal state
+  const [showCreateThread, setShowCreateThread] = useState(false);
+  const [newThread, setNewThread] = useState({
+    title: '',
+    content: '',
+    tags: [] as string[]
+  });
 
   useEffect(() => {
     if (forumId) {
@@ -74,30 +81,40 @@ const ForumThread = () => {
     thread.author.display_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handlePostSubmit = async (e: React.FormEvent | React.MouseEvent) => {
-    e.preventDefault();
-    if (!newPostContent.trim()) {
-      setError('Please enter some content for your post');
+  const handleCreateThread = async () => {
+    if (!newThread.title.trim() || !newThread.content.trim()) {
+      setError('Please enter both title and content for your thread');
+      return;
+    }
+    
+    if (!category) {
+      setError('Category not found');
       return;
     }
     
     try {
       setError(null);
       
-      // For category-level posts, we need to create a thread instead
-      if (category) {
-        const newThread = await forumApi.createThread({
-          title: `Post by ${new Date().toLocaleDateString()}`, // You might want a better title mechanism
-          content: newPostContent,
-          category_id: category.id,
-          tags: []
-        });
-        
-        setNewPostContent('');
-        fetchCategoryData(); // Refresh data
-      }
+      const newThreadData = {
+        title: newThread.title,
+        content: newThread.content,
+        category_id: category.id,  // Changed from 'category' to 'category_id'
+        tags: newThread.tags
+      };
+      
+      console.log('Creating thread with data:', newThreadData);
+      
+      await forumApi.createThread(newThreadData);
+      
+      // Reset form and close modal
+      setNewThread({ title: '', content: '', tags: [] });
+      setShowCreateThread(false);
+      
+      // Refresh data
+      fetchCategoryData();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create post');
+      console.error('Error creating thread:', err);
+      setError(err instanceof Error ? err.message : 'Failed to create thread');
     }
   };
 
@@ -121,7 +138,129 @@ const ForumThread = () => {
     return date.toLocaleDateString();
   };
 
-  if (error) {
+  // Create Thread Modal Component
+  const CreateThreadModal = () => {
+    if (!showCreateThread) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold">Create New Thread in {category?.title}</h3>
+              <button 
+                onClick={() => {
+                  setShowCreateThread(false);
+                  setError(null);
+                  setNewThread({ title: '', content: '', tags: [] });
+                }}
+                className="text-gray-400 hover:text-gray-600 text-2xl"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+          
+          <div className="p-6 space-y-4">
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-600 px-3 py-2 rounded-md text-sm">
+                {error}
+              </div>
+            )}
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Thread Title *
+              </label>
+              <input 
+                type="text" 
+                value={newThread.title}
+                onChange={(e) => setNewThread(prev => ({ ...prev, title: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter a descriptive title for your thread..."
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Thread Content *
+              </label>
+              <textarea 
+                rows={8}
+                value={newThread.content}
+                onChange={(e) => setNewThread(prev => ({ ...prev, content: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                placeholder="Write your thread content here..."
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Tags (optional)
+              </label>
+              <input 
+                type="text" 
+                placeholder="Enter tags separated by commas and press Enter..."
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                    e.preventDefault();
+                    const newTags = e.currentTarget.value.split(',').map(tag => tag.trim()).filter(tag => tag);
+                    setNewThread(prev => ({ 
+                      ...prev, 
+                      tags: [...new Set([...prev.tags, ...newTags])] // Remove duplicates
+                    }));
+                    e.currentTarget.value = '';
+                  }
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {newThread.tags.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {newThread.tags.map((tag, index) => (
+                    <span key={index} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded flex items-center">
+                      #{tag}
+                      <button
+                        type="button"
+                        onClick={() => setNewThread(prev => ({
+                          ...prev,
+                          tags: prev.tags.filter((_, i) => i !== index)
+                        }))}
+                        className="ml-1 text-blue-600 hover:text-blue-800"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <div className="p-6 border-t border-gray-200 flex justify-end space-x-3">
+            <button 
+              onClick={() => {
+                setShowCreateThread(false);
+                setError(null);
+                setNewThread({ title: '', content: '', tags: [] });
+              }}
+              className="px-4 py-2 text-gray-600 hover:text-gray-800"
+            >
+              Cancel
+            </button>
+            <button 
+              onClick={handleCreateThread}
+              disabled={!newThread.title.trim() || !newThread.content.trim()}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Create Thread
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  if (error && !showCreateThread) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
@@ -170,15 +309,25 @@ const ForumThread = () => {
               </p>
             </div>
             
-            <div className="relative w-full sm:w-auto">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search this forum"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full sm:w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+            <div className="flex items-center space-x-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search this forum"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full sm:w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              
+              <button 
+                onClick={() => setShowCreateThread(true)}
+                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center whitespace-nowrap"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                New Thread
+              </button>
             </div>
           </div>
 
@@ -201,38 +350,6 @@ const ForumThread = () => {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Main Content Area */}
           <div className="lg:col-span-3">
-            {/* Create Post Form */}
-            <div className="bg-white rounded-lg border border-gray-200 mb-6">
-              <div className="p-4 border-b border-gray-200">
-                <h2 className="font-semibold text-gray-800">Create New Thread</h2>
-              </div>
-              <div className="p-4">
-                {error && (
-                  <div className="bg-red-50 border border-red-200 text-red-600 px-3 py-2 rounded-md text-sm mb-3">
-                    {error}
-                  </div>
-                )}
-                <div>
-                  <textarea
-                    rows={4}
-                    value={newPostContent}
-                    onChange={(e) => setNewPostContent(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3"
-                    placeholder="Write your thread content here..."
-                  />
-                  <div className="flex justify-end">
-                    <button 
-                      onClick={handlePostSubmit}
-                      disabled={!newPostContent.trim()}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Create Thread
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
             {/* Threads List */}
             <div className="bg-white rounded-lg border border-gray-200">
               <div className="p-4 border-b border-gray-200 flex justify-between items-center">
@@ -405,6 +522,8 @@ const ForumThread = () => {
           </div>
         </div>
       </div>
+
+      <CreateThreadModal />
     </div>
   );
 };

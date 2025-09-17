@@ -119,6 +119,16 @@ class ForumThreadViewSet(viewsets.ModelViewSet):
                 {'error': 'Authentication required to create threads'}, 
                 status=status.HTTP_401_UNAUTHORIZED
             )
+        
+        # Add validation for required fields
+        required_fields = ['title', 'content', 'category_id']
+        for field in required_fields:
+            if field not in request.data or not request.data[field]:
+                return Response(
+                    {'error': f'Missing required field: {field}'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
         return super().create(request, *args, **kwargs)
     
     def retrieve(self, request, *args, **kwargs):

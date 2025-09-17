@@ -80,20 +80,26 @@ const ForumComponent = () => {
       setError('Please fill in all required fields');
       return;
     }
-
+  
     try {
       setError(null);
-      await forumApi.createThread({
+      
+      const newThreadData = {
         title: newThread.title,
         content: newThread.content,
         category_id: parseInt(newThread.category_id),
         tags: newThread.tags
-      });
+      };
+      
+      console.log('Creating thread with data:', newThreadData);
+      
+      await forumApi.createThread(newThreadData);
       
       setShowCreateThread(false);
       setNewThread({ title: '', content: '', category_id: '', tags: [] });
       fetchForumData(); // Refresh data
     } catch (err) {
+      console.error('Error creating thread:', err);
       setError(err instanceof Error ? err.message : 'Failed to create thread');
     }
   };

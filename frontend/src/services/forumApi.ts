@@ -387,6 +387,7 @@ export const forumApi = {
   },
 
   createThread: async (data: CreateForumThreadInput): Promise<ForumThread> => {
+    console.log('Sending thread data:', data);
     const response = await fetch(`${API_BASE_URL}/forum/threads/`, {
       method: 'POST',
       headers: getAuthHeaders(),
