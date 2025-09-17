@@ -7,6 +7,7 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import { useAuth } from '../../../../services/AuthContext';
 import ScrollToTop from '../../../../components/common/ScrollToTop';
 import { forumApi, ForumCategory, ForumThread as ForumThreadType } from '../../../../services/forumApi';
+import CreateThreadModal from './CreateThreadModal';
 
 const ForumThread = () => {
   const { user } = useAuth();
@@ -15,19 +16,12 @@ const ForumThread = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showCreateThread, setShowCreateThread] = useState(false);
   
   // State for API data
   const [category, setCategory] = useState<ForumCategory | null>(null);
   const [threads, setThreads] = useState<ForumThreadType[]>([]);
   const [sortBy, setSortBy] = useState('recent');
-
-  // Create thread modal state
-  const [showCreateThread, setShowCreateThread] = useState(false);
-  const [newThread, setNewThread] = useState({
-    title: '',
-    content: '',
-    tags: [] as string[]
-  });
 
   useEffect(() => {
     if (forumId) {
@@ -81,41 +75,8 @@ const ForumThread = () => {
     thread.author.display_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleCreateThread = async () => {
-    if (!newThread.title.trim() || !newThread.content.trim()) {
-      setError('Please enter both title and content for your thread');
-      return;
-    }
-    
-    if (!category) {
-      setError('Category not found');
-      return;
-    }
-    
-    try {
-      setError(null);
-      
-      const newThreadData = {
-        title: newThread.title,
-        content: newThread.content,
-        category_id: category.id,  // Changed from 'category' to 'category_id'
-        tags: newThread.tags
-      };
-      
-      console.log('Creating thread with data:', newThreadData);
-      
-      await forumApi.createThread(newThreadData);
-      
-      // Reset form and close modal
-      setNewThread({ title: '', content: '', tags: [] });
-      setShowCreateThread(false);
-      
-      // Refresh data
-      fetchCategoryData();
-    } catch (err) {
-      console.error('Error creating thread:', err);
-      setError(err instanceof Error ? err.message : 'Failed to create thread');
-    }
+  const handleCreateThreadSuccess = () => {
+    fetchCategoryData(); // Refresh data after successful thread creation
   };
 
   const handleBackClick = () => {
@@ -136,128 +97,6 @@ const ForumThread = () => {
     if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
     if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)} days ago`;
     return date.toLocaleDateString();
-  };
-
-  // Create Thread Modal Component
-  const CreateThreadModal = () => {
-    if (!showCreateThread) return null;
-
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-          <div className="p-6 border-b border-gray-200">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold">Create New Thread in {category?.title}</h3>
-              <button 
-                onClick={() => {
-                  setShowCreateThread(false);
-                  setError(null);
-                  setNewThread({ title: '', content: '', tags: [] });
-                }}
-                className="text-gray-400 hover:text-gray-600 text-2xl"
-              >
-                ×
-              </button>
-            </div>
-          </div>
-          
-          <div className="p-6 space-y-4">
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 px-3 py-2 rounded-md text-sm">
-                {error}
-              </div>
-            )}
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Thread Title *
-              </label>
-              <input 
-                type="text" 
-                value={newThread.title}
-                onChange={(e) => setNewThread(prev => ({ ...prev, title: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Enter a descriptive title for your thread..."
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Thread Content *
-              </label>
-              <textarea 
-                rows={8}
-                value={newThread.content}
-                onChange={(e) => setNewThread(prev => ({ ...prev, content: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                placeholder="Write your thread content here..."
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Tags (optional)
-              </label>
-              <input 
-                type="text" 
-                placeholder="Enter tags separated by commas and press Enter..."
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter' && e.currentTarget.value.trim()) {
-                    e.preventDefault();
-                    const newTags = e.currentTarget.value.split(',').map(tag => tag.trim()).filter(tag => tag);
-                    setNewThread(prev => ({ 
-                      ...prev, 
-                      tags: [...new Set([...prev.tags, ...newTags])] // Remove duplicates
-                    }));
-                    e.currentTarget.value = '';
-                  }
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              {newThread.tags.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {newThread.tags.map((tag, index) => (
-                    <span key={index} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded flex items-center">
-                      #{tag}
-                      <button
-                        type="button"
-                        onClick={() => setNewThread(prev => ({
-                          ...prev,
-                          tags: prev.tags.filter((_, i) => i !== index)
-                        }))}
-                        className="ml-1 text-blue-600 hover:text-blue-800"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-          
-          <div className="p-6 border-t border-gray-200 flex justify-end space-x-3">
-            <button 
-              onClick={() => {
-                setShowCreateThread(false);
-                setError(null);
-                setNewThread({ title: '', content: '', tags: [] });
-              }}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800"
-            >
-              Cancel
-            </button>
-            <button 
-              onClick={handleCreateThread}
-              disabled={!newThread.title.trim() || !newThread.content.trim()}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Create Thread
-            </button>
-          </div>
-        </div>
-      </div>
-    );
   };
 
   if (error && !showCreateThread) {
@@ -523,7 +362,14 @@ const ForumThread = () => {
         </div>
       </div>
 
-      <CreateThreadModal />
+      {/* Create Thread Modal */}
+      <CreateThreadModal
+        isOpen={showCreateThread}
+        onClose={() => setShowCreateThread(false)}
+        onSuccess={handleCreateThreadSuccess}
+        categories={category ? [category] : []}
+        initialCategoryId={category?.id}
+      />
     </div>
   );
 };

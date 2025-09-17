@@ -279,16 +279,41 @@ class ForumPostViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_401_UNAUTHORIZED
             )
         
+        # Validate required fields
+        required_fields = ['content', 'thread']
+        for field in required_fields:
+            if field not in request.data or not request.data[field]:
+                return Response(
+                    {'error': f'Missing required field: {field}'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
         thread_id = request.data.get('thread')
-        if thread_id:
-            thread = get_object_or_404(ForumThread, id=thread_id, is_active=True)
+        try:
+            thread = ForumThread.objects.get(id=thread_id, is_active=True)
             if thread.is_locked and not request.user.is_staff:
                 return Response(
                     {'error': 'Cannot post to locked thread'}, 
                     status=status.HTTP_403_FORBIDDEN
                 )
+        except ForumThread.DoesNotExist:
+            return Response(
+                {'error': 'Thread not found'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except ValueError:
+            return Response(
+                {'error': 'Invalid thread ID'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
-        return super().create(request, *args, **kwargs)
+        try:
+            return super().create(request, *args, **kwargs)
+        except Exception as e:
+            return Response(
+                {'error': f'Failed to create post: {str(e)}'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
     
     @action(detail=False, methods=['get'])
     def my_posts(self, request):
