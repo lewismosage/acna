@@ -24,12 +24,60 @@ const getAuthHeadersWithoutContentType = (): Record<string, string> => {
 const handleResponse = async (response: Response) => {
   if (!response.ok) {
     let errorMessage = `HTTP error! status: ${response.status}`;
+    let errorDetails = '';
+    
     try {
       const errorData = await response.json();
-      errorMessage = errorData.error || errorData.message || errorData.detail || errorMessage;
-    } catch {
-      // If we can't parse the error, use the default message
+      console.log('Server error response:', errorData); // Debug log
+      
+      // Handle different error formats
+      if (typeof errorData === 'string') {
+        errorMessage = errorData;
+      } else if (errorData.error) {
+        errorMessage = errorData.error;
+      } else if (errorData.message) {
+        errorMessage = errorData.message;
+      } else if (errorData.detail) {
+        errorMessage = errorData.detail;
+      } else if (errorData.non_field_errors) {
+        errorMessage = Array.isArray(errorData.non_field_errors) 
+          ? errorData.non_field_errors[0] 
+          : errorData.non_field_errors;
+      } else {
+        // Handle field-specific errors
+        const fieldErrors = [];
+        for (const [field, errors] of Object.entries(errorData)) {
+          if (Array.isArray(errors)) {
+            fieldErrors.push(`${field}: ${errors.join(', ')}`);
+          } else {
+            fieldErrors.push(`${field}: ${errors}`);
+          }
+        }
+        if (fieldErrors.length > 0) {
+          errorMessage = fieldErrors.join('; ');
+        }
+      }
+      
+      errorDetails = JSON.stringify(errorData);
+    } catch (parseError) {
+      console.log('Could not parse error response as JSON');
+      try {
+        const textError = await response.text();
+        console.log('Error response text:', textError);
+        errorMessage = textError || errorMessage;
+      } catch {
+        // Use default error message
+      }
     }
+    
+    console.error('API Error:', {
+      status: response.status,
+      statusText: response.statusText,
+      url: response.url,
+      message: errorMessage,
+      details: errorDetails
+    });
+    
     throw new Error(errorMessage);
   }
   
@@ -387,15 +435,31 @@ export const forumApi = {
   },
 
   createThread: async (data: CreateForumThreadInput): Promise<ForumThread> => {
-    console.log('Sending thread data:', data);
-    const response = await fetch(`${API_BASE_URL}/forum/threads/`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data),
-    });
+    console.log('=== CREATE THREAD DEBUG ===');
+    console.log('Input data:', data);
+    console.log('Data type:', typeof data);
+    console.log('Data keys:', Object.keys(data));
+    console.log('Stringified data:', JSON.stringify(data));
     
-    const result = await handleResponse(response);
-    return normalizeForumThread(result);
+    const headers = getAuthHeaders();
+    console.log('Headers:', headers);
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/forum/threads/`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(data),
+      });
+      
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+      
+      const result = await handleResponse(response);
+      return normalizeForumThread(result);
+    } catch (error) {
+      console.error('Create thread error:', error);
+      throw error;
+    }
   },
 
   updateThread: async (id: number, data: Partial<CreateForumThreadInput>): Promise<ForumThread> => {
@@ -631,6 +695,40 @@ export const forumApi = {
     const results = data.results || data;
     return Array.isArray(results) ? results.map(normalizeForumThread) : [];
   },
+};
+
+
+testAuth: async (): Promise<any> => {
+  console.log('=== AUTH TEST ===');
+  const headers = getAuthHeaders();
+  console.log('Headers being sent:', headers);
+  console.log('localStorage contents:', {
+    token: localStorage.getItem('token'),
+    access_token: localStorage.getItem('access_token'),
+    allKeys: Object.keys(localStorage)
+  });
+  
+  try {
+    const response = await fetch(`${API_BASE_URL}/forum/categories/`, {
+      headers,
+    });
+    
+    console.log('Test response status:', response.status);
+    console.log('Test response headers:', Object.fromEntries(response.headers.entries()));
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.log('Test error response:', errorText);
+      throw new Error(`Test failed: ${response.status} - ${errorText}`);
+    }
+    
+    const data = await response.json();
+    console.log('Test successful, got data:', data.length, 'categories');
+    return data;
+  } catch (error) {
+    console.error('Auth test failed:', error);
+    throw error;
+  }
 };
 
 // Export individual functions for convenience

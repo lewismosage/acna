@@ -385,12 +385,12 @@ class ForumAnalyticsViewSet(viewsets.ViewSet):
             .values_list('category__title', 'count')
         )
         
-        # Top threads by engagement
+        # Top threads by engagement - FIX: Rename annotated field to avoid conflict
         top_threads_queryset = (
             ForumThread.objects.filter(is_active=True)
             .select_related('author', 'category')
             .annotate(
-                reply_count=Count('forum_posts', filter=Q(forum_posts__is_active=True)),
+                computed_reply_count=Count('forum_posts', filter=Q(forum_posts__is_active=True)),
                 total_engagement=F('view_count') + F('like_count') * 5
             )
             .order_by('-total_engagement')[:5]
@@ -405,7 +405,7 @@ class ForumAnalyticsViewSet(viewsets.ViewSet):
                 'category__title': thread.category.title,
                 'view_count': thread.view_count,
                 'like_count': thread.like_count,
-                'reply_count': thread.reply_count,
+                'reply_count': thread.computed_reply_count,  # Use the computed field
             })
         
         # Active users (posted in last 30 days)
