@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { 
   X, Send, Paperclip, Image, Smile, Reply, Edit, Trash2, 
-  MoreVertical, Download 
 } from 'lucide-react';
 import { messagingApi, type Conversation, type Message, type CreateMessageInput } from '../../../../services/messagingApi';
 import defaultProfileImage from '../../../../assets/default Profile Image.png';
@@ -63,12 +62,28 @@ const MessagingModal = ({ member, onClose }: MessagingModalProps) => {
       setLoading(true);
       setError(null);
       
+      console.log('Starting conversation with member:', member.id);
+      
       // Start or get existing conversation with this member
       const conv = await messagingApi.startConversation(parseInt(member.id));
+      console.log('Conversation created/retrieved:', conv);
       setConversation(conv);
       
       // Fetch messages for this conversation
       const messagesData = await messagingApi.getConversationMessages(conv.id);
+      console.log('Messages data received:', messagesData);
+      console.log('Individual messages:', messagesData.results);
+      
+      // Check each message for sender data
+      messagesData.results.forEach((msg, index) => {
+        console.log(`Message ${index}:`, {
+          id: msg.id,
+          sender: msg.sender,
+          content: msg.content,
+          created_at: msg.created_at
+        });
+      });
+      
       setMessages(messagesData.results.reverse()); // Reverse to show oldest first
     } catch (err) {
       console.error('Failed to initialize conversation:', err);
@@ -190,8 +205,24 @@ const MessagingModal = ({ member, onClose }: MessagingModalProps) => {
     return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const isCurrentUser = (senderId: number) => {
+  const isCurrentUser = (senderId: number | undefined) => {
+    if (!senderId) return false;
     return senderId === getCurrentUserId();
+  };
+
+  // Add debugging function
+  const debugMessage = (msg: Message) => {
+    console.log('Message debug:', {
+      id: msg.id,
+      sender: msg.sender,
+      content: msg.content,
+      created_at: msg.created_at
+    });
+  };
+
+  const getSenderDisplayName = (msg: Message) => {
+    if (!msg.sender) return 'Unknown';
+    return msg.sender.display_name || msg.sender.username || 'Unknown';
   };
 
   return (
@@ -204,6 +235,9 @@ const MessagingModal = ({ member, onClose }: MessagingModalProps) => {
               src={member.profile_photo || defaultProfileImage}
               alt={`${member.first_name} ${member.last_name}`}
               className="w-10 h-10 rounded-full object-cover"
+              onError={(e) => {
+                e.currentTarget.src = defaultProfileImage;
+              }}
             />
             <div>
               <h3 className="font-semibold text-gray-900">
@@ -248,110 +282,117 @@ const MessagingModal = ({ member, onClose }: MessagingModalProps) => {
               <p className="text-center">Start the conversation with {member.first_name}</p>
             </div>
           ) : (
-            messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`flex ${isCurrentUser(msg.sender.id) ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`max-w-xs md:max-w-md rounded-lg px-4 py-2 group relative ${
-                    isCurrentUser(msg.sender.id)
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-800'
-                  }`}
-                >
-                  {/* Reply indicator */}
-                  {msg.reply_to && (
-                    <div className={`text-xs mb-2 p-2 rounded ${
-                      isCurrentUser(msg.sender.id) ? 'bg-blue-500' : 'bg-gray-200'
-                    }`}>
-                      <div className="font-semibold">{msg.reply_to.sender}</div>
-                      <div className="truncate">{msg.reply_to.content}</div>
-                    </div>
-                  )}
-                  
-                  {/* Message content */}
-                  {msg.message_type === 'image' && msg.image_url && (
-                    <img
-                      src={msg.image_url}
-                      alt="Shared image"
-                      className="max-w-full h-auto rounded mb-2 cursor-pointer"
-                      onClick={() => window.open(msg.image_url, '_blank')}
-                    />
-                  )}
-                  
-                  {msg.message_type === 'file' && msg.file_url && (
-                    <div className="flex items-center space-x-2 mb-2">
-                      <Paperclip className="w-4 h-4" />
-                      <a
-                        href={msg.file_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="underline hover:no-underline"
-                      >
-                        Download file
-                      </a>
-                    </div>
-                  )}
-                  
-                  {msg.content && <p className="break-words">{msg.content}</p>}
-                  
-                  {/* Message info */}
-                  <div className="flex justify-between items-center mt-2">
-                    <p
-                      className={`text-xs ${
-                        isCurrentUser(msg.sender.id) ? 'text-blue-100' : 'text-gray-500'
+            messages
+              .filter(msg => msg && msg.sender) // Filter out messages with missing sender
+              .map((msg) => {
+                // Add debug logging
+                debugMessage(msg);
+                
+                return (
+                  <div
+                    key={msg.id}
+                    className={`flex ${isCurrentUser(msg.sender?.id) ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-xs md:max-w-md rounded-lg px-4 py-2 group relative ${
+                        isCurrentUser(msg.sender?.id)
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-100 text-gray-800'
                       }`}
                     >
-                      {formatTime(msg.created_at)}
-                      {msg.is_edited && ' (edited)'}
-                    </p>
-                    
-                    {/* Message actions */}
-                    <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => setReplyTo(msg)}
-                        className="p-1 hover:bg-gray-200 rounded"
-                        title="Reply"
-                      >
-                        <Reply className="w-3 h-3" />
-                      </button>
+                      {/* Reply indicator */}
+                      {msg.reply_to && (
+                        <div className={`text-xs mb-2 p-2 rounded ${
+                          isCurrentUser(msg.sender?.id) ? 'bg-blue-500' : 'bg-gray-200'
+                        }`}>
+                          <div className="font-semibold">{msg.reply_to.sender}</div>
+                          <div className="truncate">{msg.reply_to.content}</div>
+                        </div>
+                      )}
                       
-                      <button
-                        onClick={() => setShowEmojiPicker(true)}
-                        className="p-1 hover:bg-gray-200 rounded"
-                        title="Add emoji"
-                      >
-                        <Smile className="w-3 h-3" />
-                      </button>
+                      {/* Message content */}
+                      {msg.message_type === 'image' && msg.image_url && (
+                        <img
+                          src={msg.image_url}
+                          alt="Shared image"
+                          className="max-w-full h-auto rounded mb-2 cursor-pointer"
+                          onClick={() => window.open(msg.image_url, '_blank')}
+                        />
+                      )}
                       
-                      {isCurrentUser(msg.sender.id) && (
-                        <>
-                          <button
-                            onClick={() => {
-                              setEditingMessage(msg);
-                              setMessage(msg.content || '');
-                            }}
-                            className="p-1 hover:bg-gray-200 rounded"
-                            title="Edit"
+                      {msg.message_type === 'file' && msg.file_url && (
+                        <div className="flex items-center space-x-2 mb-2">
+                          <Paperclip className="w-4 h-4" />
+                          <a
+                            href={msg.file_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline hover:no-underline"
                           >
-                            <Edit className="w-3 h-3" />
+                            Download file
+                          </a>
+                        </div>
+                      )}
+                      
+                      {msg.content && <p className="break-words">{msg.content}</p>}
+                      
+                      {/* Message info */}
+                      <div className="flex justify-between items-center mt-2">
+                        <p
+                          className={`text-xs ${
+                            isCurrentUser(msg.sender?.id) ? 'text-blue-100' : 'text-gray-500'
+                          }`}
+                        >
+                          {formatTime(msg.created_at)}
+                          {msg.is_edited && ' (edited)'}
+                        </p>
+                        
+                        {/* Message actions */}
+                        <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => setReplyTo(msg)}
+                            className="p-1 hover:bg-gray-200 rounded"
+                            title="Reply"
+                          >
+                            <Reply className="w-3 h-3" />
                           </button>
                           
                           <button
-                            onClick={() => handleDeleteMessage(msg.id)}
-                            className="p-1 hover:bg-gray-200 rounded text-red-500"
-                            title="Delete"
+                            onClick={() => setShowEmojiPicker(true)}
+                            className="p-1 hover:bg-gray-200 rounded"
+                            title="Add emoji"
                           >
-                            <Trash2 className="w-3 h-3" />
+                            <Smile className="w-3 h-3" />
                           </button>
-                        </>
-                      )}
+                          
+                          {isCurrentUser(msg.sender?.id) && (
+                            <>
+                              <button
+                                onClick={() => {
+                                  setEditingMessage(msg);
+                                  setMessage(msg.content || '');
+                                }}
+                                className="p-1 hover:bg-gray-200 rounded"
+                                title="Edit"
+                              >
+                                <Edit className="w-3 h-3" />
+                              </button>
+                              
+                              <button
+                                onClick={() => handleDeleteMessage(msg.id)}
+                                className="p-1 hover:bg-gray-200 rounded text-red-500"
+                                title="Delete"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            ))
+                );
+              })
           )}
           <div ref={messagesEndRef} />
         </div>
@@ -361,7 +402,7 @@ const MessagingModal = ({ member, onClose }: MessagingModalProps) => {
           <div className="px-4 py-2 bg-gray-50 border-t border-gray-200">
             <div className="flex justify-between items-center">
               <div className="text-sm">
-                <span className="font-medium">Replying to {replyTo.sender.display_name || replyTo.sender.username}:</span>
+                <span className="font-medium">Replying to {getSenderDisplayName(replyTo)}:</span>
                 <div className="text-gray-600 truncate">{replyTo.content}</div>
               </div>
               <button

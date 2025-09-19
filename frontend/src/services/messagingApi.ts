@@ -78,7 +78,7 @@ export interface MessageReaction {
 export interface Message {
   id: string;
   conversation: string;
-  sender: User;
+  sender?: User; // Make sender optional to handle cases where it might be undefined
   content?: string;
   message_type: 'text' | 'image' | 'file' | 'emoji';
   file_attachment?: string;

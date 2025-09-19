@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Search, Bell, Plus, MessageCircle } from 'lucide-react';
 import { messagingApi, type Conversation } from '../../../../services/messagingApi';
+import defaultProfileImage from '../../../../assets/default Profile Image.png';
 
 interface ChatsProps {
   onSelectChat: (conversation: Conversation) => void;
@@ -67,12 +68,12 @@ const Chats = ({ onSelectChat }: ChatsProps) => {
 
   const getConversationImage = (conversation: Conversation) => {
     if (conversation.is_group) {
-      return conversation.group_image_url || 'https://via.placeholder.com/40';
+      return conversation.group_image_url || defaultProfileImage;
     }
-    if (conversation.other_participant) {
-      return conversation.other_participant.profile_photo || 'https://via.placeholder.com/40';
+    if (conversation.other_participant?.profile_photo) {
+      return conversation.other_participant.profile_photo;
     }
-    return 'https://via.placeholder.com/40';
+    return defaultProfileImage;
   };
 
   const getLastMessagePreview = (conversation: Conversation) => {
@@ -81,18 +82,19 @@ const Chats = ({ onSelectChat }: ChatsProps) => {
     }
 
     const message = conversation.last_message;
-    const sender = message.sender.display_name || message.sender.username;
+    // Handle case where sender might be undefined
+    const senderName = message.sender?.display_name || message.sender?.username || 'Unknown';
     
     switch (message.message_type) {
       case 'image':
-        return `${sender}: 📷 Image`;
+        return `${senderName}: 📷 Image`;
       case 'file':
-        return `${sender}: 📎 File`;
+        return `${senderName}: 📎 File`;
       case 'emoji':
-        return `${sender}: ${message.content}`;
+        return `${senderName}: ${message.content || ''}`;
       default:
         const preview = message.content || '';
-        return `${sender}: ${preview.length > 50 ? preview.substring(0, 50) + '...' : preview}`;
+        return `${senderName}: ${preview.length > 50 ? preview.substring(0, 50) + '...' : preview}`;
     }
   };
 
@@ -160,6 +162,9 @@ const Chats = ({ onSelectChat }: ChatsProps) => {
                   src={getConversationImage(conversation)} 
                   alt={getConversationName(conversation)}
                   className="w-10 h-10 rounded-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = defaultProfileImage;
+                  }}
                 />
                 {conversation.unread_count > 0 && (
                   <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">

@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { User, Camera, X } from 'lucide-react';
+import { Camera, X } from 'lucide-react';
 import Chats from '../../membershippages/portal/communications/Chats'; 
 import MessagingModal from '../../membershippages/portal/communications/MessagingModal';
 import api from '../../../services/api';
 import defaultProfileImage from '../../../assets/default Profile Image.png';
 import AlertModal from '../../../components/common/AlertModal';
+import { Conversation } from '../../../services/messagingApi';
 
 interface MemberData {
   id: number;
@@ -27,12 +28,21 @@ interface MemberData {
   };
 }
 
-interface Message {
-  id: number;
-  sender: string;
-  preview: string;
-  time: string;
-  unread: boolean;
+// Updated Member interface to match MessagingModal expectations
+interface Member {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  mobile_number: string;
+  country: string;
+  county?: string;
+  membership_class: string;
+  profession?: string;
+  institution?: string;
+  specialization?: string;
+  is_active_member: boolean;
+  membership_valid_until?: string;
   profile_photo?: string;
 }
 
@@ -47,7 +57,7 @@ const ProfileTabContent = ({ memberData, onProfileUpdate, showModal, onCloseModa
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [selectedChat, setSelectedChat] = useState<{name: string, profile_photo?: string} | null>(null);
+  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -80,11 +90,9 @@ const ProfileTabContent = ({ memberData, onProfileUpdate, showModal, onCloseModa
     }
   }, [memberData]);
 
-  const handleSelectChat = (message: Message) => {
-    setSelectedChat({
-      name: message.sender,
-      profile_photo: message.profile_photo
-    });
+  // Updated function to handle Conversation objects instead of Message objects
+  const handleSelectChat = (conversation: Conversation) => {
+    setSelectedConversation(conversation);
   };
 
   const handleCloseProfileModal = () => {
@@ -120,7 +128,7 @@ const ProfileTabContent = ({ memberData, onProfileUpdate, showModal, onCloseModa
       formDataToSend.append('first_name', formData.firstName);
       formDataToSend.append('last_name', formData.lastName);
       
-      // Include specialization in the update - this was missing!
+      // Include specialization in the update
       if (formData.specialization) {
         formDataToSend.append('specialization', formData.specialization);
       }
@@ -138,7 +146,7 @@ const ProfileTabContent = ({ memberData, onProfileUpdate, showModal, onCloseModa
         firstName: formData.firstName,
         lastName: formData.lastName,
         institution: formData.institution,
-        specialization: formData.specialization, // Add this to debug log
+        specialization: formData.specialization,
         hasProfilePhoto: !!formData.profilePhoto
       });
   
@@ -152,7 +160,7 @@ const ProfileTabContent = ({ memberData, onProfileUpdate, showModal, onCloseModa
       const updatedData = {
         name: `${formData.firstName} ${formData.lastName}`,
         institution: formData.institution,
-        specialization: formData.specialization, // Make sure this is included
+        specialization: formData.specialization,
         profile_photo: response.data.profile_photo || memberData.profile_photo
       };
       onProfileUpdate(updatedData);
@@ -179,7 +187,7 @@ const ProfileTabContent = ({ memberData, onProfileUpdate, showModal, onCloseModa
     setError('');
   
     try {
-      const response = await api.post('/users/change-password/', {
+      await api.post('/users/change-password/', {
         current_password: currentPassword,
         new_password: newPassword,
         confirm_password: confirmPassword
@@ -203,7 +211,7 @@ const ProfileTabContent = ({ memberData, onProfileUpdate, showModal, onCloseModa
 
   const handleAboutUpdate = async () => {
     try {
-      const response = await api.post('/users/update-about/', {
+      await api.post('/users/update-about/', {
         about_text: aboutText
       });
       setIsAboutModalOpen(false);
@@ -221,6 +229,30 @@ const ProfileTabContent = ({ memberData, onProfileUpdate, showModal, onCloseModa
     return `${backendBaseUrl}${url}`;
   };
 
+  // Convert Conversation to Member format for MessagingModal
+  const convertConversationToMember = (conversation: Conversation): Member | null => {
+    if (!conversation.other_participant) return null;
+    
+    const participant = conversation.other_participant;
+    const fullName = participant.display_name || `${participant.first_name} ${participant.last_name}`;
+    const nameParts = fullName.split(' ');
+    
+    return {
+      id: participant.id.toString(),
+      first_name: nameParts[0] || participant.first_name || '',
+      last_name: nameParts.slice(1).join(' ') || participant.last_name || '',
+      email: participant.username || '', // Assuming username is email
+      mobile_number: '',
+      country: '',
+      membership_class: 'Member',
+      profession: 'Member',
+      institution: '',
+      specialization: '',
+      is_active_member: true,
+      profile_photo: participant.profile_photo
+    };
+  };
+
   return (
     <div className="flex flex-col md:flex-row gap-6 min-h-screen bg-gray-50 p-4">
       {/* Main Content */}
@@ -235,6 +267,9 @@ const ProfileTabContent = ({ memberData, onProfileUpdate, showModal, onCloseModa
                 src={getProfileImageUrl(memberData.profile_photo)} 
                 alt="Profile"
                 className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = defaultProfileImage;
+                }}
               />
               </div>
             </div>
@@ -424,6 +459,9 @@ const ProfileTabContent = ({ memberData, onProfileUpdate, showModal, onCloseModa
                     src={formData.previewUrl} 
                     alt="Profile preview" 
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = defaultProfileImage;
+                    }}
                   />
                   <label className="absolute bottom-0 right-0 bg-white rounded-full p-2 shadow cursor-pointer">
                     <Camera className="w-4 h-4" />
@@ -565,17 +603,13 @@ const ProfileTabContent = ({ memberData, onProfileUpdate, showModal, onCloseModa
       )}
 
       {/* Messaging Modal */}
-      {selectedChat && (
+      {selectedConversation && (
         <MessagingModal 
-          member={{
-            firstName: selectedChat.name.split(' ')[0],
-            lastName: selectedChat.name.split(' ').slice(1).join(' '),
-            profession: "Member",
-            profileImage: selectedChat.profile_photo 
-          }} 
-          onClose={onCloseModal}
+          member={convertConversationToMember(selectedConversation)!} 
+          onClose={() => setSelectedConversation(null)}
         />
       )}
+
       {/* Alert Modal */}
       <AlertModal
         isOpen={isAlertOpen}
