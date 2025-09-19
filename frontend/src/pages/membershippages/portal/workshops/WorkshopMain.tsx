@@ -1,11 +1,30 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Award, Users, MessageCircle } from 'lucide-react';
 import WorkshopsTab from './WorkshopsTab';
 import CollaborationOpportunitiesTab from './CollaborationOpportunitiesTab';
 import RequestCollaborationTab from './RequestCollaborationTab';
 
-const WorkshopComponent = () => {
-  const [activeTab, setActiveTab] = useState('workshops');
+// Update the component to accept props
+const WorkshopComponent = ({ activeSubTab, onSubTabChange }: { 
+  activeSubTab?: string;
+  onSubTabChange?: (subTab: string) => void;
+}) => {
+  // Use the activeSubTab prop if provided, otherwise default to 'workshops'
+  const [activeTab, setActiveTab] = useState(activeSubTab || 'workshops');
+
+  // Update parent when tab changes if callback is provided
+  useEffect(() => {
+    if (onSubTabChange) {
+      onSubTabChange(activeTab);
+    }
+  }, [activeTab, onSubTabChange]);
+
+  // Sync with parent when prop changes
+  useEffect(() => {
+    if (activeSubTab) {
+      setActiveTab(activeSubTab);
+    }
+  }, [activeSubTab]);
 
   // Tab navigation
   const tabs = [

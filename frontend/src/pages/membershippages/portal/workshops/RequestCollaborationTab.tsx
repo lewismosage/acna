@@ -3,6 +3,7 @@ import {
   Users, BookOpen, Target, MessageCircle, CheckCircle, AlertCircle 
 } from 'lucide-react';
 import { workshopsApi, CreateCollaborationInput } from '../../../../services/workshopAPI';
+import ScrollToTop from '../../../../components/common/ScrollToTop';
 
 const RequestCollaborationTab = () => {
   // Collaboration request state
@@ -112,6 +113,7 @@ const RequestCollaborationTab = () => {
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
+      <ScrollToTop />
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-gray-900 flex items-center">
           <Users className="w-6 h-6 text-blue-600 mr-3" />

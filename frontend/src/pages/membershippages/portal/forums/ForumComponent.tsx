@@ -8,6 +8,74 @@ import { Link } from "react-router-dom";
 import { useAuth } from '../../../../services/AuthContext';
 import { forumApi, ForumCategory, ForumThread, ForumAnalytics } from '../../../../services/forumApi';
 import CreateThreadModal from './CreateThreadModal';
+import defaultProfileImage from '../../../../assets/default Profile Image.png';
+import ScrollToTop from '../../../../components/common/ScrollToTop';
+
+// Profile image utility function
+const getProfileImageUrl = (url: string | undefined) => {
+  if (!url) return defaultProfileImage;
+  
+  if (url.startsWith('http')) return url;
+  
+  const backendBaseUrl = process.env.REACT_APP_BACKEND_URL;
+  return `${backendBaseUrl}${url}`;
+};
+
+// Profile image component with fallback
+const ProfileImage = ({ 
+  src, 
+  alt, 
+  size = 'default',
+  className = '' 
+}: { 
+  src?: string; 
+  alt: string; 
+  size?: 'small' | 'default' | 'large';
+  className?: string;
+}) => {
+  const [imageError, setImageError] = useState(false);
+  const [imageLoading, setImageLoading] = useState(true);
+  
+  const sizeClasses = {
+    small: 'h-6 w-6',
+    default: 'h-8 w-8', 
+    large: 'h-10 w-10'
+  };
+
+  const handleImageError = () => {
+    setImageError(true);
+    setImageLoading(false);
+  };
+
+  const handleImageLoad = () => {
+    setImageLoading(false);
+  };
+
+  if (imageError || !src) {
+    return (
+      <div className={`${sizeClasses[size]} rounded-full bg-gray-200 flex items-center justify-center text-gray-500 flex-shrink-0 ${className}`}>
+        <User className="w-3 h-3" />
+      </div>
+    );
+  }
+
+  return (
+    <div className={`${sizeClasses[size]} rounded-full overflow-hidden flex-shrink-0 ${className}`}>
+      {imageLoading && (
+        <div className="w-full h-full bg-gray-200 animate-pulse rounded-full flex items-center justify-center">
+          <User className="w-3 h-3 text-gray-400" />
+        </div>
+      )}
+      <img
+        src={getProfileImageUrl(src)}
+        alt={alt}
+        onError={handleImageError}
+        onLoad={handleImageLoad}
+        className={`w-full h-full object-cover rounded-full ${imageLoading ? 'hidden' : 'block'}`}
+      />
+    </div>
+  );
+};
 
 const ForumComponent = () => {
   const { user } = useAuth();
@@ -279,8 +347,16 @@ const ForumComponent = () => {
         <div className="divide-y divide-gray-200">
           {recentThreads.map((thread) => (
             <div key={thread.id} className="p-6 hover:bg-gray-50 transition-colors">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
+              <div className="flex items-start space-x-4">
+                <div className="flex-shrink-0">
+                  <ProfileImage
+                    src={thread.author.profile_photo}
+                    alt={`${thread.author.display_name}'s profile`}
+                    size="default"
+                  />
+                </div>
+                
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center space-x-2 mb-2">
                     {thread.is_pinned && (
                       <Pin className="w-4 h-4 text-orange-600" />
@@ -298,11 +374,8 @@ const ForumComponent = () => {
                     )}
                   </div>
                   
-                  <div className="flex items-center space-x-4 text-sm text-gray-500">
-                    <div className="flex items-center">
-                      <User className="w-4 h-4 mr-1" />
-                      {thread.author.display_name}
-                    </div>
+                  <div className="flex items-center space-x-4 text-sm text-gray-500 mb-2">
+                    <span>by {thread.author.display_name}</span>
                     <div className="flex items-center">
                       <MessageCircle className="w-4 h-4 mr-1" />
                       {thread.reply_count} replies
@@ -317,7 +390,7 @@ const ForumComponent = () => {
                     </div>
                   </div>
                   
-                  <div className="mt-2">
+                  <div className="mb-2">
                     <span className="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded">
                       {thread.category.title}
                     </span>
@@ -350,6 +423,7 @@ const ForumComponent = () => {
 
   return (
     <div className="min-h-screen bg-gray-100">
+      <ScrollToTop />
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 py-6 md:px-6">

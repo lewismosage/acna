@@ -8,6 +8,73 @@ import { useAuth } from '../../../../services/AuthContext';
 import { useParams, useNavigate, Link } from "react-router-dom";
 import ScrollToTop from '../../../../components/common/ScrollToTop';
 import { forumApi, ForumThread, ForumPost, CreateForumPostInput } from '../../../../services/forumApi';
+import defaultProfileImage from '../../../../assets/default Profile Image.png';
+
+// Profile image utility function
+const getProfileImageUrl = (url: string | undefined) => {
+  if (!url) return defaultProfileImage;
+  
+  if (url.startsWith('http')) return url;
+  
+  const backendBaseUrl = process.env.REACT_APP_BACKEND_URL;
+  return `${backendBaseUrl}${url}`;
+};
+
+// Profile image component with fallback
+const ProfileImage = ({ 
+  src, 
+  alt, 
+  size = 'default',
+  className = '' 
+}: { 
+  src?: string; 
+  alt: string; 
+  size?: 'small' | 'default' | 'large';
+  className?: string;
+}) => {
+  const [imageError, setImageError] = useState(false);
+  const [imageLoading, setImageLoading] = useState(true);
+  
+  const sizeClasses = {
+    small: 'h-8 w-8',
+    default: 'h-10 w-10', 
+    large: 'h-12 w-12'
+  };
+
+  const handleImageError = () => {
+    setImageError(true);
+    setImageLoading(false);
+  };
+
+  const handleImageLoad = () => {
+    setImageLoading(false);
+  };
+
+  if (imageError || !src) {
+    return (
+      <div className={`${sizeClasses[size]} rounded-full bg-gray-200 flex items-center justify-center text-gray-500 flex-shrink-0 ${className}`}>
+        <User className="w-5 h-5" />
+      </div>
+    );
+  }
+
+  return (
+    <div className={`${sizeClasses[size]} rounded-full overflow-hidden flex-shrink-0 ${className}`}>
+      {imageLoading && (
+        <div className="w-full h-full bg-gray-200 animate-pulse rounded-full flex items-center justify-center">
+          <User className="w-4 h-4 text-gray-400" />
+        </div>
+      )}
+      <img
+        src={getProfileImageUrl(src)}
+        alt={alt}
+        onError={handleImageError}
+        onLoad={handleImageLoad}
+        className={`w-full h-full object-cover rounded-full ${imageLoading ? 'hidden' : 'block'}`}
+      />
+    </div>
+  );
+};
 
 const PostReply = () => {
   const { user } = useAuth();
@@ -241,9 +308,11 @@ const PostReply = () => {
           <div className="p-6">
             <div className="flex items-start space-x-4">
               <div className="flex-shrink-0">
-                <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
-                  <User className="w-6 h-6 text-blue-600" />
-                </div>
+                <ProfileImage
+                  src={currentThread.author.profile_photo}
+                  alt={`${currentThread.author.display_name}'s profile`}
+                  size="large"
+                />
               </div>
               
               <div className="flex-1 min-w-0">
@@ -320,9 +389,11 @@ const PostReply = () => {
                 <div key={post.id} className="p-6">
                   <div className="flex items-start space-x-4">
                     <div className="flex-shrink-0">
-                      <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                        <User className="w-5 h-5 text-gray-500" />
-                      </div>
+                      <ProfileImage
+                        src={post.author.profile_photo}
+                        alt={`${post.author.display_name}'s profile`}
+                        size="default"
+                      />
                     </div>
                     
                     <div className="flex-1 min-w-0">

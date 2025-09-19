@@ -36,9 +36,11 @@ interface Message {
   profile_photo?: string;
 }
 
-const ProfileTabContent = ({ memberData, onProfileUpdate }: { 
+const ProfileTabContent = ({ memberData, onProfileUpdate, showModal, onCloseModal }: { 
   memberData: MemberData;
   onProfileUpdate: (updatedData: Partial<MemberData>) => void;
+  showModal: boolean;
+  onCloseModal: () => void;
 }) => {
   const [activeSection, setActiveSection] = useState('about');
   const [aboutText, setAboutText] = useState('');
@@ -66,6 +68,12 @@ const ProfileTabContent = ({ memberData, onProfileUpdate }: {
   });
 
   useEffect(() => {
+    if (showModal) {
+      setIsProfileModalOpen(true);
+    }
+  }, [showModal]);
+
+  useEffect(() => {
     // Initialize about text if available
     if (memberData.about) {
       setAboutText(memberData.about);
@@ -79,8 +87,9 @@ const ProfileTabContent = ({ memberData, onProfileUpdate }: {
     });
   };
 
-  const handleCloseModal = () => {
-    setSelectedChat(null);
+  const handleCloseProfileModal = () => {
+    setIsProfileModalOpen(false);
+    onCloseModal();
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -394,7 +403,7 @@ const ProfileTabContent = ({ memberData, onProfileUpdate }: {
             <div className="flex justify-between items-center border-b p-4">
               <h3 className="text-lg font-bold">Edit Profile</h3>
               <button 
-                onClick={() => setIsProfileModalOpen(false)}
+                onClick={handleCloseProfileModal}
                 className="text-gray-500 hover:text-gray-700"
                 disabled={isLoading}
               >

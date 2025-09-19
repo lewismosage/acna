@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   User, BookOpen, Award, MessageSquare, FileText, Calendar, LogOut,
   Home, Edit3, Upload, Users, Clock, CheckCircle, AlertCircle, Menu, X
@@ -17,7 +17,8 @@ import defaultProfileImage from '../../../assets/default Profile Image.png';
 import { useAuth } from '../../../services/AuthContext';
 import ResearchPaperUploadModal from './ResearchPaperUploadModal';
 import CaseReportSubmissionModal from './CaseReportSubmissionModal';
-import { educationalResourcesApi, CaseReportSubmissionInput } from '../../../services/educationalResourcesApi';
+import { trainingProgramsApi, TrainingProgram } from '../../../services/trainingProgramsApi';
+import { useNavigate } from 'react-router-dom';
 
 interface LocationState {
   activeTab?: string;
@@ -179,7 +180,7 @@ const CpdProgressPanel = ({ memberData }: { memberData: MemberData }) => {
               <td className="py-2 font-medium">{cpdData.certificationsEarned}</td>
             </tr>
           </tbody>
-        </table>
+      </table>
       </div>
     </div>
   );
@@ -188,32 +189,59 @@ const CpdProgressPanel = ({ memberData }: { memberData: MemberData }) => {
 // Component for Quick Actions Panel
 const QuickActionsPanel = ({ 
   onUploadResearchPaper,
-  onSubmitCaseReport 
+  onSubmitCaseReport,
+  onNavigateToTab,
+  onOpenProfileModal
 }: { 
   onUploadResearchPaper: () => void;
   onSubmitCaseReport: () => void;
+  onNavigateToTab: (tabId: string, subTab?: string) => void;
+  onOpenProfileModal: () => void;
 }) => (
   <div className="bg-white border border-gray-300 rounded-lg">
     <div className="bg-gray-100 px-4 py-2 border-b border-gray-300">
       <h2 className="font-semibold text-gray-800">Quick Actions</h2>
     </div>
     <div className="p-3 md:p-4 space-y-2 md:space-y-3">
-      {[
-        { icon: Edit3, label: 'Edit Profile', color: 'blue', onClick: null },
-        { icon: FileText, label: 'Training Programs', color: 'green', onClick: null },
-        { icon: MessageSquare, label: 'Join Discussion Forum', color: 'purple', onClick: null },
-        { icon: Users, label: 'View Member Directory', color: 'orange', onClick: null },
-        { icon: FileText, label: 'Request Collaboration Support', color: 'green', onClick: null },
-      ].map(({ icon: Icon, label, color, onClick }, index) => (
-        <button
-          key={index}
-          onClick={onClick || undefined}
-          className={`w-full flex items-center px-3 py-2 text-xs md:text-sm bg-${color}-50 hover:bg-${color}-100 border border-${color}-200 rounded transition-colors text-left`}
-        >
-          <Icon className={`w-3 h-3 md:w-4 md:h-4 mr-2 md:mr-3 text-${color}-600`} />
-          <span className={`text-${color}-700 font-medium`}>{label}</span>
-        </button>
-      ))}
+      <button
+        onClick={() => onOpenProfileModal()}
+        className="w-full flex items-center px-3 py-2 text-xs md:text-sm bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded transition-colors text-left"
+      >
+        <Edit3 className="w-3 h-3 md:w-4 md:h-4 mr-2 md:mr-3 text-blue-600" />
+        <span className="text-blue-700 font-medium">Edit Profile</span>
+      </button>
+
+      <button
+        onClick={() => onNavigateToTab('courses')}
+        className="w-full flex items-center px-3 py-2 text-xs md:text-sm bg-green-50 hover:bg-green-100 border border-green-200 rounded transition-colors text-left"
+      >
+        <FileText className="w-3 h-3 md:w-4 md:h-4 mr-2 md:mr-3 text-green-600" />
+        <span className="text-green-700 font-medium">Training Programs</span>
+      </button>
+
+      <button
+        onClick={() => onNavigateToTab('forum')}
+        className="w-full flex items-center px-3 py-2 text-xs md:text-sm bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded transition-colors text-left"
+      >
+        <MessageSquare className="w-3 h-3 md:w-4 md:h-4 mr-2 md:mr-3 text-purple-600" />
+        <span className="text-purple-700 font-medium">Join Discussion Forum</span>
+      </button>
+
+      <button
+        onClick={() => onNavigateToTab('directory')}
+        className="w-full flex items-center px-3 py-2 text-xs md:text-sm bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded transition-colors text-left"
+      >
+        <Users className="w-3 h-3 md:w-4 md:h-4 mr-2 md:mr-3 text-orange-600" />
+        <span className="text-orange-700 font-medium">View Member Directory</span>
+      </button>
+
+      <button
+        onClick={() => onNavigateToTab('workshop', 'request')}
+        className="w-full flex items-center px-3 py-2 text-xs md:text-sm bg-green-50 hover:bg-green-100 border border-green-200 rounded transition-colors text-left"
+      >
+        <Users className="w-3 h-3 md:w-4 md:h-4 mr-2 md:mr-3 text-green-600" />
+        <span className="text-green-700 font-medium">Request Collaboration Support</span>
+      </button>
       
       {/* Upload Research Paper button */}
       <button
@@ -236,28 +264,64 @@ const QuickActionsPanel = ({
   </div>
 );
 
-// Tab Content Components
-const HomeTabContent = ({ 
-  onUploadResearchPaper,
-  onSubmitCaseReport 
-}: { 
+interface HomeTabContentProps {
   onUploadResearchPaper: () => void;
   onSubmitCaseReport: () => void;
-}) => {
-  const upcomingCourses = [
-    {
-      title: "Advanced Epilepsy Management",
-      date: "August 15, 2025",
-      duration: "4 hours",
-      status: "enrolled"
-    },
-    {
-      title: "Pediatric Stroke Recognition",
-      date: "September 2, 2025",
-      duration: "3 hours",
-      status: "available"
+  onNavigateToTab: (tabId: string, subTab?: string) => void;
+}
+
+const HomeTabContent = ({ 
+  onUploadResearchPaper,
+  onSubmitCaseReport,
+  onNavigateToTab
+}: HomeTabContentProps) => {
+  const [trainingPrograms, setTrainingPrograms] = useState<TrainingProgram[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchTrainingPrograms = async () => {
+      try {
+        setLoading(true);
+        const programs = await trainingProgramsApi.getAll({ status: "Published" });
+        // Get only the first 3 programs
+        setTrainingPrograms(programs.slice(0, 3));
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load training programs");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTrainingPrograms();
+  }, []);
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "TBD";
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+  };
+
+  const getStatusInfo = (program: TrainingProgram) => {
+    const now = new Date();
+    const startDate = new Date(program.startDate);
+    const endDate = new Date(program.endDate);
+    const registrationDeadline = new Date(program.registrationDeadline);
+    
+    if (endDate < now) {
+      return { status: 'completed', label: 'Completed' };
+    } else if (startDate <= now && endDate >= now) {
+      return { status: 'enrolled', label: 'In Progress' };
+    } else if (registrationDeadline > now) {
+      return { status: 'available', label: 'Available' };
+    } else {
+      return { status: 'closed', label: 'Registration Closed' };
     }
-  ];
+  };
 
   const recentActivity = [
     { action: "Completed", item: "Cerebral Palsy Workshop", date: "July 20, 2025" },
@@ -271,34 +335,68 @@ const HomeTabContent = ({
           <h2 className="font-semibold text-gray-800">Training Highlights</h2>
         </div>
         <div className="p-4">
-          <div className="space-y-3">
-            {upcomingCourses.map((course, index) => (
-              <div key={index} className="flex items-center justify-between p-3 border border-gray-200 rounded">
-                <div className="flex-1">
-                  <h4 className="font-medium text-sm md:text-base text-gray-900">{course.title}</h4>
-                  <div className="flex items-center text-xs md:text-sm text-gray-600 mt-1">
-                    <Calendar className="w-3 h-3 md:w-4 md:h-4 mr-1" />
-                    {course.date}
-                    <Clock className="w-3 h-3 md:w-4 md:h-4 ml-2 md:ml-3 mr-1" />
-                    {course.duration}
+          {loading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((item) => (
+                <div key={item} className="flex items-center justify-between p-3 border border-gray-200 rounded animate-pulse">
+                  <div className="flex-1">
+                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
                   </div>
+                  <div className="h-6 bg-gray-200 rounded w-16"></div>
                 </div>
-                <div className="ml-2">
-                  {course.status === 'enrolled' ? (
-                    <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">
-                      Enrolled
-                    </span>
-                  ) : (
-                    <button className="bg-orange-600 text-white px-2 py-1 rounded text-xs font-medium hover:bg-orange-700">
-                      Enroll
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : error ? (
+            <div className="p-3 bg-red-50 border border-red-200 rounded text-red-800 text-sm">
+              <AlertCircle className="w-4 h-4 inline mr-1" />
+              {error}
+            </div>
+          ) : trainingPrograms.length > 0 ? (
+            <div className="space-y-3">
+              {trainingPrograms.map((program) => {
+                const statusInfo = getStatusInfo(program);
+                
+                return (
+                  <div key={program.id} className="flex items-center justify-between p-3 border border-gray-200 rounded">
+                    <div className="flex-1">
+                      <h4 className="font-medium text-sm md:text-base text-gray-900">{program.title}</h4>
+                      <div className="flex items-center text-xs md:text-sm text-gray-600 mt-1">
+                        <Calendar className="w-3 h-3 md:w-4 md:h-4 mr-1" />
+                        {formatDate(program.startDate)}
+                        <Clock className="w-3 h-3 md:w-4 md:h-4 ml-2 md:ml-3 mr-1" />
+                        {program.duration}
+                      </div>
+                    </div>
+                    <div className="ml-2">
+                      {statusInfo.status === 'enrolled' ? (
+                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">
+                          Enrolled
+                        </span>
+                      ) : statusInfo.status === 'available' ? (
+                        <button className="bg-orange-600 text-white px-2 py-1 rounded text-xs font-medium hover:bg-orange-700">
+                          Enroll
+                        </button>
+                      ) : (
+                        <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs font-medium">
+                          {statusInfo.label}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-4 text-gray-500">
+              No training programs available at the moment.
+            </div>
+          )}
           <div className="mt-4 text-center">
-            <button className="bg-blue-600 text-white px-4 py-2 text-sm md:text-base rounded font-medium hover:bg-blue-700">
+            <button 
+              onClick={() => onNavigateToTab('courses')}
+              className="bg-blue-600 text-white px-4 py-2 text-sm md:text-base rounded font-medium hover:bg-blue-700"
+            >
               View All Training Programs
             </button>
           </div>
@@ -373,6 +471,8 @@ const ACNAMemberDashboard = () => {
   const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [showResearchPaperModal, setShowResearchPaperModal] = useState(false);
   const [showCaseReportModal, setShowCaseReportModal] = useState(false);
+  const [workshopSubTab, setWorkshopSubTab] = useState('workshops');
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const { user } = useAuth();
   
   const handleProfileUpdate = (updatedData: Partial<MemberData>) => {
@@ -417,6 +517,22 @@ const ACNAMemberDashboard = () => {
     { id: 'directory', label: 'MEMBERS DIRECTORY', icon: Users }
   ];
 
+  // Handle navigation to specific tabs
+  const handleNavigateToTab = (tabId: string, subTab?: string) => {
+    setActiveTab(tabId);
+    
+    // Handle specific sub-tab navigation for workshop
+    if (tabId === 'workshop' && subTab) {
+      setWorkshopSubTab(subTab);
+    }
+  };
+
+  // Handle opening profile modal
+  const handleOpenProfileModal = () => {
+    setActiveTab('profile');
+    setShowProfileModal(true);
+  };
+
   // Tab content components
   const renderTabContent = () => {
     switch (activeTab) {
@@ -425,19 +541,22 @@ const ACNAMemberDashboard = () => {
           <HomeTabContent 
             onUploadResearchPaper={() => setShowResearchPaperModal(true)}
             onSubmitCaseReport={() => setShowCaseReportModal(true)}
+            onNavigateToTab={handleNavigateToTab}
           />
         );
       case 'profile':
         return <ProfileTabContent 
           memberData={memberData} 
           onProfileUpdate={handleProfileUpdate} 
+          showModal={showProfileModal}
+          onCloseModal={() => setShowProfileModal(false)}
         />;
       case 'courses':
         return <CoursesTabContent />;
       case 'training':
         return <ELearningDashboard />;
       case 'workshop':
-        return <WorkshopTapContent />;
+        return <WorkshopTapContent activeSubTab={workshopSubTab} onSubTabChange={setWorkshopSubTab} />;
       case 'forum':
         return <ForumComponent />;
       case 'directory':
@@ -447,6 +566,7 @@ const ACNAMemberDashboard = () => {
           <HomeTabContent 
             onUploadResearchPaper={() => setShowResearchPaperModal(true)}
             onSubmitCaseReport={() => setShowCaseReportModal(true)}
+            onNavigateToTab={handleNavigateToTab}
           />
         );
     }
@@ -454,6 +574,10 @@ const ACNAMemberDashboard = () => {
 
   const handleTabClick = (id: string) => {
     setActiveTab(id);
+    // Reset profile modal state when switching tabs
+    if (id !== 'profile') {
+      setShowProfileModal(false);
+    }
   };
 
   return (
@@ -630,6 +754,8 @@ const ACNAMemberDashboard = () => {
                 <QuickActionsPanel 
                   onUploadResearchPaper={() => setShowResearchPaperModal(true)}
                   onSubmitCaseReport={() => setShowCaseReportModal(true)}
+                  onNavigateToTab={handleNavigateToTab}
+                  onOpenProfileModal={handleOpenProfileModal}
                 />
               </div>
 

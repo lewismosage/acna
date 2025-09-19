@@ -96,6 +96,7 @@ export interface User {
   display_name: string;
   first_name: string;
   last_name: string;
+  profile_photo?: string; 
 }
 
 export interface ForumCategory {
@@ -162,7 +163,7 @@ export interface ForumThread {
   created_at: string;
   updated_at: string;
   last_activity: string;
-  forum_posts?: ForumPost[]; // Available in detailed view
+  forum_posts?: ForumPost[]; 
 }
 
 export interface CreateForumCategoryInput {
@@ -235,6 +236,7 @@ const normalizeUser = (backendUser: any): User => ({
   display_name: backendUser.display_name || backendUser.username || '',
   first_name: backendUser.first_name || '',
   last_name: backendUser.last_name || '',
+  profile_photo: backendUser.profile_photo || undefined,
 });
 
 const normalizeForumCategory = (backendCategory: any): ForumCategory => ({
