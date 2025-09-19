@@ -156,6 +156,20 @@ const DirectoryTabContent = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // Helper function to mask email addresses
+  const maskEmail = (email: string): string => {
+    if (!email) return '';
+    
+    const [localPart, domain] = email.split('@');
+    if (!localPart || !domain) return email;
+    
+    // Show first 2 characters of local part, mask the rest before @
+    const visibleLocalPart = localPart.slice(0, 2);
+    const maskedLocalPart = '*'.repeat(Math.max(0, localPart.length - 2));
+    
+    return `${visibleLocalPart}${maskedLocalPart}@${domain}`;
+  };
+
   // Fetch members from API
   useEffect(() => {
     const fetchMembers = async () => {
@@ -356,7 +370,7 @@ const DirectoryTabContent = () => {
                   )}
                   <div className="flex items-center">
                     <Mail className="w-4 h-4 mr-2 text-gray-400" />
-                    <span className="truncate">{member.email}</span>
+                    <span className="truncate">{maskEmail(member.email)}</span>
                   </div>
                 </div>
 

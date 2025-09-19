@@ -573,7 +573,7 @@ const ProfileTabContent = ({ memberData, onProfileUpdate, showModal, onCloseModa
             profession: "Member",
             profileImage: selectedChat.profile_photo 
           }} 
-          onClose={handleCloseModal}
+          onClose={onCloseModal}
         />
       )}
       {/* Alert Modal */}

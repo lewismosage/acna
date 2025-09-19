@@ -30,6 +30,38 @@ const ViewProfile = ({ member, onClose, onMessage }: ViewProfileProps) => {
     "This member hasn't added any information about themselves yet."
   );
 
+  // Helper function to mask phone numbers
+  const maskPhoneNumber = (phone: string): string => {
+    if (!phone) return '';
+    
+    // Remove any non-digit characters for processing
+    const digitsOnly = phone.replace(/\D/g, '');
+    
+    if (digitsOnly.length < 4) return phone; // Too short to mask meaningfully
+    
+    // Show first 4 digits, mask middle digits, show last 2 digits
+    const firstPart = digitsOnly.slice(0, 4);
+    const lastPart = digitsOnly.slice(-2);
+    const middleLength = digitsOnly.length - 6;
+    const maskedMiddle = '*'.repeat(Math.max(0, middleLength));
+    
+    return `${firstPart}${maskedMiddle}${lastPart}`;
+  };
+
+  // Helper function to mask email addresses
+  const maskEmail = (email: string): string => {
+    if (!email) return '';
+    
+    const [localPart, domain] = email.split('@');
+    if (!localPart || !domain) return email;
+    
+    // Show first 2 characters of local part, mask the rest before @
+    const visibleLocalPart = localPart.slice(0, 2);
+    const maskedLocalPart = '*'.repeat(Math.max(0, localPart.length - 2));
+    
+    return `${visibleLocalPart}${maskedLocalPart}@${domain}`;
+  };
+
   // Helper function to get member status
   const getMemberStatus = (): 'Active' | 'Expired' | 'Expiring Soon' => {
     if (!member.is_active_member) return 'Expired';
@@ -164,12 +196,12 @@ const ViewProfile = ({ member, onClose, onMessage }: ViewProfileProps) => {
                   <div className="space-y-2">
                     <div className="flex items-center">
                       <Mail className="w-5 h-5 mr-2 text-gray-400" />
-                      <span className="text-gray-700">{member.email}</span>
+                      <span className="text-gray-700">{maskEmail(member.email)}</span>
                     </div>
                     {member.mobile_number && (
                       <div className="flex items-center">
                         <span className="w-5 h-5 mr-2 text-gray-400">•</span>
-                        <span className="text-gray-700">{member.mobile_number}</span>
+                        <span className="text-gray-700">{maskPhoneNumber(member.mobile_number)}</span>
                       </div>
                     )}
                   </div>
