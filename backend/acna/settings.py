@@ -65,6 +65,8 @@ INSTALLED_APPS = [
     'policy_management',
     'training_programs',
     'forum',
+    'messaging',
+    'channels',
 ]
 
 MIDDLEWARE = [
