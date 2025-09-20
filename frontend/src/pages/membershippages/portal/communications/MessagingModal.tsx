@@ -39,6 +39,7 @@ const MessagingModal = ({ member, onClose }: MessagingModalProps) => {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -48,6 +49,9 @@ const MessagingModal = ({ member, onClose }: MessagingModalProps) => {
   const emojis = ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲'];
 
   useEffect(() => {
+    // Initialize current user ID
+    const userId = getCurrentUserId();
+    setCurrentUserId(userId);
     initializeConversation();
   }, [member.id]);
 
@@ -79,6 +83,7 @@ const MessagingModal = ({ member, onClose }: MessagingModalProps) => {
         console.log(`Message ${index}:`, {
           id: msg.id,
           sender: msg.sender,
+          senderId: msg.sender?.id,
           content: msg.content,
           created_at: msg.created_at
         });
@@ -100,7 +105,9 @@ const MessagingModal = ({ member, onClose }: MessagingModalProps) => {
   const getCurrentUserId = (): number => {
     // Get current user ID from your auth system
     const user = JSON.parse(localStorage.getItem('user') || '{}');
-    return user.id || 1; // Replace with your actual user ID logic
+    const userId = user.id || user.user_id || 1; // Try different possible keys
+    console.log('Current user ID:', userId);
+    return userId;
   };
 
   const handleSendMessage = async () => {
@@ -128,6 +135,7 @@ const MessagingModal = ({ member, onClose }: MessagingModalProps) => {
     try {
       setSending(true);
       const newMessage = await messagingApi.sendMessage(messageData);
+      console.log('New message sent:', newMessage);
       setMessages(prev => [...prev, newMessage]);
       setMessage('');
       setSelectedFile(null);
@@ -205,24 +213,73 @@ const MessagingModal = ({ member, onClose }: MessagingModalProps) => {
     return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const isCurrentUser = (senderId: number | undefined) => {
-    if (!senderId) return false;
-    return senderId === getCurrentUserId();
+  const isCurrentUser = (msg: Message): boolean => {
+    if (!msg.sender) {
+      console.log('Missing sender:', { sender: msg.sender });
+      return false;
+    }
+    
+    const senderId = msg.sender.id;
+    
+    // First check if it's actually the logged-in user
+    if (currentUserId && senderId === currentUserId) {
+      console.log('Message from logged-in user:', { messageId: msg.id, senderId, currentUserId });
+      return true;
+    }
+    
+    // If no messages from logged-in user, determine perspective based on member prop
+    // The member you're viewing the conversation with should have their messages on the left
+    // Everyone else should have messages on the right
+    const memberIdNum = parseInt(member.id);
+    const isFromViewedMember = senderId === memberIdNum;
+    
+    console.log('Message ownership check:', {
+      messageId: msg.id,
+      senderId,
+      currentUserId,
+      memberIdNum,
+      isFromViewedMember,
+      shouldShowOnRight: !isFromViewedMember,
+      senderName: msg.sender.display_name || msg.sender.username
+    });
+    
+    // Messages from the member you're viewing should be on the left (false)
+    // Messages from others (including potentially you) should be on the right (true)
+    return !isFromViewedMember;
   };
 
-  // Add debugging function
-  const debugMessage = (msg: Message) => {
-    console.log('Message debug:', {
-      id: msg.id,
-      sender: msg.sender,
-      content: msg.content,
-      created_at: msg.created_at
-    });
+  // Check if user is trying to message themselves
+  const isSelfMessage = () => {
+    const currentUserId = getCurrentUserId();
+    return parseInt(member.id) === currentUserId;
   };
 
   const getSenderDisplayName = (msg: Message) => {
     if (!msg.sender) return 'Unknown';
     return msg.sender.display_name || msg.sender.username || 'Unknown';
+  };
+
+  const getSenderImage = (msg: Message, isFromCurrentUser: boolean) => {
+    // Always use the actual sender's profile photo from the message data
+    if (msg.sender?.profile_photo) {
+      return msg.sender.profile_photo;
+    }
+    
+    // Fallback logic
+    if (isFromCurrentUser) {
+      // For messages on the right side, try current user's photo first
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (user.profile_photo) {
+        return user.profile_photo;
+      }
+    } else {
+      // For messages on the left side, try the member's photo
+      if (member.profile_photo) {
+        return member.profile_photo;
+      }
+    }
+    
+    return defaultProfileImage;
   };
 
   return (
@@ -254,310 +311,349 @@ const MessagingModal = ({ member, onClose }: MessagingModalProps) => {
           </button>
         </div>
 
-        {/* Error Display */}
-        {error && (
-          <div className="px-4 py-2 bg-red-50 border-b border-red-200">
-            <p className="text-sm text-red-600">{error}</p>
-            <button 
-              onClick={() => setError(null)}
-              className="text-xs text-red-500 hover:text-red-700 underline"
-            >
-              Dismiss
-            </button>
-          </div>
-        )}
-
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {loading ? (
-            <div className="flex justify-center items-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              <span className="ml-2 text-gray-500">Loading conversation...</span>
-            </div>
-          ) : messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-gray-500">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                <Send className="w-8 h-8 text-gray-400" />
+        {/* Self-message prevention */}
+        {isSelfMessage() ? (
+          <div className="flex-1 flex items-center justify-center p-8">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4 mx-auto">
+                <X className="w-8 h-8 text-gray-400" />
               </div>
-              <p className="text-center">Start the conversation with {member.first_name}</p>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Cannot message yourself</h3>
+              <p className="text-gray-600">You cannot start a conversation with yourself.</p>
+              <button
+                onClick={onClose}
+                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                Close
+              </button>
             </div>
-          ) : (
-            messages
-              .filter(msg => msg && msg.sender) // Filter out messages with missing sender
-              .map((msg) => {
-                // Add debug logging
-                debugMessage(msg);
-                
-                return (
-                  <div
-                    key={msg.id}
-                    className={`flex ${isCurrentUser(msg.sender?.id) ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-xs md:max-w-md rounded-lg px-4 py-2 group relative ${
-                        isCurrentUser(msg.sender?.id)
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}
-                    >
-                      {/* Reply indicator */}
-                      {msg.reply_to && (
-                        <div className={`text-xs mb-2 p-2 rounded ${
-                          isCurrentUser(msg.sender?.id) ? 'bg-blue-500' : 'bg-gray-200'
-                        }`}>
-                          <div className="font-semibold">{msg.reply_to.sender}</div>
-                          <div className="truncate">{msg.reply_to.content}</div>
-                        </div>
-                      )}
-                      
-                      {/* Message content */}
-                      {msg.message_type === 'image' && msg.image_url && (
+          </div>
+        ) : (
+          <>
+            {/* Error Display */}
+            {error && (
+              <div className="px-4 py-2 bg-red-50 border-b border-red-200">
+                <p className="text-sm text-red-600">{error}</p>
+                <button 
+                  onClick={() => setError(null)}
+                  className="text-xs text-red-500 hover:text-red-700 underline"
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {loading ? (
+                <div className="flex justify-center items-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <span className="ml-2 text-gray-500">Loading conversation...</span>
+                </div>
+              ) : messages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-gray-500">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                    <Send className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <p className="text-center">Start the conversation with {member.first_name}</p>
+                </div>
+              ) : (
+                messages
+                  .filter(msg => msg && msg.sender) // Filter out messages with missing sender
+                  .map((msg) => {
+                    const isFromCurrentUser = isCurrentUser(msg);
+                    
+                    return (
+                      <div
+                        key={msg.id}
+                        className={`flex items-start space-x-3 mb-4 ${
+                          isFromCurrentUser ? 'flex-row-reverse space-x-reverse' : ''
+                        }`}
+                      >
+                        {/* Avatar */}
                         <img
-                          src={msg.image_url}
-                          alt="Shared image"
-                          className="max-w-full h-auto rounded mb-2 cursor-pointer"
-                          onClick={() => window.open(msg.image_url, '_blank')}
+                          src={getSenderImage(msg, isFromCurrentUser)}
+                          alt={isFromCurrentUser ? 'You' : getSenderDisplayName(msg)}
+                          className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                          onError={(e) => {
+                            e.currentTarget.src = defaultProfileImage;
+                          }}
                         />
-                      )}
-                      
-                      {msg.message_type === 'file' && msg.file_url && (
-                        <div className="flex items-center space-x-2 mb-2">
-                          <Paperclip className="w-4 h-4" />
-                          <a
-                            href={msg.file_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="underline hover:no-underline"
-                          >
-                            Download file
-                          </a>
-                        </div>
-                      )}
-                      
-                      {msg.content && <p className="break-words">{msg.content}</p>}
-                      
-                      {/* Message info */}
-                      <div className="flex justify-between items-center mt-2">
-                        <p
-                          className={`text-xs ${
-                            isCurrentUser(msg.sender?.id) ? 'text-blue-100' : 'text-gray-500'
-                          }`}
-                        >
-                          {formatTime(msg.created_at)}
-                          {msg.is_edited && ' (edited)'}
-                        </p>
                         
-                        {/* Message actions */}
-                        <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => setReplyTo(msg)}
-                            className="p-1 hover:bg-gray-200 rounded"
-                            title="Reply"
-                          >
-                            <Reply className="w-3 h-3" />
-                          </button>
-                          
-                          <button
-                            onClick={() => setShowEmojiPicker(true)}
-                            className="p-1 hover:bg-gray-200 rounded"
-                            title="Add emoji"
-                          >
-                            <Smile className="w-3 h-3" />
-                          </button>
-                          
-                          {isCurrentUser(msg.sender?.id) && (
-                            <>
-                              <button
-                                onClick={() => {
-                                  setEditingMessage(msg);
-                                  setMessage(msg.content || '');
-                                }}
-                                className="p-1 hover:bg-gray-200 rounded"
-                                title="Edit"
-                              >
-                                <Edit className="w-3 h-3" />
-                              </button>
-                              
-                              <button
-                                onClick={() => handleDeleteMessage(msg.id)}
-                                className="p-1 hover:bg-gray-200 rounded text-red-500"
-                                title="Delete"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </button>
-                            </>
+                        <div className={`max-w-xs lg:max-w-md ${isFromCurrentUser ? 'items-end' : 'items-start'} flex flex-col`}>
+                          {/* Sender name (only show for received messages in group chats or for clarity) */}
+                          {!isFromCurrentUser && (
+                            <span className="text-xs text-gray-500 mb-1 px-1">
+                              {getSenderDisplayName(msg)}
+                            </span>
                           )}
+                          
+                          <div
+                            className={`rounded-2xl px-4 py-2 group relative max-w-full break-words ${
+                              isFromCurrentUser
+                                ? 'bg-blue-600 text-white rounded-br-md'
+                                : 'bg-gray-100 text-gray-800 rounded-bl-md'
+                            }`}
+                          >
+                            {/* Reply indicator */}
+                            {msg.reply_to && (
+                              <div className={`text-xs mb-2 p-2 rounded-lg ${
+                                isFromCurrentUser ? 'bg-blue-500' : 'bg-gray-200'
+                              }`}>
+                                <div className="font-semibold">{msg.reply_to.sender}</div>
+                                <div className="truncate">{msg.reply_to.content}</div>
+                              </div>
+                            )}
+                            
+                            {/* Message content */}
+                            {msg.message_type === 'image' && msg.image_url && (
+                              <img
+                                src={msg.image_url}
+                                alt="Shared image"
+                                className="max-w-full h-auto rounded-lg mb-2 cursor-pointer"
+                                onClick={() => window.open(msg.image_url, '_blank')}
+                              />
+                            )}
+                            
+                            {msg.message_type === 'file' && msg.file_url && (
+                              <div className="flex items-center space-x-2 mb-2">
+                                <Paperclip className="w-4 h-4" />
+                                <a
+                                  href={msg.file_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="underline hover:no-underline"
+                                >
+                                  Download file
+                                </a>
+                              </div>
+                            )}
+                            
+                            {msg.content && <p className="break-words">{msg.content}</p>}
+                            
+                            {/* Message info and actions */}
+                            <div className={`flex items-center justify-between mt-2 ${
+                              isFromCurrentUser ? 'flex-row-reverse' : ''
+                            }`}>
+                              <p
+                                className={`text-xs ${
+                                  isFromCurrentUser ? 'text-blue-100' : 'text-gray-500'
+                                }`}
+                              >
+                                {formatTime(msg.created_at)}
+                                {msg.is_edited && ' (edited)'}
+                              </p>
+                              
+                              {/* Message actions */}
+                              <div className={`flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity ${
+                                isFromCurrentUser ? 'flex-row-reverse space-x-reverse' : ''
+                              }`}>
+                                <button
+                                  onClick={() => setReplyTo(msg)}
+                                  className={`p-1 hover:bg-opacity-20 hover:bg-white rounded ${
+                                    isFromCurrentUser ? 'text-blue-100 hover:text-white' : 'text-gray-400 hover:text-gray-600'
+                                  }`}
+                                  title="Reply"
+                                >
+                                  <Reply className="w-3 h-3" />
+                                </button>
+                                
+                                {isFromCurrentUser && (
+                                  <>
+                                    <button
+                                      onClick={() => {
+                                        setEditingMessage(msg);
+                                        setMessage(msg.content || '');
+                                      }}
+                                      className="p-1 hover:bg-opacity-20 hover:bg-white rounded text-blue-100 hover:text-white"
+                                      title="Edit"
+                                    >
+                                      <Edit className="w-3 h-3" />
+                                    </button>
+                                    
+                                    <button
+                                      onClick={() => handleDeleteMessage(msg.id)}
+                                      className="p-1 hover:bg-opacity-20 hover:bg-white rounded text-red-300 hover:text-red-100"
+                                      title="Delete"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    );
+                  })
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Reply indicator */}
+            {replyTo && (
+              <div className="px-4 py-2 bg-gray-50 border-t border-gray-200">
+                <div className="flex justify-between items-center">
+                  <div className="text-sm">
+                    <span className="font-medium">Replying to {getSenderDisplayName(replyTo)}:</span>
+                    <div className="text-gray-600 truncate">{replyTo.content}</div>
                   </div>
-                );
-              })
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Reply indicator */}
-        {replyTo && (
-          <div className="px-4 py-2 bg-gray-50 border-t border-gray-200">
-            <div className="flex justify-between items-center">
-              <div className="text-sm">
-                <span className="font-medium">Replying to {getSenderDisplayName(replyTo)}:</span>
-                <div className="text-gray-600 truncate">{replyTo.content}</div>
-              </div>
-              <button
-                onClick={() => setReplyTo(null)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Edit indicator */}
-        {editingMessage && (
-          <div className="px-4 py-2 bg-yellow-50 border-t border-yellow-200">
-            <div className="flex justify-between items-center">
-              <div className="text-sm">
-                <span className="font-medium">Editing message:</span>
-                <div className="text-gray-600 truncate">{editingMessage.content}</div>
-              </div>
-              <button
-                onClick={() => {
-                  setEditingMessage(null);
-                  setMessage('');
-                }}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* File/Image preview */}
-        {(selectedFile || selectedImage) && (
-          <div className="px-4 py-2 bg-blue-50 border-t border-blue-200">
-            <div className="flex justify-between items-center">
-              <div className="text-sm">
-                <span className="font-medium">
-                  {selectedImage ? '📷 Image selected' : '📎 File selected'}:
-                </span>
-                <div className="text-gray-600">
-                  {(selectedFile || selectedImage)?.name}
+                  <button
+                    onClick={() => setReplyTo(null)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
-              <button
-                onClick={() => {
-                  setSelectedFile(null);
-                  setSelectedImage(null);
-                }}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
+            )}
 
-        {/* Emoji Picker */}
-        {showEmojiPicker && (
-          <div className="absolute bottom-20 right-4 bg-white border border-gray-200 rounded-lg shadow-lg p-4 max-h-32 overflow-y-auto z-10">
-            <div className="grid grid-cols-8 gap-2">
-              {emojis.map((emoji, index) => (
+            {/* Edit indicator */}
+            {editingMessage && (
+              <div className="px-4 py-2 bg-yellow-50 border-t border-yellow-200">
+                <div className="flex justify-between items-center">
+                  <div className="text-sm">
+                    <span className="font-medium">Editing message:</span>
+                    <div className="text-gray-600 truncate">{editingMessage.content}</div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setEditingMessage(null);
+                      setMessage('');
+                    }}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* File/Image preview */}
+            {(selectedFile || selectedImage) && (
+              <div className="px-4 py-2 bg-blue-50 border-t border-blue-200">
+                <div className="flex justify-between items-center">
+                  <div className="text-sm">
+                    <span className="font-medium">
+                      {selectedImage ? '📷 Image selected' : '📎 File selected'}:
+                    </span>
+                    <div className="text-gray-600">
+                      {(selectedFile || selectedImage)?.name}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setSelectedFile(null);
+                      setSelectedImage(null);
+                    }}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Emoji Picker */}
+            {showEmojiPicker && (
+              <div className="absolute bottom-20 right-4 bg-white border border-gray-200 rounded-lg shadow-lg p-4 max-h-32 overflow-y-auto z-10">
+                <div className="grid grid-cols-8 gap-2">
+                  {emojis.map((emoji, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleEmojiSelect(emoji)}
+                      className="text-lg hover:bg-gray-100 p-1 rounded"
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
                 <button
-                  key={index}
-                  onClick={() => handleEmojiSelect(emoji)}
-                  className="text-lg hover:bg-gray-100 p-1 rounded"
+                  onClick={() => setShowEmojiPicker(false)}
+                  className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
                 >
-                  {emoji}
+                  <X className="w-4 h-4" />
                 </button>
-              ))}
-            </div>
-            <button
-              onClick={() => setShowEmojiPicker(false)}
-              className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        )}
+              </div>
+            )}
 
-        {/* Message Input */}
-        <div className="border-t border-gray-200 p-4">
-          <div className="flex items-end space-x-2">
-            {/* Attachment buttons */}
-            <div className="flex space-x-1">
-              <input
-                ref={fileInputRef}
-                type="file"
-                onChange={handleFileSelect}
-                className="hidden"
-                accept="*/*"
-              />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
-                title="Attach file"
-              >
-                <Paperclip className="w-5 h-5" />
-              </button>
-              
-              <input
-                ref={imageInputRef}
-                type="file"
-                onChange={handleImageSelect}
-                className="hidden"
-                accept="image/*"
-              />
-              <button
-                onClick={() => imageInputRef.current?.click()}
-                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
-                title="Attach image"
-              >
-                <Image className="w-5 h-5" />
-              </button>
-              
-              <button
-                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
-                title="Add emoji"
-              >
-                <Smile className="w-5 h-5" />
-              </button>
+            {/* Message Input */}
+            <div className="border-t border-gray-200 p-4">
+              <div className="flex items-end space-x-2">
+                {/* Attachment buttons */}
+                <div className="flex space-x-1">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                    accept="*/*"
+                  />
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
+                    title="Attach file"
+                  >
+                    <Paperclip className="w-5 h-5" />
+                  </button>
+                  
+                  <input
+                    ref={imageInputRef}
+                    type="file"
+                    onChange={handleImageSelect}
+                    className="hidden"
+                    accept="image/*"
+                  />
+                  <button
+                    onClick={() => imageInputRef.current?.click()}
+                    className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
+                    title="Attach image"
+                  >
+                    <Image className="w-5 h-5" />
+                  </button>
+                  
+                  <button
+                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                    className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
+                    title="Add emoji"
+                  >
+                    <Smile className="w-5 h-5" />
+                  </button>
+                </div>
+                
+                {/* Message input */}
+                <textarea
+                  ref={messageInputRef}
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder={editingMessage ? "Edit your message..." : "Write a message..."}
+                  className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none min-h-[40px] max-h-32"
+                  rows={1}
+                  disabled={loading}
+                />
+                
+                {/* Send button */}
+                <button
+                  onClick={editingMessage ? handleEditMessage : handleSendMessage}
+                  disabled={(!message.trim() && !selectedFile && !selectedImage) || sending || loading}
+                  className={`p-2 rounded-lg ${
+                    (!message.trim() && !selectedFile && !selectedImage) || sending || loading
+                      ? 'text-gray-400 cursor-not-allowed'
+                      : 'text-blue-600 hover:bg-blue-50'
+                  }`}
+                >
+                  {sending ? (
+                    <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Send className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
             </div>
-            
-            {/* Message input */}
-            <textarea
-              ref={messageInputRef}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder={editingMessage ? "Edit your message..." : "Write a message..."}
-              className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none min-h-[40px] max-h-32"
-              rows={1}
-              disabled={loading}
-            />
-            
-            {/* Send button */}
-            <button
-              onClick={editingMessage ? handleEditMessage : handleSendMessage}
-              disabled={(!message.trim() && !selectedFile && !selectedImage) || sending || loading}
-              className={`p-2 rounded-lg ${
-                (!message.trim() && !selectedFile && !selectedImage) || sending || loading
-                  ? 'text-gray-400 cursor-not-allowed'
-                  : 'text-blue-600 hover:bg-blue-50'
-              }`}
-            >
-              {sending ? (
-                <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <Send className="w-5 h-5" />
-              )}
-            </button>
-          </div>
-        </div>
+          </>
+        )}
       </div>
     </div>
   );
