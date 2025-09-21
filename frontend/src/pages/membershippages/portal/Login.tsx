@@ -48,12 +48,40 @@ const Login = () => {
       // On success go to member portal
       navigate('/memberportal');
     } catch (err: any) {
-      if (err.message === 'invalid_credentials') {
-        setError('Invalid email or password. Please try again.');
-      } else if (err.message === 'membership_inactive') {
-        setError('Your membership is inactive. Please make a payment to continue to access membership benefits, or contact support.');
+      console.log('Login error details:', err); // Debug log
+      
+      // Handle Axios error response structure
+      if (err.response) {
+        // The request was made and the server responded with a status code
+        const { status, data } = err.response;
+        
+        if (status === 401) {
+          setError(data.detail || 'Invalid email or password. Please check your credentials and try again.');
+        } else if (status === 403) {
+          if (data.error_code === 'membership_inactive' || data.detail?.includes('membership')) {
+            setError(data.detail || 'Your membership is inactive. Please make a payment to continue to access membership benefits, or contact support.');
+          } else if (data.error_code === 'account_deactivated') {
+            setError(data.detail || 'Your account has been deactivated. Please contact support.');
+          } else {
+            setError(data.detail || 'Access denied. Please contact support if you believe this is an error.');
+          }
+        } else if (status === 400) {
+          setError(data.detail || 'Please check your input and try again.');
+        } else {
+          setError(data.detail || data.message || 'An error occurred during login. Please try again.');
+        }
+      } else if (err.request) {
+        // The request was made but no response was received (network error)
+        setError('Unable to connect to the server. Please check your internet connection and try again.');
       } else {
-        setError(err.message || 'Login failed. Please try again.');
+        // Something else happened while setting up the request
+        if (err.message === 'invalid_credentials') {
+          setError('Invalid email or password. Please try again.');
+        } else if (err.message === 'membership_inactive') {
+          setError('Your membership is inactive. Please make a payment to continue to access membership benefits, or contact support.');
+        } else {
+          setError(err.message || 'An unexpected error occurred. Please try again.');
+        }
       }
     } finally {
       setIsLoading(false);

@@ -23,6 +23,11 @@ from .models import User
 from .serializers import MemberSerializer
 from rest_framework.permissions import IsAdminUser
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.conf import settings
+from .models import PasswordResetToken
 
 
 logger = logging.getLogger(__name__)
@@ -162,8 +167,10 @@ class LoginView(APIView):
         password = request.data.get('password')
 
         if not email or not password:
-            return Response({'detail': 'Email and password are required.'},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response({
+                'detail': 'Email and password are required.',
+                'success': False
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         # If you store username == email (frontend sets username=email when registering), this works:
         user = authenticate(username=email, password=password)
@@ -171,29 +178,54 @@ class LoginView(APIView):
         # Otherwise, fall back to email lookup:
         if user is None:
             # Try authenticate by finding user by email and checking password manually
-            from .models import User
             try:
                 u = User.objects.get(email__iexact=email)
                 if u.check_password(password):
                     user = u
+                else:
+                    # Password is wrong
+                    return Response({
+                        'detail': 'Invalid email or password.',
+                        'success': False,
+                        'error_code': 'invalid_credentials'
+                    }, status=status.HTTP_401_UNAUTHORIZED)
             except User.DoesNotExist:
-                user = None
+                # Email doesn't exist
+                return Response({
+                    'detail': 'Invalid email or password.',
+                    'success': False,
+                    'error_code': 'invalid_credentials'
+                }, status=status.HTTP_401_UNAUTHORIZED)
 
         if user is None:
-            # Wrong credentials
-            return Response({'detail': 'Invalid email or password.'},
-                            status=status.HTTP_401_UNAUTHORIZED)
+            # Wrong credentials (fallback)
+            return Response({
+                'detail': 'Invalid email or password.',
+                'success': False,
+                'error_code': 'invalid_credentials'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+
+        # Check if user account is active
+        if not user.is_active:
+            return Response({
+                'detail': 'Your account has been deactivated. Please contact support.',
+                'success': False,
+                'error_code': 'account_deactivated'
+            }, status=status.HTTP_403_FORBIDDEN)
 
         # Membership active check
         today = timezone.now().date()
         if not user.is_active_member or not user.membership_valid_until or user.membership_valid_until < today:
             return Response({
-                'detail': 'Your membership is inactive. Please make a payment to continue to access membership benefits or contact support.'
+                'detail': 'Your membership is inactive. Please make a payment to continue to access membership benefits, or contact support.',
+                'success': False,
+                'error_code': 'membership_inactive'
             }, status=status.HTTP_403_FORBIDDEN)
 
         # OK -> issue JWT tokens
         refresh = RefreshToken.for_user(user)
         return Response({
+            'success': True,
             'access': str(refresh.access_token),
             'refresh': str(refresh),
             'user': {
@@ -203,7 +235,6 @@ class LoginView(APIView):
                 'is_active_member': user.is_active_member,
                 'membership_id': user.membership_id,
                 'membership_class': user.membership_class,
-                'membership_valid_until': user.membership_valid_until,
                 'membership_valid_until': user.membership_valid_until,
                 'institution': user.institution,
                 'member_since': user.date_joined.strftime('%B %Y'),
@@ -435,3 +466,186 @@ class UpdateUserStatusView(APIView):
             return Response({'success': True}, status=status.HTTP_200_OK)
         except User.DoesNotExist:
             return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
+def send_password_reset_email(user, reset_token, is_admin=False):
+    """Send password reset email to user"""
+    subject = f"Reset Your {'Admin' if is_admin else 'ACNA'} Password"
+    from_email = settings.DEFAULT_FROM_EMAIL
+    to = [user.email]
+    
+    # Create reset URL
+    frontend_url = settings.FRONTEND_URL if hasattr(settings, 'FRONTEND_URL') else 'http://localhost:3000'
+    reset_url = f"{frontend_url}/{'admin/' if is_admin else ''}reset-password/{reset_token.token}"
+    
+    try:
+        context = {
+            'user': user,
+            'reset_url': reset_url,
+            'company_name': getattr(settings, 'COMPANY_NAME', 'ACNA'),
+            'is_admin': is_admin,
+            'expires_in': '1 hour'
+        }
+        
+        html_content = render_to_string("users/emails/password_reset_email.html", context)
+        text_content = f"""
+Hello {user.get_full_name() or user.email},
+
+You requested a password reset for your {'admin' if is_admin else 'ACNA'} account.
+
+Click the link below to reset your password:
+{reset_url}
+
+This link will expire in 1 hour.
+
+If you didn't request this password reset, please ignore this email.
+
+Best regards,
+{context['company_name']} Team
+        """
+        
+        msg = EmailMultiAlternatives(subject, text_content, from_email, to)
+        msg.attach_alternative(html_content, "text/html")
+        msg.send()
+        return True
+    except Exception as e:
+        logger.error(f"Error sending password reset email to {user.email}: {str(e)}")
+        return False
+
+class ForgotPasswordView(APIView):
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        email = request.data.get('email')
+        
+        if not email:
+            return Response({
+                'success': False,
+                'message': 'Email is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            user = User.objects.get(email__iexact=email)
+            
+            # Invalidate any existing tokens for this user
+            PasswordResetToken.objects.filter(user=user, is_used=False).update(is_used=True)
+            
+            # Create new reset token
+            reset_token = PasswordResetToken.objects.create(user=user)
+            
+            # Send reset email
+            email_sent = send_password_reset_email(user, reset_token)
+            
+            if email_sent:
+                return Response({
+                    'success': True,
+                    'message': 'Password reset instructions have been sent to your email.'
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response({
+                    'success': False,
+                    'message': 'Failed to send reset email. Please try again later.'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                
+        except User.DoesNotExist:
+            # Don't reveal if email exists or not for security
+            return Response({
+                'success': True,
+                'message': 'If an account with that email exists, password reset instructions have been sent.'
+            }, status=status.HTTP_200_OK)
+
+class AdminForgotPasswordView(APIView):
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        email = request.data.get('email')
+        
+        if not email:
+            return Response({
+                'success': False,
+                'message': 'Email is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            user = User.objects.get(email__iexact=email, is_admin=True)
+            
+            # Invalidate any existing tokens for this user
+            PasswordResetToken.objects.filter(user=user, is_used=False).update(is_used=True)
+            
+            # Create new reset token
+            reset_token = PasswordResetToken.objects.create(user=user)
+            
+            # Send reset email
+            email_sent = send_password_reset_email(user, reset_token, is_admin=True)
+            
+            if email_sent:
+                return Response({
+                    'success': True,
+                    'message': 'Admin password reset instructions have been sent to your email.'
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response({
+                    'success': False,
+                    'message': 'Failed to send reset email. Please try again later.'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                
+        except User.DoesNotExist:
+            # Don't reveal if admin email exists or not for security
+            return Response({
+                'success': True,
+                'message': 'If an admin account with that email exists, password reset instructions have been sent.'
+            }, status=status.HTTP_200_OK)
+
+class ResetPasswordView(APIView):
+    permission_classes = [AllowAny]
+    
+    def post(self, request, token):
+        new_password = request.data.get('new_password')
+        confirm_password = request.data.get('confirm_password')
+        
+        if not new_password or not confirm_password:
+            return Response({
+                'success': False,
+                'message': 'Both password fields are required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if new_password != confirm_password:
+            return Response({
+                'success': False,
+                'message': 'Passwords do not match'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if len(new_password) < 8:
+            return Response({
+                'success': False,
+                'message': 'Password must be at least 8 characters long'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            reset_token = PasswordResetToken.objects.get(token=token)
+            
+            if not reset_token.is_valid:
+                return Response({
+                    'success': False,
+                    'message': 'This password reset link has expired or been used. Please request a new one.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Reset password
+            user = reset_token.user
+            user.set_password(new_password)
+            user.save()
+            
+            # Mark token as used
+            reset_token.is_used = True
+            reset_token.save()
+            
+            return Response({
+                'success': True,
+                'message': 'Password has been reset successfully. You can now log in with your new password.'
+            }, status=status.HTTP_200_OK)
+            
+        except PasswordResetToken.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': 'Invalid password reset link'
+            }, status=status.HTTP_400_BAD_REQUEST)

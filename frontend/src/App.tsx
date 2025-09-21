@@ -88,6 +88,8 @@ import JournalArticleDetailPage from "./pages/education/journals/JournalArticleD
 import PolicyBeliefDetailPage from "./pages/education/policies/PolicyBriefsDetailsPage";
 import PositionStatementDetailPage from "./pages/education/positionstatements/PositionStatementDetailPage";
 import TrainingProgramDetailPage from "./pages/education/trainingprograms/TrainingProgramDetailPage";
+import ForgotPassword from "./pages/other/ForgotPassword";
+import ResetPassword from "./pages/other/ResetPassword";
 
 // Layout component
 const Layout = ({ children }: { children: React.ReactNode }) => (
@@ -115,6 +117,8 @@ function App() {
             <Route path="/donate" element={<Donate />} />
             {/* Other Pages */}
             <Route path="/unsubscribe" element={<UnsubscribePage />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password/:token" element={<ResetPassword />} />
             {/* About Pages */}
             <Route path="/about" element={<About />} />
             <Route path="/about/what-we-do" element={<WhatWeDo />} />
@@ -266,6 +270,9 @@ function App() {
             </Route>
             {/* Admin Pages */}
             <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/admin/forgot-password" element={<ForgotPassword />} />
+            <Route path="/admin/reset-password/:token" element={<ResetPassword />} />
+
             {/* Forum Pages */}
             <Route path="/forum" element={<ForumComponent />} />
             <Route path="/forum/:forumId" element={<ForumThread />} />

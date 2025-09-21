@@ -6,6 +6,7 @@ from django.utils import timezone
 from datetime import timedelta
 import random
 import string
+import uuid
 
 
 class User(AbstractUser):
@@ -92,3 +93,26 @@ class VerificationCode(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+
+class PasswordResetToken(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    token = models.UUIDField(default=uuid.uuid4, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_used = models.BooleanField(default=False)
+    expires_at = models.DateTimeField()
+    
+    def save(self, *args, **kwargs):
+        if not self.expires_at:
+            self.expires_at = timezone.now() + timedelta(hours=1)  # 1 hour expiry
+        super().save(*args, **kwargs)
+    
+    @property
+    def is_expired(self):
+        return timezone.now() > self.expires_at
+    
+    @property
+    def is_valid(self):
+        return not self.is_used and not self.is_expired
+    
+    def __str__(self):
+        return f"Password reset token for {self.user.email}"

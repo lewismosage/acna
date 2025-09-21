@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Search, Bell, MessageCircle, RefreshCw, MoreVertical, Trash2, X } from 'lucide-react';
 import { messagingApi, type Conversation } from '../../../../services/messagingApi';
 import defaultProfileImage from '../../../../assets/default Profile Image.png';
+import LoadingSpinner from '../../../../components/common/LoadingSpinner';
 
 interface ChatsProps {
   onSelectChat: (conversation: Conversation) => void;
@@ -169,8 +170,7 @@ const Chats = ({ onSelectChat }: ChatsProps) => {
     return (
       <div className="w-full md:w-80 bg-white rounded-lg shadow-sm p-4">
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <span className="ml-2 text-gray-500">Loading conversations...</span>
+          <LoadingSpinner />
         </div>
       </div>
     );

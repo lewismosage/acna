@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import LoadingSpinner from "../../../../components/common/LoadingSpinner";
 import CreateJournalModal from "./CreateJournalModal";
+import AlertModal from "../../../../components/common/AlertModal"; // Import the AlertModal
 import { journalArticlesApi, JournalArticle, JournalAnalytics, CreateJournalArticleInput } from "../../../../services/journalWatchAPI";
 
 type JournalStatus = "Published" | "Draft" | "Archived";
@@ -40,6 +41,50 @@ const JournalWatchTab = () => {
   const [selectedStudyType, setSelectedStudyType] = useState("all");
   const [selectedRelevance, setSelectedRelevance] = useState("all");
   const [error, setError] = useState<string | null>(null);
+
+  // Alert modal state
+  const [alertModal, setAlertModal] = useState({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "info" as "info" | "warning" | "error" | "success" | "confirm",
+    onConfirm: undefined as (() => void) | undefined,
+    confirmText: "OK",
+    showCancel: false
+  });
+
+  // Helper function to show alert modal
+  const showAlert = (
+    title: string, 
+    message: string, 
+    type: "info" | "warning" | "error" | "success" | "confirm" = "info",
+    onConfirm?: () => void,
+    confirmText: string = "OK",
+    showCancel: boolean = false
+  ) => {
+    setAlertModal({
+      isOpen: true,
+      title,
+      message,
+      type,
+      onConfirm,
+      confirmText,
+      showCancel
+    });
+  };
+
+  // Helper function to close alert modal
+  const closeAlert = () => {
+    setAlertModal({
+      isOpen: false,
+      title: "",
+      message: "",
+      type: "info",
+      onConfirm: undefined,
+      confirmText: "OK",
+      showCancel: false
+    });
+  };
 
   // Load articles from API
   const loadArticles = async () => {
@@ -69,8 +114,10 @@ const JournalWatchTab = () => {
       setArticles(data);
     } catch (error) {
       console.error("Error loading articles:", error);
-      setError(error instanceof Error ? error.message : "Failed to load articles");
+      const errorMessage = error instanceof Error ? error.message : "Failed to load articles";
+      setError(errorMessage);
       setArticles([]);
+      showAlert("Error Loading Articles", errorMessage, "error");
     } finally {
       setLoading(false);
     }
@@ -84,6 +131,7 @@ const JournalWatchTab = () => {
     } catch (error) {
       console.error("Error loading analytics:", error);
       setAnalyticsData(null);
+      showAlert("Error Loading Analytics", "Failed to load analytics data", "error");
     }
   };
 
@@ -113,10 +161,12 @@ const JournalWatchTab = () => {
         setArticles(prev => prev.map(article => 
           article.id === editingArticle.id ? updatedArticle : article
         ));
+        showAlert("Article Updated", "The journal article has been successfully updated.", "success");
       } else {
         // Create new article
         const newArticle = await journalArticlesApi.create(articleData);
         setArticles(prev => [newArticle, ...prev]);
+        showAlert("Article Created", "The journal article has been successfully created.", "success");
       }
       
       // Refresh analytics after changes
@@ -125,7 +175,9 @@ const JournalWatchTab = () => {
       setEditingArticle(undefined);
     } catch (error) {
       console.error("Error saving article:", error);
-      setError(error instanceof Error ? error.message : "Failed to save article");
+      const errorMessage = error instanceof Error ? error.message : "Failed to save article";
+      setError(errorMessage);
+      showAlert("Error Saving Article", errorMessage, "error");
       throw error; // Re-throw so the modal can handle it
     }
   };
@@ -177,28 +229,43 @@ const JournalWatchTab = () => {
         article.id === articleId ? updatedArticle : article
       ));
       loadAnalytics();
+      showAlert("Status Updated", `Article status has been changed to ${newStatus}.`, "success");
     } catch (error) {
       console.error("Error updating status:", error);
-      setError(error instanceof Error ? error.message : "Failed to update status");
+      const errorMessage = error instanceof Error ? error.message : "Failed to update status";
+      setError(errorMessage);
+      showAlert("Error Updating Status", errorMessage, "error");
     }
   };
 
   const handleDeleteArticle = async (articleId: number) => {
-    if (
-      window.confirm(
-        "Are you sure you want to delete this journal article? This action cannot be undone."
-      )
-    ) {
+    const confirmDelete = () => {
       setError(null);
+      performDelete();
+    };
+
+    const performDelete = async () => {
       try {
         await journalArticlesApi.delete(articleId);
         setArticles(prev => prev.filter((article) => article.id !== articleId));
         loadAnalytics();
+        showAlert("Article Deleted", "The journal article has been successfully deleted.", "success");
       } catch (error) {
         console.error("Error deleting article:", error);
-        setError(error instanceof Error ? error.message : "Failed to delete article");
+        const errorMessage = error instanceof Error ? error.message : "Failed to delete article";
+        setError(errorMessage);
+        showAlert("Error Deleting Article", errorMessage, "error");
       }
-    }
+    };
+
+    showAlert(
+      "Delete Article",
+      "Are you sure you want to delete this journal article? This action cannot be undone.",
+      "confirm",
+      confirmDelete,
+      "Delete",
+      true
+    );
   };
 
   const toggleExpand = (id: number) => {
@@ -863,6 +930,18 @@ const JournalWatchTab = () => {
         }}
         onSave={handleSaveArticle}
         editingArticle={editingArticle}
+      />
+
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        onClose={closeAlert}
+        onConfirm={alertModal.onConfirm}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+        confirmText={alertModal.confirmText}
+        showCancel={alertModal.showCancel}
       />
     </div>
   );

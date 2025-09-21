@@ -151,3 +151,15 @@ class MemberSerializer(serializers.ModelSerializer):
             request = self.context.get('request')
             data['profile_photo'] = request.build_absolute_uri(instance.profile_photo.url)
         return data
+
+class ForgotPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+class ResetPasswordSerializer(serializers.Serializer):
+    new_password = serializers.CharField(min_length=8, write_only=True)
+    confirm_password = serializers.CharField(min_length=8, write_only=True)
+    
+    def validate(self, data):
+        if data['new_password'] != data['confirm_password']:
+            raise serializers.ValidationError("Passwords do not match")
+        return data

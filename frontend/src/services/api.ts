@@ -367,4 +367,18 @@ export const getSuccessStories = async (params?: {
   return data;
 };
 
+// --- Password Reset ---
+export const sendPasswordReset = async (email: string) => {
+  const { data } = await api.post('/users/forgot-password/', { email });
+  return data;
+};
+
+export const resetPassword = async (token: string, newPassword: string, confirmPassword: string) => {
+  const { data } = await api.post(`/users/reset-password/${token}/`, {
+    new_password: newPassword,
+    confirm_password: confirmPassword
+  });
+  return data;
+};
+
 export default api;

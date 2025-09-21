@@ -140,4 +140,18 @@ export const deleteContent = async (contentType: string, id: number) => {
   await adminApi.delete(`/content/admin/${contentType}/${id}/`);
 };
 
+// --- Admin Password Reset ---
+export const sendAdminPasswordReset = async (email: string) => {
+  const { data } = await adminApi.post('/users/admin/forgot-password/', { email });
+  return data;
+};
+
+export const resetAdminPassword = async (token: string, newPassword: string, confirmPassword: string) => {
+  const { data } = await adminApi.post(`/users/reset-password/${token}/`, {
+    new_password: newPassword,
+    confirm_password: confirmPassword
+  });
+  return data;
+};
+
 export default adminApi;
