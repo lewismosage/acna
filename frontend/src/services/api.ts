@@ -44,9 +44,13 @@ api.interceptors.request.use(
     // Skip auth for these endpoints
     const skipAuthEndpoints = [
       '/users/login/',
+      '/users/admin/login/',
       '/users/register/',
       '/users/verify-email/',
       '/users/resend-verification/',
+      '/users/forgot-password/',
+      '/users/admin/forgot-password/',
+      '/users/reset-password/',
       '/payments/membership-search/',
       '/payments/create-checkout-session/',
       '/payments/verify-payment/',
@@ -69,7 +73,25 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as any;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Skip token refresh for authentication endpoints
+    const skipRefreshEndpoints = [
+      '/users/login/',
+      '/users/admin/login/',
+      '/users/register/',
+      '/users/verify-email/',
+      '/users/resend-verification/',
+      '/users/forgot-password/',
+      '/users/admin/forgot-password/',
+      '/users/reset-password/',
+      '/users/token/refresh/',
+    ];
+
+    const shouldSkipRefresh = skipRefreshEndpoints.some(endpoint => 
+      originalRequest.url?.includes(endpoint)
+    );
+
+    // Only attempt token refresh for 401 errors on protected endpoints
+    if (error.response?.status === 401 && !originalRequest._retry && !shouldSkipRefresh) {
       originalRequest._retry = true;
 
       try {
@@ -77,7 +99,9 @@ api.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
         return api(originalRequest);
       } catch (refreshError) {
+        console.error('Token refresh failed:', refreshError);
         clearUserStorage();
+        // Don't redirect here, let the component handle it
         return Promise.reject(refreshError);
       }
     }
@@ -154,7 +178,6 @@ export const changePassword = async (passwordData: {
   const { data } = await api.post('/users/change-password/', passwordData);
   return data;
 };
-
 
 // --- Newsletter Management ---
 export const getSubscribers = async (params?: {

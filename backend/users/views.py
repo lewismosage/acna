@@ -360,8 +360,11 @@ class AdminLoginView(APIView):
         password = request.data.get('password')
         
         if not email or not password:
-            return Response({'detail': 'Email and password are required.'},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response({
+                'success': False,
+                'detail': 'Email and password are required.',
+                'error_code': 'missing_fields'
+            }, status=status.HTTP_400_BAD_REQUEST)
         
         user = authenticate(username=email, password=password)
         if user is None:
@@ -370,29 +373,21 @@ class AdminLoginView(APIView):
                 if u.check_password(password):
                     user = u
             except User.DoesNotExist:
-                user = None
+                pass
         
         if user is None:
-            return Response({'detail': 'Invalid email or password.'},
-                            status=status.HTTP_401_UNAUTHORIZED)
+            return Response({
+                'success': False,
+                'detail': 'Invalid email or password.',
+                'error_code': 'invalid_credentials'
+            }, status=status.HTTP_401_UNAUTHORIZED)
         
         if not user.is_admin:
             return Response({
-                'detail': 'You do not have admin privileges.'
+                'success': False,
+                'detail': 'You do not have admin privileges.',
+                'error_code': 'insufficient_privileges'
             }, status=status.HTTP_403_FORBIDDEN)
-        
-        refresh = RefreshToken.for_user(user)
-        return Response({
-            'access': str(refresh.access_token),
-            'refresh': str(refresh),
-            'admin': {
-                'id': user.id,
-                'email': user.email,
-                'first_name': user.first_name,
-                'last_name': user.last_name,
-                'is_admin': user.is_admin
-            }
-        }, status=status.HTTP_200_OK)
 
 class AdminLogoutView(APIView):
     authentication_classes = [JWTAuthentication]

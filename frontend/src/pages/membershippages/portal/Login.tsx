@@ -24,6 +24,8 @@ const Login = () => {
       ...formData,
       [e.target.name]: e.target.value,
     });
+    // Clear error when user starts typing
+    if (error) setError("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -32,12 +34,12 @@ const Login = () => {
     setError('');
   
     // Local validation
-    if (!formData.email.includes('@')) {
+    if (!formData.email || !formData.email.includes('@')) {
       setError('Please enter a valid email address');
       setIsLoading(false);
       return;
     }
-    if (formData.password.length < 6) {
+    if (!formData.password || formData.password.length < 6) {
       setError('Password must be at least 6 characters');
       setIsLoading(false);
       return;
@@ -48,46 +50,61 @@ const Login = () => {
       // On success go to member portal
       navigate('/memberportal');
     } catch (err: any) {
-      console.log('Login error details:', err); // Debug log
+      console.log('Login error details:', err);
       
-      // Handle Axios error response structure
+      // Handle different types of errors
+      let errorMessage = 'An unexpected error occurred. Please try again.';
+      
       if (err.response) {
         // The request was made and the server responded with a status code
         const { status, data } = err.response;
         
-        if (status === 401) {
-          setError(data.detail || 'Invalid email or password. Please check your credentials and try again.');
-        } else if (status === 403) {
-          if (data.error_code === 'membership_inactive' || data.detail?.includes('membership')) {
-            setError(data.detail || 'Your membership is inactive. Please make a payment to continue to access membership benefits, or contact support.');
-          } else if (data.error_code === 'account_deactivated') {
-            setError(data.detail || 'Your account has been deactivated. Please contact support.');
-          } else {
-            setError(data.detail || 'Access denied. Please contact support if you believe this is an error.');
-          }
-        } else if (status === 400) {
-          setError(data.detail || 'Please check your input and try again.');
-        } else {
-          setError(data.detail || data.message || 'An error occurred during login. Please try again.');
+        switch (status) {
+          case 400:
+            errorMessage = data.detail || data.message || 'Please check your input and try again.';
+            break;
+          case 401:
+            errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+            break;
+          case 403:
+            if (data.error_code === 'membership_inactive' || data.detail?.includes('membership')) {
+              errorMessage = 'Your membership is inactive. Please make a payment to continue accessing membership benefits, or contact support.';
+            } else if (data.error_code === 'account_deactivated') {
+              errorMessage = 'Your account has been deactivated. Please contact support.';
+            } else {
+              errorMessage = 'Access denied. Please contact support if you believe this is an error.';
+            }
+            break;
+          case 404:
+            errorMessage = 'Account not found. Please check your email address or register for a new account.';
+            break;
+          case 500:
+            errorMessage = 'Server error. Please try again later or contact support.';
+            break;
+          default:
+            errorMessage = data.detail || data.message || 'Login failed. Please try again.';
         }
       } else if (err.request) {
         // The request was made but no response was received (network error)
-        setError('Unable to connect to the server. Please check your internet connection and try again.');
+        errorMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
+      } else if (err.code === 'NETWORK_ERROR') {
+        errorMessage = 'Network error. Please check your internet connection and try again.';
       } else {
-        // Something else happened while setting up the request
+        // Handle custom error messages from auth context
         if (err.message === 'invalid_credentials') {
-          setError('Invalid email or password. Please try again.');
+          errorMessage = 'Invalid email or password. Please try again.';
         } else if (err.message === 'membership_inactive') {
-          setError('Your membership is inactive. Please make a payment to continue to access membership benefits, or contact support.');
-        } else {
-          setError(err.message || 'An unexpected error occurred. Please try again.');
+          errorMessage = 'Your membership is inactive. Please make a payment to continue accessing membership benefits, or contact support.';
+        } else if (err.message) {
+          errorMessage = err.message;
         }
       }
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
-  
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
@@ -122,9 +139,19 @@ const Login = () => {
           </div>
 
           {error && (
-            <div className="mb-6 p-4 bg-red-50 rounded-lg flex items-start">
-              <AlertCircle className="h-5 w-5 text-red-500 mr-3 flex-shrink-0" />
-              <p className="text-sm text-red-700">{error}</p>
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start">
+              <AlertCircle className="h-5 w-5 text-red-500 mr-3 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm text-red-700 font-medium">{error}</p>
+                {error.includes('Invalid email or password') && (
+                  <p className="text-xs text-red-600 mt-1">
+                    Make sure your email and password are correct, or{" "}
+                    <Link to="/forgot-password" className="underline hover:no-underline">
+                      reset your password
+                    </Link>
+                  </p>
+                )}
+              </div>
             </div>
           )}
 
@@ -148,8 +175,13 @@ const Login = () => {
                   required
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  className={`block w-full pl-10 pr-3 py-2 border rounded-md bg-white text-gray-900 focus:outline-none focus:ring-2 focus:border-transparent ${
+                    error && error.includes('email') 
+                      ? 'border-red-300 focus:ring-red-500' 
+                      : 'border-gray-300 focus:ring-orange-500'
+                  }`}
                   placeholder="member@example.com"
+                  disabled={isLoading}
                 />
               </div>
             </div>
@@ -173,13 +205,19 @@ const Login = () => {
                   required
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  className={`block w-full pl-10 pr-10 py-2 border rounded-md bg-white text-gray-900 focus:outline-none focus:ring-2 focus:border-transparent ${
+                    error && error.includes('password') 
+                      ? 'border-red-300 focus:ring-red-500' 
+                      : 'border-gray-300 focus:ring-orange-500'
+                  }`}
                   placeholder="••••••••"
+                  disabled={isLoading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-500 focus:outline-none"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-500 focus:outline-none disabled:opacity-50"
+                  disabled={isLoading}
                 >
                   {showPassword ? (
                     <EyeOff className="h-5 w-5" />
@@ -199,6 +237,7 @@ const Login = () => {
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
                   className="h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded"
+                  disabled={isLoading}
                 />
                 <label
                   htmlFor="remember-me"
@@ -222,7 +261,7 @@ const Login = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
               >
                 {isLoading ? (
                   <>

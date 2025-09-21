@@ -1,6 +1,18 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode } from 'react';
 import api, { logoutUser } from '../services/api';
 import { adminLogin as adminApiLogin, adminLogout as adminApiLogout } from './adminApi';
+
+// Define custom error interface for API errors
+interface ApiError extends Error {
+  response?: {
+    status: number;
+    data: {
+      detail?: string;
+      message?: string;
+    };
+  };
+  request?: any;
+}
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -63,14 +75,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(userData);
       setIsAuthenticated(true);
     } catch (err: any) {
+      console.error('Login error in AuthContext:', err);
+      
+      // If it's an Axios error with response, preserve the original error
       if (err.response) {
-        const status = err.response.status;
-        const detail = err.response.data?.detail || 'Login failed';
-        if (status === 401) throw new Error('invalid_credentials');
-        if (status === 403) throw new Error('membership_inactive');
-        throw new Error(detail);
+        // Re-throw the original error to preserve status codes and response data
+        throw err;
       }
-      throw new Error('Network error');
+      
+      // If it's a request error (network issue)
+      if (err.request) {
+        const networkError = new Error('Unable to connect to the server. Please check your internet connection.');
+        networkError.name = 'NetworkError';
+        throw networkError;
+      }
+      
+      // For any other error, preserve the original message or provide a fallback
+      throw new Error(err.message || 'An unexpected error occurred during login.');
     }
   };
 
@@ -80,7 +101,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       // Check if we got the expected response structure
       if (!response || !response.access || !response.admin) {
-        throw new Error('Invalid admin response');
+        throw new Error('Invalid admin response structure');
       }
   
       const adminData = {
@@ -99,24 +120,67 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
       return response;
     } catch (err: any) {
-      if (err.response) {
-        const status = err.response.status;
-        const detail = err.response.data?.detail || 'Admin login failed';
-        if (status === 401) throw new Error('invalid_credentials');
-        if (status === 403) throw new Error('admin_privileges_required');
-        throw new Error(detail);
+      console.error('Admin login error in AuthContext:', err);
+      console.error('Error details:', {
+        hasResponse: !!err.response,
+        hasRequest: !!err.request,
+        message: err.message,
+        status: err.response?.status,
+        data: err.response?.data
+      });
+      
+      // Check if this is an error thrown by adminApiLogin (which might be a plain object)
+      if ((err.detail || err.message) && !err.response) {
+        // Create an ApiError with proper structure
+        const apiError = new Error(err.message || err.detail) as ApiError;
+        
+        // Add response-like structure for consistent handling
+        apiError.response = {
+          status: err.status || 401,
+          data: {
+            detail: err.detail || err.message || 'Authentication failed'
+          }
+        };
+        
+        throw apiError;
       }
-      throw new Error(err.message || 'Network error');
+      
+      // If it's an Axios error with response, preserve the original error
+      if (err.response) {
+        throw err;
+      }
+      
+      // If it's a request error (network issue)
+      if (err.request) {
+        const networkError = new Error('Unable to connect to the server. Please check your internet connection.');
+        (networkError as any).name = 'NetworkError';
+        throw networkError;
+      }
+      
+      // For any other error, provide a more specific fallback
+      const fallbackError = new Error('Authentication failed. Please check your credentials and try again.') as ApiError;
+      fallbackError.response = {
+        status: 401,
+        data: {
+          detail: 'Authentication failed. Please check your credentials and try again.'
+        }
+      };
+      throw fallbackError;
     }
   };
 
   const logout = () => {
     const wasAdmin = isAdmin;
     
-    if (wasAdmin) {
-      adminApiLogout();
-    } else {
-      logoutUser();
+    try {
+      if (wasAdmin) {
+        adminApiLogout();
+      } else {
+        logoutUser();
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Continue with cleanup even if logout API call fails
     }
   
     // Clear all storage
@@ -126,6 +190,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.removeItem('acna_user');
     localStorage.removeItem('is_admin');
     localStorage.removeItem('admin_data');
+    localStorage.removeItem('admin_token');
+    localStorage.removeItem('admin_refresh');
   
     // Reset state
     setIsAuthenticated(false);
