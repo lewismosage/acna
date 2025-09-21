@@ -388,6 +388,31 @@ class AdminLoginView(APIView):
                 'detail': 'You do not have admin privileges.',
                 'error_code': 'insufficient_privileges'
             }, status=status.HTTP_403_FORBIDDEN)
+        
+        # Check if user account is active
+        if not user.is_active:
+            return Response({
+                'success': False,
+                'detail': 'Your admin account has been deactivated. Please contact support.',
+                'error_code': 'account_deactivated'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        # SUCCESS - Generate JWT tokens and return admin data
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            'success': True,
+            'access': str(refresh.access_token),
+            'refresh': str(refresh),
+            'admin': {
+                'id': user.id,
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'is_admin': user.is_admin,
+                'full_name': user.get_full_name(),
+                'last_login': user.last_login.isoformat() if user.last_login else None,
+            }
+        }, status=status.HTTP_200_OK)
 
 class AdminLogoutView(APIView):
     authentication_classes = [JWTAuthentication]
