@@ -27,7 +27,7 @@ import ResourceManagement from "../resources/resourcemanagement/ResourceManageme
 import EventsManagement from "../events/eventsmanagement/EventsManagement";
 import FinancialManagement from "../financial/FinancialManagement";
 import AdminSettings from "../settings/AdminSettings";
-import ReportsAnalytics from "../reports/ReportsAnalytics";
+import CareersAdminTab from "../careers/Careers";
 import { SignOutModal } from "../settings/SignOutModal";
 import { useAuth } from "../../../services/AuthContext";
 import LoadingSpinner from "../../../components/common/LoadingSpinner";
@@ -295,7 +295,7 @@ const AdminDashboard = () => {
     { id: "news", label: "NEWS & PRESS RELEASES", icon: Newspaper },
     { id: "financial", label: "FINANCIAL", icon: DollarSign },
     { id: "communication", label: "COMMUNICATION", icon: Mail },
-    { id: "reports", label: "REPORTS", icon: BarChart3 },
+    { id: "careers", label: "CAREERS", icon: FileText },
     { id: "settings", label: "SETTINGS", icon: Settings },
   ];
 
@@ -315,8 +315,8 @@ const AdminDashboard = () => {
         return <FinancialManagement />;
       case "communication":
         return <CommunicationTools />;
-      case "reports":
-        return <ReportsAnalytics />;
+      case "careers":
+        return <CareersAdminTab />;
       case "settings":
         return <AdminSettings />;
       default:
