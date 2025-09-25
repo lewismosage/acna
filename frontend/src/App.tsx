@@ -90,6 +90,9 @@ import PositionStatementDetailPage from "./pages/education/positionstatements/Po
 import TrainingProgramDetailPage from "./pages/education/trainingprograms/TrainingProgramDetailPage";
 import ForgotPassword from "./pages/other/ForgotPassword";
 import ResetPassword from "./pages/other/ResetPassword";
+import Jobs from "./pages/careers/Jobs";
+import VolunteerForm from "./pages/support/VolunteerForm";
+import AdminSignUp from "./pages/admin/settings/AdminSignUp";
 
 // Layout component
 const Layout = ({ children }: { children: React.ReactNode }) => (
@@ -146,7 +149,9 @@ function App() {
             <Route path="/careers" element={<Careers />} />
             <Route path="/careers/culture" element={<CultureAndValues />} />
             <Route path="/careers/benefits" element={<Benefits />} />
+            <Route path="/careers/jobs" element={<Jobs />} />
             <Route path="/volunteer" element={<VolunteerInfoSection />} />
+            <Route path="/volunteer/form" element={<VolunteerForm />} />
             {/* Education */}
             <Route
               path="/research-papers-and-publications"
@@ -272,7 +277,7 @@ function App() {
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin/forgot-password" element={<ForgotPassword />} />
             <Route path="/admin/reset-password/:token" element={<ResetPassword />} />
-
+            <Route path="/admin/signup" element={<AdminSignUp />} />
             {/* Forum Pages */}
             <Route path="/forum" element={<ForumComponent />} />
             <Route path="/forum/:forumId" element={<ForumThread />} />

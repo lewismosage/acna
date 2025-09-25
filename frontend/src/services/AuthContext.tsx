@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
 import api, { logoutUser } from '../services/api';
-import { adminLogin as adminApiLogin, adminLogout as adminApiLogout } from './adminApi';
+import { adminLogin as adminApiLogin, adminLogout as adminApiLogout, adminSignUp as adminApiSignUp } from './adminApi';
 
 // Define custom error interface for API errors
 interface ApiError extends Error {
@@ -12,6 +12,13 @@ interface ApiError extends Error {
     };
   };
   request?: any;
+}
+
+interface AdminSignUpData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
 }
 
 interface AuthContextType {
@@ -26,6 +33,7 @@ interface AuthContextType {
   } | null;
   login: (email: string, password: string) => Promise<void>;
   adminLogin: (email: string, password: string) => Promise<any>;
+  adminSignUp: (adminData: AdminSignUpData) => Promise<any>;
   logout: () => boolean;
   user?: any;
 }
@@ -169,6 +177,81 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const adminSignUp = async (adminData: AdminSignUpData) => {
+    try {
+      // Transform the data to match your API expectations
+      const signUpPayload = {
+        email: adminData.email,
+        password: adminData.password,
+        first_name: adminData.firstName,
+        last_name: adminData.lastName,
+      };
+
+      const response = await adminApiSignUp(signUpPayload);
+      
+      // Check if we got a successful response
+      if (!response) {
+        throw new Error('Invalid admin sign up response');
+      }
+
+      // Return the response for the component to handle
+      // Note: We're not automatically logging the user in after sign up
+      // The component will redirect to login page
+      return {
+        success: true,
+        admin: response.admin || response.user,
+        message: response.message || 'Admin account created successfully'
+      };
+    } catch (err: any) {
+      console.error('Admin sign up error in AuthContext:', err);
+      console.error('Error details:', {
+        hasResponse: !!err.response,
+        hasRequest: !!err.request,
+        message: err.message,
+        status: err.response?.status,
+        data: err.response?.data
+      });
+      
+      // Check if this is an error thrown by adminApiSignUp (which might be a plain object)
+      if ((err.detail || err.message) && !err.response) {
+        // Create an ApiError with proper structure
+        const apiError = new Error(err.message || err.detail) as ApiError;
+        
+        // Add response-like structure for consistent handling
+        apiError.response = {
+          status: err.status || 400,
+          data: {
+            detail: err.detail || err.message || 'Admin registration failed'
+          }
+        };
+        
+        throw apiError;
+      }
+      
+      // If it's an Axios error with response, preserve the original error
+      if (err.response) {
+        throw err;
+      }
+      
+      // If it's a request error (network issue)
+      if (err.request) {
+        const networkError = new Error('Unable to connect to the server. Please check your internet connection.');
+        (networkError as any).name = 'NetworkError';
+        throw networkError;
+      }
+      
+      // For any other error, provide a more specific fallback
+      const fallbackError = new Error('Admin registration failed. Please try again.') as ApiError;
+      fallbackError.response = {
+        status: 400,
+        data: {
+          detail: 'Admin registration failed. Please check your information and try again.'
+        }
+      };
+      throw fallbackError;
+    }
+  };
+
   const logout = () => {
     const wasAdmin = isAdmin;
     
@@ -210,6 +293,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         admin,
         login,
         adminLogin,
+        adminSignUp,
         logout,
         user,
       }}

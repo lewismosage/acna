@@ -92,6 +92,33 @@ export const adminLogin = async (credentials: { email: string; password: string 
   }
 };
 
+export const adminSignUp = async (adminData: {
+  email: string;
+  password: string;
+  first_name: string;
+  last_name: string;
+}) => {
+  try {
+    const { data } = await adminApi.post('/users/admin/signup/', adminData);
+    return data; // Return the full response data
+  } catch (error: any) {
+    // Don't clear storage on signup errors since user isn't logged in yet
+    console.error('Admin signup error:', error);
+    
+    // Handle different error structures
+    if (error.response) {
+      // Axios error with response
+      throw error;
+    } else if (error.message) {
+      // Custom error message
+      throw error;
+    } else {
+      // Fallback error
+      throw new Error('Admin registration failed. Please try again.');
+    }
+  }
+};
+
 export const adminLogout = async () => {
   try {
     await adminApi.post('/users/admin/logout/');
@@ -151,6 +178,40 @@ export const resetAdminPassword = async (token: string, newPassword: string, con
     new_password: newPassword,
     confirm_password: confirmPassword
   });
+  return data;
+};
+
+// --- Admin Management ---
+export const getAdminUsers = async () => {
+  const { data } = await adminApi.get('/users/admin/users/');
+  return data;
+};
+
+export const sendAdminInvite = async (email: string) => {
+  const { data } = await adminApi.post('/users/admin/invite/', { email });
+  return data;
+};
+
+export const getAdminInvites = async () => {
+  const { data } = await adminApi.get('/users/admin/invites/');
+  return data;
+};
+
+export const removeAdminUser = async (adminId: number) => {
+  const { data } = await adminApi.delete(`/users/admin/users/${adminId}/remove/`);
+  return data;
+};
+
+// --- Admin Signup with Invite ---
+export const adminSignUpWithInvite = async (signUpData: {
+  email: string;
+  password: string;
+  confirm_password: string;
+  first_name: string;
+  last_name: string;
+  invite_token: string;
+}) => {
+  const { data } = await adminApi.post('/users/admin/signup/', signUpData);
   return data;
 };
 

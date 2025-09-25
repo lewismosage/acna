@@ -1,71 +1,116 @@
 import { 
-  Settings, Edit3, Plus, Database, Shield, Lock, X, Check, ChevronDown, ChevronUp 
+  Settings, Edit3, Plus, Database, Shield, Lock, X, Check, ChevronDown, ChevronUp, Trash2 
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { getAdminUsers, sendAdminInvite, removeAdminUser } from '../../../services/adminApi';
+
+interface AdminUser {
+  id: number;
+  email: string;
+  first_name: string;
+  last_name: string;
+  full_name: string;
+  is_admin: boolean;
+  is_active: boolean;
+  date_joined: string;
+  last_login: string | null;
+}
 
 const AdminSettings = () => {
-  // State for editable admin cards
-  const [editingAdmin, setEditingAdmin] = useState<number | null>(null);
-  const [adminData, setAdminData] = useState([
-    { name: 'John Doe', email: 'john@acna.org', role: 'Super Admin', status: 'Active' },
-    { name: 'Jane Smith', email: 'jane@acna.org', role: 'Content Manager', status: 'Active' },
-    { name: 'Mike Johnson', email: 'mike@acna.org', role: 'Moderator', status: 'Inactive' },
-  ]);
+  // State for admin data
+  const [adminData, setAdminData] = useState<AdminUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  // State for add admin modal
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [newAdmin, setNewAdmin] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    role: 'Moderator',
-  });
+  // State for invite modal
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteError, setInviteError] = useState('');
 
-  // Toggle edit mode for admin card
-  const toggleEdit = (index: number) => {
-    setEditingAdmin(editingAdmin === index ? null : index);
-  };
+  // State for remove admin modal
+  const [showRemoveModal, setShowRemoveModal] = useState(false);
+  const [adminToRemove, setAdminToRemove] = useState<AdminUser | null>(null);
+  const [removeLoading, setRemoveLoading] = useState(false);
 
-  // Handle input changes for editing admin
-  const handleAdminChange = (index: number, field: string, value: string) => {
-    const updatedAdmins = [...adminData];
-    updatedAdmins[index] = { ...updatedAdmins[index], [field]: value };
-    setAdminData(updatedAdmins);
-  };
-
-  // Handle input changes for new admin
-  const handleNewAdminChange = (field: string, value: string) => {
-    setNewAdmin({ ...newAdmin, [field]: value });
-  };
-
-  // Save edited admin
-  const saveAdmin = (index: number) => {
-    // Here you would typically make an API call to save changes
-    setEditingAdmin(null);
-  };
-
-  // Add new admin
-  const addAdmin = () => {
-    // Here you would typically make an API call to add the new admin
-    setAdminData([
-      ...adminData,
-      {
-        name: newAdmin.name,
-        email: newAdmin.email,
-        role: newAdmin.role,
-        status: 'Active'
+  // Fetch admin users
+  const fetchAdminUsers = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const response = await getAdminUsers();
+      if (response.success) {
+        setAdminData(response.admins);
+      } else {
+        setError('Failed to fetch admin users');
       }
-    ]);
-    setShowAddModal(false);
-    setNewAdmin({
-      name: '',
-      email: '',
-      password: '',
-      confirmPassword: '',
-      role: 'Moderator',
-    });
+    } catch (err: any) {
+      console.error('Error fetching admin users:', err);
+      setError('Failed to fetch admin users. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  // Send invite
+  const sendInvite = async () => {
+    if (!inviteEmail.trim()) {
+      setInviteError('Please enter an email address');
+      return;
+    }
+
+    try {
+      setInviteLoading(true);
+      setInviteError('');
+      const response = await sendAdminInvite(inviteEmail.trim());
+      if (response.success) {
+        setShowInviteModal(false);
+        setInviteEmail('');
+        // Optionally refresh the admin list or show success message
+      } else {
+        setInviteError(response.message || 'Failed to send invitation');
+      }
+    } catch (err: any) {
+      console.error('Error sending admin invite:', err);
+      setInviteError(err.response?.data?.errors?.email?.[0] || err.response?.data?.message || 'Failed to send invitation. Please try again.');
+    } finally {
+      setInviteLoading(false);
+    }
+  };
+
+  // Remove admin
+  const removeAdmin = async () => {
+    if (!adminToRemove) return;
+
+    try {
+      setRemoveLoading(true);
+      const response = await removeAdminUser(adminToRemove.id);
+      if (response.success) {
+        // Remove from local state
+        setAdminData(prev => prev.filter(admin => admin.id !== adminToRemove.id));
+        setShowRemoveModal(false);
+        setAdminToRemove(null);
+      } else {
+        setError(response.message || 'Failed to remove admin');
+      }
+    } catch (err: any) {
+      console.error('Error removing admin:', err);
+      setError(err.response?.data?.message || 'Failed to remove admin. Please try again.');
+    } finally {
+      setRemoveLoading(false);
+    }
+  };
+
+  // Show remove confirmation
+  const showRemoveConfirmation = (admin: AdminUser) => {
+    setAdminToRemove(admin);
+    setShowRemoveModal(true);
+  };
+
+  // Load admin users on component mount
+  useEffect(() => {
+    fetchAdminUsers();
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -98,98 +143,58 @@ const AdminSettings = () => {
             </div>
           </div>
           
-          {/* Admin Users Section - Updated */}
+          {/* Admin Users Section */}
           <div>
-            <h3 className="font-medium mb-2">Admin Users</h3>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-medium">Admin Users</h3>
+              {loading && <div className="text-sm text-gray-500">Loading...</div>}
+            </div>
+            
+            {error && (
+              <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                {error}
+              </div>
+            )}
+            
             <div className="space-y-2">
-              {adminData.map((admin, index) => (
-                <div key={index} className="border border-gray-200 rounded">
-                  <div className="flex items-center justify-between p-3">
-                    <div>
-                      {editingAdmin === index ? (
-                        <input
-                          type="text"
-                          value={admin.name}
-                          onChange={(e) => handleAdminChange(index, 'name', e.target.value)}
-                          className="border border-gray-300 rounded px-2 py-1 mb-1 w-full"
-                        />
-                      ) : (
-                        <p className="font-medium text-sm">{admin.name}</p>
-                      )}
-                      {editingAdmin === index ? (
-                        <div className="space-y-1">
-                          <input
-                            type="email"
-                            value={admin.email}
-                            onChange={(e) => handleAdminChange(index, 'email', e.target.value)}
-                            className="border border-gray-300 rounded px-2 py-1 w-full text-xs"
-                          />
-                          <select
-                            value={admin.role}
-                            onChange={(e) => handleAdminChange(index, 'role', e.target.value)}
-                            className="border border-gray-300 rounded px-2 py-1 w-full text-xs"
-                          >
-                            <option value="Super Admin">Super Admin</option>
-                            <option value="Content Manager">Content Manager</option>
-                            <option value="Moderator">Moderator</option>
-                          </select>
-                        </div>
-                      ) : (
-                        <p className="text-xs text-gray-600">{admin.email} • {admin.role}</p>
-                      )}
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${
-                        admin.status === 'Active' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {admin.status}
-                      </span>
+              {adminData.length === 0 && !loading ? (
+                <div className="text-center py-4 text-gray-500 text-sm">
+                  No admin users found
+                </div>
+              ) : (
+                adminData.map((admin) => (
+                  <div key={admin.id} className="border border-gray-200 rounded">
+                    <div className="flex items-center justify-between p-3">
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">{admin.full_name}</p>
+                        <p className="text-xs text-gray-600">{admin.email}</p>
+                        <p className="text-xs text-gray-500">
+                          Joined: {new Date(admin.date_joined).toLocaleDateString()}
+                          {admin.last_login && (
+                            <span> • Last login: {new Date(admin.last_login).toLocaleDateString()}</span>
+                          )}
+                        </p>
+                      </div>
                       <button 
-                        className={`p-1 rounded ${editingAdmin === index ? 'bg-blue-100 text-blue-800' : 'text-blue-600 hover:text-blue-900'}`}
-                        onClick={() => toggleEdit(index)}
+                        className="p-1 rounded text-red-600 hover:text-red-800 hover:bg-red-50"
+                        onClick={() => showRemoveConfirmation(admin)}
+                        title="Remove admin"
                       >
-                        {editingAdmin === index ? <Check className="w-4 h-4" onClick={() => saveAdmin(index)} /> : <Edit3 className="w-4 h-4" />}
+                        <Trash2 className="w-4 h-4" />
                       </button>
-                      {editingAdmin === index && (
-                        <button 
-                          className="p-1 rounded bg-red-100 text-red-800"
-                          onClick={() => setEditingAdmin(null)}
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      )}
                     </div>
                   </div>
-                  
-                  {/* Expanded edit section */}
-                  {editingAdmin === index && (
-                    <div className="p-3 border-t border-gray-200 bg-gray-50">
-                      <h4 className="text-sm font-medium mb-2">Change Password</h4>
-                      <div className="space-y-2">
-                        <input
-                          type="password"
-                          placeholder="New Password"
-                          className="border border-gray-300 rounded px-2 py-1 w-full text-xs"
-                        />
-                        <input
-                          type="password"
-                          placeholder="Confirm Password"
-                          className="border border-gray-300 rounded px-2 py-1 w-full text-xs"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
+                ))
+              )}
             </div>
+            
             <button 
-              className="mt-3 bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 flex items-center"
-              onClick={() => setShowAddModal(true)}
+              className="mt-3 bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 flex items-center disabled:opacity-50"
+              onClick={() => setShowInviteModal(true)}
+              disabled={loading}
             >
               <Plus className="w-4 h-4 inline mr-1" />
-              Add Admin User
+              Invite Admin User
             </button>
           </div>
         </div>
@@ -231,78 +236,126 @@ const AdminSettings = () => {
         </div>
       </div>
 
-      {/* Add Admin Modal */}
-      {showAddModal && (
+      {/* Remove Admin Confirmation Modal */}
+      {showRemoveModal && adminToRemove && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Add New Admin</h3>
-              <button onClick={() => setShowAddModal(false)} className="text-gray-500 hover:text-gray-700">
+              <h3 className="text-lg font-semibold">Remove Admin User</h3>
+              <button 
+                onClick={() => setShowRemoveModal(false)} 
+                className="text-gray-500 hover:text-gray-700"
+                disabled={removeLoading}
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
+            <div className="mb-6">
+              <p className="text-gray-700">Are you sure you want to remove this admin user?</p>
+              <div className="mt-3 p-3 bg-gray-50 rounded border">
+                <p className="font-medium text-sm">{adminToRemove.full_name}</p>
+                <p className="text-xs text-gray-600">{adminToRemove.email}</p>
+              </div>
+            </div>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowRemoveModal(false)}
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                disabled={removeLoading}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={removeAdmin}
+                className="px-4 py-2 bg-red-600 rounded-md text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50 flex items-center"
+                disabled={removeLoading}
+              >
+                {removeLoading ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Removing...
+                  </>
+                ) : (
+                  'Remove Admin'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Invite Admin Modal */}
+      {showInviteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Invite Admin User</h3>
+              <button 
+                onClick={() => {
+                  setShowInviteModal(false);
+                  setInviteEmail('');
+                  setInviteError('');
+                }} 
+                className="text-gray-500 hover:text-gray-700"
+                disabled={inviteLoading}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            {inviteError && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                {inviteError}
+              </div>
+            )}
+            
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                <input
-                  type="text"
-                  value={newAdmin.name}
-                  onChange={(e) => handleNewAdminChange('name', e.target.value)}
-                  className="border border-gray-300 rounded px-3 py-2 w-full"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Enter Invite Email</label>
                 <input
                   type="email"
-                  value={newAdmin.email}
-                  onChange={(e) => handleNewAdminChange('email', e.target.value)}
-                  className="border border-gray-300 rounded px-3 py-2 w-full"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
-                <select
-                  value={newAdmin.role}
-                  onChange={(e) => handleNewAdminChange('role', e.target.value)}
-                  className="border border-gray-300 rounded px-3 py-2 w-full"
-                >
-                  <option value="Super Admin">Super Admin</option>
-                  <option value="Content Manager">Content Manager</option>
-                  <option value="Moderator">Moderator</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                <input
-                  type="password"
-                  value={newAdmin.password}
-                  onChange={(e) => handleNewAdminChange('password', e.target.value)}
-                  className="border border-gray-300 rounded px-3 py-2 w-full"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
-                <input
-                  type="password"
-                  value={newAdmin.confirmPassword}
-                  onChange={(e) => handleNewAdminChange('confirmPassword', e.target.value)}
-                  className="border border-gray-300 rounded px-3 py-2 w-full"
+                  value={inviteEmail}
+                  onChange={(e) => {
+                    setInviteEmail(e.target.value);
+                    if (inviteError) setInviteError('');
+                  }}
+                  placeholder="admin@example.com"
+                  className="border border-gray-300 rounded px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                  disabled={inviteLoading}
                 />
               </div>
             </div>
             <div className="mt-6 flex justify-end space-x-3">
               <button
-                onClick={() => setShowAddModal(false)}
-                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                onClick={() => {
+                  setShowInviteModal(false);
+                  setInviteEmail('');
+                  setInviteError('');
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                disabled={inviteLoading}
               >
                 Cancel
               </button>
               <button
-                onClick={addAdmin}
-                className="px-4 py-2 bg-blue-600 rounded-md text-sm font-medium text-white hover:bg-blue-700"
+                onClick={sendInvite}
+                disabled={!inviteEmail.trim() || inviteLoading}
+                className="px-4 py-2 bg-blue-600 rounded-md text-sm font-medium text-white hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center"
               >
-                Add Admin
+                {inviteLoading ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Sending...
+                  </>
+                ) : (
+                  'Send Invite'
+                )}
               </button>
             </div>
           </div>

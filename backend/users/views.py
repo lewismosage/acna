@@ -3,12 +3,16 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from django.contrib.auth import get_user_model
-from .models import VerificationCode
+from .models import VerificationCode, AdminInvite
 from rest_framework_simplejwt.tokens import RefreshToken
 from .serializers import (
     UserRegistrationSerializer,
     VerificationSerializer,
-    ResendVerificationSerializer
+    ResendVerificationSerializer,
+    AdminUserSerializer,
+    AdminInviteSerializer,
+    SendAdminInviteSerializer,
+    AdminSignUpSerializer
 )
 from .utils import send_verification_email
 import logging
@@ -669,3 +673,171 @@ class ResetPasswordView(APIView):
                 'success': False,
                 'message': 'Invalid password reset link'
             }, status=status.HTTP_400_BAD_REQUEST)
+
+# Admin Management Views
+class AdminUserListView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAdminUser]
+    
+    def get(self, request):
+        """Get all admin users"""
+        admin_users = User.objects.filter(is_admin=True).order_by('-date_joined')
+        serializer = AdminUserSerializer(admin_users, many=True)
+        return Response({
+            'success': True,
+            'admins': serializer.data
+        }, status=status.HTTP_200_OK)
+
+class SendAdminInviteView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAdminUser]
+    
+    def post(self, request):
+        """Send admin invitation email"""
+        serializer = SendAdminInviteSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+            
+            # Create admin invite
+            invite = AdminInvite.objects.create(
+                email=email,
+                invited_by=request.user
+            )
+            
+            # Send invitation email
+            try:
+                send_admin_invite_email(invite)
+                return Response({
+                    'success': True,
+                    'message': f'Admin invitation sent to {email}'
+                }, status=status.HTTP_200_OK)
+            except Exception as e:
+                logger.error(f"Failed to send admin invite email: {str(e)}")
+                return Response({
+                    'success': False,
+                    'message': 'Failed to send invitation email. Please try again.'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        return Response({
+            'success': False,
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+class AdminInviteListView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAdminUser]
+    
+    def get(self, request):
+        """Get all admin invitations"""
+        invites = AdminInvite.objects.all().order_by('-created_at')
+        serializer = AdminInviteSerializer(invites, many=True)
+        return Response({
+            'success': True,
+            'invites': serializer.data
+        }, status=status.HTTP_200_OK)
+
+class AdminSignUpWithInviteView(APIView):
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        """Admin signup with invitation token"""
+        serializer = AdminSignUpSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+            
+            # Generate JWT tokens
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                'success': True,
+                'message': 'Admin account created successfully',
+                'access': str(refresh.access_token),
+                'refresh': str(refresh),
+                'admin': {
+                    'id': user.id,
+                    'email': user.email,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
+                    'is_admin': user.is_admin,
+                    'full_name': user.get_full_name(),
+                }
+            }, status=status.HTTP_201_CREATED)
+        
+        return Response({
+            'success': False,
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+class RemoveAdminView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAdminUser]
+    
+    def delete(self, request, admin_id):
+        """Remove admin privileges from a user"""
+        try:
+            admin_user = User.objects.get(id=admin_id, is_admin=True)
+            
+            # Prevent removing yourself
+            if admin_user.id == request.user.id:
+                return Response({
+                    'success': False,
+                    'message': 'You cannot remove your own admin privileges'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Remove admin privileges
+            admin_user.is_admin = False
+            admin_user.save()
+            
+            return Response({
+                'success': True,
+                'message': f'Admin privileges removed from {admin_user.get_full_name()}'
+            }, status=status.HTTP_200_OK)
+            
+        except User.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': 'Admin user not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+def send_admin_invite_email(invite):
+    """Send admin invitation email"""
+    subject = "Admin Invitation - ACNA"
+    from_email = settings.DEFAULT_FROM_EMAIL
+    to = [invite.email]
+    
+    # Create signup URL
+    frontend_url = settings.FRONTEND_URL if hasattr(settings, 'FRONTEND_URL') else 'http://localhost:3000'
+    signup_url = f"{frontend_url}/admin/signup?token={invite.token}"
+    
+    try:
+        context = {
+            'invite': invite,
+            'signup_url': signup_url,
+            'company_name': getattr(settings, 'COMPANY_NAME', 'ACNA'),
+            'invited_by': invite.invited_by.get_full_name(),
+            'expires_in': '7 days'
+        }
+        
+        html_content = render_to_string("users/emails/admin_invite_email.html", context)
+        text_content = f"""
+Hello,
+
+You have been invited to become an administrator for {context['company_name']} by {context['invited_by']}.
+
+Click the link below to create your admin account:
+{signup_url}
+
+This invitation will expire in 7 days.
+
+If you didn't expect this invitation, please ignore this email.
+
+Best regards,
+{context['company_name']} Team
+        """
+        
+        msg = EmailMultiAlternatives(subject, text_content, from_email, to)
+        msg.attach_alternative(html_content, "text/html")
+        msg.send()
+        return True
+    except Exception as e:
+        logger.error(f"Error sending admin invite email to {invite.email}: {str(e)}")
+        return False

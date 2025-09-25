@@ -25,6 +25,7 @@ urlpatterns = [
     path('api/', include('training_programs.urls')),
     path('api/forum/', include('forum.urls')),
     path('api/messaging/', include('messaging.urls')),
+    path('api/', include('careers.urls')),
 ]
 
 if settings.DEBUG:

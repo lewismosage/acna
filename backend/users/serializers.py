@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, VerificationCode
+from .models import User, VerificationCode, AdminInvite
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 
@@ -163,3 +163,109 @@ class ResetPasswordSerializer(serializers.Serializer):
         if data['new_password'] != data['confirm_password']:
             raise serializers.ValidationError("Passwords do not match")
         return data
+
+class AdminUserSerializer(serializers.ModelSerializer):
+    full_name = serializers.SerializerMethodField()
+    last_login = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = User
+        fields = [
+            'id', 'email', 'first_name', 'last_name', 'full_name',
+            'is_admin', 'is_active', 'date_joined', 'last_login'
+        ]
+        read_only_fields = ['id', 'date_joined', 'last_login']
+    
+    def get_full_name(self, obj):
+        return obj.get_full_name()
+    
+    def get_last_login(self, obj):
+        return obj.last_login.isoformat() if obj.last_login else None
+
+class AdminInviteSerializer(serializers.ModelSerializer):
+    invited_by_name = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = AdminInvite
+        fields = [
+            'id', 'email', 'invited_by_name', 'created_at', 
+            'expires_at', 'is_used', 'is_valid'
+        ]
+        read_only_fields = ['id', 'invited_by_name', 'created_at', 'expires_at', 'is_used', 'is_valid']
+    
+    def get_invited_by_name(self, obj):
+        return obj.invited_by.get_full_name()
+
+class SendAdminInviteSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    
+    def validate_email(self, value):
+        # Check if user already exists
+        if User.objects.filter(email__iexact=value).exists():
+            user = User.objects.get(email__iexact=value)
+            if user.is_admin:
+                raise serializers.ValidationError("This email already has admin privileges.")
+            else:
+                raise serializers.ValidationError("A user with this email already exists. They need to be granted admin privileges through user management.")
+        
+        # Check if there's already a pending invite
+        if AdminInvite.objects.filter(email__iexact=value, is_used=False).exists():
+            invite = AdminInvite.objects.get(email__iexact=value, is_used=False)
+            if invite.is_valid:
+                raise serializers.ValidationError("An admin invitation has already been sent to this email address.")
+        
+        return value.lower()
+
+class AdminSignUpSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
+    confirm_password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
+    invite_token = serializers.CharField(write_only=True, required=True)
+    
+    class Meta:
+        model = User
+        fields = [
+            'email', 'password', 'confirm_password', 'first_name', 
+            'last_name', 'invite_token'
+        ]
+    
+    def validate(self, data):
+        if data['password'] != data['confirm_password']:
+            raise serializers.ValidationError({
+                "confirm_password": ["Password fields didn't match."]
+            })
+        
+        # Validate invite token
+        try:
+            invite = AdminInvite.objects.get(token=data['invite_token'])
+            if not invite.is_valid:
+                raise serializers.ValidationError({
+                    "invite_token": ["This invitation has expired or been used."]
+                })
+            if invite.email.lower() != data['email'].lower():
+                raise serializers.ValidationError({
+                    "email": ["Email does not match the invitation."]
+                })
+        except AdminInvite.DoesNotExist:
+            raise serializers.ValidationError({
+                "invite_token": ["Invalid invitation token."]
+            })
+        
+        return data
+    
+    def create(self, validated_data):
+        invite_token = validated_data.pop('invite_token')
+        validated_data.pop('confirm_password')
+        
+        # Create admin user
+        user = User.objects.create_user(
+            username=validated_data['email'],  # Use email as username
+            is_admin=True,
+            **validated_data
+        )
+        
+        # Mark invite as used
+        invite = AdminInvite.objects.get(token=invite_token)
+        invite.is_used = True
+        invite.save()
+        
+        return user

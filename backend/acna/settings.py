@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     'forum',
     'messaging',
     'channels',
+    'careers',
 ]
 
 MIDDLEWARE = [

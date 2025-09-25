@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Invitation - {{ company_name }}</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .header {
+        background-color: #dc2626;
+        color: white;
+        padding: 20px;
+        text-align: center;
+        border-radius: 8px 8px 0 0;
+      }
+      .content {
+        background-color: #f9fafb;
+        padding: 30px;
+        border-radius: 0 0 8px 8px;
+        border: 1px solid #e5e7eb;
+      }
+      .button {
+        display: inline-block;
+        background-color: #dc2626;
+        color: white;
+        padding: 12px 24px;
+        text-decoration: none;
+        border-radius: 6px;
+        font-weight: bold;
+        margin: 20px 0;
+      }
+      .button:hover {
+        background-color: #b91c1c;
+      }
+      .footer {
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #e5e7eb;
+        font-size: 14px;
+        color: #6b7280;
+      }
+      .warning {
+        background-color: #fef3c7;
+        border: 1px solid #f59e0b;
+        padding: 15px;
+        border-radius: 6px;
+        margin: 20px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>🛡️ Admin Invitation</h1>
+      <p>{{ company_name }}</p>
+    </div>
+
+    <div class="content">
+      <h2>You've been invited to become an administrator!</h2>
+
+      <p>Hello,</p>
+
+      <p>
+        You have been invited to become an administrator for
+        <strong>{{ company_name }}</strong> by
+        <strong>{{ invited_by }}</strong>.
+      </p>
+
+      <p>As an administrator, you will have access to:</p>
+      <ul>
+        <li>User management and member administration</li>
+        <li>Content management and moderation</li>
+        <li>System settings and configuration</li>
+        <li>Analytics and reporting tools</li>
+      </ul>
+
+      <div style="text-align: center">
+        <a href="{{ signup_url }}" class="button">Create Admin Account</a>
+      </div>
+
+      <div class="warning">
+        <strong>⚠️ Important:</strong> This invitation is valid for 24 hours. 
+        If you don't create your account within this time, you'll
+        need to request a new invitation.
+      </div>
+
+      <p>
+        If you didn't expect this invitation or have any questions, please
+        contact the system administrator.
+      </p>
+
+      <p>
+        Best regards,<br />
+        <strong>{{ company_name }} Team</strong>
+      </p>
+    </div>
+
+    <div class="footer">
+      <p>This is an automated message. Please do not reply to this email.</p>
+      <p>
+        If you're having trouble with the button above, copy and paste this link
+        into your browser:
+      </p>
+      <p style="word-break: break-all; color: #dc2626">{{ signup_url }}</p>
+    </div>
+  </body>
+</html>

@@ -1,5 +1,6 @@
 import React from 'react';
 import ScrollToTop from '../../components/common/ScrollToTop';
+import { Link } from 'react-router-dom';
 
 const VolunteerInfoSection = () => {
 
@@ -109,9 +110,10 @@ const VolunteerInfoSection = () => {
             </div>
 
             {/* CTA Button */}
-            <button className="border-2 border-orange-600 text-orange-600 px-8 py-3 text-sm font-bold tracking-wider hover:bg-orange-600 hover:text-white transition-all duration-300">
+            <Link to="/volunteer/form" 
+              className="border-2 border-orange-600 text-orange-600 px-8 py-3 text-sm font-bold tracking-wider hover:bg-orange-600 hover:text-white transition-all duration-300">
               VOLUNTEER WITH ACNA
-            </button>
+              </Link>
           </div>
         </div>
       </div>

@@ -8,7 +8,9 @@ from .views import (
     RegisterView, VerifyEmailView, ResendVerificationView,
     LoginView, UserProfileView, ChangePasswordView, UpdateAboutView,
     MemberListView, AdminLoginView, AdminLogoutView, AdminDashboardView, LogoutView,
-    ForgotPasswordView, AdminForgotPasswordView, ResetPasswordView
+    ForgotPasswordView, AdminForgotPasswordView, ResetPasswordView,
+    AdminUserListView, SendAdminInviteView, AdminInviteListView, 
+    AdminSignUpWithInviteView, RemoveAdminView
 )
 from .serializers import UserProfileSerializer, ChangePasswordSerializer
 
@@ -28,4 +30,11 @@ urlpatterns = [
     path('forgot-password/', ForgotPasswordView.as_view(), name='forgot-password'),
     path('admin/forgot-password/', AdminForgotPasswordView.as_view(), name='admin-forgot-password'),
     path('reset-password/<uuid:token>/', ResetPasswordView.as_view(), name='reset-password'),
+    
+    # Admin Management URLs
+    path('admin/users/', AdminUserListView.as_view(), name='admin-users-list'),
+    path('admin/invite/', SendAdminInviteView.as_view(), name='send-admin-invite'),
+    path('admin/invites/', AdminInviteListView.as_view(), name='admin-invites-list'),
+    path('admin/signup/', AdminSignUpWithInviteView.as_view(), name='admin-signup-with-invite'),
+    path('admin/users/<int:admin_id>/remove/', RemoveAdminView.as_view(), name='remove-admin'),
 ]

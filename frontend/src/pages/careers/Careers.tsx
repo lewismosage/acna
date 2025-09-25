@@ -36,7 +36,7 @@ const Careers = () => {
             </h4>
             <div className="flex items-center gap-4 mb-6">
               <Link
-                to="#jobs"
+                to="/careers/jobs"
                 className="bg-orange-600 text-white px-6 py-2 rounded font-semibold hover:bg-orange-700 transition"
               >
                 Search for jobs
@@ -258,7 +258,7 @@ const Careers = () => {
           Join us in tackling some of the world's most urgent problems.
         </p>
         <Link
-          to="#jobs"
+          to="/careers/jobs"
           className="bg-orange-600 text-white px-6 py-2 rounded font-semibold hover:bg-orange-700 transition"
         >
           Search jobs
