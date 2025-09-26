@@ -1,30 +1,24 @@
 import { useState, useEffect } from "react";
 import {
   Users,
-  Plus,
   Download,
-  Eye,
-  Trash2,
   Search,
-  Clock,
   UserCheck,
   X,
   Mail,
-  Phone,
-  Calendar,
-  MapPin,
-  Award,
   CreditCard,
   Shield,
-  MessageCircle,
-  Ban,
   RotateCcw,
   ChevronDown,
   AlertTriangle,
 } from "lucide-react";
 import api from "../../../services/api";
-import { format, parseISO, isValid } from "date-fns";
+import adminApi, { assignAdminRole } from "../../../services/adminApi";
+import { format, isValid } from "date-fns";
 import LoadingSpinner from "../../../components/common/LoadingSpinner";
+import AlertModal, {
+  AlertModalProps,
+} from "../../../components/common/AlertModal";
 
 // Helper function to safely parse and format dates
 const safeFormatDate = (
@@ -83,6 +77,39 @@ const MembersManagement = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailData, setEmailData] = useState({
+    subject: "",
+    message: "",
+  });
+  const [emailLoading, setEmailLoading] = useState(false);
+  const [alertModal, setAlertModal] = useState<AlertModalProps>({
+    isOpen: false,
+    onClose: () => setAlertModal((prev) => ({ ...prev, isOpen: false })),
+    title: "",
+    message: "",
+    type: "info",
+  });
+
+  // Helper function to show alerts
+  const showAlert = (
+    title: string,
+    message: string,
+    type: AlertModalProps["type"] = "info",
+    onConfirm?: () => void
+  ) => {
+    setAlertModal({
+      isOpen: true,
+      onClose: () => setAlertModal((prev) => ({ ...prev, isOpen: false })),
+      onConfirm,
+      title,
+      message,
+      type,
+      confirmText: type === "confirm" ? "Yes" : "OK",
+      cancelText: "Cancel",
+      showCancel: type === "confirm",
+    });
+  };
 
   // Fetch members from backend
   useEffect(() => {
@@ -180,26 +207,52 @@ const MembersManagement = () => {
     if (!selectedMember) return;
 
     try {
-      // Update user roles on backend
-      const updatedRoles = selectedMember.roles.includes(role)
-        ? selectedMember.roles.filter((r) => r !== role)
-        : [...selectedMember.roles, role];
+      if (role === "Admin") {
+        // Assign admin role using the new endpoint
+        const response = await assignAdminRole(selectedMember.id);
+        if (response.success) {
+          // Update local state
+          const updatedMember = { ...selectedMember, is_admin: true };
+          setSelectedMember(updatedMember);
+          setMembers(
+            members.map((m) => (m.id === selectedMember.id ? updatedMember : m))
+          );
+          showAlert(
+            "Admin Role Assigned",
+            `Admin privileges have been granted to ${selectedMember.first_name} ${selectedMember.last_name}. They can now access the admin portal using their existing credentials.`,
+            "success"
+          );
+        }
+      } else {
+        // Handle other roles (Tutor)
+        const updatedRoles = selectedMember.roles.includes(role)
+          ? selectedMember.roles.filter((r) => r !== role)
+          : [...selectedMember.roles, role];
 
-      await api.patch(`/users/admin/update-roles/${selectedMember.id}/`, {
-        roles: updatedRoles,
-      });
+        await adminApi.patch(
+          `/users/admin/update-roles/${selectedMember.id}/`,
+          {
+            roles: updatedRoles,
+          }
+        );
 
-      // Update local state
-      setSelectedMember({ ...selectedMember, roles: updatedRoles });
-      setMembers(
-        members.map((m) =>
-          m.id === selectedMember.id ? { ...m, roles: updatedRoles } : m
-        )
-      );
+        // Update local state
+        setSelectedMember({ ...selectedMember, roles: updatedRoles });
+        setMembers(
+          members.map((m) =>
+            m.id === selectedMember.id ? { ...m, roles: updatedRoles } : m
+          )
+        );
+      }
 
       setShowRoleDropdown(false);
     } catch (err) {
       console.error("Failed to assign role", err);
+      showAlert(
+        "Role Assignment Failed",
+        "Failed to assign role. Please try again.",
+        "error"
+      );
     }
   };
 
@@ -211,19 +264,22 @@ const MembersManagement = () => {
 
       switch (newStatus) {
         case "Active":
-          payload = { is_active_member: true };
+          payload = { is_active: true, is_active_member: true };
           break;
         case "Suspended":
-        case "Banned":
-          payload = { is_active_member: false };
+          payload = { is_active: false, is_active_member: false };
           break;
       }
 
-      await api.patch(`/users/admin/update/${selectedMember.id}/`, payload);
+      await adminApi.patch(
+        `/users/admin/update/${selectedMember.id}/`,
+        payload
+      );
 
       // Update local state
       const updatedMember = {
         ...selectedMember,
+        is_active: newStatus === "Active",
         is_active_member: newStatus === "Active",
       };
 
@@ -231,8 +287,60 @@ const MembersManagement = () => {
       setMembers(
         members.map((m) => (m.id === selectedMember.id ? updatedMember : m))
       );
+
+      showAlert(
+        "Account Status Updated",
+        `Account has been ${newStatus.toLowerCase()} successfully.`,
+        "success"
+      );
     } catch (err) {
       console.error("Failed to change status", err);
+      showAlert(
+        "Status Update Failed",
+        "Failed to change account status. Please try again.",
+        "error"
+      );
+    }
+  };
+
+  const handleSendEmail = async () => {
+    if (
+      !selectedMember ||
+      !emailData.subject.trim() ||
+      !emailData.message.trim()
+    ) {
+      showAlert(
+        "Missing Information",
+        "Please fill in both subject and message before sending the email.",
+        "warning"
+      );
+      return;
+    }
+
+    try {
+      setEmailLoading(true);
+      await adminApi.post("/users/admin/send-email/", {
+        user_id: selectedMember.id,
+        subject: emailData.subject,
+        message: emailData.message,
+      });
+
+      showAlert(
+        "Email Sent",
+        "Email has been sent successfully to the member.",
+        "success"
+      );
+      setShowEmailModal(false);
+      setEmailData({ subject: "", message: "" });
+    } catch (err) {
+      console.error("Failed to send email", err);
+      showAlert(
+        "Email Failed",
+        "Failed to send email. Please try again.",
+        "error"
+      );
+    } finally {
+      setEmailLoading(false);
     }
   };
 
@@ -255,7 +363,7 @@ const MembersManagement = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        < LoadingSpinner />
+        <LoadingSpinner />
       </div>
     );
   }
@@ -657,12 +765,14 @@ const MembersManagement = () => {
                             >
                               Tutor
                             </button>
-                            <button
-                              onClick={() => handleAssignRole("Moderator")}
-                              className="block w-full text-left px-4 py-2 hover:bg-gray-100"
-                            >
-                              Moderator
-                            </button>
+                            {!selectedMember.is_admin && (
+                              <button
+                                onClick={() => handleAssignRole("Admin")}
+                                className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-blue-600 font-medium"
+                              >
+                                Make Admin
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>
@@ -683,17 +793,10 @@ const MembersManagement = () => {
                         </button>
                         <button
                           onClick={() => handleStatusChange("Suspended")}
-                          className="w-full text-left px-4 py-2 border border-orange-300 rounded hover:bg-orange-50 flex items-center text-orange-700"
+                          className="w-full text-left px-4 py-2 border border-red-300 rounded hover:bg-red-50 flex items-center text-red-700"
                         >
                           <AlertTriangle className="w-4 h-4 mr-3" />
                           Suspend Account
-                        </button>
-                        <button
-                          onClick={() => handleStatusChange("Banned")}
-                          className="w-full text-left px-4 py-2 border border-red-300 rounded hover:bg-red-50 flex items-center text-red-700"
-                        >
-                          <Ban className="w-4 h-4 mr-3" />
-                          Ban Account
                         </button>
                       </div>
                     </div>
@@ -704,7 +807,10 @@ const MembersManagement = () => {
                         Communication
                       </h4>
                       <div className="space-y-2">
-                        <button className="w-full text-left px-4 py-2 border border-gray-300 rounded hover:bg-gray-50 flex items-center">
+                        <button
+                          onClick={() => setShowEmailModal(true)}
+                          className="w-full text-left px-4 py-2 border border-gray-300 rounded hover:bg-gray-50 flex items-center"
+                        >
                           <Mail className="w-4 h-4 mr-3" />
                           Send Email
                         </button>
@@ -740,6 +846,121 @@ const MembersManagement = () => {
           </div>
         </div>
       )}
+
+      {/* Email Modal */}
+      {showEmailModal && selectedMember && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Send Email</h3>
+              <button
+                onClick={() => {
+                  setShowEmailModal(false);
+                  setEmailData({ subject: "", message: "" });
+                }}
+                className="text-gray-500 hover:text-gray-700"
+                disabled={emailLoading}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  To: {selectedMember.first_name} {selectedMember.last_name} (
+                  {selectedMember.email})
+                </label>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Subject
+                </label>
+                <input
+                  type="text"
+                  value={emailData.subject}
+                  onChange={(e) =>
+                    setEmailData({ ...emailData, subject: e.target.value })
+                  }
+                  placeholder="Enter email subject"
+                  className="border border-gray-300 rounded px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                  disabled={emailLoading}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Message
+                </label>
+                <textarea
+                  value={emailData.message}
+                  onChange={(e) =>
+                    setEmailData({ ...emailData, message: e.target.value })
+                  }
+                  placeholder="Enter your message"
+                  rows={6}
+                  className="border border-gray-300 rounded px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                  disabled={emailLoading}
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setShowEmailModal(false);
+                  setEmailData({ subject: "", message: "" });
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                disabled={emailLoading}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSendEmail}
+                disabled={
+                  !emailData.subject.trim() ||
+                  !emailData.message.trim() ||
+                  emailLoading
+                }
+                className="px-4 py-2 bg-blue-600 rounded-md text-sm font-medium text-white hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center"
+              >
+                {emailLoading ? (
+                  <>
+                    <svg
+                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Sending...
+                  </>
+                ) : (
+                  "Send Email"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Alert Modal */}
+      <AlertModal {...alertModal} />
     </div>
   );
 };

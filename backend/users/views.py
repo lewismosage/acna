@@ -474,17 +474,19 @@ class UpdateUserRolesView(APIView):
 
 class UpdateUserStatusView(APIView):
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAuthenticated]
     
     def patch(self, request, user_id):
         try:
             user = User.objects.get(id=user_id)
-            status_action = request.data.get('status')
             
-            if status_action == 'Active':
-                user.is_active_member = True
-            elif status_action in ['Suspended', 'Banned']:
-                user.is_active_member = False
+            # Update user fields based on request data
+            if 'is_active' in request.data:
+                user.is_active = request.data['is_active']
+            if 'is_active_member' in request.data:
+                user.is_active_member = request.data['is_active_member']
+            if 'roles' in request.data:
+                user.roles = request.data['roles']
                 
             user.save()
             return Response({'success': True}, status=status.HTTP_200_OK)
@@ -769,7 +771,7 @@ class AdminSignUpWithInviteView(APIView):
 
 class RemoveAdminView(APIView):
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAuthenticated]
     
     def delete(self, request, admin_id):
         """Remove admin privileges from a user"""
@@ -796,6 +798,109 @@ class RemoveAdminView(APIView):
             return Response({
                 'success': False,
                 'message': 'Admin user not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+class AssignAdminRoleView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request, user_id):
+        """Assign admin role to an existing user"""
+        try:
+            user = User.objects.get(id=user_id)
+            
+            # Check if user is already an admin
+            if user.is_admin:
+                return Response({
+                    'success': False,
+                    'message': 'User is already an admin'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Assign admin privileges
+            user.is_admin = True
+            user.save()
+            
+            return Response({
+                'success': True,
+                'message': f'Admin privileges granted to {user.get_full_name()}',
+                'user': {
+                    'id': user.id,
+                    'email': user.email,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
+                    'is_admin': user.is_admin,
+                    'full_name': user.get_full_name(),
+                }
+            }, status=status.HTTP_200_OK)
+            
+        except User.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': 'User not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+class SendEmailToUserView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        """Send email to a user"""
+        user_id = request.data.get('user_id')
+        subject = request.data.get('subject')
+        message = request.data.get('message')
+        
+        if not all([user_id, subject, message]):
+            return Response({
+                'success': False,
+                'message': 'User ID, subject, and message are required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            user = User.objects.get(id=user_id)
+            
+            # Send email
+            from_email = settings.DEFAULT_FROM_EMAIL
+            to = [user.email]
+            
+            try:
+                context = {
+                    'user': user,
+                    'message': message,
+                    'company_name': getattr(settings, 'COMPANY_NAME', 'ACNA'),
+                    'admin_name': request.user.get_full_name()
+                }
+                
+                html_content = render_to_string("users/emails/admin_message_email.html", context)
+                text_content = f"""
+Hello {user.get_full_name() or user.email},
+
+{message}
+
+Best regards,
+{context['admin_name']}
+{context['company_name']} Team
+                """
+                
+                msg = EmailMultiAlternatives(subject, text_content, from_email, to)
+                msg.attach_alternative(html_content, "text/html")
+                msg.send()
+                
+                return Response({
+                    'success': True,
+                    'message': f'Email sent successfully to {user.email}'
+                }, status=status.HTTP_200_OK)
+                
+            except Exception as e:
+                logger.error(f"Error sending email to {user.email}: {str(e)}")
+                return Response({
+                    'success': False,
+                    'message': 'Failed to send email. Please try again.'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                
+        except User.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': 'User not found'
             }, status=status.HTTP_404_NOT_FOUND)
 
 def send_admin_invite_email(invite):

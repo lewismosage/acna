@@ -202,6 +202,11 @@ export const removeAdminUser = async (adminId: number) => {
   return data;
 };
 
+export const assignAdminRole = async (userId: number) => {
+  const { data } = await adminApi.post(`/users/admin/users/${userId}/assign-admin/`);
+  return data;
+};
+
 // --- Admin Signup with Invite ---
 export const adminSignUpWithInvite = async (signUpData: {
   email: string;

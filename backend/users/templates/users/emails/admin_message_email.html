@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Message from {{ company_name }}</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .header {
+        background-color: #dc2626;
+        color: white;
+        padding: 20px;
+        text-align: center;
+        border-radius: 8px 8px 0 0;
+      }
+      .content {
+        background-color: #f9fafb;
+        padding: 30px;
+        border-radius: 0 0 8px 8px;
+        border: 1px solid #e5e7eb;
+      }
+      .message {
+        background-color: white;
+        padding: 20px;
+        border-radius: 6px;
+        border-left: 4px solid #dc2626;
+        margin: 20px 0;
+        white-space: pre-wrap;
+      }
+      .footer {
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #e5e7eb;
+        font-size: 14px;
+        color: #6b7280;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>📧 Message from {{ company_name }}</h1>
+      <p>Administrative Communication</p>
+    </div>
+
+    <div class="content">
+      <h2>Hello {{ user.get_full_name|default:user.email }},</h2>
+
+      <p>
+        You have received a message from the {{ company_name }} administration
+        team:
+      </p>
+
+      <div class="message">{{ message }}</div>
+
+      <p>
+        If you have any questions or concerns, please don't hesitate to contact
+        our support team.
+      </p>
+
+      <p>
+        Best regards,<br />
+        <strong>{{ admin_name }}</strong><br />
+        <strong>{{ company_name }} Team</strong>
+      </p>
+    </div>
+
+    <div class="footer">
+      <p>This is an automated message from {{ company_name }}.</p>
+      <p>Please do not reply to this email directly.</p>
+    </div>
+  </body>
+</html>
