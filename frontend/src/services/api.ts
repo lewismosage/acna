@@ -194,7 +194,7 @@ export const sendNewsletter = async (newsletterData: {
   content: string;
   recipients: 'all' | 'active' | string[];
 }) => {
-  const { data } = await api.post('/newsletter/send/', newsletterData);
+  const { data } = await api.post('/newsletter/send-newsletter/', newsletterData);
   return data;
 };
 
@@ -238,12 +238,12 @@ export const getMessages = async (params?: {
   search?: string;
   page?: number;
 }) => {
-  const { data } = await api.get('/messages/', { params });
+  const { data } = await api.get('/newsletter/messages/', { params });
   return data;
 };
 
 export const getMessageDetails = async (id: number) => {
-  const { data } = await api.get(`/messages/${id}/`);
+  const { data } = await api.get(`/newsletter/messages/${id}/`);
   return data;
 };
 
@@ -251,7 +251,7 @@ export const updateMessageStatus = async (id: number, statusData: {
   is_read?: boolean;
   responded?: boolean;
 }) => {
-  const { data } = await api.patch(`/messages/${id}/`, statusData);
+  const { data } = await api.patch(`/newsletter/messages/${id}/`, statusData);
   return data;
 };
 
@@ -260,7 +260,7 @@ export const updateMessage = async (id: number, messageData: {
   responded?: boolean;
   response_notes?: string;
 }) => {
-  const { data } = await api.patch(`/messages/${id}/`, messageData);
+  const { data } = await api.patch(`/newsletter/messages/${id}/`, messageData);
   return data;
 };
 
@@ -268,12 +268,12 @@ export const sendMessageResponse = async (messageId: number, responseData: {
   response: string;
   notes?: string;
 }) => {
-  const { data } = await api.post(`/messages/${messageId}/respond/`, responseData);
+  const { data } = await api.post(`/newsletter/messages/${messageId}/respond/`, responseData);
   return data;
 };
 
 export const deleteMessage = async (id: number) => {
-  await api.delete(`/messages/${id}/`);
+  await api.delete(`/newsletter/messages/${id}/`);
 };
 
 // --- Members ---

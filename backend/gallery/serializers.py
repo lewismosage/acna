@@ -151,7 +151,7 @@ class StoryListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Story
         fields = [
-            'id', 'title', 'patient_name', 'age', 'condition', 'image_url',
+            'id', 'title', 'patient_name', 'age', 'condition', 'story', 'image_url',
             'location', 'story_date', 'status', 'is_featured', 'created_at',
             'slug', 'view_count'
         ]

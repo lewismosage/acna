@@ -1,7 +1,7 @@
 from rest_framework import status, serializers
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import AllowAny
 from .models import NewsletterSubscriber
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
@@ -315,7 +315,7 @@ class ContactMessageDetailView(generics.RetrieveUpdateAPIView):
             instance.save()
 
 class MessageResponseView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def post(self, request, message_id):
         try:
@@ -324,13 +324,6 @@ class MessageResponseView(APIView):
             return Response(
                 {'error': 'Message not found'},
                 status=status.HTTP_404_NOT_FOUND
-            )
-
-        # Ensure the user is an admin
-        if not request.user.is_staff:
-            return Response(
-                {'error': 'Admin privileges required'},
-                status=status.HTTP_403_FORBIDDEN
             )
 
         response_text = request.data.get('response')

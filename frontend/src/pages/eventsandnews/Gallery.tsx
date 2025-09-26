@@ -1,52 +1,78 @@
-import { useState, useEffect } from 'react';
-import { Camera, Video, Users, Calendar, MapPin, Eye, Download, Share2, Stethoscope, Play, Mail } from 'lucide-react';
-import api from '../../services/api';
-import { galleryItemsApi, GalleryItem as ApiGalleryItem } from '../../services/galleryApi';
+import { useState, useEffect } from "react";
+import {
+  Camera,
+  Video,
+  Users,
+  Calendar,
+  MapPin,
+  Eye,
+  Download,
+  Share2,
+  Stethoscope,
+  Play,
+  Mail,
+} from "lucide-react";
+import api from "../../services/api";
+import {
+  galleryItemsApi,
+  storiesApi,
+  GalleryItem as ApiGalleryItem,
+  Story as ApiStory,
+} from "../../services/galleryApi";
 
 interface SubscriptionStatus {
-  type: 'success' | 'error';
+  type: "success" | "error";
   message: string;
 }
 
 // Use the API GalleryItem type but keep the legacy interface for compatibility
-interface GalleryItem extends Omit<ApiGalleryItem, 'event_date' | 'media_url' | 'thumbnail_url'> {
+interface GalleryItem
+  extends Omit<ApiGalleryItem, "event_date" | "media_url" | "thumbnail_url"> {
   date: string;
   imageUrl: string;
   thumbnailUrl: string;
+  // Add fields for stories
+  patient_name?: string;
+  age?: number;
+  condition?: string;
+  story?: string;
+  story_date?: string;
+  isStory?: boolean; // Flag to identify if this is a story
 }
 
 interface Category {
   id: string;
   name: string;
-  icon: any; 
+  icon: any;
 }
 
 const Gallery = () => {
-  const [selectedFilter, setSelectedFilter] = useState<string>('all');
+  const [selectedFilter, setSelectedFilter] = useState<string>("all");
   const [selectedMedia, setSelectedMedia] = useState<GalleryItem | null>(null);
-  const [email, setEmail] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
+  const [subscriptionStatus, setSubscriptionStatus] =
+    useState<SubscriptionStatus | null>(null);
   const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
   const [displayedItems, setDisplayedItems] = useState<GalleryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
-  
+
   const ITEMS_PER_PAGE = 9;
 
   const categories: Category[] = [
-    { id: 'all', name: 'All Media', icon: Camera },
-    { id: 'conferences', name: 'Conferences', icon: Users },
-    { id: 'training', name: 'Training', icon: Calendar },
-    { id: 'community', name: 'Community', icon: Users },
-    { id: 'events', name: 'Events', icon: Calendar },
-    { id: 'outreach', name: 'Outreach', icon: Camera },
-    { id: 'medical', name: 'Medical', icon: Stethoscope},
-    { id: 'stories', name: 'Success Stories', icon: Video }
+    { id: "all", name: "All Media", icon: Camera },
+    { id: "conferences", name: "Conferences", icon: Users },
+    { id: "training", name: "Training", icon: Calendar },
+    { id: "community", name: "Community", icon: Users },
+    { id: "events", name: "Events", icon: Calendar },
+    { id: "outreach", name: "Outreach", icon: Camera },
+    { id: "medical", name: "Medical", icon: Stethoscope },
+    { id: "stories", name: "Success Stories", icon: Video },
   ];
 
   // Transform API data to component format
@@ -54,70 +80,125 @@ const Gallery = () => {
     return {
       ...apiItem,
       date: apiItem.event_date,
-      imageUrl: apiItem.media_url || apiItem.thumbnail_url || '',
-      thumbnailUrl: apiItem.thumbnail_url || apiItem.media_url || ''
+      imageUrl: apiItem.media_url || apiItem.thumbnail_url || "",
+      thumbnailUrl: apiItem.thumbnail_url || apiItem.media_url || "",
+      isStory: false,
     };
   };
 
-  // Fetch gallery items from API
+  // Transform story data to component format
+  const transformStory = (apiStory: ApiStory): GalleryItem => {
+    return {
+      id: apiStory.id,
+      title: apiStory.title,
+      type: "photo" as const, // Stories are always photos
+      category: "stories",
+      description: apiStory.story,
+      date: apiStory.story_date,
+      imageUrl: apiStory.image_url || "",
+      thumbnailUrl: apiStory.image_url || "",
+      location: apiStory.location,
+      status: apiStory.status,
+      is_featured: apiStory.is_featured,
+      created_at: apiStory.created_at,
+      updated_at: apiStory.updated_at,
+      slug: apiStory.slug,
+      view_count: apiStory.view_count,
+      // Story-specific fields
+      patient_name: apiStory.patient_name,
+      age: apiStory.age,
+      condition: apiStory.condition,
+      story: apiStory.story,
+      story_date: apiStory.story_date,
+      isStory: true,
+    };
+  };
+
+  // Fetch gallery items and stories from API
   useEffect(() => {
-    const fetchGalleryItems = async () => {
+    const fetchGalleryData = async () => {
       try {
         setLoading(true);
         setError(null);
-        
-        // Fetch only published items
-        const apiItems = await galleryItemsApi.getAll({ 
-          status: 'published',
-          ordering: '-created_at'
-        });
-                
+
+        // Fetch both gallery items and stories in parallel
+        const [apiItems, apiStories] = await Promise.all([
+          galleryItemsApi.getAll({
+            status: "published",
+            ordering: "-created_at",
+          }),
+          storiesApi.getAll({
+            status: "published",
+            ordering: "-created_at",
+          }),
+        ]);
+
         // Transform API data to component format
         const transformedItems = apiItems.map(transformGalleryItem);
-        setGalleryItems(transformedItems);
+        const transformedStories = apiStories.map(transformStory);
+
+        // Combine gallery items and stories
+        const allItems = [...transformedItems, ...transformedStories];
+
+        // Sort by creation date (newest first)
+        allItems.sort(
+          (a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+
+        setGalleryItems(allItems);
       } catch (err) {
-        console.error('Error fetching gallery items:', err);
-        setError('Failed to load gallery items. Please try again later.');
+        console.error("Error fetching gallery data:", err);
+        setError("Failed to load gallery items. Please try again later.");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchGalleryItems();
+    fetchGalleryData();
   }, []);
 
   // Update displayed items when filter changes
   useEffect(() => {
-    const filteredItems = selectedFilter === 'all' 
-      ? galleryItems 
-      : galleryItems.filter(item => item.category === selectedFilter);
-    
+    const filteredItems =
+      selectedFilter === "all"
+        ? galleryItems
+        : galleryItems.filter((item) => item.category === selectedFilter);
+
     // Reset to first 9 items when filter changes
     const initialItems = filteredItems.slice(0, ITEMS_PER_PAGE);
     setDisplayedItems(initialItems);
     setHasMore(filteredItems.length > ITEMS_PER_PAGE);
   }, [selectedFilter, galleryItems]);
 
-  const filteredItems = selectedFilter === 'all' 
-    ? galleryItems 
-    : galleryItems.filter(item => item.category === selectedFilter);
+  const filteredItems =
+    selectedFilter === "all"
+      ? galleryItems
+      : galleryItems.filter((item) => item.category === selectedFilter);
 
   const loadMoreItems = () => {
     setLoadingMore(true);
-    
+
     // Simulate loading delay for better UX
     setTimeout(() => {
       const currentCount = displayedItems.length;
-      const nextItems = filteredItems.slice(currentCount, currentCount + ITEMS_PER_PAGE);
-      
-      setDisplayedItems(prev => [...prev, ...nextItems]);
+      const nextItems = filteredItems.slice(
+        currentCount,
+        currentCount + ITEMS_PER_PAGE
+      );
+
+      setDisplayedItems((prev) => [...prev, ...nextItems]);
       setHasMore(currentCount + ITEMS_PER_PAGE < filteredItems.length);
       setLoadingMore(false);
     }, 500);
   };
 
-  const photoCount = galleryItems.filter(item => item.type === 'photo').length;
-  const videoCount = galleryItems.filter(item => item.type === 'video').length;
+  const photoCount = galleryItems.filter(
+    (item) => item.type === "photo" || item.isStory
+  ).length;
+  const videoCount = galleryItems.filter(
+    (item) => item.type === "video"
+  ).length;
 
   const openModal = (item: GalleryItem) => {
     setSelectedMedia(item);
@@ -133,26 +214,31 @@ const Gallery = () => {
     setSubscriptionStatus(null);
 
     try {
-      const response = await api.post('/newsletter/subscribe/', {
+      await api.post("/newsletter/subscribe/", {
         email,
         first_name: firstName,
         last_name: lastName,
-        source: 'gallery'
+        source: "gallery",
       });
 
       setSubscriptionStatus({
-        type: 'success',
-        message: 'Thank you for subscribing to our newsletter!'
+        type: "success",
+        message: "Thank you for subscribing to our newsletter!",
       });
-      setEmail('');
-      setFirstName('');
-      setLastName('');
+      setEmail("");
+      setFirstName("");
+      setLastName("");
     } catch (error: unknown) {
-      let errorMessage = 'Failed to subscribe. Please try again later.';
-      
-      if (typeof error === 'object' && error !== null && 'response' in error) {
-        const axiosError = error as { response?: { status?: number, data?: any } };
-        if (axiosError.response?.status === 400 && axiosError.response.data?.email) {
+      let errorMessage = "Failed to subscribe. Please try again later.";
+
+      if (typeof error === "object" && error !== null && "response" in error) {
+        const axiosError = error as {
+          response?: { status?: number; data?: any };
+        };
+        if (
+          axiosError.response?.status === 400 &&
+          axiosError.response.data?.email
+        ) {
           errorMessage = axiosError.response.data.email[0];
         } else if (axiosError.response?.data?.detail) {
           errorMessage = axiosError.response.data.detail;
@@ -160,8 +246,8 @@ const Gallery = () => {
       }
 
       setSubscriptionStatus({
-        type: 'error',
-        message: errorMessage
+        type: "error",
+        message: errorMessage,
       });
     } finally {
       setIsSubmitting(false);
@@ -172,10 +258,10 @@ const Gallery = () => {
   const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
       });
     } catch {
       return dateString;
@@ -191,7 +277,9 @@ const Gallery = () => {
             Gallery
           </h1>
           <p className="text-lg sm:text-xl md:text-2xl text-gray-700 font-light max-w-3xl mx-auto">
-            Explore moments from our conferences, training programs, community outreach, and the inspiring stories of progress in child neurology across Africa.
+            Explore moments from our conferences, training programs, community
+            outreach, and the inspiring stories of progress in child neurology
+            across Africa.
           </p>
           <div className="mt-8 flex justify-center space-x-8 text-sm text-gray-600">
             <div className="flex items-center">
@@ -210,21 +298,20 @@ const Gallery = () => {
       <section className="py-8 md:py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex flex-col lg:flex-row gap-6">
-            
             {/* Mobile Filters */}
             <div className="lg:hidden bg-white border border-gray-200 rounded p-4">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-bold text-gray-900">
                   {displayedItems.length} of {filteredItems.length} items
                 </h3>
-                <button 
-                  onClick={() => setSelectedFilter('all')}
+                <button
+                  onClick={() => setSelectedFilter("all")}
                   className="text-red-600 text-sm font-medium hover:underline"
                 >
                   Show all
                 </button>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-2">
                 {categories.map((category) => {
                   const IconComponent = category.icon;
@@ -233,9 +320,9 @@ const Gallery = () => {
                       key={category.id}
                       onClick={() => setSelectedFilter(category.id)}
                       className={`py-2 px-3 rounded-md text-sm flex items-center justify-center ${
-                        selectedFilter === category.id 
-                          ? 'bg-red-600 text-white' 
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        selectedFilter === category.id
+                          ? "bg-red-600 text-white"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                       }`}
                     >
                       <IconComponent className="w-3 h-3 mr-1" />
@@ -253,8 +340,8 @@ const Gallery = () => {
                   <h3 className="text-lg font-bold text-gray-900 mb-4">
                     {filteredItems.length} items
                   </h3>
-                  <button 
-                    onClick={() => setSelectedFilter('all')}
+                  <button
+                    onClick={() => setSelectedFilter("all")}
                     className="text-red-600 text-sm font-medium hover:underline"
                   >
                     Show all media
@@ -263,33 +350,38 @@ const Gallery = () => {
 
                 <div>
                   <h4 className="font-bold text-gray-900 mb-4">Categories</h4>
-                  
+
                   <div className="space-y-2">
                     {categories.map((category) => {
                       const IconComponent = category.icon;
-                      const count = category.id === 'all' 
-                        ? galleryItems.length 
-                        : galleryItems.filter(item => item.category === category.id).length;
-                      
+                      const count =
+                        category.id === "all"
+                          ? galleryItems.length
+                          : galleryItems.filter(
+                              (item) => item.category === category.id
+                            ).length;
+
                       return (
                         <button
                           key={category.id}
                           onClick={() => setSelectedFilter(category.id)}
                           className={`w-full flex items-center justify-between p-2 rounded-md text-sm transition-colors ${
-                            selectedFilter === category.id 
-                              ? 'bg-red-600 text-white' 
-                              : 'text-gray-700 hover:bg-gray-100'
+                            selectedFilter === category.id
+                              ? "bg-red-600 text-white"
+                              : "text-gray-700 hover:bg-gray-100"
                           }`}
                         >
                           <div className="flex items-center">
                             <IconComponent className="w-4 h-4 mr-2" />
                             {category.name}
                           </div>
-                          <span className={`text-xs px-2 py-1 rounded-full ${
-                            selectedFilter === category.id 
-                              ? 'bg-white bg-opacity-20' 
-                              : 'bg-gray-200'
-                          }`}>
+                          <span
+                            className={`text-xs px-2 py-1 rounded-full ${
+                              selectedFilter === category.id
+                                ? "bg-white bg-opacity-20"
+                                : "bg-gray-200"
+                            }`}
+                          >
                             {count}
                           </span>
                         </button>
@@ -306,9 +398,25 @@ const Gallery = () => {
               {loading && (
                 <div className="text-center py-12">
                   <div className="inline-flex items-center px-4 py-2 font-semibold leading-6 text-sm shadow rounded-md text-gray-500 bg-white">
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <svg
+                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-500"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
                     </svg>
                     Loading gallery items...
                   </div>
@@ -319,7 +427,9 @@ const Gallery = () => {
               {error && (
                 <div className="bg-red-50 border border-red-200 rounded p-8 text-center">
                   <Camera className="w-12 h-12 text-red-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-red-900 mb-2">Error loading gallery</h3>
+                  <h3 className="text-lg font-medium text-red-900 mb-2">
+                    Error loading gallery
+                  </h3>
                   <p className="text-red-700 mb-4">{error}</p>
                   <button
                     onClick={() => window.location.reload()}
@@ -334,31 +444,42 @@ const Gallery = () => {
               {!loading && !error && displayedItems.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                   {displayedItems.map((item) => (
-                    <div 
-                      key={item.id} 
+                    <div
+                      key={item.id}
                       className="group cursor-pointer bg-white border border-gray-200 rounded overflow-hidden hover:shadow-lg transition-all duration-300"
                       onClick={() => openModal(item)}
                     >
                       <div className="relative aspect-square overflow-hidden">
                         <img
-                          src={item.thumbnailUrl || '/placeholder-image.jpg'}
+                          src={item.thumbnailUrl || "/placeholder-image.jpg"}
                           alt={item.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
-                            target.src = '/placeholder-image.jpg';
+                            target.src = "/placeholder-image.jpg";
                           }}
                         />
-                        
+
                         {/* Media Type Overlay */}
                         <div className="absolute top-3 left-3">
-                          <span className={`px-2 py-1 text-xs font-bold uppercase tracking-wide rounded ${
-                            item.type === 'video' ? 'bg-red-600 text-white' : 'bg-black bg-opacity-50 text-white'
-                          }`}>
-                            {item.type === 'video' ? (
+                          <span
+                            className={`px-2 py-1 text-xs font-bold uppercase tracking-wide rounded ${
+                              item.type === "video"
+                                ? "bg-red-600 text-white"
+                                : item.isStory
+                                ? "bg-green-600 text-white"
+                                : "bg-black bg-opacity-50 text-white"
+                            }`}
+                          >
+                            {item.type === "video" ? (
                               <div className="flex items-center">
                                 <Play className="w-3 h-3 mr-1" />
                                 Video
+                              </div>
+                            ) : item.isStory ? (
+                              <div className="flex items-center">
+                                <Stethoscope className="w-3 h-3 mr-1" />
+                                Story
                               </div>
                             ) : (
                               <div className="flex items-center">
@@ -370,7 +491,7 @@ const Gallery = () => {
                         </div>
 
                         {/* Video Duration */}
-                        {item.type === 'video' && item.duration && (
+                        {item.type === "video" && item.duration && (
                           <div className="absolute bottom-3 right-3">
                             <span className="bg-black bg-opacity-75 text-white px-2 py-1 text-xs rounded">
                               {item.duration}
@@ -389,10 +510,10 @@ const Gallery = () => {
                       <div className="p-4">
                         <div className="mb-2">
                           <span className="text-red-600 font-medium text-xs uppercase tracking-wide">
-                            {item.category.replace(/([A-Z])/g, ' $1').trim()}
+                            {item.category.replace(/([A-Z])/g, " $1").trim()}
                           </span>
                         </div>
-                        
+
                         <h3 className="text-sm font-bold text-gray-900 mb-2 leading-tight line-clamp-2">
                           {item.title}
                         </h3>
@@ -406,11 +527,42 @@ const Gallery = () => {
                             <MapPin className="w-3 h-3 mr-1 text-red-600" />
                             {item.location}
                           </div>
+                          {item.isStory && item.patient_name && (
+                            <div className="flex items-center text-gray-600 text-xs">
+                              <Users className="w-3 h-3 mr-1 text-red-600" />
+                              {item.patient_name}{" "}
+                              {item.age && `(${item.age} years)`}
+                            </div>
+                          )}
+                          {item.isStory && item.condition && (
+                            <div className="flex items-center text-gray-600 text-xs">
+                              <Stethoscope className="w-3 h-3 mr-1 text-red-600" />
+                              {item.condition}
+                            </div>
+                          )}
                         </div>
 
-                        <p className="text-gray-700 text-xs leading-relaxed line-clamp-2">
-                          {item.description || 'No description available'}
-                        </p>
+                        <div className="text-gray-700 text-xs leading-relaxed">
+                          {item.isStory ? (
+                            <div className="line-clamp-3">
+                              {item.story ? (
+                                <p className="whitespace-pre-wrap">
+                                  {item.story.length > 150
+                                    ? `${item.story.substring(0, 150)}...`
+                                    : item.story}
+                                </p>
+                              ) : (
+                                <p className="italic text-gray-500">
+                                  No story available
+                                </p>
+                              )}
+                            </div>
+                          ) : (
+                            <p className="line-clamp-2">
+                              {item.description || "No description available"}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -422,17 +574,18 @@ const Gallery = () => {
                 <div className="bg-white border border-gray-200 rounded p-8 text-center">
                   <Camera className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    {galleryItems.length === 0 ? 'No media at the moment' : 'No media found'}
+                    {galleryItems.length === 0
+                      ? "No media at the moment"
+                      : "No media found"}
                   </h3>
                   <p className="text-gray-600 mb-4">
-                    {galleryItems.length === 0 
-                      ? 'Check back later for new gallery content.' 
-                      : 'Try selecting a different category to explore our gallery.'
-                    }
+                    {galleryItems.length === 0
+                      ? "Check back later for new gallery content."
+                      : "Try selecting a different category to explore our gallery."}
                   </p>
                   {galleryItems.length > 0 && (
                     <button
-                      onClick={() => setSelectedFilter('all')}
+                      onClick={() => setSelectedFilter("all")}
                       className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                     >
                       Show All Media
@@ -444,23 +597,39 @@ const Gallery = () => {
               {/* Load More Button - Only show if there are more items to load */}
               {!loading && !error && hasMore && displayedItems.length > 0 && (
                 <div className="text-center mt-8 sm:mt-12">
-                  <button 
+                  <button
                     onClick={loadMoreItems}
                     disabled={loadingMore}
                     className={`border-2 border-orange-600 text-orange-600 px-6 py-2 sm:px-8 sm:py-3 font-medium hover:bg-orange-600 hover:text-white transition-all duration-300 uppercase tracking-wide rounded text-sm sm:text-base ${
-                      loadingMore ? 'opacity-75 cursor-not-allowed' : ''
+                      loadingMore ? "opacity-75 cursor-not-allowed" : ""
                     }`}
                   >
                     {loadingMore ? (
                       <div className="flex items-center">
-                        <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        <svg
+                          className="animate-spin -ml-1 mr-3 h-4 w-4 text-current"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
                         </svg>
                         Loading More...
                       </div>
                     ) : (
-                      'Load More Media'
+                      "Load More Media"
                     )}
                   </button>
                 </div>
@@ -472,34 +641,52 @@ const Gallery = () => {
 
       {/* Modal */}
       {selectedMedia && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-90" onClick={closeModal}>
-          <div className="relative max-w-3xl w-full bg-white rounded-lg overflow-hidden max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-90"
+          onClick={closeModal}
+        >
+          <div
+            className="relative max-w-4xl w-full bg-white rounded-lg overflow-hidden max-h-[90vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
               onClick={closeModal}
               className="absolute top-2 right-2 z-10 bg-black bg-opacity-50 text-white p-1 rounded-full hover:bg-opacity-75 transition-colors"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
-            
+
             <div className="flex-1 overflow-hidden">
               <img
-                src={selectedMedia.imageUrl || '/placeholder-image.jpg'}
+                src={selectedMedia.imageUrl || "/placeholder-image.jpg"}
                 alt={selectedMedia.title}
-                className="w-full h-full object-contain max-h-[60vh]"
+                className={`w-full h-full object-cover ${
+                  selectedMedia.isStory ? "max-h-[50vh]" : "max-h-[60vh]"
+                }`}
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
-                  target.src = '/placeholder-image.jpg';
+                  target.src = "/placeholder-image.jpg";
                 }}
               />
             </div>
-            
+
             <div className="p-4 sm:p-6 overflow-y-auto">
               <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
                 <div className="flex-1">
                   <span className="text-red-600 font-medium text-sm uppercase tracking-wide">
-                    {selectedMedia.category.replace(/([A-Z])/g, ' $1').trim()}
+                    {selectedMedia.category.replace(/([A-Z])/g, " $1").trim()}
                   </span>
                   <h2 className="text-lg sm:text-xl font-bold text-gray-900 mt-1 mb-2">
                     {selectedMedia.title}
@@ -513,12 +700,50 @@ const Gallery = () => {
                       <MapPin className="w-4 h-4 mr-1 text-red-600" />
                       {selectedMedia.location}
                     </div>
+                    {selectedMedia.isStory && selectedMedia.patient_name && (
+                      <div className="flex items-center">
+                        <Users className="w-4 h-4 mr-1 text-red-600" />
+                        {selectedMedia.patient_name}{" "}
+                        {selectedMedia.age && `(${selectedMedia.age} years)`}
+                      </div>
+                    )}
+                    {selectedMedia.isStory && selectedMedia.condition && (
+                      <div className="flex items-center">
+                        <Stethoscope className="w-4 h-4 mr-1 text-red-600" />
+                        {selectedMedia.condition}
+                      </div>
+                    )}
                   </div>
-                  <p className="text-gray-700 text-sm sm:text-base leading-relaxed">
-                    {selectedMedia.description || 'No description available'}
-                  </p>
+                  <div className="text-gray-700 text-sm sm:text-base leading-relaxed">
+                    {selectedMedia.isStory ? (
+                      <div className="space-y-4">
+                        {selectedMedia.story ? (
+                          <div className="bg-gray-50 p-4 rounded-lg border-l-4 border-green-500">
+                            <h4 className="font-semibold text-gray-900 mb-2 flex items-center">
+                              <Stethoscope className="w-4 h-4 mr-2 text-green-600" />
+                              Success Story
+                            </h4>
+                            <div className="prose prose-sm max-w-none">
+                              <p className="whitespace-pre-wrap text-gray-700 leading-relaxed">
+                                {selectedMedia.story}
+                              </p>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="italic text-gray-500">
+                            No story available
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="leading-relaxed">
+                        {selectedMedia.description ||
+                          "No description available"}
+                      </p>
+                    )}
+                  </div>
                 </div>
-                
+
                 <div className="flex space-x-2 sm:ml-4">
                   <button className="p-2 text-gray-600 hover:text-red-600 transition-colors">
                     <Download className="w-5 h-5" />
@@ -540,20 +765,23 @@ const Gallery = () => {
             STAY CONNECTED WITH OUR WORK
           </h2>
           <p className="text-xl mb-8 max-w-2xl mx-auto">
-            Subscribe to receive updates about our latest programs, events, and the inspiring stories from our community.
+            Subscribe to receive updates about our latest programs, events, and
+            the inspiring stories from our community.
           </p>
-          
+
           <form onSubmit={handleSubscribe} className="max-w-md mx-auto">
             {subscriptionStatus && (
-              <div className={`mb-4 p-3 rounded-md ${
-                subscriptionStatus.type === 'success' 
-                  ? 'bg-green-100 text-green-800' 
-                  : 'bg-red-100 text-red-800'
-              }`}>
+              <div
+                className={`mb-4 p-3 rounded-md ${
+                  subscriptionStatus.type === "success"
+                    ? "bg-green-100 text-green-800"
+                    : "bg-red-100 text-red-800"
+                }`}
+              >
                 {subscriptionStatus.message}
               </div>
             )}
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
                 <input
@@ -576,7 +804,7 @@ const Gallery = () => {
                 />
               </div>
             </div>
-            
+
             <div className="relative mb-4">
               <input
                 type="email"
@@ -586,15 +814,15 @@ const Gallery = () => {
                 className="w-full px-6 py-4 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-white"
                 required
               />
-              <button 
+              <button
                 type="submit"
                 disabled={isSubmitting}
                 className={`absolute right-2 top-2 bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 transition-colors flex items-center ${
-                  isSubmitting ? 'opacity-75 cursor-not-allowed' : ''
+                  isSubmitting ? "opacity-75 cursor-not-allowed" : ""
                 }`}
               >
                 {isSubmitting ? (
-                  'Subscribing...'
+                  "Subscribing..."
                 ) : (
                   <>
                     <Mail className="mr-2 h-4 w-4" />
@@ -603,12 +831,28 @@ const Gallery = () => {
                 )}
               </button>
             </div>
-            
+
             <p className="text-sm text-orange-100 opacity-90">
-              This site is protected by reCAPTCHA and the Google{' '}
-              <a href="https://policies.google.com/privacy" className="underline hover:text-white">Privacy Policy</a>, and{' '}
-              <a href="https://policies.google.com/terms" className="underline hover:text-white">Terms of Service</a> apply. By submitting your email to subscribe, you agree to the ACNA's{' '}
-              <a href="/privacy-policy" className="underline hover:text-white">Privacy & Cookies Notice</a>.
+              This site is protected by reCAPTCHA and the Google{" "}
+              <a
+                href="https://policies.google.com/privacy"
+                className="underline hover:text-white"
+              >
+                Privacy Policy
+              </a>
+              , and{" "}
+              <a
+                href="https://policies.google.com/terms"
+                className="underline hover:text-white"
+              >
+                Terms of Service
+              </a>{" "}
+              apply. By submitting your email to subscribe, you agree to the
+              ACNA's{" "}
+              <a href="/privacy-policy" className="underline hover:text-white">
+                Privacy & Cookies Notice
+              </a>
+              .
             </p>
           </form>
         </div>
