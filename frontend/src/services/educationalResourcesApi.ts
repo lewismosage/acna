@@ -339,7 +339,7 @@ export const educationalResourcesApi = {
       'publicationDate': 'publication_date',
     };
 
-    // Handle array fields by stringifying them
+    // Handle array fields by appending with indexed keys
     const arrayFields = [
       'languages', 'tags', 'targetAudience', 'relatedConditions', 
       'learningObjectives', 'prerequisites', 'references'
@@ -349,7 +349,10 @@ export const educationalResourcesApi = {
       const backendKey = fieldMapping[key] || key;
       
       if (arrayFields.includes(key) && Array.isArray(value)) {
-        formData.append(backendKey, JSON.stringify(value));
+        // Append array items with indexed keys (e.g., tags[0], tags[1])
+        value.forEach((item, index) => {
+          formData.append(`${backendKey}[${index}]`, item);
+        });
       } else if (key === 'imageFile' && value instanceof File) {
         formData.append('image', value);
       } else if (key === 'resourceFile' && value instanceof File) {
@@ -396,7 +399,7 @@ export const educationalResourcesApi = {
       'publicationDate': 'publication_date',
     };
 
-    // Handle array fields by stringifying them
+    // Handle array fields by appending with indexed keys
     const arrayFields = [
       'languages', 'tags', 'targetAudience', 'relatedConditions', 
       'learningObjectives', 'prerequisites', 'references'
@@ -406,7 +409,10 @@ export const educationalResourcesApi = {
       const backendKey = fieldMapping[key] || key;
       
       if (arrayFields.includes(key) && Array.isArray(value)) {
-        formData.append(backendKey, JSON.stringify(value));
+        // Append array items with indexed keys (e.g., tags[0], tags[1])
+        value.forEach((item, index) => {
+          formData.append(`${backendKey}[${index}]`, item);
+        });
       } else if (key === 'imageFile' && value instanceof File) {
         formData.append('image', value);
       } else if (key === 'resourceFile' && value instanceof File) {

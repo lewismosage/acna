@@ -24,8 +24,26 @@ class PatientResourceViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         try:
+            # Debug logging - show raw request data first
+            logger.info(f"=== RAW REQUEST DATA ===")
+            logger.info(f"Request data type: {type(request.data)}")
+            logger.info(f"Request data: {request.data}")
+            logger.info(f"Request FILES: {request.FILES}")
+            
             # Make a mutable copy of the request data
             data = request.data.copy()
+            
+            # Debug logging - show all keys and their types
+            logger.info(f"=== PATIENT RESOURCE CREATE DEBUG ===")
+            logger.info(f"Request data keys: {list(data.keys())}")
+            logger.info(f"Request data: {data}")
+            logger.info(f"Tags type: {type(data.get('tags'))}, value: {data.get('tags')}")
+            logger.info(f"Languages type: {type(data.get('languages'))}, value: {data.get('languages')}")
+            logger.info(f"TargetAudience type: {type(data.get('targetAudience'))}, value: {data.get('targetAudience')}")
+            
+            # Check for indexed array fields
+            indexed_keys = [key for key in data.keys() if '[' in key and ']' in key]
+            logger.info(f"Indexed keys found: {indexed_keys}")
             
             # Handle image file upload
             if 'image' in request.FILES:
@@ -35,23 +53,71 @@ class PatientResourceViewSet(viewsets.ModelViewSet):
                 if file_url:
                     data['image_url'] = file_url
             
-            # Handle empty arrays
-            if 'tags' not in data or not data['tags']:
+            # Handle array fields - convert from indexed format to lists
+            def parse_array_field(field_name):
+                """Parse array field from FormData format (e.g., tags[0], tags[1]) to list"""
+                array_items = []
+                for key, value in data.items():
+                    if key.startswith(f'{field_name}[') and key.endswith(']'):
+                        try:
+                            index = int(key[len(field_name)+1:-1])
+                            array_items.append((index, value))
+                        except ValueError:
+                            continue
+                
+                if array_items:
+                    # Sort by index and extract values
+                    array_items.sort(key=lambda x: x[0])
+                    return [item[1] for item in array_items]
+                return []
+            
+            # Parse array fields
+            tags_array = parse_array_field('tags')
+            languages_array = parse_array_field('languages')
+            target_audience_array = parse_array_field('targetAudience')
+            
+            # Update data with parsed arrays
+            if tags_array:
+                data['tags'] = tags_array
+            elif isinstance(data.get('tags'), str):
+                data['tags'] = [data['tags']] if data['tags'] else []
+            elif isinstance(data.get('tags'), dict):
+                data['tags'] = list(data['tags'].values()) if data['tags'] else []
+            else:
                 data['tags'] = []
-            if 'languages' not in data or not data['languages']:
+            
+            if languages_array:
+                data['languages'] = languages_array
+            elif isinstance(data.get('languages'), str):
+                data['languages'] = [data['languages']] if data['languages'] else []
+            elif isinstance(data.get('languages'), dict):
+                data['languages'] = list(data['languages'].values()) if data['languages'] else []
+            else:
                 data['languages'] = []
-            if 'targetAudience' not in data or not data['targetAudience']:
+            
+            if target_audience_array:
+                data['targetAudience'] = target_audience_array
+            elif isinstance(data.get('targetAudience'), str):
+                data['targetAudience'] = [data['targetAudience']] if data['targetAudience'] else []
+            elif isinstance(data.get('targetAudience'), dict):
+                data['targetAudience'] = list(data['targetAudience'].values()) if data['targetAudience'] else []
+            else:
                 data['targetAudience'] = []
             
-            # Ensure tags, languages, and targetAudience are lists
-            if isinstance(data.get('tags'), str):
-                data['tags'] = [data['tags']] if data['tags'] else []
-            if isinstance(data.get('languages'), str):
-                data['languages'] = [data['languages']] if data['languages'] else []
-            if isinstance(data.get('targetAudience'), str):
-                data['targetAudience'] = [data['targetAudience']] if data['targetAudience'] else []
+            logger.info(f"Final data before serializer: {data}")
+            logger.info(f"Final tags: {data.get('tags')}, type: {type(data.get('tags'))}")
+            logger.info(f"Final languages: {data.get('languages')}, type: {type(data.get('languages'))}")
+            logger.info(f"Final targetAudience: {data.get('targetAudience')}, type: {type(data.get('targetAudience'))}")
             
-            serializer = self.get_serializer(data=data)
+            # Temporarily remove array fields to test basic creation
+            test_data = data.copy()
+            test_data.pop('tags', None)
+            test_data.pop('languages', None)
+            test_data.pop('targetAudience', None)
+            
+            logger.info(f"Testing with data without arrays: {test_data}")
+            
+            serializer = self.get_serializer(data=test_data)
             serializer.is_valid(raise_exception=True)
             
             resource = serializer.save()
@@ -90,12 +156,55 @@ class PatientResourceViewSet(viewsets.ModelViewSet):
                 if file_url:
                     data['image_url'] = file_url
             
-            # Handle arrays
-            if 'tags' in data and not data['tags']:
+            # Handle array fields - convert from indexed format to lists
+            def parse_array_field(field_name):
+                """Parse array field from FormData format (e.g., tags[0], tags[1]) to list"""
+                array_items = []
+                for key, value in data.items():
+                    if key.startswith(f'{field_name}[') and key.endswith(']'):
+                        try:
+                            index = int(key[len(field_name)+1:-1])
+                            array_items.append((index, value))
+                        except ValueError:
+                            continue
+                
+                if array_items:
+                    # Sort by index and extract values
+                    array_items.sort(key=lambda x: x[0])
+                    return [item[1] for item in array_items]
+                return []
+            
+            # Parse array fields
+            tags_array = parse_array_field('tags')
+            languages_array = parse_array_field('languages')
+            target_audience_array = parse_array_field('targetAudience')
+            
+            # Update data with parsed arrays
+            if tags_array:
+                data['tags'] = tags_array
+            elif isinstance(data.get('tags'), str):
+                data['tags'] = [data['tags']] if data['tags'] else []
+            elif isinstance(data.get('tags'), dict):
+                data['tags'] = list(data['tags'].values()) if data['tags'] else []
+            elif 'tags' in data and not data['tags']:
                 data['tags'] = []
-            if 'languages' in data and not data['languages']:
+            
+            if languages_array:
+                data['languages'] = languages_array
+            elif isinstance(data.get('languages'), str):
+                data['languages'] = [data['languages']] if data['languages'] else []
+            elif isinstance(data.get('languages'), dict):
+                data['languages'] = list(data['languages'].values()) if data['languages'] else []
+            elif 'languages' in data and not data['languages']:
                 data['languages'] = []
-            if 'targetAudience' in data and not data['targetAudience']:
+            
+            if target_audience_array:
+                data['targetAudience'] = target_audience_array
+            elif isinstance(data.get('targetAudience'), str):
+                data['targetAudience'] = [data['targetAudience']] if data['targetAudience'] else []
+            elif isinstance(data.get('targetAudience'), dict):
+                data['targetAudience'] = list(data['targetAudience'].values()) if data['targetAudience'] else []
+            elif 'targetAudience' in data and not data['targetAudience']:
                 data['targetAudience'] = []
             
             serializer = self.get_serializer(instance, data=data, partial=partial)

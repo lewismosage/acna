@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import {
   User,
   Heart,
@@ -12,13 +12,13 @@ import {
   Loader,
   CheckCircle,
   AlertCircle,
-  ArrowLeft
-} from 'lucide-react';
+  ArrowLeft,
+} from "lucide-react";
 import {
   careersApi,
-  CreateVolunteerSubmissionInput
-} from '../../services/careersAPI';
-import ScrollToTop from '../../components/common/ScrollToTop';
+  CreateVolunteerSubmissionInput,
+} from "../../services/careersAPI";
+import ScrollToTop from "../../components/common/ScrollToTop";
 
 interface FormData {
   name: string;
@@ -38,15 +38,15 @@ interface FormErrors {
 
 const VolunteerForm: React.FC = () => {
   const [formData, setFormData] = useState<FormData>({
-    name: '',
-    email: '',
-    phone: '',
-    location: '',
-    interests: [''],
-    skills: [''],
-    availability: '',
-    experience: '',
-    motivation: ''
+    name: "",
+    email: "",
+    phone: "",
+    location: "",
+    interests: [""],
+    skills: [""],
+    availability: "",
+    experience: "",
+    motivation: "",
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
@@ -56,86 +56,90 @@ const VolunteerForm: React.FC = () => {
 
   // Predefined options
   const availabilityOptions = [
-    'Weekdays (9AM-5PM)',
-    'Weekends only',
-    'Evenings (5PM-8PM)',
-    'Flexible schedule',
-    'One-time events only',
-    'Monthly commitment',
-    'Weekly commitment'
+    "Weekdays (9AM-5PM)",
+    "Weekends only",
+    "Evenings (5PM-8PM)",
+    "Flexible schedule",
+    "One-time events only",
+    "Monthly commitment",
+    "Weekly commitment",
   ];
 
   const commonInterests = [
-    'Child Health Education',
-    'Community Outreach',
-    'Healthcare Training',
-    'Research Support',
-    'Event Organization',
-    'Social Media & Communications',
-    'Translation Services',
-    'Fundraising',
-    'Administrative Support',
-    'Website/Tech Support'
+    "Child Health Education",
+    "Community Outreach",
+    "Healthcare Training",
+    "Research Support",
+    "Event Organization",
+    "Social Media & Communications",
+    "Translation Services",
+    "Fundraising",
+    "Administrative Support",
+    "Website/Tech Support",
   ];
 
   const commonSkills = [
-    'Communication',
-    'Event Planning',
-    'Writing',
-    'Translation',
-    'Social Media',
-    'Photography',
-    'Graphic Design',
-    'Web Development',
-    'Teaching/Training',
-    'Research',
-    'Administrative',
-    'Healthcare Background',
-    'Project Management',
-    'Public Speaking'
+    "Communication",
+    "Event Planning",
+    "Writing",
+    "Translation",
+    "Social Media",
+    "Photography",
+    "Graphic Design",
+    "Web Development",
+    "Teaching/Training",
+    "Research",
+    "Administrative",
+    "Healthcare Background",
+    "Project Management",
+    "Public Speaking",
   ];
 
   const locations = [
-    'Nairobi, Kenya',
-    'Abuja, Nigeria',
-    'Lagos, Nigeria',
-    'Accra, Ghana',
-    'Cape Town, South Africa',
-    'Addis Ababa, Ethiopia',
-    'Kampala, Uganda',
-    'Dar es Salaam, Tanzania',
-    'Dakar, Senegal',
-    'Johannesburg, South Africa',
-    'Other - Please specify in motivation'
+    "Nairobi, Kenya",
+    "Abuja, Nigeria",
+    "Lagos, Nigeria",
+    "Accra, Ghana",
+    "Cape Town, South Africa",
+    "Addis Ababa, Ethiopia",
+    "Kampala, Uganda",
+    "Dar es Salaam, Tanzania",
+    "Dakar, Senegal",
+    "Johannesburg, South Africa",
+    "Other - Please specify in motivation",
   ];
 
   const handleInputChange = (field: keyof FormData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+      setErrors((prev) => ({ ...prev, [field]: "" }));
     }
   };
 
-  const handleArrayChange = (field: 'interests' | 'skills', index: number, value: string) => {
-    setFormData(prev => ({
+  const handleArrayChange = (
+    field: "interests" | "skills",
+    index: number,
+    value: string
+  ) => {
+    setFormData((prev) => ({
       ...prev,
-      [field]: prev[field].map((item, i) => i === index ? value : item)
+      [field]: prev[field].map((item, i) => (i === index ? value : item)),
     }));
   };
 
-  const addArrayItem = (field: 'interests' | 'skills') => {
-    setFormData(prev => ({
+  const addArrayItem = (field: "interests" | "skills") => {
+    setFormData((prev) => ({
       ...prev,
-      [field]: [...prev[field], '']
+      [field]: [...prev[field], ""],
     }));
   };
 
-  const removeArrayItem = (field: 'interests' | 'skills', index: number) => {
+  const removeArrayItem = (field: "interests" | "skills", index: number) => {
     if (formData[field].length > 1) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        [field]: prev[field].filter((_, i) => i !== index)
+        [field]: prev[field].filter((_, i) => i !== index),
       }));
     }
   };
@@ -144,24 +148,30 @@ const VolunteerForm: React.FC = () => {
     const newErrors: FormErrors = {};
 
     // Required field validation
-    if (!formData.name.trim()) newErrors.name = 'Name is required';
+    if (!formData.name.trim()) newErrors.name = "Name is required";
     if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
+      newErrors.email = "Email is required";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
+      newErrors.email = "Please enter a valid email address";
     }
-    if (!formData.phone.trim()) newErrors.phone = 'Phone number is required';
-    if (!formData.location.trim()) newErrors.location = 'Location is required';
-    if (!formData.availability.trim()) newErrors.availability = 'Availability is required';
-    if (!formData.experience.trim()) newErrors.experience = 'Experience is required';
-    if (!formData.motivation.trim()) newErrors.motivation = 'Motivation is required';
+    if (!formData.phone.trim()) newErrors.phone = "Phone number is required";
+    if (!formData.location.trim()) newErrors.location = "Location is required";
+    if (!formData.availability.trim())
+      newErrors.availability = "Availability is required";
+    if (!formData.experience.trim())
+      newErrors.experience = "Experience is required";
+    if (!formData.motivation.trim())
+      newErrors.motivation = "Motivation is required";
 
     // Array validation
-    const hasValidInterests = formData.interests.some(interest => interest.trim());
-    if (!hasValidInterests) newErrors.interests = 'At least one interest is required';
+    const hasValidInterests = formData.interests.some((interest) =>
+      interest.trim()
+    );
+    if (!hasValidInterests)
+      newErrors.interests = "At least one interest is required";
 
-    const hasValidSkills = formData.skills.some(skill => skill.trim());
-    if (!hasValidSkills) newErrors.skills = 'At least one skill is required';
+    const hasValidSkills = formData.skills.some((skill) => skill.trim());
+    if (!hasValidSkills) newErrors.skills = "At least one skill is required";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -169,7 +179,7 @@ const VolunteerForm: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -181,15 +191,23 @@ const VolunteerForm: React.FC = () => {
       // Clean up the data before sending
       const cleanedData: CreateVolunteerSubmissionInput = {
         ...formData,
-        interests: formData.interests.filter(interest => interest.trim()),
-        skills: formData.skills.filter(skill => skill.trim())
+        interests: formData.interests.filter((interest) => interest.trim()),
+        skills: formData.skills.filter((skill) => skill.trim()),
       };
 
       await careersApi.createVolunteerSubmission(cleanedData);
       setSubmitted(true);
-    } catch (error) {
-      console.error('Error submitting volunteer application:', error);
-      setSubmitError('Failed to submit your application. Please try again.');
+    } catch (error: any) {
+      console.error("Error submitting volunteer application:", error);
+
+      // Handle duplicate application error
+      if (error.response?.status === 409) {
+        setSubmitError(
+          "You have already submitted a volunteer application with ACNA. Please use a different email address or contact us if you need to update your application."
+        );
+      } else {
+        setSubmitError("Failed to submit your application. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -204,10 +222,14 @@ const VolunteerForm: React.FC = () => {
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <CheckCircle className="w-8 h-8 text-green-600" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Application Submitted!</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              Application Submitted!
+            </h2>
             <p className="text-gray-600 mb-6">
-              Thank you for your interest in volunteering with ACNA. We've received your application 
-              and will review it shortly. Our team will be in touch with you soon.
+              Thank you for your interest in volunteering with ACNA. We've
+              received your application and will review it shortly. You should
+              receive a confirmation email at <strong>{formData.email}</strong>{" "}
+              shortly. Our team will be in touch with you soon.
             </p>
             <div className="space-y-3">
               <Link
@@ -244,8 +266,12 @@ const VolunteerForm: React.FC = () => {
               Back
             </Link>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Volunteer Application</h1>
-              <p className="text-gray-600">Join our mission to improve child health across Africa</p>
+              <h1 className="text-2xl font-bold text-gray-900">
+                Volunteer Application
+              </h1>
+              <p className="text-gray-600">
+                Join our mission to improve child health across Africa
+              </p>
             </div>
           </div>
         </div>
@@ -253,7 +279,10 @@ const VolunteerForm: React.FC = () => {
 
       {/* Form */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <form
+          onSubmit={handleSubmit}
+          className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
+        >
           <div className="p-6 sm:p-8">
             {/* Error Alert */}
             {submitError && (
@@ -277,13 +306,15 @@ const VolunteerForm: React.FC = () => {
                   <input
                     type="text"
                     value={formData.name}
-                    onChange={(e) => handleInputChange('name', e.target.value)}
+                    onChange={(e) => handleInputChange("name", e.target.value)}
                     className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-600 ${
-                      errors.name ? 'border-red-300' : 'border-gray-300'
+                      errors.name ? "border-red-300" : "border-gray-300"
                     }`}
                     placeholder="Enter your full name"
                   />
-                  {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+                  {errors.name && (
+                    <p className="text-red-500 text-xs mt-1">{errors.name}</p>
+                  )}
                 </div>
 
                 <div>
@@ -293,13 +324,15 @@ const VolunteerForm: React.FC = () => {
                   <input
                     type="email"
                     value={formData.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
+                    onChange={(e) => handleInputChange("email", e.target.value)}
                     className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-600 ${
-                      errors.email ? 'border-red-300' : 'border-gray-300'
+                      errors.email ? "border-red-300" : "border-gray-300"
                     }`}
                     placeholder="Enter your email address"
                   />
-                  {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+                  {errors.email && (
+                    <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+                  )}
                 </div>
 
                 <div>
@@ -309,13 +342,15 @@ const VolunteerForm: React.FC = () => {
                   <input
                     type="tel"
                     value={formData.phone}
-                    onChange={(e) => handleInputChange('phone', e.target.value)}
+                    onChange={(e) => handleInputChange("phone", e.target.value)}
                     className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-600 ${
-                      errors.phone ? 'border-red-300' : 'border-gray-300'
+                      errors.phone ? "border-red-300" : "border-gray-300"
                     }`}
                     placeholder="Enter your phone number"
                   />
-                  {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
+                  {errors.phone && (
+                    <p className="text-red-500 text-xs mt-1">{errors.phone}</p>
+                  )}
                 </div>
 
                 <div>
@@ -324,17 +359,25 @@ const VolunteerForm: React.FC = () => {
                   </label>
                   <select
                     value={formData.location}
-                    onChange={(e) => handleInputChange('location', e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("location", e.target.value)
+                    }
                     className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-600 ${
-                      errors.location ? 'border-red-300' : 'border-gray-300'
+                      errors.location ? "border-red-300" : "border-gray-300"
                     }`}
                   >
                     <option value="">Select your location</option>
-                    {locations.map(location => (
-                      <option key={location} value={location}>{location}</option>
+                    {locations.map((location) => (
+                      <option key={location} value={location}>
+                        {location}
+                      </option>
                     ))}
                   </select>
-                  {errors.location && <p className="text-red-500 text-xs mt-1">{errors.location}</p>}
+                  {errors.location && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.location}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -346,26 +389,33 @@ const VolunteerForm: React.FC = () => {
                 Areas of Interest *
               </h2>
               <p className="text-sm text-gray-600 mb-4">
-                Select or enter the areas where you'd like to volunteer. You can choose from common options or add your own.
+                Select or enter the areas where you'd like to volunteer. You can
+                choose from common options or add your own.
               </p>
-              
+
               {/* Quick select buttons */}
               <div className="mb-4">
-                <p className="text-sm font-medium text-gray-700 mb-2">Quick select:</p>
+                <p className="text-sm font-medium text-gray-700 mb-2">
+                  Quick select:
+                </p>
                 <div className="flex flex-wrap gap-2">
-                  {commonInterests.map(interest => (
+                  {commonInterests.map((interest) => (
                     <button
                       key={interest}
                       type="button"
                       onClick={() => {
-                        const hasEmpty = formData.interests.some(item => item.trim() === '');
+                        const hasEmpty = formData.interests.some(
+                          (item) => item.trim() === ""
+                        );
                         if (hasEmpty) {
-                          const emptyIndex = formData.interests.findIndex(item => item.trim() === '');
-                          handleArrayChange('interests', emptyIndex, interest);
+                          const emptyIndex = formData.interests.findIndex(
+                            (item) => item.trim() === ""
+                          );
+                          handleArrayChange("interests", emptyIndex, interest);
                         } else {
-                          setFormData(prev => ({
+                          setFormData((prev) => ({
                             ...prev,
-                            interests: [...prev.interests, interest]
+                            interests: [...prev.interests, interest],
                           }));
                         }
                       }}
@@ -383,14 +433,16 @@ const VolunteerForm: React.FC = () => {
                     <input
                       type="text"
                       value={interest}
-                      onChange={(e) => handleArrayChange('interests', index, e.target.value)}
+                      onChange={(e) =>
+                        handleArrayChange("interests", index, e.target.value)
+                      }
                       className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-600"
                       placeholder={`Interest ${index + 1}`}
                     />
                     {formData.interests.length > 1 && (
                       <button
                         type="button"
-                        onClick={() => removeArrayItem('interests', index)}
+                        onClick={() => removeArrayItem("interests", index)}
                         className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg border border-red-300"
                       >
                         <X className="w-4 h-4" />
@@ -400,14 +452,16 @@ const VolunteerForm: React.FC = () => {
                 ))}
                 <button
                   type="button"
-                  onClick={() => addArrayItem('interests')}
+                  onClick={() => addArrayItem("interests")}
                   className="text-orange-600 hover:text-orange-700 text-sm font-medium flex items-center"
                 >
                   <Plus className="w-4 h-4 mr-1" />
                   Add Another Interest
                 </button>
               </div>
-              {errors.interests && <p className="text-red-500 text-xs mt-1">{errors.interests}</p>}
+              {errors.interests && (
+                <p className="text-red-500 text-xs mt-1">{errors.interests}</p>
+              )}
             </div>
 
             {/* Skills */}
@@ -417,26 +471,33 @@ const VolunteerForm: React.FC = () => {
                 Skills & Expertise *
               </h2>
               <p className="text-sm text-gray-600 mb-4">
-                Tell us about your skills and expertise that could benefit our mission.
+                Tell us about your skills and expertise that could benefit our
+                mission.
               </p>
-              
+
               {/* Quick select buttons */}
               <div className="mb-4">
-                <p className="text-sm font-medium text-gray-700 mb-2">Quick select:</p>
+                <p className="text-sm font-medium text-gray-700 mb-2">
+                  Quick select:
+                </p>
                 <div className="flex flex-wrap gap-2">
-                  {commonSkills.map(skill => (
+                  {commonSkills.map((skill) => (
                     <button
                       key={skill}
                       type="button"
                       onClick={() => {
-                        const hasEmpty = formData.skills.some(item => item.trim() === '');
+                        const hasEmpty = formData.skills.some(
+                          (item) => item.trim() === ""
+                        );
                         if (hasEmpty) {
-                          const emptyIndex = formData.skills.findIndex(item => item.trim() === '');
-                          handleArrayChange('skills', emptyIndex, skill);
+                          const emptyIndex = formData.skills.findIndex(
+                            (item) => item.trim() === ""
+                          );
+                          handleArrayChange("skills", emptyIndex, skill);
                         } else {
-                          setFormData(prev => ({
+                          setFormData((prev) => ({
                             ...prev,
-                            skills: [...prev.skills, skill]
+                            skills: [...prev.skills, skill],
                           }));
                         }
                       }}
@@ -454,14 +515,16 @@ const VolunteerForm: React.FC = () => {
                     <input
                       type="text"
                       value={skill}
-                      onChange={(e) => handleArrayChange('skills', index, e.target.value)}
+                      onChange={(e) =>
+                        handleArrayChange("skills", index, e.target.value)
+                      }
                       className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-600"
                       placeholder={`Skill ${index + 1}`}
                     />
                     {formData.skills.length > 1 && (
                       <button
                         type="button"
-                        onClick={() => removeArrayItem('skills', index)}
+                        onClick={() => removeArrayItem("skills", index)}
                         className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg border border-red-300"
                       >
                         <X className="w-4 h-4" />
@@ -471,14 +534,16 @@ const VolunteerForm: React.FC = () => {
                 ))}
                 <button
                   type="button"
-                  onClick={() => addArrayItem('skills')}
+                  onClick={() => addArrayItem("skills")}
                   className="text-orange-600 hover:text-orange-700 text-sm font-medium flex items-center"
                 >
                   <Plus className="w-4 h-4 mr-1" />
                   Add Another Skill
                 </button>
               </div>
-              {errors.skills && <p className="text-red-500 text-xs mt-1">{errors.skills}</p>}
+              {errors.skills && (
+                <p className="text-red-500 text-xs mt-1">{errors.skills}</p>
+              )}
             </div>
 
             {/* Availability */}
@@ -488,21 +553,27 @@ const VolunteerForm: React.FC = () => {
                 Availability *
               </h2>
               <div className="space-y-2">
-                {availabilityOptions.map(option => (
+                {availabilityOptions.map((option) => (
                   <label key={option} className="flex items-center">
                     <input
                       type="radio"
                       name="availability"
                       value={option}
                       checked={formData.availability === option}
-                      onChange={(e) => handleInputChange('availability', e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("availability", e.target.value)
+                      }
                       className="text-orange-600 focus:ring-orange-600"
                     />
                     <span className="ml-2 text-sm text-gray-700">{option}</span>
                   </label>
                 ))}
               </div>
-              {errors.availability && <p className="text-red-500 text-xs mt-1">{errors.availability}</p>}
+              {errors.availability && (
+                <p className="text-red-500 text-xs mt-1">
+                  {errors.availability}
+                </p>
+              )}
             </div>
 
             {/* Experience */}
@@ -513,14 +584,18 @@ const VolunteerForm: React.FC = () => {
               </h2>
               <textarea
                 value={formData.experience}
-                onChange={(e) => handleInputChange('experience', e.target.value)}
+                onChange={(e) =>
+                  handleInputChange("experience", e.target.value)
+                }
                 rows={4}
                 className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-600 ${
-                  errors.experience ? 'border-red-300' : 'border-gray-300'
+                  errors.experience ? "border-red-300" : "border-gray-300"
                 }`}
                 placeholder="Tell us about your relevant experience, education, or background that makes you a good fit for volunteering with ACNA..."
               />
-              {errors.experience && <p className="text-red-500 text-xs mt-1">{errors.experience}</p>}
+              {errors.experience && (
+                <p className="text-red-500 text-xs mt-1">{errors.experience}</p>
+              )}
             </div>
 
             {/* Motivation */}
@@ -531,14 +606,18 @@ const VolunteerForm: React.FC = () => {
               </h2>
               <textarea
                 value={formData.motivation}
-                onChange={(e) => handleInputChange('motivation', e.target.value)}
+                onChange={(e) =>
+                  handleInputChange("motivation", e.target.value)
+                }
                 rows={4}
                 className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-600 ${
-                  errors.motivation ? 'border-red-300' : 'border-gray-300'
+                  errors.motivation ? "border-red-300" : "border-gray-300"
                 }`}
                 placeholder="Share your motivation for wanting to volunteer with ACNA and how you hope to contribute to our mission of improving child health across Africa..."
               />
-              {errors.motivation && <p className="text-red-500 text-xs mt-1">{errors.motivation}</p>}
+              {errors.motivation && (
+                <p className="text-red-500 text-xs mt-1">{errors.motivation}</p>
+              )}
             </div>
           </div>
 
@@ -546,7 +625,8 @@ const VolunteerForm: React.FC = () => {
           <div className="bg-gray-50 px-6 sm:px-8 py-4 border-t border-gray-200">
             <div className="flex flex-col sm:flex-row gap-3 sm:justify-between sm:items-center">
               <p className="text-xs text-gray-500">
-                * Required fields. Your information will be kept confidential and used only for volunteer coordination purposes.
+                * Required fields. Your information will be kept confidential
+                and used only for volunteer coordination purposes.
               </p>
               <div className="flex gap-3">
                 <Link
@@ -566,7 +646,7 @@ const VolunteerForm: React.FC = () => {
                       Submitting...
                     </>
                   ) : (
-                    'Submit Application'
+                    "Submit Application"
                   )}
                 </button>
               </div>

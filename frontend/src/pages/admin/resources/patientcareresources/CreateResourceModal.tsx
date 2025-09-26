@@ -10,29 +10,24 @@ import {
   CheckCircle,
   AlertCircle,
   Tag,
-  Languages,
-  Users,
-  Target,
-  Clock,
   Star,
   Eye,
   EyeOff,
-  Link,
   Image as ImageIcon,
 } from "lucide-react";
 import { patientCareApi } from "../../../../services/patientCareApi";
 
-import {
-  PatientResource,
-  ResourceAnalytics,
-  ResourceType,
-  ResourceStatus,
-} from "./patientCare";
+import { PatientResource, ResourceType, ResourceStatus } from "./patientCare";
 
 interface CreatePatientCareModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (resource: PatientResource & { imageFile?: File | null }) => void;
+  onSubmit: (
+    resource: PatientResource & {
+      imageFile?: File | null;
+      fileUpload?: File | null;
+    }
+  ) => void;
   editingResource?: PatientResource;
 }
 
@@ -49,6 +44,7 @@ interface FormData {
   isFree: boolean;
   imageFile: File | null;
   fileUrl: string;
+  fileUpload: File | null;
   externalUrl: string;
   tags: string[];
   targetAudience: string[];
@@ -83,6 +79,7 @@ const CreatePatientCareModal: React.FC<CreatePatientCareModalProps> = ({
     isFree: true,
     imageFile: null,
     fileUrl: "",
+    fileUpload: null,
     externalUrl: "",
     tags: [],
     targetAudience: ["Parents"],
@@ -175,6 +172,7 @@ const CreatePatientCareModal: React.FC<CreatePatientCareModalProps> = ({
         isFree: editingResource.isFree || true,
         imageFile: null,
         fileUrl: editingResource.fileUrl || "",
+        fileUpload: null,
         externalUrl: editingResource.externalUrl || "",
         tags: editingResource.tags || [],
         targetAudience: editingResource.targetAudience || ["Parents"],
@@ -199,6 +197,7 @@ const CreatePatientCareModal: React.FC<CreatePatientCareModalProps> = ({
         isFree: true,
         imageFile: null,
         fileUrl: "",
+        fileUpload: null,
         externalUrl: "",
         tags: [],
         targetAudience: ["Parents"],
@@ -246,9 +245,11 @@ const CreatePatientCareModal: React.FC<CreatePatientCareModalProps> = ({
         (formData.type === "Guide" ||
           formData.type === "Checklist" ||
           formData.type === "Handbook") &&
-        !formData.fileUrl.trim()
+        !formData.fileUrl.trim() &&
+        !formData.fileUpload
       ) {
-        newErrors.fileUrl = "File URL is required for downloadable resources";
+        newErrors.fileUrl =
+          "File URL or file upload is required for downloadable resources";
       }
     }
 
@@ -296,6 +297,21 @@ const CreatePatientCareModal: React.FC<CreatePatientCareModalProps> = ({
       }
 
       handleInputChange("imageFile", file);
+    }
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validate file size (50MB max)
+      if (file.size > 50 * 1024 * 1024) {
+        setErrors({ ...errors, fileUpload: "File must be less than 50MB" });
+        return;
+      }
+
+      handleInputChange("fileUpload", file);
+      // Clear any existing file URL when uploading a new file
+      handleInputChange("fileUrl", "");
     }
   };
 
@@ -384,10 +400,31 @@ const CreatePatientCareModal: React.FC<CreatePatientCareModalProps> = ({
         }
       }
 
+      // Upload file if there's a new one
+      let fileUrl = formData.fileUrl;
+
+      if (formData.fileUpload) {
+        try {
+          const uploadResponse = await patientCareApi.uploadFile(
+            formData.fileUpload
+          );
+          fileUrl = uploadResponse.url;
+        } catch (error) {
+          console.error("Error uploading file:", error);
+          setErrors({
+            ...errors,
+            fileUpload: "Failed to upload file. Please try again.",
+          });
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
       const resourceData: PatientResource = {
         id: editingResource?.id || Date.now(),
         ...formData,
         imageUrl,
+        fileUrl,
         language: formData.languages,
         downloadCount: editingResource?.downloadCount || 0,
         viewCount: editingResource?.viewCount || 0,
@@ -844,39 +881,93 @@ const CreatePatientCareModal: React.FC<CreatePatientCareModalProps> = ({
         </div>
       )}
 
-      {/* File URL (for downloadable resources) */}
+      {/* File Upload/URL (for downloadable resources) */}
       {(formData.type === "Guide" ||
         formData.type === "Checklist" ||
         formData.type === "Handbook" ||
         formData.type === "Audio") && (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            File URL{" "}
+            Resource File{" "}
             {(formData.type === "Guide" ||
               formData.type === "Checklist" ||
               formData.type === "Handbook") &&
               "*"}
           </label>
-          <div className="flex gap-3">
+
+          {/* File Upload Option */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-600 mb-2">
+              Upload from Device
+            </label>
+            <div className="flex items-center gap-4">
+              <label className="flex flex-col items-center justify-center w-32 h-24 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-orange-500 transition-colors">
+                <Upload className="w-6 h-6 text-gray-400 mb-1" />
+                <span className="text-xs text-gray-600 text-center px-2">
+                  {formData.fileUpload ? "Change File" : "Upload File"}
+                </span>
+                <input
+                  type="file"
+                  accept=".pdf,.doc,.docx,.txt,.rtf,.odt,.ppt,.pptx,.xls,.xlsx,.zip,.rar"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+              </label>
+
+              {formData.fileUpload && (
+                <div className="flex flex-col items-center">
+                  <div className="w-32 h-24 bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center">
+                    <FileText className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <p className="text-xs text-gray-600 mt-1 text-center max-w-32 truncate">
+                    {formData.fileUpload.name}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {(formData.fileUpload.size / 1024 / 1024).toFixed(2)} MB
+                  </p>
+                </div>
+              )}
+            </div>
+            {errors.fileUpload && (
+              <p className="text-red-500 text-sm mt-1">{errors.fileUpload}</p>
+            )}
+            <p className="text-gray-500 text-xs mt-1">
+              PDF, DOC, DOCX, TXT, RTF, ODT, PPT, PPTX, XLS, XLSX, ZIP, RAR. Max
+              50MB.
+            </p>
+          </div>
+
+          {/* OR Divider */}
+          <div className="flex items-center mb-4">
+            <div className="flex-1 border-t border-gray-300"></div>
+            <span className="px-3 text-sm text-gray-500 bg-white">OR</span>
+            <div className="flex-1 border-t border-gray-300"></div>
+          </div>
+
+          {/* File URL Option */}
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-2">
+              Provide File URL
+            </label>
             <input
               type="url"
               value={formData.fileUrl}
-              onChange={(e) => handleInputChange("fileUrl", e.target.value)}
-              className={`flex-1 p-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
+              onChange={(e) => {
+                handleInputChange("fileUrl", e.target.value);
+                // Clear file upload when URL is provided
+                if (e.target.value.trim()) {
+                  handleInputChange("fileUpload", null);
+                }
+              }}
+              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
                 errors.fileUrl ? "border-red-500" : "border-gray-300"
               }`}
               placeholder="https://example.com/file.pdf"
             />
-            <button
-              type="button"
-              className="px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50"
-            >
-              <Upload className="w-4 h-4" />
-            </button>
+            {errors.fileUrl && (
+              <p className="text-red-500 text-sm mt-1">{errors.fileUrl}</p>
+            )}
           </div>
-          {errors.fileUrl && (
-            <p className="text-red-500 text-sm mt-1">{errors.fileUrl}</p>
-          )}
         </div>
       )}
 

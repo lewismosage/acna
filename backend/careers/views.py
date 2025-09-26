@@ -5,9 +5,16 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q, Count
 from django.http import HttpResponse
 from django.utils import timezone
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.conf import settings
 import csv
 import json
+import logging
 from datetime import datetime, timedelta
+
+# Configure logger
+logger = logging.getLogger(__name__)
 
 from .models import JobOpportunity, JobApplication, VolunteerSubmission
 from .serializers import (
@@ -28,6 +35,7 @@ class JobOpportunityViewSet(viewsets.ModelViewSet):
     search_fields = ['title', 'description', 'department', 'location']
     ordering_fields = ['created_at', 'updated_at', 'title', 'closing_date', 'posted_date']
     ordering = ['-created_at']
+    
     
     def get_serializer_class(self):
         """Return appropriate serializer based on action"""
@@ -203,6 +211,90 @@ class JobApplicationViewSet(viewsets.ModelViewSet):
     ordering_fields = ['created_at', 'updated_at', 'applicant_name']
     ordering = ['-created_at']
     
+    def create(self, request, *args, **kwargs):
+        """Create a new job application with duplicate prevention and email notification"""
+        try:
+            # Check for duplicate application
+            opportunity_id = request.data.get('opportunity')
+            email = request.data.get('email', '').strip().lower()
+            
+            if opportunity_id and email:
+                existing_application = JobApplication.objects.filter(
+                    opportunity_id=opportunity_id,
+                    email=email
+                ).first()
+                
+                if existing_application:
+                    return Response(
+                        {
+                            'error': 'You have already applied for this job position.',
+                            'message': 'An application with this email address already exists for this opportunity.',
+                            'application_id': existing_application.id,
+                            'applied_date': existing_application.created_at.strftime('%Y-%m-%d %H:%M:%S')
+                        },
+                        status=status.HTTP_409_CONFLICT
+                    )
+            
+            # Create the application
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            application = serializer.save()
+            
+            # Send confirmation email
+            try:
+                self.send_application_confirmation_email(application)
+            except Exception as e:
+                logging.error(f"Failed to send application confirmation email: {str(e)}")
+                # Don't fail the application creation if email fails
+            
+            # Return the created application
+            response_serializer = JobApplicationSerializer(application)
+            return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            logging.error(f"Error creating job application: {str(e)}")
+            return Response(
+                {'error': f'Failed to create application: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    def send_application_confirmation_email(self, application):
+        """Send confirmation email to job applicant"""
+        try:
+            # Prepare email context
+            context = {
+                'applicant_name': application.applicant_name,
+                'job_title': application.opportunity.title,
+                'job_department': application.opportunity.department,
+                'job_location': application.opportunity.location,
+                'applied_date': application.created_at.strftime('%B %d, %Y at %I:%M %p'),
+                'application_id': application.id,
+                'job_url': f"{settings.FRONTEND_URL}/careers/jobs/{application.opportunity.id}",
+                'careers_url': f"{settings.FRONTEND_URL}/careers/jobs"
+            }
+            
+            # Render email template
+            html_message = render_to_string(
+                'careers/emails/job_application_confirmation.html',
+                context
+            )
+            
+            # Send email
+            send_mail(
+                subject=f'Application Received - {application.opportunity.title} | ACNA',
+                message=f'Thank you for applying to {application.opportunity.title}. We have received your application and will review it carefully.',
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[application.email],
+                html_message=html_message,
+                fail_silently=False
+            )
+            
+            logging.info(f"Application confirmation email sent to {application.email}")
+            
+        except Exception as e:
+            logging.error(f"Failed to send application confirmation email: {str(e)}")
+            raise
+    
     def get_serializer_class(self):
         """Return appropriate serializer based on action"""
         if self.action == 'list':
@@ -270,14 +362,14 @@ class JobApplicationViewSet(viewsets.ModelViewSet):
         writer = csv.writer(response)
         writer.writerow([
             'ID', 'Opportunity', 'Applicant Name', 'Email', 'Phone', 'Location',
-            'Experience', 'Status', 'Applied Date', 'Created At'
+            'Cover Letter', 'Status', 'Applied Date', 'Created At'
         ])
         
         for app in queryset:
             writer.writerow([
                 app.id, app.opportunity.title, app.applicant_name, app.email,
-                app.phone, app.location, app.experience, app.status,
-                app.applied_date, app.created_at.date()
+                app.phone, app.location, app.cover_letter[:100] + '...' if app.cover_letter and len(app.cover_letter) > 100 else app.cover_letter or '', 
+                app.status, app.applied_date, app.created_at.date()
             ])
         
         return response
@@ -301,6 +393,85 @@ class VolunteerSubmissionViewSet(viewsets.ModelViewSet):
     search_fields = ['name', 'email', 'location']
     ordering_fields = ['created_at', 'updated_at', 'name', 'join_date']
     ordering = ['-created_at']
+    
+    def create(self, request, *args, **kwargs):
+        """Create a new volunteer submission with email notification and duplicate prevention"""
+        try:
+            # Check for duplicate submission
+            email = request.data.get('email', '').strip().lower()
+            
+            if email:
+                existing_volunteer = VolunteerSubmission.objects.filter(
+                    email=email
+                ).first()
+                
+                if existing_volunteer:
+                    return Response(
+                        {
+                            'error': 'You have already submitted a volunteer application with ACNA.',
+                            'message': 'A volunteer submission with this email address already exists.',
+                            'submission_id': existing_volunteer.id,
+                            'submitted_date': existing_volunteer.created_at.strftime('%Y-%m-%d %H:%M:%S')
+                        },
+                        status=status.HTTP_409_CONFLICT
+                    )
+            
+            # Create the volunteer submission
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            volunteer = serializer.save()
+            
+            # Send confirmation email
+            try:
+                self.send_volunteer_confirmation_email(volunteer)
+                logger.info(f"Volunteer confirmation email sent for submission {volunteer.id}")
+            except Exception as e:
+                logger.error(f"Failed to send volunteer confirmation email: {str(e)}")
+                # Don't fail the creation if email fails
+            
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            logger.error(f"Error creating volunteer submission: {str(e)}")
+            return Response(
+                {'error': f'Failed to create volunteer submission: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    def send_volunteer_confirmation_email(self, volunteer):
+        """Send confirmation email to volunteer"""
+        try:
+            from django.core.mail import send_mail
+            from django.template.loader import render_to_string
+            from django.conf import settings
+            
+            # Prepare email context
+            context = {
+                'volunteer_name': volunteer.name,
+                'submission_id': volunteer.id,
+                'submitted_date': volunteer.created_at.strftime('%B %d, %Y'),
+                'volunteer_url': f'{settings.FRONTEND_URL}/volunteer',
+                'careers_url': f'{settings.FRONTEND_URL}/jobs',
+            }
+            
+            # Render email template
+            html_message = render_to_string(
+                'careers/emails/volunteer_submission_confirmation.html',
+                context
+            )
+            
+            # Send email
+            send_mail(
+                subject='Volunteer Application Received - ACNA',
+                message=f'Thank you {volunteer.name} for your volunteer application. We have received your submission and will review it shortly.',
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[volunteer.email],
+                html_message=html_message,
+                fail_silently=False,
+            )
+            
+        except Exception as e:
+            logger.error(f"Error sending volunteer confirmation email: {str(e)}")
+            raise
     
     def get_serializer_class(self):
         """Return appropriate serializer based on action"""

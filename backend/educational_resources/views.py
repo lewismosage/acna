@@ -192,29 +192,60 @@ class EducationalResourceViewSet(viewsets.ModelViewSet):
             'learning_objectives', 'prerequisites', 'references'
         ]
 
+        def parse_array_field(field_name):
+            """Parse array fields from indexed format (e.g., tags[0], tags[1])"""
+            array_items = []
+            for key, value in form_data.items():
+                if key.startswith(f'{field_name}[') and key.endswith(']'):
+                    try:
+                        index = int(key[len(field_name)+1:-1])
+                        array_items.append((index, value))
+                    except ValueError:
+                        continue
+            if array_items:
+                array_items.sort(key=lambda x: x[0])
+                return [item[1] for item in array_items]
+            return []
+
+        # Parse array fields first
+        for field_name in json_array_fields:
+            array_data = parse_array_field(field_name)
+            if array_data:
+                processed_data[field_name] = array_data
+            elif field_name in form_data:
+                # Handle if sent as JSON string
+                try:
+                    if isinstance(form_data[field_name], str) and form_data[field_name].strip():
+                        processed_data[field_name] = json.loads(form_data[field_name])
+                    elif isinstance(form_data[field_name], list):
+                        processed_data[field_name] = form_data[field_name]
+                    else:
+                        processed_data[field_name] = []
+                except json.JSONDecodeError:
+                    logger.warning(f"Failed to parse JSON for {field_name}: {form_data[field_name]}")
+                    processed_data[field_name] = []
+            else:
+                processed_data[field_name] = []
+
         # Process form data
         for key, value in form_data.items():
             # Skip file-related keys that should be handled separately
             if key in ['imageFile', 'resourceFile']:
                 continue
+            
+            # Skip array fields that were already processed
+            if any(key.startswith(field + '[') for field in json_array_fields):
+                continue
                 
             # Map frontend field names to backend field names
             backend_key = field_mapping.get(key, key)
             
-            # Handle JSON array fields
+            # Skip if already processed as array field
             if backend_key in json_array_fields:
-                try:
-                    if isinstance(value, str) and value.strip():
-                        processed_data[backend_key] = json.loads(value)
-                    elif isinstance(value, list):
-                        processed_data[backend_key] = value
-                    else:
-                        processed_data[backend_key] = []
-                except json.JSONDecodeError:
-                    logger.warning(f"Failed to parse JSON for {backend_key}: {value}")
-                    processed_data[backend_key] = []
+                continue
+                
             # Handle boolean fields
-            elif backend_key in ['is_featured', 'is_free']:
+            if backend_key in ['is_featured', 'is_free']:
                 if isinstance(value, str):
                     processed_data[backend_key] = value.lower() in ['true', '1', 'yes']
                 else:

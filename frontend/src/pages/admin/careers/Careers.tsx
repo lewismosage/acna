@@ -660,33 +660,85 @@ const CareersAdminTab = () => {
     {}
   );
 
-  // Fetch data on component mount and tab change
+  // Fetch all data on component mount
   useEffect(() => {
-    fetchData();
+    fetchAllData();
+  }, []);
+
+  // Fetch specific data when tab changes
+  useEffect(() => {
+    if (selectedTab === "opportunities" && opportunities.length === 0) {
+      fetchOpportunities();
+    } else if (selectedTab === "applications" && applications.length === 0) {
+      fetchApplications();
+    } else if (selectedTab === "volunteers" && volunteers.length === 0) {
+      fetchVolunteers();
+    }
   }, [selectedTab]);
 
-  const fetchData = async () => {
+  const fetchAllData = async () => {
     setLoading(true);
     try {
-      if (selectedTab === "opportunities") {
-        const data = await careersApi.getAllJobs();
-        setOpportunities(data);
-      } else if (selectedTab === "applications") {
-        const data = await careersApi.getAllApplications();
-        setApplications(data);
-      } else if (selectedTab === "volunteers") {
-        const data = await careersApi.getAllVolunteers();
-        setVolunteers(data);
-      }
+      const [jobsData, applicationsData, volunteersData] = await Promise.all([
+        careersApi.getAllJobs(),
+        careersApi.getAllApplications(),
+        careersApi.getAllVolunteers(),
+      ]);
+
+      setOpportunities(jobsData);
+      setApplications(applicationsData);
+      setVolunteers(volunteersData);
     } catch (error) {
-      console.error("Error fetching data:", error);
+      console.error("Error fetching all data:", error);
       showAlert(
         "Error",
-        `Failed to load ${selectedTab}. Please try again.`,
+        "Failed to load some data. Please try again.",
         "error"
       );
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchOpportunities = async () => {
+    try {
+      const data = await careersApi.getAllJobs();
+      setOpportunities(data);
+    } catch (error) {
+      console.error("Error fetching opportunities:", error);
+      showAlert(
+        "Error",
+        "Failed to load opportunities. Please try again.",
+        "error"
+      );
+    }
+  };
+
+  const fetchApplications = async () => {
+    try {
+      const data = await careersApi.getAllApplications();
+      setApplications(data);
+    } catch (error) {
+      console.error("Error fetching applications:", error);
+      showAlert(
+        "Error",
+        "Failed to load applications. Please try again.",
+        "error"
+      );
+    }
+  };
+
+  const fetchVolunteers = async () => {
+    try {
+      const data = await careersApi.getAllVolunteers();
+      setVolunteers(data);
+    } catch (error) {
+      console.error("Error fetching volunteers:", error);
+      showAlert(
+        "Error",
+        "Failed to load volunteers. Please try again.",
+        "error"
+      );
     }
   };
 
@@ -743,8 +795,21 @@ const CareersAdminTab = () => {
     }
   };
 
-  const toggleExpandOpportunity = (id: number) => {
-    setExpandedOpportunity((prev) => (prev === id ? null : id));
+  const toggleExpandOpportunity = async (id: number) => {
+    if (expandedOpportunity === id) {
+      setExpandedOpportunity(null);
+    } else {
+      setExpandedOpportunity(id);
+      // Fetch full job data when expanding
+      try {
+        const fullJobData = await careersApi.getJobById(id);
+        setOpportunities((prev) =>
+          prev.map((job) => (job.id === id ? fullJobData : job))
+        );
+      } catch (error) {
+        console.error("Error fetching full job data:", error);
+      }
+    }
   };
 
   const toggleExpandApplication = (id: number) => {
@@ -890,39 +955,6 @@ const CareersAdminTab = () => {
         {filteredOpportunities.map((opportunity) => {
           const isExpanded = expandedOpportunity === opportunity.id;
           const itemLoading = actionLoading[opportunity.id];
-
-          // Debug the array fields
-          console.log("DEBUG: Opportunity array fields:", {
-            id: opportunity.id,
-            responsibilities: opportunity.responsibilities,
-            requirements: opportunity.requirements,
-            qualifications: opportunity.qualifications,
-            benefits: opportunity.benefits,
-            responsibilitiesType: typeof opportunity.responsibilities,
-            responsibilitiesLength: Array.isArray(opportunity.responsibilities)
-              ? opportunity.responsibilities.length
-              : "Not an array",
-          });
-
-          // Safely get array fields with fallback
-          const responsibilities = Array.isArray(opportunity.responsibilities)
-            ? opportunity.responsibilities.filter(
-                (item) => item && item.trim() !== ""
-              )
-            : [];
-          const requirements = Array.isArray(opportunity.requirements)
-            ? opportunity.requirements.filter(
-                (item) => item && item.trim() !== ""
-              )
-            : [];
-          const qualifications = Array.isArray(opportunity.qualifications)
-            ? opportunity.qualifications.filter(
-                (item) => item && item.trim() !== ""
-              )
-            : [];
-          const benefits = Array.isArray(opportunity.benefits)
-            ? opportunity.benefits.filter((item) => item && item.trim() !== "")
-            : [];
 
           return (
             <div
@@ -1303,36 +1335,63 @@ const CareersAdminTab = () => {
                       </div>
                     </div>
 
-                    <p className="text-gray-600 text-sm mb-2">
-                      Experience: {application.experience}
-                    </p>
+                    {application.coverLetter && (
+                      <p className="text-gray-600 text-sm mb-2 line-clamp-2">
+                        Cover Letter: {application.coverLetter}
+                      </p>
+                    )}
                   </div>
                 </div>
 
                 {isExpanded && (
                   <div className="mt-4 pt-4 border-t border-gray-200 space-y-4">
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-2">
-                        Cover Letter
-                      </h4>
-                      <p className="text-gray-600 text-sm bg-gray-50 p-3 rounded">
-                        {application.coverLetter}
-                      </p>
-                    </div>
+                    {/* Cover Letter Section */}
+                    {application.coverLetter && (
+                      <div>
+                        <h4 className="font-medium text-gray-900 mb-2">
+                          Cover Letter
+                        </h4>
+                        <p className="text-gray-600 text-sm bg-gray-50 p-3 rounded whitespace-pre-wrap">
+                          {application.coverLetter}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Documents Section */}
                     <div>
                       <h4 className="font-medium text-gray-900 mb-2">
                         Documents
                       </h4>
-                      <div className="flex items-center text-blue-600 text-sm">
-                        <FileText className="w-4 h-4 mr-2" />
-                        <a
-                          href={application.resume}
-                          className="hover:underline"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          View Resume
-                        </a>
+                      <div className="space-y-2">
+                        {/* Resume */}
+                        {application.resume && (
+                          <div className="flex items-center text-blue-600 text-sm">
+                            <FileText className="w-4 h-4 mr-2" />
+                            <a
+                              href={application.resume}
+                              className="hover:underline"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              View Resume
+                            </a>
+                          </div>
+                        )}
+
+                        {/* Cover Letter File */}
+                        {application.coverLetterFile && (
+                          <div className="flex items-center text-blue-600 text-sm">
+                            <FileText className="w-4 h-4 mr-2" />
+                            <a
+                              href={application.coverLetterFile}
+                              className="hover:underline"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              View Cover Letter File
+                            </a>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1526,33 +1585,54 @@ const CareersAdminTab = () => {
 
                 {isExpanded && (
                   <div className="mt-4 pt-4 border-t border-gray-200 space-y-4">
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-2">
-                        Experience
-                      </h4>
-                      <p className="text-gray-600 text-sm">
-                        {volunteer.experience}
-                      </p>
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-2">
-                        Motivation
-                      </h4>
-                      <p className="text-gray-600 text-sm">
-                        {volunteer.motivation}
-                      </p>
-                    </div>
+                    {/* Experience */}
+                    {volunteer.experience && (
+                      <div>
+                        <h4 className="font-medium text-gray-900 mb-2">
+                          Experience
+                        </h4>
+                        <p className="text-gray-600 text-sm bg-gray-50 p-3 rounded whitespace-pre-wrap">
+                          {volunteer.experience}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Motivation */}
+                    {volunteer.motivation && (
+                      <div>
+                        <h4 className="font-medium text-gray-900 mb-2">
+                          Motivation
+                        </h4>
+                        <p className="text-gray-600 text-sm bg-gray-50 p-3 rounded whitespace-pre-wrap">
+                          {volunteer.motivation}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Availability */}
+                    {volunteer.availability && (
+                      <div>
+                        <h4 className="font-medium text-gray-900 mb-2">
+                          Availability
+                        </h4>
+                        <p className="text-gray-600 text-sm bg-gray-50 p-3 rounded">
+                          {volunteer.availability}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Projects */}
                     {volunteer.projects && volunteer.projects.length > 0 && (
                       <div>
                         <h4 className="font-medium text-gray-900 mb-2">
                           Projects
                         </h4>
-                        <div className="flex flex-wrap gap-1">
+                        <div className="flex flex-wrap gap-2">
                           {volunteer.projects.map(
                             (project: string, index: number) => (
                               <span
                                 key={index}
-                                className="bg-green-100 text-green-800 px-2 py-1 text-xs rounded"
+                                className="bg-green-100 text-green-800 px-3 py-1 text-sm rounded border border-green-200"
                               >
                                 {project}
                               </span>
@@ -1561,6 +1641,50 @@ const CareersAdminTab = () => {
                         </div>
                       </div>
                     )}
+
+                    {/* Additional Details Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+                      <div>
+                        <h4 className="font-medium text-gray-900 mb-2">
+                          Contact Information
+                        </h4>
+                        <div className="space-y-1 text-sm text-gray-600">
+                          <p>
+                            <span className="font-medium">Email:</span>{" "}
+                            {volunteer.email}
+                          </p>
+                          <p>
+                            <span className="font-medium">Phone:</span>{" "}
+                            {volunteer.phone}
+                          </p>
+                          <p>
+                            <span className="font-medium">Location:</span>{" "}
+                            {volunteer.location}
+                          </p>
+                        </div>
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-gray-900 mb-2">
+                          Volunteer Details
+                        </h4>
+                        <div className="space-y-1 text-sm text-gray-600">
+                          <p>
+                            <span className="font-medium">Status:</span>{" "}
+                            {volunteer.status}
+                          </p>
+                          <p>
+                            <span className="font-medium">
+                              Hours Contributed:
+                            </span>{" "}
+                            {volunteer.hoursContributed || 0}
+                          </p>
+                          <p>
+                            <span className="font-medium">Join Date:</span>{" "}
+                            {volunteer.joinDate || "N/A"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
 

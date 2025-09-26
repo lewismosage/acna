@@ -58,11 +58,11 @@ export interface JobApplication {
   email: string;
   phone: string;
   location: string;
-  experience: string;
   status: ApplicationStatus;
   appliedDate: string;
   resume: string;
   coverLetter: string;
+  coverLetterFile?: string;
   createdAt: string;
 }
 
@@ -72,9 +72,9 @@ export interface CreateJobApplicationInput {
   email: string;
   phone: string;
   location: string;
-  experience: string;
   resume: File;
   coverLetter: string;
+  coverLetterFile?: File | null;
 }
 
 export interface VolunteerSubmission {
@@ -153,13 +153,19 @@ const getAuthHeadersWithoutContentType = (): Record<string, string> => {
 const handleResponse = async (response: Response) => {
   if (!response.ok) {
     let errorMessage = `HTTP error! status: ${response.status}`;
+    let errorData = null;
     try {
-      const errorData = await response.json();
+      errorData = await response.json();
       errorMessage = errorData.error || errorData.message || errorMessage;
     } catch {
       // If we can't parse the error, use the default message
     }
-    throw new Error(errorMessage);
+    
+    // Create an error object that includes the response status and data
+    const error = new Error(errorMessage) as any;
+    error.status = response.status;
+    error.response = { status: response.status, data: errorData };
+    throw error;
   }
   
   // Handle empty responses (like DELETE)
@@ -172,7 +178,6 @@ const handleResponse = async (response: Response) => {
 
 // Helper function to safely parse array fields
 const parseArrayField = (field: any): string[] => {
-  console.log('DEBUG: Parsing array field:', field);
   
   // If it's already an array, return it
   if (Array.isArray(field)) {
@@ -214,7 +219,6 @@ const parseArrayField = (field: any): string[] => {
         return value ? [value] : [];
       }
     } catch (e) {
-      console.log('DEBUG: JSON parse failed, treating as string:', e);
       // If it's not valid JSON, treat it as a single item
       return field.trim() ? [field.trim()] : [];
     }
@@ -231,17 +235,10 @@ const parseArrayField = (field: any): string[] => {
 
 // Helper function to safely convert backend data to frontend format
 const normalizeJobOpportunity = (backendJob: any): JobOpportunity => {
-  console.log('DEBUG: Raw backend job data:', backendJob);
-  
   const responsibilities = parseArrayField(backendJob.responsibilities);
   const requirements = parseArrayField(backendJob.requirements);
   const qualifications = parseArrayField(backendJob.qualifications);
   const benefits = parseArrayField(backendJob.benefits);
-  
-  console.log('DEBUG: Parsed responsibilities:', responsibilities);
-  console.log('DEBUG: Parsed requirements:', requirements);
-  console.log('DEBUG: Parsed qualifications:', qualifications);
-  console.log('DEBUG: Parsed benefits:', benefits);
 
   const normalized = {
     id: backendJob.id || 0,
@@ -279,11 +276,11 @@ const normalizeJobApplication = (backendApplication: any): JobApplication => {
     email: backendApplication.email || '',
     phone: backendApplication.phone || '',
     location: backendApplication.location || '',
-    experience: backendApplication.experience || '',
     status: backendApplication.status || 'New',
     appliedDate: backendApplication.applied_date || backendApplication.appliedDate || backendApplication.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
     resume: backendApplication.resume || '',
     coverLetter: backendApplication.cover_letter || backendApplication.coverLetter || '',
+    coverLetterFile: backendApplication.cover_letter_file || backendApplication.coverLetterFile,
     createdAt: backendApplication.created_at || backendApplication.createdAt || new Date().toISOString(),
   };
 };
@@ -376,7 +373,6 @@ export const careersApi = {
       benefits: data.benefits || [],
     };
 
-    console.log('Sending job opportunity data:', requestData);
 
     const response = await fetch(`${API_BASE_URL}/job-opportunities/`, {
       method: 'POST',
@@ -478,9 +474,13 @@ export const careersApi = {
     formData.append('email', data.email);
     formData.append('phone', data.phone);
     formData.append('location', data.location);
-    formData.append('experience', data.experience);
     formData.append('cover_letter', data.coverLetter);
     formData.append('resume', data.resume);
+    
+    // Add cover letter file if provided
+    if (data.coverLetterFile) {
+      formData.append('cover_letter_file', data.coverLetterFile);
+    }
 
     const response = await fetch(`${API_BASE_URL}/job-applications/`, {
       method: 'POST',

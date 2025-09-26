@@ -100,6 +100,8 @@ import ResetPassword from "./pages/other/ResetPassword";
 import Jobs from "./pages/careers/Jobs";
 import VolunteerForm from "./pages/support/VolunteerForm";
 import AdminSignUp from "./pages/admin/settings/AdminSignUp";
+import JobDetail from "./pages/careers/JobDetail";
+import JobApplication from "./pages/careers/JobApplication";
 
 // Layout component
 const Layout = ({ children }: { children: React.ReactNode }) => (
@@ -157,6 +159,8 @@ function App() {
             <Route path="/careers/culture" element={<CultureAndValues />} />
             <Route path="/careers/benefits" element={<Benefits />} />
             <Route path="/careers/jobs" element={<Jobs />} />
+            <Route path="/careers/jobs/:id" element={<JobDetail />} />
+            <Route path="/careers/jobs/apply/:id" element={<JobApplication />} />
             <Route path="/volunteer" element={<VolunteerInfoSection />} />
             <Route path="/volunteer/form" element={<VolunteerForm />} />
             {/* Education */}

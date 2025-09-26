@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Application Received - ACNA</title>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f8f9fa;
+      }
+      .container {
+        background-color: white;
+        border-radius: 10px;
+        padding: 30px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+      .header {
+        text-align: center;
+        border-bottom: 3px solid #f97316;
+        padding-bottom: 20px;
+        margin-bottom: 30px;
+      }
+      .logo {
+        font-size: 28px;
+        font-weight: bold;
+        color: #f97316;
+        margin-bottom: 10px;
+      }
+      .tagline {
+        color: #666;
+        font-size: 14px;
+      }
+      .content {
+        margin-bottom: 30px;
+      }
+      .greeting {
+        font-size: 18px;
+        margin-bottom: 20px;
+        color: #2c3e50;
+      }
+      .message {
+        margin-bottom: 25px;
+        font-size: 16px;
+      }
+      .application-details {
+        background-color: #f8f9fa;
+        border-left: 4px solid #f97316;
+        padding: 20px;
+        margin: 25px 0;
+        border-radius: 5px;
+      }
+      .detail-row {
+        display: flex;
+        margin-bottom: 10px;
+      }
+      .detail-label {
+        font-weight: bold;
+        width: 120px;
+        color: #555;
+      }
+      .detail-value {
+        flex: 1;
+        color: #333;
+      }
+      .next-steps {
+        background-color: #e8f4fd;
+        border: 1px solid #b3d9ff;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 25px 0;
+      }
+      .next-steps h3 {
+        color: #1e40af;
+        margin-top: 0;
+        margin-bottom: 15px;
+      }
+      .next-steps ul {
+        margin: 0;
+        padding-left: 20px;
+      }
+      .next-steps li {
+        margin-bottom: 8px;
+        color: #374151;
+      }
+      .footer {
+        text-align: center;
+        border-top: 1px solid #e5e7eb;
+        padding-top: 20px;
+        margin-top: 30px;
+        color: #666;
+        font-size: 14px;
+      }
+      .contact-info {
+        margin-top: 15px;
+        font-size: 13px;
+      }
+      .button {
+        display: inline-block;
+        background-color: #f97316;
+        color: white;
+        padding: 12px 24px;
+        text-decoration: none;
+        border-radius: 6px;
+        font-weight: bold;
+        margin: 10px 5px;
+      }
+      .button:hover {
+        background-color: #ea580c;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div class="logo">ACNA</div>
+        <div class="tagline">African Child Neurology Association</div>
+      </div>
+
+      <div class="content">
+        <div class="greeting">Dear {{ applicant_name }},</div>
+
+        <div class="message">
+          Thank you for your interest in joining the African Child Neurology
+          Association (ACNA). We have successfully received your application for
+          the <strong>{{ job_title }}</strong> position.
+        </div>
+
+        <div class="application-details">
+          <h3 style="margin-top: 0; color: #f97316">Application Details</h3>
+          <div class="detail-row">
+            <div class="detail-label">Position:</div>
+            <div class="detail-value">{{ job_title }}</div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-label">Department:</div>
+            <div class="detail-value">{{ job_department }}</div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-label">Location:</div>
+            <div class="detail-value">{{ job_location }}</div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-label">Applied Date:</div>
+            <div class="detail-value">{{ applied_date }}</div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-label">Application ID:</div>
+            <div class="detail-value">#{{ application_id }}</div>
+          </div>
+        </div>
+
+        <div class="message">
+          Our recruitment team will carefully review your application and
+          supporting documents. We appreciate the time and effort you've
+          invested in preparing your application.
+        </div>
+
+        <div class="next-steps">
+          <h3>What happens next?</h3>
+          <ul>
+            <li>
+              Our team will review your application within 5-7 business days
+            </li>
+            <li>
+              If your profile matches our requirements, we'll contact you for
+              the next steps
+            </li>
+            <li>
+              You may be invited for an interview or additional assessments
+            </li>
+            <li>We'll keep you updated throughout the process</li>
+          </ul>
+        </div>
+
+        <div class="message">
+          If you have any questions about your application or the recruitment
+          process, please don't hesitate to contact our HR team.
+        </div>
+
+        <div style="text-align: center; margin: 30px 0">
+          <a href="{{ job_url }}" class="button">View Job Details</a>
+          <a href="{{ careers_url }}" class="button">Browse More Jobs</a>
+        </div>
+      </div>
+
+      <div class="footer">
+        <p><strong>African Child Neurology Association (ACNA)</strong></p>
+        <p>
+          Transforming child health across Africa through excellence in
+          neurology
+        </p>
+
+        <div class="contact-info">
+          <p>Email: careers@acna.org | Website: www.acna.org</p>
+          <p>
+            This is an automated message. Please do not reply to this email.
+          </p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

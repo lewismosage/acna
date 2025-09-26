@@ -75,6 +75,7 @@ export interface CreateResourceInput {
   isFeatured?: boolean;
   isFree: boolean;
   imageFile?: File | null;
+  fileUpload?: File | null;
   fileUrl?: string;
   externalUrl?: string;
   tags: string[];

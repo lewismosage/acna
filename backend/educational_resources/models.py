@@ -23,17 +23,7 @@ class EducationalResource(models.Model):
         ('Archived', 'Archived'),
     ]
     
-    CATEGORY_CHOICES = [
-        ('Epilepsy', 'Epilepsy'),
-        ('Cerebral Palsy', 'Cerebral Palsy'),
-        ('Neurodevelopment', 'Neurodevelopment'),
-        ('Nutrition', 'Nutrition'),
-        ('Seizures', 'Seizures'),
-        ('Rehabilitation', 'Rehabilitation'),
-        ('General', 'General'),
-        ('Research', 'Research'),
-        ('Training', 'Training'),
-    ]
+    # Removed CATEGORY_CHOICES to allow any category from frontend
     
     DIFFICULTY_CHOICES = [
         ('Beginner', 'Beginner'),
@@ -45,7 +35,7 @@ class EducationalResource(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField()
     full_description = models.TextField(blank=True, null=True)
-    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)
+    category = models.CharField(max_length=50)
     resource_type = models.CharField(max_length=20, choices=RESOURCE_TYPE_CHOICES)
     condition = models.CharField(max_length=100, blank=True, null=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Draft')

@@ -78,22 +78,25 @@ class CreatePatientResourceSerializer(serializers.ModelSerializer):
     reviewedBy = serializers.CharField(source='reviewed_by', required=False, allow_blank=True)
     
     tags = serializers.ListField(
-        child=serializers.CharField(max_length=50),
+        child=serializers.CharField(max_length=50, allow_blank=True),
         required=False,
         allow_empty=True,
-        write_only=True
+        write_only=True,
+        allow_null=True
     )
     languages = serializers.ListField(
-        child=serializers.CharField(max_length=50),
+        child=serializers.CharField(max_length=50, allow_blank=True),
         required=False,
         allow_empty=True,
-        write_only=True
+        write_only=True,
+        allow_null=True
     )
     targetAudience = serializers.ListField(
-        child=serializers.CharField(max_length=100),
+        child=serializers.CharField(max_length=100, allow_blank=True),
         required=False,
         allow_empty=True,
-        write_only=True
+        write_only=True,
+        allow_null=True
     )
     
     class Meta:

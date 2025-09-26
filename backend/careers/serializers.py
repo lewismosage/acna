@@ -97,7 +97,7 @@ class JobApplicationSerializer(serializers.ModelSerializer):
         model = JobApplication
         fields = [
             'id', 'opportunity', 'opportunity_title', 'applicant_name', 'email', 'phone',
-            'location', 'experience', 'status', 'cover_letter', 'resume',
+            'location', 'status', 'cover_letter', 'cover_letter_file', 'resume',
             'applied_date', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'opportunity_title', 'applied_date', 'created_at', 'updated_at']
@@ -142,17 +142,20 @@ class JobApplicationSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Location is required and cannot be empty")
         return str(value).strip()
     
-    def validate_experience(self, value):
-        """Validate experience is not empty"""
-        if not value or not str(value).strip():
-            raise serializers.ValidationError("Experience is required and cannot be empty")
-        return str(value).strip()
-    
     def validate_cover_letter(self, value):
-        """Validate cover letter is not empty"""
-        if not value or not str(value).strip():
-            raise serializers.ValidationError("Cover letter is required and cannot be empty")
-        return str(value).strip()
+        """Validate cover letter - either text or file is required"""
+        cover_letter_file = self.initial_data.get('cover_letter_file')
+        
+        # If no cover letter text and no file, it's invalid
+        if (not value or not str(value).strip()) and not cover_letter_file:
+            raise serializers.ValidationError("Cover letter is required - either write one or upload a file")
+        
+        # If there's text, return it
+        if value and str(value).strip():
+            return str(value).strip()
+        
+        # If no text but file exists, return empty string (file will be handled separately)
+        return ""
 
 
 class JobApplicationListSerializer(serializers.ModelSerializer):
@@ -164,7 +167,8 @@ class JobApplicationListSerializer(serializers.ModelSerializer):
         model = JobApplication
         fields = [
             'id', 'opportunity', 'opportunity_title', 'applicant_name', 'email',
-            'phone', 'status', 'applied_date', 'created_at'
+            'phone', 'location', 'status', 'cover_letter', 'cover_letter_file', 
+            'resume', 'applied_date', 'created_at'
         ]
 
 

@@ -12,7 +12,9 @@ import {
   Users,
   Building2,
   Loader,
-  AlertCircle
+  AlertCircle,
+  ArrowRight,
+  Clock
 } from 'lucide-react';
 import {
   careersApi,
@@ -39,7 +41,6 @@ const Jobs: React.FC<JobsPageProps> = () => {
   const [filteredJobs, setFilteredJobs] = useState<JobOpportunity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [expandedJobs, setExpandedJobs] = useState<Set<number>>(new Set());
   const [showFilters, setShowFilters] = useState(false);
   
   const [filters, setFilters] = useState<FilterState>({
@@ -124,18 +125,6 @@ const Jobs: React.FC<JobsPageProps> = () => {
     });
   };
 
-  const toggleJobExpansion = (jobId: number) => {
-    setExpandedJobs(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(jobId)) {
-        newSet.delete(jobId);
-      } else {
-        newSet.add(jobId);
-      }
-      return newSet;
-    });
-  };
-
   const getJobTypeColor = (type: JobType): string => {
     switch (type) {
       case 'Full-time':
@@ -164,6 +153,23 @@ const Jobs: React.FC<JobsPageProps> = () => {
     } catch {
       return dateString;
     }
+  };
+
+  const getDaysUntilClosing = (dateString: string): number | null => {
+    if (!dateString) return null;
+    try {
+      const closingDate = new Date(dateString);
+      const today = new Date();
+      const timeDiff = closingDate.getTime() - today.getTime();
+      return Math.ceil(timeDiff / (1000 * 3600 * 24));
+    } catch {
+      return null;
+    }
+  };
+
+  const truncateDescription = (description: string, maxLength: number = 150): string => {
+    if (description.length <= maxLength) return description;
+    return description.substring(0, maxLength).trim() + '...';
   };
 
   if (loading) {
@@ -198,6 +204,7 @@ const Jobs: React.FC<JobsPageProps> = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <ScrollToTop />
+      
       {/* Hero Section */}
       <section className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -396,153 +403,94 @@ const Jobs: React.FC<JobsPageProps> = () => {
             )}
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             {filteredJobs.map((job) => {
-              const isExpanded = expandedJobs.has(job.id);
+              const daysUntilClosing = getDaysUntilClosing(job.closingDate);
+              const isUrgent = daysUntilClosing !== null && daysUntilClosing <= 7;
               
               return (
-                <div key={job.id} className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                <div key={job.id} className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-1">
                   <div className="p-6">
-                    <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4 mb-4">
-                      <div className="flex-1">
-                        <div className="flex flex-wrap gap-2 mb-3">
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getJobTypeColor(job.type)}`}>
-                            {job.type}
-                          </span>
-                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
-                            {job.level}
-                          </span>
-                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
-                            {job.workArrangement}
-                          </span>
-                        </div>
+                    {/* Job Type and Urgency Badges */}
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getJobTypeColor(job.type)}`}>
+                        {job.type}
+                      </span>
+                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
+                        {job.level}
+                      </span>
+                      {isUrgent && (
+                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200 flex items-center">
+                          <Clock className="w-3 h-3 mr-1" />
+                          Urgent
+                        </span>
+                      )}
+                    </div>
 
-                        <h3 className="text-xl font-bold text-gray-900 mb-2 hover:text-orange-600 cursor-pointer">
-                          {job.title}
-                        </h3>
+                    {/* Job Title */}
+                    <Link
+                      to={`/jobs/${job.id}`}
+                      className="block mb-3 group"
+                    >
+                      <h3 className="text-lg font-bold text-gray-900 group-hover:text-orange-600 transition-colors line-clamp-2">
+                        {job.title}
+                      </h3>
+                    </Link>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4 text-sm text-gray-600">
-                          <div className="flex items-center">
-                            <Building2 className="w-4 h-4 mr-2 text-orange-600" />
-                            {job.department}
-                          </div>
-                          <div className="flex items-center">
-                            <MapPin className="w-4 h-4 mr-2 text-orange-600" />
-                            {job.location}
-                          </div>
-                          <div className="flex items-center">
-                            <Calendar className="w-4 h-4 mr-2 text-orange-600" />
-                            Closes: {formatDate(job.closingDate)}
-                          </div>
-                          <div className="flex items-center">
-                            <Users className="w-4 h-4 mr-2 text-orange-600" />
-                            {job.applicationsCount || 0} applicants
-                          </div>
-                        </div>
-
-                        <p className="text-gray-700 mb-4 line-clamp-3">
-                          {job.description}
-                        </p>
-
-                        {job.salary && (
-                          <p className="text-lg font-semibold text-gray-900 mb-4">
-                            {job.salary}
-                          </p>
-                        )}
+                    {/* Job Details */}
+                    <div className="space-y-2 mb-4 text-sm text-gray-600">
+                      <div className="flex items-center">
+                        <Building2 className="w-4 h-4 mr-2 text-orange-600 flex-shrink-0" />
+                        <span className="truncate">{job.department}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <MapPin className="w-4 h-4 mr-2 text-orange-600 flex-shrink-0" />
+                        <span className="truncate">{job.location}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <Users className="w-4 h-4 mr-2 text-orange-600 flex-shrink-0" />
+                        <span>{job.workArrangement}</span>
                       </div>
                     </div>
 
-                    {isExpanded && (
-                      <div className="mt-6 pt-6 border-t border-gray-200 space-y-6">
-                        {job.responsibilities && job.responsibilities.length > 0 && (
-                          <div>
-                            <h4 className="font-semibold text-gray-900 mb-3">Key Responsibilities</h4>
-                            <ul className="space-y-2">
-                              {job.responsibilities.map((responsibility, index) => (
-                                <li key={index} className="text-gray-700 flex items-start">
-                                  <span className="w-2 h-2 bg-orange-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                                  {responsibility}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
+                    {/* Job Description */}
+                    <p className="text-gray-700 text-sm mb-4 line-clamp-3">
+                      {truncateDescription(job.description)}
+                    </p>
 
-                        {job.requirements && job.requirements.length > 0 && (
-                          <div>
-                            <h4 className="font-semibold text-gray-900 mb-3">Requirements</h4>
-                            <ul className="space-y-2">
-                              {job.requirements.map((requirement, index) => (
-                                <li key={index} className="text-gray-700 flex items-start">
-                                  <span className="w-2 h-2 bg-orange-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                                  {requirement}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-
-                        {job.qualifications && job.qualifications.length > 0 && (
-                          <div>
-                            <h4 className="font-semibold text-gray-900 mb-3">Qualifications</h4>
-                            <ul className="space-y-2">
-                              {job.qualifications.map((qualification, index) => (
-                                <li key={index} className="text-gray-700 flex items-start">
-                                  <span className="w-2 h-2 bg-orange-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                                  {qualification}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-
-                        {job.benefits && job.benefits.length > 0 && (
-                          <div>
-                            <h4 className="font-semibold text-gray-900 mb-3">Benefits & Perks</h4>
-                            <ul className="space-y-2">
-                              {job.benefits.map((benefit, index) => (
-                                <li key={index} className="text-gray-700 flex items-start">
-                                  <span className="w-2 h-2 bg-orange-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                                  {benefit}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
+                    {/* Salary */}
+                    {job.salary && (
+                      <p className="text-base font-semibold text-gray-900 mb-4">
+                        {job.salary}
+                      </p>
                     )}
 
-                    <div className="flex flex-wrap gap-3 mt-6">
-                      <button
-                        onClick={() => toggleJobExpansion(job.id)}
-                        className="flex items-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors"
-                      >
-                        {isExpanded ? (
-                          <>
-                            <ChevronUp className="w-4 h-4 mr-2" />
-                            Show Less
-                          </>
-                        ) : (
-                          <>
-                            <ChevronDown className="w-4 h-4 mr-2" />
-                            Show More
-                          </>
-                        )}
-                      </button>
+                    {/* Footer */}
+                    <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                      <div className="flex items-center text-xs text-gray-500">
+                        <Calendar className="w-3 h-3 mr-1" />
+                        <span>
+                          {daysUntilClosing !== null ? 
+                            `${daysUntilClosing} days left` : 
+                            'No deadline'
+                          }
+                        </span>
+                      </div>
 
                       <Link
-                        to={`/jobs/apply/${job.id}`}
-                        className="flex items-center px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 text-sm font-medium transition-colors"
+                        to={`/careers/jobs/${job.id}`}
+                        className="inline-flex items-center text-orange-600 hover:text-orange-700 font-medium text-sm transition-colors group"
                       >
-                        Apply Now
+                        View Details
+                        <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
                       </Link>
                     </div>
 
-                    <div className="mt-4 pt-4 border-t border-gray-100 text-xs text-gray-500">
-                      <div className="flex flex-wrap gap-4">
-                        <span>Posted: {formatDate(job.postedDate || job.createdAt)}</span>
-                        <span>Job ID: #{job.id}</span>
-                      </div>
+                    {/* Application Count */}
+                    <div className="mt-3 pt-3 border-t border-gray-100 text-xs text-gray-500">
+                      <span>{job.applicationsCount || 0} applicants</span>
+                      <span className="mx-2">•</span>
+                      <span>Posted: {formatDate(job.postedDate || job.createdAt)}</span>
                     </div>
                   </div>
                 </div>

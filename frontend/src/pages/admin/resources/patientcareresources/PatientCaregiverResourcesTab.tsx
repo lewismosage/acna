@@ -187,13 +187,17 @@ const PatientCaregiverResourcesTab: React.FC<
   };
 
   const handleCreateResource = async (
-    resourceData: PatientResource & { imageFile?: File | null }
+    resourceData: PatientResource & {
+      imageFile?: File | null;
+      fileUpload?: File | null;
+    }
   ) => {
     try {
       // Convert PatientResource to CreateResourceInput
       const createData: CreateResourceInput = {
         ...resourceData,
         imageFile: resourceData.imageFile || null,
+        fileUpload: resourceData.fileUpload || null,
       };
 
       if (editingResource) {

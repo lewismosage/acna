@@ -125,8 +125,13 @@ class JobApplication(models.Model):
     email = models.EmailField()
     phone = models.CharField(max_length=20)
     location = models.CharField(max_length=200)
-    experience = models.TextField()
-    cover_letter = models.TextField()
+    cover_letter = models.TextField(blank=True, null=True)
+    cover_letter_file = models.FileField(
+        upload_to=job_application_file_path,
+        validators=[FileExtensionValidator(['pdf', 'doc', 'docx'])],
+        blank=True,
+        null=True
+    )
     resume = models.FileField(
         upload_to=job_application_file_path,
         validators=[FileExtensionValidator(['pdf', 'doc', 'docx'])]

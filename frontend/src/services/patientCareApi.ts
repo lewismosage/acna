@@ -158,8 +158,13 @@ export const patientCareApi = {
     Object.entries(data).forEach(([key, value]) => {
         if (key === 'imageFile' && value instanceof File) {
         formData.append('image', value);
+        } else if (key === 'fileUpload' && value instanceof File) {
+        formData.append('file', value);
         } else if (Array.isArray(value)) {
-        value.forEach(item => formData.append(key, item));
+        // For arrays, append each item with index to ensure proper handling
+        value.forEach((item, index) => {
+            formData.append(`${key}[${index}]`, item);
+        });
         } else if (value !== null && value !== undefined) {
         formData.append(key, value.toString());
         }
