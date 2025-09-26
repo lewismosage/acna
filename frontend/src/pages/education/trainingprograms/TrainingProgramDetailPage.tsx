@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { loadStripe } from "@stripe/stripe-js";
 import {
   Calendar,
   ChevronLeft,
@@ -23,7 +24,11 @@ import {
   Monitor,
 } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
-import { TrainingProgram, trainingProgramsApi } from "../../../services/trainingProgramsApi";
+import {
+  TrainingProgram,
+  trainingProgramsApi,
+  TrainingProgramRegistrationResponse,
+} from "../../../services/trainingProgramsApi";
 import LoadingSpinner from "../../../components/common/LoadingSpinner";
 import ScrollToTop from "../../../components/common/ScrollToTop";
 
@@ -36,7 +41,7 @@ const TrainingProgramDetailPage = () => {
   const [program, setProgram] = useState<TrainingProgram | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Registration form state
   const [registrationData, setRegistrationData] = useState({
     participantName: "",
@@ -49,7 +54,9 @@ const TrainingProgramDetailPage = () => {
   });
   const [registrationLoading, setRegistrationLoading] = useState(false);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
-  const [registrationError, setRegistrationError] = useState<string | null>(null);
+  const [registrationError, setRegistrationError] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
     const fetchProgram = async () => {
@@ -79,20 +86,51 @@ const TrainingProgramDetailPage = () => {
     setRegistrationError(null);
 
     try {
-      await trainingProgramsApi.createRegistration({
-        programId: program.id,
-        ...registrationData,
-      });
-      setRegistrationSuccess(true);
-      setRegistrationData({
-        participantName: "",
-        participantEmail: "",
-        participantPhone: "",
-        organization: "",
-        profession: "",
-        experience: "",
-        specialRequests: "",
-      });
+      const response: TrainingProgramRegistrationResponse =
+        await trainingProgramsApi.createRegistration({
+          programId: program.id,
+          ...registrationData,
+        });
+
+      // Check if payment is required
+      if (response.payment_required) {
+        console.log("Payment required, creating payment session...");
+
+        // Create payment session
+        const paymentSession = await trainingProgramsApi.createPaymentSession(
+          response.program_id!,
+          response.registration_data!,
+          response.amount!
+        );
+
+        // Initialize Stripe and redirect to checkout
+        const stripe = await loadStripe(
+          import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY!
+        );
+        if (!stripe) {
+          throw new Error("Failed to load Stripe");
+        }
+
+        const { error } = await stripe.redirectToCheckout({
+          sessionId: paymentSession.sessionId,
+        });
+
+        if (error) {
+          throw new Error(error.message || "Failed to redirect to payment");
+        }
+      } else {
+        // No payment required - registration completed
+        setRegistrationSuccess(true);
+        setRegistrationData({
+          participantName: "",
+          participantEmail: "",
+          participantPhone: "",
+          organization: "",
+          profession: "",
+          experience: "",
+          specialRequests: "",
+        });
+      }
     } catch (err) {
       setRegistrationError(
         err instanceof Error ? err.message : "Failed to submit registration"
@@ -176,11 +214,16 @@ const TrainingProgramDetailPage = () => {
   }
 
   const daysUntil = calculateDaysUntil(program.startDate);
-  const enrollmentPercentage = program.maxParticipants > 0 
-    ? (program.currentEnrollments / program.maxParticipants) * 100 
-    : 0;
+  const enrollmentPercentage =
+    program.maxParticipants > 0
+      ? (program.currentEnrollments / program.maxParticipants) * 100
+      : 0;
   const spotsLeft = program.maxParticipants - program.currentEnrollments;
-  const isRegistrationOpen = daysUntil && daysUntil > 0 && spotsLeft > 0 && program.status === "Published";
+  const isRegistrationOpen =
+    daysUntil &&
+    daysUntil > 0 &&
+    spotsLeft > 0 &&
+    program.status === "Published";
 
   return (
     <div className="bg-white min-h-screen">
@@ -221,7 +264,11 @@ const TrainingProgramDetailPage = () => {
                   </span>
                 </div>
                 <div className="absolute top-4 right-4">
-                  <span className={`text-white px-3 py-1 text-sm font-bold rounded ${getStatusColor(program.status)}`}>
+                  <span
+                    className={`text-white px-3 py-1 text-sm font-bold rounded ${getStatusColor(
+                      program.status
+                    )}`}
+                  >
                     {program.status}
                   </span>
                 </div>
@@ -235,9 +282,11 @@ const TrainingProgramDetailPage = () => {
                 )}
                 {daysUntil && daysUntil <= 30 && (
                   <div className="absolute bottom-4 right-4">
-                    <span className={`text-white px-3 py-1 text-sm font-bold rounded ${
-                      daysUntil <= 7 ? "bg-red-600" : "bg-orange-600"
-                    }`}>
+                    <span
+                      className={`text-white px-3 py-1 text-sm font-bold rounded ${
+                        daysUntil <= 7 ? "bg-red-600" : "bg-orange-600"
+                      }`}
+                    >
                       {daysUntil} DAYS LEFT
                     </span>
                   </div>
@@ -263,7 +312,8 @@ const TrainingProgramDetailPage = () => {
                     <Calendar className="w-5 h-5 mr-3 text-red-600" />
                     <div>
                       <div className="font-medium">
-                        {formatDate(program.startDate)} - {formatDate(program.endDate)}
+                        {formatDate(program.startDate)} -{" "}
+                        {formatDate(program.endDate)}
                       </div>
                       <div className="text-sm">Program Dates</div>
                     </div>
@@ -283,12 +333,17 @@ const TrainingProgramDetailPage = () => {
                 <div className="space-y-3">
                   <div className="flex items-center text-gray-600">
                     {getFormatIcon(program.format)}
-                    <span className="ml-3">{program.format} • {program.location}</span>
+                    <span className="ml-3">
+                      {program.format} • {program.location}
+                    </span>
                   </div>
 
                   <div className="flex items-center text-gray-600">
                     <Users className="w-5 h-5 mr-3 text-red-600" />
-                    <span>{program.currentEnrollments}/{program.maxParticipants} enrolled</span>
+                    <span>
+                      {program.currentEnrollments}/{program.maxParticipants}{" "}
+                      enrolled
+                    </span>
                   </div>
 
                   <div className="flex items-center text-gray-600">
@@ -301,16 +356,23 @@ const TrainingProgramDetailPage = () => {
               {/* Enrollment Progress */}
               <div className="mb-6">
                 <div className="flex justify-between text-sm text-gray-600 mb-2">
-                  <span>Enrollment Progress: {enrollmentPercentage.toFixed(0)}%</span>
-                  <span className={spotsLeft <= 5 ? "text-red-600 font-medium" : ""}>
+                  <span>
+                    Enrollment Progress: {enrollmentPercentage.toFixed(0)}%
+                  </span>
+                  <span
+                    className={spotsLeft <= 5 ? "text-red-600 font-medium" : ""}
+                  >
                     {spotsLeft} spots remaining
                   </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-3">
                   <div
                     className={`h-3 rounded-full ${
-                      enrollmentPercentage >= 90 ? "bg-red-500" :
-                      enrollmentPercentage >= 75 ? "bg-yellow-500" : "bg-green-500"
+                      enrollmentPercentage >= 90
+                        ? "bg-red-500"
+                        : enrollmentPercentage >= 75
+                        ? "bg-yellow-500"
+                        : "bg-green-500"
                     }`}
                     style={{ width: `${enrollmentPercentage}%` }}
                   />
@@ -322,13 +384,18 @@ const TrainingProgramDetailPage = () => {
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
                     <div className="text-3xl font-bold text-gray-900">
-                      {program.price === 0 ? "FREE" : `${program.currency} ${program.price.toLocaleString()}`}
+                      {program.price === 0
+                        ? "FREE"
+                        : `${
+                            program.currency
+                          } ${program.price.toLocaleString()}`}
                     </div>
                     <div className="text-sm text-gray-600">
-                      Registration deadline: {formatDate(program.registrationDeadline)}
+                      Registration deadline:{" "}
+                      {formatDate(program.registrationDeadline)}
                     </div>
                   </div>
-                  
+
                   <div className="flex flex-col gap-2">
                     {isRegistrationOpen ? (
                       <button
@@ -341,10 +408,16 @@ const TrainingProgramDetailPage = () => {
                     ) : (
                       <div className="text-center">
                         <div className="bg-gray-400 text-white px-8 py-3 rounded-lg font-semibold">
-                          {spotsLeft <= 0 ? "FULL" : daysUntil && daysUntil <= 0 ? "CLOSED" : "UNAVAILABLE"}
+                          {spotsLeft <= 0
+                            ? "FULL"
+                            : daysUntil && daysUntil <= 0
+                            ? "CLOSED"
+                            : "UNAVAILABLE"}
                         </div>
                         <div className="text-sm text-gray-500 mt-1">
-                          {spotsLeft <= 0 ? "No spots available" : "Registration closed"}
+                          {spotsLeft <= 0
+                            ? "No spots available"
+                            : "Registration closed"}
                         </div>
                       </div>
                     )}
@@ -421,25 +494,29 @@ const TrainingProgramDetailPage = () => {
                 </div>
 
                 {/* Learning Outcomes */}
-                {program.learningOutcomes && program.learningOutcomes.length > 0 && (
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
-                      <Target className="w-6 h-6 mr-2 text-red-600" />
-                      Learning Outcomes
-                    </h3>
-                    <div className="bg-blue-50 border-l-4 border-blue-500 p-6">
-                      <p className="text-gray-700 mb-4">After completing this program, participants will be able to:</p>
-                      <ul className="space-y-2">
-                        {program.learningOutcomes.map((outcome, index) => (
-                          <li key={index} className="flex items-start">
-                            <CheckCircle className="w-5 h-5 text-green-600 mr-3 mt-0.5 flex-shrink-0" />
-                            <span className="text-gray-700">{outcome}</span>
-                          </li>
-                        ))}
-                      </ul>
+                {program.learningOutcomes &&
+                  program.learningOutcomes.length > 0 && (
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                        <Target className="w-6 h-6 mr-2 text-red-600" />
+                        Learning Outcomes
+                      </h3>
+                      <div className="bg-blue-50 border-l-4 border-blue-500 p-6">
+                        <p className="text-gray-700 mb-4">
+                          After completing this program, participants will be
+                          able to:
+                        </p>
+                        <ul className="space-y-2">
+                          {program.learningOutcomes.map((outcome, index) => (
+                            <li key={index} className="flex items-start">
+                              <CheckCircle className="w-5 h-5 text-green-600 mr-3 mt-0.5 flex-shrink-0" />
+                              <span className="text-gray-700">{outcome}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
                 {/* Prerequisites */}
                 {program.prerequisites && program.prerequisites.length > 0 && (
@@ -452,7 +529,9 @@ const TrainingProgramDetailPage = () => {
                         {program.prerequisites.map((prerequisite, index) => (
                           <li key={index} className="flex items-start">
                             <AlertCircle className="w-5 h-5 text-yellow-600 mr-3 mt-0.5 flex-shrink-0" />
-                            <span className="text-gray-700">{prerequisite}</span>
+                            <span className="text-gray-700">
+                              {prerequisite}
+                            </span>
                           </li>
                         ))}
                       </ul>
@@ -461,24 +540,25 @@ const TrainingProgramDetailPage = () => {
                 )}
 
                 {/* Target Audience */}
-                {program.targetAudience && program.targetAudience.length > 0 && (
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
-                      <Users className="w-6 h-6 mr-2 text-red-600" />
-                      Target Audience
-                    </h3>
-                    <div className="flex flex-wrap gap-2">
-                      {program.targetAudience.map((audience, index) => (
-                        <span
-                          key={index}
-                          className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-medium"
-                        >
-                          {audience}
-                        </span>
-                      ))}
+                {program.targetAudience &&
+                  program.targetAudience.length > 0 && (
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                        <Users className="w-6 h-6 mr-2 text-red-600" />
+                        Target Audience
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {program.targetAudience.map((audience, index) => (
+                          <span
+                            key={index}
+                            className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-medium"
+                          >
+                            {audience}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
                 {/* Topics Covered */}
                 {program.topics && program.topics.length > 0 && (
@@ -543,15 +623,21 @@ const TrainingProgramDetailPage = () => {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Language:</span>
-                      <span className="font-medium">{program.language || "English"}</span>
+                      <span className="font-medium">
+                        {program.language || "English"}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Timezone:</span>
-                      <span className="font-medium">{program.timezone || "GMT"}</span>
+                      <span className="font-medium">
+                        {program.timezone || "GMT"}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">CME Credits:</span>
-                      <span className="font-medium text-green-600">{program.cmeCredits}</span>
+                      <span className="font-medium text-green-600">
+                        {program.cmeCredits}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -564,23 +650,39 @@ const TrainingProgramDetailPage = () => {
                   </h3>
                   <div className="space-y-3 text-sm">
                     <div>
-                      <span className="font-medium text-gray-900">Certificate Type:</span>
-                      <div className="text-gray-700">{program.certificationType}</div>
+                      <span className="font-medium text-gray-900">
+                        Certificate Type:
+                      </span>
+                      <div className="text-gray-700">
+                        {program.certificationType}
+                      </div>
                     </div>
                     <div>
-                      <span className="font-medium text-gray-900">CME Credits:</span>
-                      <div className="text-gray-700">{program.cmeCredits} credits</div>
+                      <span className="font-medium text-gray-900">
+                        CME Credits:
+                      </span>
+                      <div className="text-gray-700">
+                        {program.cmeCredits} credits
+                      </div>
                     </div>
                     {program.assessmentMethod && (
                       <div>
-                        <span className="font-medium text-gray-900">Assessment:</span>
-                        <div className="text-gray-700">{program.assessmentMethod}</div>
+                        <span className="font-medium text-gray-900">
+                          Assessment:
+                        </span>
+                        <div className="text-gray-700">
+                          {program.assessmentMethod}
+                        </div>
                       </div>
                     )}
                     {program.passingScore && (
                       <div>
-                        <span className="font-medium text-gray-900">Passing Score:</span>
-                        <div className="text-gray-700">{program.passingScore}%</div>
+                        <span className="font-medium text-gray-900">
+                          Passing Score:
+                        </span>
+                        <div className="text-gray-700">
+                          {program.passingScore}%
+                        </div>
                       </div>
                     )}
                   </div>
@@ -594,7 +696,10 @@ const TrainingProgramDetailPage = () => {
                   <div className="space-y-3 text-sm">
                     <div className="flex items-center text-gray-700">
                       <Mail className="w-4 h-4 mr-3 text-blue-600" />
-                      <a href="mailto:training@acna.org" className="hover:text-blue-600">
+                      <a
+                        href="mailto:training@acna.org"
+                        className="hover:text-blue-600"
+                      >
                         training@acna.org
                       </a>
                     </div>
@@ -606,7 +711,9 @@ const TrainingProgramDetailPage = () => {
                       <Building className="w-4 h-4 mr-3 mt-0.5 text-blue-600" />
                       <div>
                         <div>African Child Neurology Association</div>
-                        <div className="text-xs text-gray-600">Education Department</div>
+                        <div className="text-xs text-gray-600">
+                          Education Department
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -620,22 +727,29 @@ const TrainingProgramDetailPage = () => {
               <h2 className="text-2xl font-bold text-gray-900 mb-6">
                 Curriculum & Schedule
               </h2>
-              
+
               {program.schedule && program.schedule.length > 0 ? (
                 <div className="space-y-6">
                   {program.schedule.map((item, index) => (
-                    <div key={index} className="bg-white border border-gray-200 rounded-lg p-6">
+                    <div
+                      key={index}
+                      className="bg-white border border-gray-200 rounded-lg p-6"
+                    >
                       <div className="flex flex-col md:flex-row md:items-center justify-between mb-4">
                         <div className="flex items-center mb-2 md:mb-0">
                           <Calendar className="w-5 h-5 mr-3 text-red-600" />
-                          <h3 className="text-lg font-semibold text-gray-900">{item.day}</h3>
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            {item.day}
+                          </h3>
                         </div>
                         <div className="flex items-center text-gray-600">
                           <Clock className="w-4 h-4 mr-2" />
                           <span>{item.time}</span>
                         </div>
                       </div>
-                      <h4 className="text-base font-medium text-gray-900 mb-2">{item.activity}</h4>
+                      <h4 className="text-base font-medium text-gray-900 mb-2">
+                        {item.activity}
+                      </h4>
                       <div className="flex items-center text-gray-600">
                         <User className="w-4 h-4 mr-2" />
                         <span>{item.speaker}</span>
@@ -647,7 +761,8 @@ const TrainingProgramDetailPage = () => {
                 <div className="text-center py-12 bg-gray-50 rounded-lg">
                   <Calendar className="w-12 h-12 mx-auto text-gray-400" />
                   <p className="mt-4 text-gray-600">
-                    Detailed schedule will be provided closer to the program date
+                    Detailed schedule will be provided closer to the program
+                    date
                   </p>
                 </div>
               )}
@@ -659,20 +774,31 @@ const TrainingProgramDetailPage = () => {
               <h2 className="text-2xl font-bold text-gray-900 mb-6">
                 Instructors & Speakers
               </h2>
-              
+
               {program.speakers && program.speakers.length > 0 ? (
                 <div className="space-y-8">
                   {program.speakers.map((speaker, index) => (
-                    <div key={index} className="bg-white border border-gray-200 rounded-lg p-6">
+                    <div
+                      key={index}
+                      className="bg-white border border-gray-200 rounded-lg p-6"
+                    >
                       <div className="flex items-start space-x-4">
                         <div className="w-16 h-16 bg-gray-300 rounded-full flex items-center justify-center">
                           <User className="w-8 h-8 text-gray-600" />
                         </div>
                         <div className="flex-1">
-                          <h3 className="text-xl font-bold text-gray-900 mb-1">{speaker.name}</h3>
-                          <p className="text-red-600 font-medium mb-2">{speaker.title}</p>
-                          <p className="text-gray-600 mb-3">{speaker.organization}</p>
-                          <p className="text-gray-700 leading-relaxed">{speaker.bio}</p>
+                          <h3 className="text-xl font-bold text-gray-900 mb-1">
+                            {speaker.name}
+                          </h3>
+                          <p className="text-red-600 font-medium mb-2">
+                            {speaker.title}
+                          </p>
+                          <p className="text-gray-600 mb-3">
+                            {speaker.organization}
+                          </p>
+                          <p className="text-gray-700 leading-relaxed">
+                            {speaker.bio}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -685,11 +811,18 @@ const TrainingProgramDetailPage = () => {
                       <User className="w-8 h-8 text-gray-600" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-xl font-bold text-gray-900 mb-1">{program.instructor}</h3>
-                      <p className="text-red-600 font-medium mb-2">Lead Instructor</p>
-                      <p className="text-gray-600 mb-3">African Child Neurology Association</p>
+                      <h3 className="text-xl font-bold text-gray-900 mb-1">
+                        {program.instructor}
+                      </h3>
+                      <p className="text-red-600 font-medium mb-2">
+                        Lead Instructor
+                      </p>
+                      <p className="text-gray-600 mb-3">
+                        African Child Neurology Association
+                      </p>
                       <p className="text-gray-700 leading-relaxed">
-                        Detailed instructor information will be provided upon registration.
+                        Detailed instructor information will be provided upon
+                        registration.
                       </p>
                     </div>
                   </div>
@@ -703,7 +836,7 @@ const TrainingProgramDetailPage = () => {
               <h2 className="text-2xl font-bold text-gray-900 mb-6">
                 Registration
               </h2>
-              
+
               {registrationSuccess ? (
                 <div className="bg-green-50 border border-green-200 rounded-lg p-8 text-center">
                   <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
@@ -711,7 +844,8 @@ const TrainingProgramDetailPage = () => {
                     Registration Submitted Successfully!
                   </h3>
                   <p className="text-green-700 mb-6">
-                    Thank you for registering for {program.title}. You will receive a confirmation email shortly with further details.
+                    Thank you for registering for {program.title}. You will
+                    receive a confirmation email shortly with further details.
                   </p>
                   <button
                     onClick={() => setRegistrationSuccess(false)}
@@ -727,12 +861,11 @@ const TrainingProgramDetailPage = () => {
                     Registration Not Available
                   </h3>
                   <p className="text-yellow-700 mb-4">
-                    {spotsLeft <= 0 
+                    {spotsLeft <= 0
                       ? "This program is currently full. Please check back for future offerings."
                       : daysUntil && daysUntil <= 0
                       ? "Registration has closed for this program."
-                      : "Registration is not currently open for this program."
-                    }
+                      : "Registration is not currently open for this program."}
                   </p>
                   <div className="text-sm text-yellow-600">
                     For more information, contact us at{" "}
@@ -744,12 +877,17 @@ const TrainingProgramDetailPage = () => {
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                   <div className="lg:col-span-2">
-                    <form onSubmit={handleRegistrationSubmit} className="space-y-6">
+                    <form
+                      onSubmit={handleRegistrationSubmit}
+                      className="space-y-6"
+                    >
                       {registrationError && (
                         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                           <div className="flex items-center">
                             <AlertCircle className="w-5 h-5 text-red-600 mr-2" />
-                            <span className="text-red-800">{registrationError}</span>
+                            <span className="text-red-800">
+                              {registrationError}
+                            </span>
                           </div>
                         </div>
                       )}
@@ -853,12 +991,18 @@ const TrainingProgramDetailPage = () => {
                               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent"
                             >
                               <option value="">Select profession</option>
-                              <option value="Pediatric Neurologist">Pediatric Neurologist</option>
-                              <option value="General Neurologist">General Neurologist</option>
+                              <option value="Pediatric Neurologist">
+                                Pediatric Neurologist
+                              </option>
+                              <option value="General Neurologist">
+                                General Neurologist
+                              </option>
                               <option value="Pediatrician">Pediatrician</option>
                               <option value="Nurse">Nurse</option>
                               <option value="Resident">Resident</option>
-                              <option value="Medical Student">Medical Student</option>
+                              <option value="Medical Student">
+                                Medical Student
+                              </option>
                               <option value="Researcher">Researcher</option>
                               <option value="Other">Other</option>
                             </select>
@@ -879,12 +1023,16 @@ const TrainingProgramDetailPage = () => {
                               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent"
                             >
                               <option value="">Select experience</option>
-                              <option value="Less than 1 year">Less than 1 year</option>
+                              <option value="Less than 1 year">
+                                Less than 1 year
+                              </option>
                               <option value="1-2 years">1-2 years</option>
                               <option value="3-5 years">3-5 years</option>
                               <option value="6-10 years">6-10 years</option>
                               <option value="11-15 years">11-15 years</option>
-                              <option value="More than 15 years">More than 15 years</option>
+                              <option value="More than 15 years">
+                                More than 15 years
+                              </option>
                             </select>
                           </div>
                         </div>
@@ -918,16 +1066,26 @@ const TrainingProgramDetailPage = () => {
                             id="terms"
                             className="mt-1 mr-3"
                           />
-                          <label htmlFor="terms" className="text-sm text-gray-700">
+                          <label
+                            htmlFor="terms"
+                            className="text-sm text-gray-700"
+                          >
                             I agree to the{" "}
-                            <a href="#" className="text-red-600 hover:underline">
+                            <a
+                              href="#"
+                              className="text-red-600 hover:underline"
+                            >
                               terms and conditions
                             </a>{" "}
                             and{" "}
-                            <a href="#" className="text-red-600 hover:underline">
+                            <a
+                              href="#"
+                              className="text-red-600 hover:underline"
+                            >
                               privacy policy
                             </a>
-                            . I understand that registration is subject to availability and confirmation.
+                            . I understand that registration is subject to
+                            availability and confirmation.
                           </label>
                         </div>
                       </div>
@@ -965,32 +1123,53 @@ const TrainingProgramDetailPage = () => {
                       </h3>
                       <div className="space-y-3 text-sm">
                         <div>
-                          <span className="font-medium text-gray-900">Program:</span>
+                          <span className="font-medium text-gray-900">
+                            Program:
+                          </span>
                           <div className="text-gray-700">{program.title}</div>
                         </div>
                         <div>
-                          <span className="font-medium text-gray-900">Dates:</span>
+                          <span className="font-medium text-gray-900">
+                            Dates:
+                          </span>
                           <div className="text-gray-700">
-                            {formatDate(program.startDate)} - {formatDate(program.endDate)}
+                            {formatDate(program.startDate)} -{" "}
+                            {formatDate(program.endDate)}
                           </div>
                         </div>
                         <div>
-                          <span className="font-medium text-gray-900">Format:</span>
+                          <span className="font-medium text-gray-900">
+                            Format:
+                          </span>
                           <div className="text-gray-700">{program.format}</div>
                         </div>
                         <div>
-                          <span className="font-medium text-gray-900">Duration:</span>
-                          <div className="text-gray-700">{program.duration}</div>
+                          <span className="font-medium text-gray-900">
+                            Duration:
+                          </span>
+                          <div className="text-gray-700">
+                            {program.duration}
+                          </div>
                         </div>
                         <div>
-                          <span className="font-medium text-gray-900">CME Credits:</span>
-                          <div className="text-gray-700">{program.cmeCredits}</div>
+                          <span className="font-medium text-gray-900">
+                            CME Credits:
+                          </span>
+                          <div className="text-gray-700">
+                            {program.cmeCredits}
+                          </div>
                         </div>
                         <div className="border-t border-red-300 pt-3">
                           <div className="flex justify-between items-center">
-                            <span className="font-bold text-gray-900">Total Cost:</span>
+                            <span className="font-bold text-gray-900">
+                              Total Cost:
+                            </span>
                             <span className="text-xl font-bold text-red-600">
-                              {program.price === 0 ? "FREE" : `${program.currency} ${program.price.toLocaleString()}`}
+                              {program.price === 0
+                                ? "FREE"
+                                : `${
+                                    program.currency
+                                  } ${program.price.toLocaleString()}`}
                             </span>
                           </div>
                         </div>
@@ -1005,19 +1184,29 @@ const TrainingProgramDetailPage = () => {
                       <div className="space-y-3">
                         <div className="flex justify-between text-sm">
                           <span>Enrollment:</span>
-                          <span>{program.currentEnrollments}/{program.maxParticipants}</span>
+                          <span>
+                            {program.currentEnrollments}/
+                            {program.maxParticipants}
+                          </span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">
                           <div
                             className={`h-2 rounded-full ${
-                              enrollmentPercentage >= 90 ? "bg-red-500" :
-                              enrollmentPercentage >= 75 ? "bg-yellow-500" : "bg-green-500"
+                              enrollmentPercentage >= 90
+                                ? "bg-red-500"
+                                : enrollmentPercentage >= 75
+                                ? "bg-yellow-500"
+                                : "bg-green-500"
                             }`}
                             style={{ width: `${enrollmentPercentage}%` }}
                           />
                         </div>
                         <div className="text-center">
-                          <span className={`text-lg font-bold ${spotsLeft <= 5 ? "text-red-600" : "text-green-600"}`}>
+                          <span
+                            className={`text-lg font-bold ${
+                              spotsLeft <= 5 ? "text-red-600" : "text-green-600"
+                            }`}
+                          >
                             {spotsLeft} spots remaining
                           </span>
                         </div>
@@ -1047,7 +1236,10 @@ const TrainingProgramDetailPage = () => {
                       <div className="space-y-3 text-sm">
                         <div className="flex items-center text-gray-700">
                           <Mail className="w-4 h-4 mr-3 text-gray-600" />
-                          <a href="mailto:training@acna.org" className="hover:text-red-600">
+                          <a
+                            href="mailto:training@acna.org"
+                            className="hover:text-red-600"
+                          >
                             training@acna.org
                           </a>
                         </div>
@@ -1056,7 +1248,8 @@ const TrainingProgramDetailPage = () => {
                           <span>+1 (555) 123-4567</span>
                         </div>
                         <p className="text-gray-600 text-xs mt-3">
-                          Our support team is available Monday-Friday, 9AM-5PM GMT to assist with registration questions.
+                          Our support team is available Monday-Friday, 9AM-5PM
+                          GMT to assist with registration questions.
                         </p>
                       </div>
                     </div>
@@ -1076,8 +1269,8 @@ const TrainingProgramDetailPage = () => {
               Ready to Advance Your Skills?
             </h2>
             <p className="text-xl mb-8 max-w-2xl mx-auto">
-              Don't miss this opportunity to enhance your expertise in pediatric neurology. 
-              Only {spotsLeft} spots remaining!
+              Don't miss this opportunity to enhance your expertise in pediatric
+              neurology. Only {spotsLeft} spots remaining!
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button

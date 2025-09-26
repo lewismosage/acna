@@ -11,7 +11,7 @@ from .views import (
     ForgotPasswordView, AdminForgotPasswordView, ResetPasswordView,
     AdminUserListView, SendAdminInviteView, AdminInviteListView, 
     AdminSignUpWithInviteView, RemoveAdminView, AssignAdminRoleView, SendEmailToUserView,
-    UpdateUserStatusView
+    UpdateUserStatusView, TokenRefreshView, AdminTokenRefreshView
 )
 from .serializers import UserProfileSerializer, ChangePasswordSerializer
 
@@ -21,6 +21,7 @@ urlpatterns = [
     path('resend-verification/', ResendVerificationView.as_view(), name='resend-verification'),
     path('login/', LoginView.as_view(), name='user_login'),
     path('logout/', LogoutView.as_view(), name='user_logout'),
+    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('profile/', UserProfileView.as_view(), name='user-profile'),
     path('change-password/', ChangePasswordView.as_view(), name='change-password'),
     path('update-about/', UpdateAboutView.as_view(), name='update-about'),
@@ -28,6 +29,7 @@ urlpatterns = [
     path('admin/login/', AdminLoginView.as_view(), name='admin_login'),
     path('admin/logout/', AdminLogoutView.as_view(), name='admin_logout'),
     path('admin/dashboard/', AdminDashboardView.as_view(), name='admin_dashboard'),
+    path('admin/token/refresh/', AdminTokenRefreshView.as_view(), name='admin_token_refresh'),
     path('forgot-password/', ForgotPasswordView.as_view(), name='forgot-password'),
     path('admin/forgot-password/', AdminForgotPasswordView.as_view(), name='admin-forgot-password'),
     path('reset-password/<uuid:token>/', ResetPasswordView.as_view(), name='reset-password'),

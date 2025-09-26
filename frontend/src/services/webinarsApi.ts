@@ -45,7 +45,7 @@ export interface Registration {
   phone: string;
   organization?: string;
   registrationType: 'Free' | 'Paid' | 'Student' | 'Professional';
-  paymentStatus: 'Paid' | 'Pending' | 'Free' | 'Failed';
+  paymentStatus: 'pending' | 'paid' | 'free' | 'failed' | 'refunded';
   registrationDate: string;
   amount?: number;
   country?: string;
@@ -227,7 +227,7 @@ const normalizeRegistration = (backendRegistration: any): Registration => {
     phone: backendRegistration.phone || '',
     organization: backendRegistration.organization || '',
     registrationType: backendRegistration.registrationType || backendRegistration.registration_type || 'Free',
-    paymentStatus: backendRegistration.paymentStatus || backendRegistration.payment_status || 'Pending',
+    paymentStatus: backendRegistration.paymentStatus || backendRegistration.payment_status || 'pending',
     registrationDate: backendRegistration.registrationDate?.split('T')[0] || backendRegistration.registration_date?.split('T')[0] || new Date().toISOString().split('T')[0],
     amount: backendRegistration.amount,
     country: backendRegistration.country || '',

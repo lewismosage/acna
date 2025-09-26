@@ -233,7 +233,7 @@ const normalizeWorkshopRegistration = (backendRegistration: any): WorkshopRegist
     organization: backendRegistration.organization || '',
     profession: backendRegistration.profession || '',
     registrationType: backendRegistration.registration_type || backendRegistration.registrationType || 'Free',
-    paymentStatus: backendRegistration.payment_status || backendRegistration.paymentStatus || 'Pending',
+    paymentStatus: backendRegistration.payment_status || backendRegistration.paymentStatus || 'pending',
     amount: backendRegistration.amount,
     country: backendRegistration.country || '',
     registeredAt: backendRegistration.registered_at || backendRegistration.registeredAt || new Date().toISOString(),
@@ -702,7 +702,7 @@ export const workshopsApi = {
       console.error('Error downloading workshop invoice:', error);
       throw error;
     }
-  },
+},
 
   updateRegistration: async (id: number, data: Partial<CreateWorkshopRegistrationInput>): Promise<WorkshopRegistration> => {
     // Convert camelCase to snake_case for backend

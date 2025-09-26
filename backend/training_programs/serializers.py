@@ -448,6 +448,29 @@ class RegistrationSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'program_title', 'registration_date']
     
+    def validate(self, data):
+        """Add comprehensive validation with detailed error messages"""
+        logger.info(f"Registration validation - data keys: {list(data.keys())}")
+        logger.info(f"Registration validation - data values: {data}")
+        
+        # Check for required fields
+        required_fields = ['participant_name', 'participant_email', 'organization', 'profession', 'experience']
+        missing_fields = []
+        
+        for field in required_fields:
+            if field not in data or not data[field] or str(data[field]).strip() == '':
+                missing_fields.append(field)
+        
+        if missing_fields:
+            logger.error(f"Missing required fields: {missing_fields}")
+            raise serializers.ValidationError({
+                field: f"{field.replace('_', ' ').title()} is required"
+                for field in missing_fields
+            })
+        
+        logger.info("Registration validation passed")
+        return data
+    
     def validate_participant_name(self, value):
         """Validate participant name is not empty"""
         if not value or not str(value).strip():

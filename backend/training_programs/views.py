@@ -18,9 +18,15 @@ import json
 import csv
 import stripe
 import traceback
+import io
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.lib import colors
 
 from .models import TrainingProgram, Registration, ScheduleItem, Speaker, TrainingProgramPayment
 from .serializers import (
@@ -684,17 +690,17 @@ class RegistrationViewSet(viewsets.ModelViewSet):
     def create(self, request):
         """Create new registration with improved duplicate handling"""
         try:
+            logger.info(f"Registration request data: {request.data}")
             serializer = self.get_serializer(data=request.data)
             if not serializer.is_valid():
-                # Extract the specific error message for email duplicates
-                error_message = "Validation failed"
-                if 'participant_email' in serializer.errors:
-                    error_message = serializer.errors['participant_email'][0]
-                elif 'non_field_errors' in serializer.errors:
-                    error_message = serializer.errors['non_field_errors'][0]
-                
+                logger.error(f"Registration validation errors: {serializer.errors}")
+                # Return detailed validation errors
                 return Response(
-                    {'error': error_message},
+                    {
+                        'error': 'Validation failed',
+                        'details': serializer.errors,
+                        'request_data': request.data
+                    },
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
@@ -748,15 +754,15 @@ class RegistrationViewSet(viewsets.ModelViewSet):
                 registration = serializer.save()
                 registration.payment_status = 'free'
                 registration.save()
-            
-            # Send confirmation email
-            try:
-                self.send_registration_confirmation(registration)
-                logger.info(f"Confirmation email sent for registration {registration.id}")
-            except Exception as e:
-                logger.error(f"Failed to send confirmation email: {str(e)}")
-            
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+                
+                # Send confirmation email
+                try:
+                    self.send_registration_confirmation(registration)
+                    logger.info(f"Confirmation email sent for registration {registration.id}")
+                except Exception as e:
+                    logger.error(f"Failed to send confirmation email: {str(e)}")
+                
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         except Exception as e:
             logger.error(f"Error creating registration: {str(e)}")
@@ -1164,5 +1170,185 @@ class TrainingProgramPaymentVerify(APIView):
             logger.error(f"Error verifying training program payment: {str(e)}")
             return Response(
                 {'error': 'Failed to verify payment'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class TrainingProgramInvoiceDownload(APIView):
+    """Generate and download PDF invoice for training program payment"""
+    permission_classes = [AllowAny]
+    
+    def get(self, request):
+        session_id = request.query_params.get('session_id')
+        
+        if not session_id:
+            return Response(
+                {'error': 'Session ID is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            # Find the payment record
+            payment = TrainingProgramPayment.objects.get(
+                stripe_checkout_session_id=session_id,
+                status='succeeded'
+            )
+            
+            # Create PDF
+            buffer = io.BytesIO()
+            doc = SimpleDocTemplate(buffer, pagesize=letter)
+            styles = getSampleStyleSheet()
+            story = []
+            
+            # Company info
+            company_name = getattr(settings, 'COMPANY_NAME', 'ACNA')
+            company_address = getattr(settings, 'COMPANY_ADDRESS', '')
+            company_phone = getattr(settings, 'COMPANY_PHONE', '')
+            company_email = getattr(settings, 'COMPANY_EMAIL', '')
+            
+            # Title
+            title_style = ParagraphStyle(
+                'CustomTitle',
+                parent=styles['Heading1'],
+                fontSize=24,
+                spaceAfter=30,
+                alignment=1  # Center alignment
+            )
+            story.append(Paragraph("INVOICE", title_style))
+            story.append(Spacer(1, 20))
+            
+            # Company details
+            company_style = ParagraphStyle(
+                'CompanyStyle',
+                parent=styles['Normal'],
+                fontSize=12,
+                spaceAfter=6
+            )
+            
+            story.append(Paragraph(f"<b>{company_name}</b>", company_style))
+            if company_address:
+                story.append(Paragraph(company_address, company_style))
+            if company_phone:
+                story.append(Paragraph(f"Phone: {company_phone}", company_style))
+            if company_email:
+                story.append(Paragraph(f"Email: {company_email}", company_style))
+            
+            story.append(Spacer(1, 30))
+            
+            # Invoice details
+            invoice_data = [
+                ['Invoice Number:', f"TP-{payment.id:06d}"],
+                ['Invoice Date:', payment.created_at.strftime('%B %d, %Y')],
+                ['Payment ID:', payment.stripe_checkout_session_id],
+                ['Status:', payment.status.title()],
+            ]
+            
+            invoice_table = Table(invoice_data, colWidths=[2*inch, 3*inch])
+            invoice_table.setStyle(TableStyle([
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ]))
+            
+            story.append(invoice_table)
+            story.append(Spacer(1, 20))
+            
+            # Customer details
+            customer_data = [
+                ['Bill To:', ''],
+                ['Name:', payment.registration.participant_name],
+                ['Email:', payment.registration.participant_email],
+                ['Organization:', payment.registration.organization],
+                ['Phone:', payment.registration.participant_phone],
+            ]
+            
+            customer_table = Table(customer_data, colWidths=[2*inch, 3*inch])
+            customer_table.setStyle(TableStyle([
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ]))
+            
+            story.append(customer_table)
+            story.append(Spacer(1, 30))
+            
+            # Training program details
+            program_data = [
+                ['Training Program Details', ''],
+                ['Program:', payment.program.title],
+                ['Start Date:', payment.program.start_date.strftime('%B %d, %Y')],
+                ['End Date:', payment.program.end_date.strftime('%B %d, %Y')],
+                ['Location:', payment.program.location],
+                ['Instructor:', payment.program.instructor],
+            ]
+            
+            program_table = Table(program_data, colWidths=[2*inch, 3*inch])
+            program_table.setStyle(TableStyle([
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+            ]))
+            
+            story.append(program_table)
+            story.append(Spacer(1, 30))
+            
+            # Payment summary
+            payment_data = [
+                ['Description', 'Amount'],
+                [f'Training Program: {payment.program.title}', f"{payment.currency} {payment.amount:.2f}"],
+                ['', ''],
+                ['Total Amount:', f"{payment.currency} {payment.amount:.2f}"],
+            ]
+            
+            payment_table = Table(payment_data, colWidths=[4*inch, 1*inch])
+            payment_table.setStyle(TableStyle([
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+                ('LINEABOVE', (0, -1), (-1, -1), 1, colors.black),
+            ]))
+            
+            story.append(payment_table)
+            story.append(Spacer(1, 30))
+            
+            # Footer
+            footer_style = ParagraphStyle(
+                'FooterStyle',
+                parent=styles['Normal'],
+                fontSize=9,
+                alignment=1,  # Center alignment
+                textColor=colors.grey
+            )
+            
+            story.append(Paragraph("Thank you for your registration!", footer_style))
+            story.append(Paragraph("For any questions, please contact us.", footer_style))
+            
+            # Build PDF
+            doc.build(story)
+            buffer.seek(0)
+            
+            # Create response
+            response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="training-program-invoice-{payment.id}.pdf"'
+            
+            return response
+            
+        except TrainingProgramPayment.DoesNotExist:
+            return Response(
+                {'error': 'Payment not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            logger.error(f"Error generating invoice: {str(e)}")
+            return Response(
+                {'error': f'Failed to generate invoice: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )

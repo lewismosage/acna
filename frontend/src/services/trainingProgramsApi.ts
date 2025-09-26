@@ -115,8 +115,18 @@ export interface Registration {
   experience: string;
   registrationDate: string;
   status: 'Pending' | 'Confirmed' | 'Waitlisted' | 'Cancelled';
-  paymentStatus: 'Pending' | 'Paid' | 'Refunded';
+  paymentStatus: 'pending' | 'paid' | 'free' | 'failed' | 'refunded';
   specialRequests: string;
+}
+
+export interface TrainingProgramRegistrationResponse {
+  success: boolean;
+  message: string;
+  data?: Registration;
+  registration_data?: any;
+  payment_required?: boolean;
+  amount?: number;
+  program_id?: number;
 }
 
 export interface CreateTrainingProgramInput {
@@ -232,7 +242,7 @@ const normalizeRegistration = (backendRegistration: any): Registration => {
     experience: backendRegistration.experience || '',
     registrationDate: (backendRegistration.registrationDate || backendRegistration.registration_date || '').split('T')[0] || new Date().toISOString().split('T')[0],
     status: backendRegistration.status || 'Pending',
-    paymentStatus: backendRegistration.paymentStatus || backendRegistration.payment_status || 'Pending',
+    paymentStatus: backendRegistration.paymentStatus || backendRegistration.payment_status || 'pending',
     specialRequests: backendRegistration.specialRequests || backendRegistration.special_requests || '',
   };
 };
@@ -587,7 +597,7 @@ export const trainingProgramsApi = {
     }
   },
 
-  createRegistration: async (registrationData: Partial<Registration>): Promise<Registration> => {
+  createRegistration: async (registrationData: Partial<Registration>): Promise<TrainingProgramRegistrationResponse> => {
     try {
       console.log('Creating registration with data:', registrationData);
       
@@ -602,7 +612,7 @@ export const trainingProgramsApi = {
         experience: registrationData.experience,
         special_requests: registrationData.specialRequests || '',
         status: registrationData.status || 'Pending',
-        payment_status: registrationData.paymentStatus || 'Pending'
+        payment_status: registrationData.paymentStatus || 'pending'
       };
 
       console.log('Mapped backend data:', backendData);
@@ -635,7 +645,7 @@ export const trainingProgramsApi = {
       
       const result = await handleResponse(response);
       console.log('Registration created successfully:', result);
-      return normalizeRegistration(result);
+      return result;
     } catch (error) {
       console.error('Error creating registration:', error);
       throw error;
@@ -809,6 +819,67 @@ export const trainingProgramsApi = {
       throw error;
     }
   },
+
+  createPaymentSession: async (programId: number, registrationData: any, amount: number): Promise<{ sessionId: string }> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/training-programs/payment/create-checkout-session/`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          program_id: programId,
+          registration_data: registrationData,
+          amount: amount,
+        }),
+      });
+      
+      const result = await handleResponse(response);
+      return result;
+    } catch (error) {
+      console.error('Error creating payment session:', error);
+      throw error;
+    }
+  },
+
+  verifyPayment: async (sessionId: string): Promise<any> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/training-programs/payment/verify/?session_id=${sessionId}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+      
+      const result = await handleResponse(response);
+      return result;
+    } catch (error) {
+      console.error('Error verifying payment:', error);
+      throw error;
+    }
+  },
+
+  downloadInvoice: async (sessionId: string): Promise<void> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/training-programs/payment/invoice/?session_id=${sessionId}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to download invoice');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `training-program-invoice-${sessionId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error downloading invoice:', error);
+      throw error;
+    }
+  },
 };
 
 // Export individual functions for convenience
@@ -834,4 +905,7 @@ export const {
   bulkUpdateStatus,
   bulkDelete,
   exportToCSV,
+  createPaymentSession,
+  verifyPayment,
+  downloadInvoice,
 } = trainingProgramsApi;

@@ -47,7 +47,7 @@ export interface Registration {
   organization?: string;
   registrationDate: string;
   registrationType: 'Early Bird' | 'Regular';
-  paymentStatus: 'Paid' | 'Pending' | 'Failed';
+  paymentStatus: 'pending' | 'paid' | 'free' | 'failed' | 'refunded';
 }
 
 export interface FormData {

@@ -2,7 +2,8 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     TrainingProgramViewSet, RegistrationViewSet,
-    TrainingProgramPaymentView, TrainingProgramPaymentWebhook, TrainingProgramPaymentVerify
+    TrainingProgramPaymentView, TrainingProgramPaymentWebhook, TrainingProgramPaymentVerify,
+    TrainingProgramInvoiceDownload
 )
 
 router = DefaultRouter()
@@ -25,4 +26,7 @@ urlpatterns = [
     path('training-programs/payment/verify/', 
          TrainingProgramPaymentVerify.as_view(), 
          name='training-program-payment-verify'),
+    path('training-programs/payment/invoice/', 
+         TrainingProgramInvoiceDownload.as_view(), 
+         name='training-program-payment-invoice'),
 ]

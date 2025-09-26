@@ -442,6 +442,22 @@ class AdminDashboardView(APIView):
         }
         return Response(data, status=status.HTTP_200_OK)
 
+class TokenRefreshView(APIView):
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        refresh_token = request.data.get('refresh')
+        
+        if not refresh_token:
+            return Response({'error': 'Refresh token required'}, status=400)
+        
+        try:
+            refresh = RefreshToken(refresh_token)
+            access_token = str(refresh.access_token)
+            return Response({'access': access_token}, status=200)
+        except Exception as e:
+            return Response({'error': 'Invalid refresh token'}, status=401)
+
 class AdminTokenRefreshView(APIView):
     permission_classes = [AllowAny]
     
