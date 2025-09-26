@@ -174,6 +174,7 @@ class Registration(models.Model):
     PAYMENT_STATUSES = (
         ('pending', 'Pending'),
         ('paid', 'Paid'),
+        ('free', 'Free Registration'),
         ('failed', 'Failed'),
         ('refunded', 'Refunded'),
     )
@@ -192,7 +193,9 @@ class Registration(models.Model):
     dietary_requirements = models.TextField(blank=True, null=True)
     accessibility_needs = models.TextField(blank=True, null=True)
     registered_at = models.DateTimeField(default=timezone.now)
-    unique_together = ['conference', 'email'] 
+
+    class Meta:
+        unique_together = ['conference', 'email']
 
     @property
     def full_name(self):

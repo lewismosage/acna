@@ -64,9 +64,18 @@ const ConferencePaymentSuccess = () => {
   }, [searchParams]);
 
   const handleDownloadInvoice = async () => {
-    // This would typically download a PDF invoice
-    // For now, we'll just show a message
-    alert("Invoice download feature will be implemented soon");
+    const sessionId = searchParams.get("session_id");
+    if (!sessionId) {
+      alert("No session ID found for invoice download");
+      return;
+    }
+
+    try {
+      await conferencesApi.downloadInvoice(sessionId);
+    } catch (error) {
+      console.error("Error downloading invoice:", error);
+      alert("Failed to download invoice. Please try again.");
+    }
   };
 
   if (isLoading) {

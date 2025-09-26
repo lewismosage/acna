@@ -50,7 +50,7 @@ export interface Registration {
     | 'student'
     | 'speaker'
     | 'sponsor';
-  payment_status: 'pending' | 'paid' | 'failed' | 'refunded';
+  payment_status: 'pending' | 'paid' | 'free' | 'failed' | 'refunded';
   amount_paid?: number;
   dietary_requirements?: string;
   accessibility_needs?: string;
@@ -532,6 +532,43 @@ export const conferencesApi = {
       return response.json();
     } catch (error) {
       console.error('Error verifying conference payment:', error);
+      throw error;
+    }
+  },
+
+  downloadInvoice: async (sessionId: string): Promise<void> => {
+    try {
+      const response = await fetch(`${CONFERENCES_API_URL}/payment/invoice/?session_id=${sessionId}`, {
+        method: 'GET',
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+      
+      // Get the filename from the Content-Disposition header
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = 'conference_invoice.pdf';
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+        }
+      }
+      
+      // Create blob and download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading conference invoice:', error);
       throw error;
     }
   },

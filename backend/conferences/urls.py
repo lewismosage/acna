@@ -4,7 +4,8 @@ from .views import (
     ConferenceViewSet, 
     ConferencePaymentView, 
     ConferencePaymentWebhook, 
-    ConferencePaymentVerify
+    ConferencePaymentVerify,
+    ConferenceInvoiceDownload
 )
 
 router = DefaultRouter()
@@ -37,4 +38,7 @@ urlpatterns = [
     path('conferences/payment/verify/', 
          ConferencePaymentVerify.as_view(), 
          name='conference-payment-verify'),
+    path('conferences/payment/invoice/', 
+         ConferenceInvoiceDownload.as_view(), 
+         name='conference-payment-invoice'),
 ]

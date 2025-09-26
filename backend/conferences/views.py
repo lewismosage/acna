@@ -22,6 +22,17 @@ import uuid
 import json
 from django.core.files.base import ContentFile
 from django.db import transaction
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+from django.conf import settings
+import io
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.units import inch
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from django.http import JsonResponse
 import traceback
 from django.core.files.storage import default_storage
@@ -342,10 +353,10 @@ class ConferenceViewSet(viewsets.ModelViewSet):
             # Total registrations
             total_registrations = Registration.objects.count()
             
-            # Total revenue
-            total_revenue = Registration.objects.filter(
-                payment_status='paid'
-            ).aggregate(total=Sum('amount_paid'))['total'] or 0
+            # Total revenue from successful conference payments
+            total_revenue = ConferencePayment.objects.filter(
+                status='succeeded'
+            ).aggregate(total=Sum('amount'))['total'] or 0
             
             # Average attendance
             avg_attendance = Conference.objects.annotate(
@@ -437,6 +448,15 @@ class ConferenceViewSet(viewsets.ModelViewSet):
                         'conference_id': conference.id
                     }, status=status.HTTP_200_OK)
                 else:
+                    # Handle validation errors for paid registration
+                    if 'email' in serializer.errors and 'already registered' in str(serializer.errors['email']):
+                        return Response({
+                            'success': False,
+                            'error': 'Duplicate registration',
+                            'message': 'This email is already registered for this conference.',
+                            'details': serializer.errors
+                        }, status=status.HTTP_409_CONFLICT)
+                    
                     return Response({
                         'success': False,
                         'error': 'Validation failed',
@@ -448,7 +468,7 @@ class ConferenceViewSet(viewsets.ModelViewSet):
                 
                 if serializer.is_valid():
                     registration = serializer.save()
-                    registration.payment_status = 'paid'
+                    registration.payment_status = 'free'  # Set to 'free' for no-fee conferences
                     registration.save()
                     
                     # Send confirmation email
@@ -466,21 +486,21 @@ class ConferenceViewSet(viewsets.ModelViewSet):
                         'data': serializer.data,
                         'payment_required': False
                     }, status=status.HTTP_201_CREATED)
-            
-            # Handle duplicate email error specifically
-            if 'email' in serializer.errors and 'already registered' in str(serializer.errors['email']):
-                return Response({
-                    'success': False,
-                    'error': 'Duplicate registration',
-                    'message': 'This email is already registered for this conference.',
-                    'details': serializer.errors
-                }, status=status.HTTP_409_CONFLICT)
-                
-            return Response({
-                'success': False,
-                'error': 'Validation failed',
-                'details': serializer.errors
-            }, status=status.HTTP_400_BAD_REQUEST)
+                else:
+                    # Handle validation errors for free registration
+                    if 'email' in serializer.errors and 'already registered' in str(serializer.errors['email']):
+                        return Response({
+                            'success': False,
+                            'error': 'Duplicate registration',
+                            'message': 'This email is already registered for this conference.',
+                            'details': serializer.errors
+                        }, status=status.HTTP_409_CONFLICT)
+                    
+                    return Response({
+                        'success': False,
+                        'error': 'Validation failed',
+                        'details': serializer.errors
+                    }, status=status.HTTP_400_BAD_REQUEST)
             
         except Exception as e:
             logger.error(f"Error adding registration: {str(e)}")
@@ -941,4 +961,173 @@ class ConferencePaymentVerify(APIView):
             return Response(
                 {'error': str(e)},
                 status=status.HTTP_400_BAD_REQUEST
+            )
+
+
+class ConferenceInvoiceDownload(APIView):
+    permission_classes = [AllowAny]
+    
+    def get(self, request):
+        """Download conference payment invoice as PDF"""
+        session_id = request.query_params.get('session_id')
+        if not session_id:
+            return Response(
+                {'error': 'Session ID is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            # Get payment record
+            payment = ConferencePayment.objects.get(
+                stripe_checkout_session_id=session_id
+            )
+            
+            # Generate PDF invoice
+            response = HttpResponse(content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="conference_invoice_{payment.id}.pdf"'
+            
+            # Create PDF
+            buffer = io.BytesIO()
+            doc = SimpleDocTemplate(buffer, pagesize=letter)
+            styles = getSampleStyleSheet()
+            story = []
+            
+            # Company header
+            company_name = getattr(settings, 'COMPANY_NAME', 'African Child Neurology Association')
+            company_email = getattr(settings, 'CONTACT_EMAIL', 'info@acna.org')
+            
+            # Title
+            title_style = ParagraphStyle(
+                'CustomTitle',
+                parent=styles['Heading1'],
+                fontSize=24,
+                spaceAfter=30,
+                alignment=TA_CENTER,
+                textColor=colors.HexColor('#DC2626')  # Red color
+            )
+            story.append(Paragraph("INVOICE", title_style))
+            story.append(Spacer(1, 20))
+            
+            # Company info
+            company_style = ParagraphStyle(
+                'CompanyInfo',
+                parent=styles['Normal'],
+                fontSize=12,
+                alignment=TA_LEFT
+            )
+            story.append(Paragraph(f"<b>{company_name}</b>", company_style))
+            story.append(Paragraph(f"Email: {company_email}", company_style))
+            story.append(Spacer(1, 20))
+            
+            # Invoice details
+            invoice_data = [
+                ['Invoice Number:', f"INV-{payment.id:06d}"],
+                ['Invoice Date:', payment.created_at.strftime('%B %d, %Y')],
+                ['Payment Date:', payment.updated_at.strftime('%B %d, %Y')],
+                ['Payment Status:', payment.status.upper()],
+            ]
+            
+            invoice_table = Table(invoice_data, colWidths=[2*inch, 3*inch])
+            invoice_table.setStyle(TableStyle([
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ]))
+            story.append(invoice_table)
+            story.append(Spacer(1, 20))
+            
+            # Customer info
+            story.append(Paragraph("<b>Bill To:</b>", styles['Heading3']))
+            customer_data = [
+                ['Name:', f"{payment.registration.first_name} {payment.registration.last_name}"],
+                ['Email:', payment.registration.email],
+                ['Organization:', payment.registration.organization or 'N/A'],
+                ['Phone:', payment.registration.phone or 'N/A'],
+            ]
+            
+            customer_table = Table(customer_data, colWidths=[1.5*inch, 4*inch])
+            customer_table.setStyle(TableStyle([
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ]))
+            story.append(customer_table)
+            story.append(Spacer(1, 20))
+            
+            # Conference details
+            story.append(Paragraph("<b>Conference Details:</b>", styles['Heading3']))
+            conference_data = [
+                ['Conference:', payment.conference.title],
+                ['Date:', payment.conference.date],
+                ['Location:', payment.conference.location],
+                ['Registration Type:', payment.registration_type.replace('_', ' ').title()],
+            ]
+            
+            conference_table = Table(conference_data, colWidths=[1.5*inch, 4*inch])
+            conference_table.setStyle(TableStyle([
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ]))
+            story.append(conference_table)
+            story.append(Spacer(1, 30))
+            
+            # Payment summary
+            story.append(Paragraph("<b>Payment Summary:</b>", styles['Heading3']))
+            payment_data = [
+                ['Description', 'Amount'],
+                [f"Conference Registration ({payment.registration_type.replace('_', ' ').title()})", f"${payment.amount:.2f} {payment.currency.upper()}"],
+                ['', ''],
+                ['<b>Total Amount</b>', f"<b>${payment.amount:.2f} {payment.currency.upper()}</b>"],
+            ]
+            
+            payment_table = Table(payment_data, colWidths=[4*inch, 1.5*inch])
+            payment_table.setStyle(TableStyle([
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+                ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
+                ('FONTNAME', (1, 0), (1, 0), 'Helvetica-Bold'),
+                ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                ('TOPPADDING', (0, 0), (-1, -1), 8),
+                ('LINEBELOW', (0, 0), (-1, 0), 1, colors.black),
+                ('LINEABOVE', (0, -1), (-1, -1), 1, colors.black),
+                ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#F3F4F6')),
+            ]))
+            story.append(payment_table)
+            story.append(Spacer(1, 30))
+            
+            # Footer
+            footer_style = ParagraphStyle(
+                'Footer',
+                parent=styles['Normal'],
+                fontSize=9,
+                alignment=TA_CENTER,
+                textColor=colors.grey
+            )
+            story.append(Paragraph("Thank you for your registration!", footer_style))
+            story.append(Paragraph("For any questions, please contact us at " + company_email, footer_style))
+            
+            # Build PDF
+            doc.build(story)
+            pdf_content = buffer.getvalue()
+            buffer.close()
+            
+            response.write(pdf_content)
+            return response
+            
+        except ConferencePayment.DoesNotExist:
+            return Response(
+                {'error': 'Payment not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            logger.error(f"Error generating invoice: {str(e)}")
+            return Response(
+                {'error': 'Failed to generate invoice'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
