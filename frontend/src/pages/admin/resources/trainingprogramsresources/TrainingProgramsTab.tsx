@@ -30,18 +30,24 @@ import RegistrationsTab from "./RegistrationsTab";
 import CreateProgramModal from "./CreateProgramModal";
 import AnalyticsTab from "./AnalyticsTab";
 import AlertModal from "../../../../components/common/AlertModal";
-import { 
-  trainingProgramsApi, 
+import {
+  trainingProgramsApi,
   TrainingProgram,
   Registration,
   TrainingProgramAnalytics,
-  CreateTrainingProgramInput
-} from '../../../../services/trainingProgramsApi';
+  CreateTrainingProgramInput,
+} from "../../../../services/trainingProgramsApi";
 import LoadingSpinner from "../../../../components/common/LoadingSpinner";
 
 const TrainingProgramsTab = () => {
   const [selectedTab, setSelectedTab] = useState<
-    "all" | "published" | "drafts" | "archived" | "featured" | "registrations" | "analytics"
+    | "all"
+    | "published"
+    | "drafts"
+    | "archived"
+    | "featured"
+    | "registrations"
+    | "analytics"
   >("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedPrograms, setExpandedPrograms] = useState<number[]>([]);
@@ -52,20 +58,22 @@ const TrainingProgramsTab = () => {
     isOpen: boolean;
     title: string;
     message: string;
-    type?: 'info' | 'warning' | 'error' | 'success' | 'confirm';
+    type?: "info" | "warning" | "error" | "success" | "confirm";
     onConfirm?: () => void;
     confirmText?: string;
     cancelText?: string;
     showCancel?: boolean;
   }>({
     isOpen: false,
-    title: '',
-    message: '',
+    title: "",
+    message: "",
   });
-  
+
   // Modal states
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [editingProgram, setEditingProgram] = useState<TrainingProgram | undefined>(undefined);
+  const [editingProgram, setEditingProgram] = useState<
+    TrainingProgram | undefined
+  >(undefined);
 
   // Data states
   const [programs, setPrograms] = useState<TrainingProgram[]>([]);
@@ -102,12 +110,13 @@ const TrainingProgramsTab = () => {
         loadCategories(),
       ]);
     } catch (error) {
-      console.error('Error loading initial data:', error);
+      console.error("Error loading initial data:", error);
       setAlertModal({
         isOpen: true,
         title: "Loading Error",
-        message: "Failed to load program data. Please refresh the page or try again.",
-        type: "error"
+        message:
+          "Failed to load program data. Please refresh the page or try again.",
+        type: "error",
       });
     } finally {
       setInitialLoading(false);
@@ -119,7 +128,7 @@ const TrainingProgramsTab = () => {
       const data = await trainingProgramsApi.getAll();
       setPrograms(data);
     } catch (error) {
-      console.error('Error loading programs:', error);
+      console.error("Error loading programs:", error);
       throw error;
     }
   };
@@ -129,7 +138,7 @@ const TrainingProgramsTab = () => {
       const data = await trainingProgramsApi.getRegistrations();
       setRegistrations(data);
     } catch (error) {
-      console.error('Error loading registrations:', error);
+      console.error("Error loading registrations:", error);
       throw error;
     }
   };
@@ -139,7 +148,7 @@ const TrainingProgramsTab = () => {
       const data = await trainingProgramsApi.getAnalytics();
       setAnalyticsData(data);
     } catch (error) {
-      console.error('Error loading analytics:', error);
+      console.error("Error loading analytics:", error);
       throw error;
     }
   };
@@ -149,7 +158,7 @@ const TrainingProgramsTab = () => {
       const data = await trainingProgramsApi.getCategories();
       setCategories(data);
     } catch (error) {
-      console.error('Error loading categories:', error);
+      console.error("Error loading categories:", error);
       // Don't throw here as categories are not critical
     }
   };
@@ -158,23 +167,19 @@ const TrainingProgramsTab = () => {
   const refreshData = async () => {
     setLoading(true);
     try {
-      await Promise.all([
-        loadPrograms(),
-        loadRegistrations(),
-        loadAnalytics(),
-      ]);
+      await Promise.all([loadPrograms(), loadRegistrations(), loadAnalytics()]);
       setAlertModal({
         isOpen: true,
         title: "Data Refreshed",
         message: "All data has been refreshed successfully.",
-        type: "success"
+        type: "success",
       });
     } catch (error) {
       setAlertModal({
         isOpen: true,
         title: "Refresh Error",
         message: "Failed to refresh data. Please try again.",
-        type: "error"
+        type: "error",
       });
     } finally {
       setLoading(false);
@@ -197,70 +202,83 @@ const TrainingProgramsTab = () => {
     setEditingProgram(undefined);
   };
 
-  const handleSubmitProgram = async (programData: CreateTrainingProgramInput) => {
+  const handleSubmitProgram = async (
+    programData: CreateTrainingProgramInput
+  ) => {
     try {
       let result: TrainingProgram;
-      
+
       if (editingProgram) {
         // Update existing program
-        result = await trainingProgramsApi.update(editingProgram.id, programData);
-        setPrograms(prev => prev.map(p => 
-          p.id === editingProgram.id ? result : p
-        ));
+        result = await trainingProgramsApi.update(
+          editingProgram.id,
+          programData
+        );
+        setPrograms((prev) =>
+          prev.map((p) => (p.id === editingProgram.id ? result : p))
+        );
         setAlertModal({
           isOpen: true,
           title: "Program Updated",
           message: "The training program has been successfully updated.",
-          type: "success"
+          type: "success",
         });
       } else {
         // Create new program
         result = await trainingProgramsApi.create(programData);
-        setPrograms(prev => [...prev, result]);
+        setPrograms((prev) => [...prev, result]);
         setAlertModal({
           isOpen: true,
           title: "Program Created",
           message: "The training program has been successfully created.",
-          type: "success"
+          type: "success",
         });
       }
-      
+
+      // Close the modal after successful submission
+      handleCloseModal();
+
       // Refresh analytics after creating/updating
       await loadAnalytics();
-      
     } catch (error) {
-      console.error('Error saving program:', error);
+      console.error("Error saving program:", error);
       setAlertModal({
         isOpen: true,
         title: "Error",
         message: "There was an error saving the program. Please try again.",
-        type: "error"
+        type: "error",
       });
       throw error;
     }
   };
 
   // Registration handlers
-  const handleUpdateRegistration = async (id: number, updates: Partial<Registration>) => {
+  const handleUpdateRegistration = async (
+    id: number,
+    updates: Partial<Registration>
+  ) => {
     try {
-      const updatedRegistration = await trainingProgramsApi.updateRegistration(id, updates);
-      setRegistrations(prev => prev.map(r => 
-        r.id === id ? updatedRegistration : r
-      ));
-      
+      const updatedRegistration = await trainingProgramsApi.updateRegistration(
+        id,
+        updates
+      );
+      setRegistrations((prev) =>
+        prev.map((r) => (r.id === id ? updatedRegistration : r))
+      );
+
       setAlertModal({
         isOpen: true,
         title: "Registration Updated",
         message: "The registration has been updated successfully.",
-        type: "success"
+        type: "success",
       });
     } catch (error) {
-      console.error('Error updating registration:', error);
+      console.error("Error updating registration:", error);
       setAlertModal({
         isOpen: true,
         title: "Update Error",
         message: "Failed to update the registration. Please try again.",
-        type: "error"
+        type: "error",
       });
     }
   };
@@ -268,14 +286,14 @@ const TrainingProgramsTab = () => {
   const handleDeleteRegistration = async (id: number) => {
     try {
       await trainingProgramsApi.deleteRegistration(id);
-      setRegistrations(prev => prev.filter(r => r.id !== id));
+      setRegistrations((prev) => prev.filter((r) => r.id !== id));
     } catch (error) {
-      console.error('Error deleting registration:', error);
+      console.error("Error deleting registration:", error);
       setAlertModal({
         isOpen: true,
         title: "Delete Error",
         message: "Failed to delete the registration. Please try again.",
-        type: "error"
+        type: "error",
       });
     }
   };
@@ -322,54 +340,57 @@ const TrainingProgramsTab = () => {
 
   const handleStatusChange = async (programId: number, newStatus: string) => {
     try {
-      const updatedProgram = await trainingProgramsApi.updateStatus(programId, newStatus);
+      const updatedProgram = await trainingProgramsApi.updateStatus(
+        programId,
+        newStatus
+      );
       setPrograms((prev) =>
         prev.map((program) =>
           program.id === programId ? updatedProgram : program
         )
       );
-      
+
       // Refresh analytics after status change
       await loadAnalytics();
-      
     } catch (error) {
-      console.error('Error updating status:', error);
+      console.error("Error updating status:", error);
       setAlertModal({
         isOpen: true,
         title: "Status Update Error",
         message: "Failed to update program status. Please try again.",
-        type: "error"
+        type: "error",
       });
     }
   };
 
   const handleToggleFeatured = async (programId: number) => {
     try {
-      const updatedProgram = await trainingProgramsApi.toggleFeatured(programId);
+      const updatedProgram = await trainingProgramsApi.toggleFeatured(
+        programId
+      );
       setPrograms((prev) =>
         prev.map((program) =>
           program.id === programId ? updatedProgram : program
         )
       );
-      
+
       // Refresh analytics after featured toggle
       await loadAnalytics();
-      
     } catch (error) {
-      console.error('Error toggling featured:', error);
+      console.error("Error toggling featured:", error);
       setAlertModal({
         isOpen: true,
         title: "Featured Toggle Error",
         message: "Failed to toggle featured status. Please try again.",
-        type: "error"
+        type: "error",
       });
     }
   };
 
   const handleDeleteProgram = (programId: number) => {
-    const program = programs.find(p => p.id === programId);
+    const program = programs.find((p) => p.id === programId);
     if (!program) return;
-    
+
     setAlertModal({
       isOpen: true,
       title: "Confirm Deletion",
@@ -380,28 +401,30 @@ const TrainingProgramsTab = () => {
       onConfirm: async () => {
         try {
           await trainingProgramsApi.delete(programId);
-          setPrograms(prev => prev.filter(p => p.id !== programId));
-          setRegistrations(prev => prev.filter(r => r.programId !== programId));
-          
+          setPrograms((prev) => prev.filter((p) => p.id !== programId));
+          setRegistrations((prev) =>
+            prev.filter((r) => r.programId !== programId)
+          );
+
           // Refresh analytics after deletion
           await loadAnalytics();
-          
+
           setAlertModal({
             isOpen: true,
             title: "Program Deleted",
             message: "The training program has been successfully deleted.",
-            type: "success"
+            type: "success",
           });
         } catch (error) {
-          console.error('Error deleting program:', error);
+          console.error("Error deleting program:", error);
           setAlertModal({
             isOpen: true,
             title: "Delete Error",
             message: "Failed to delete the program. Please try again.",
-            type: "error"
+            type: "error",
           });
         }
-      }
+      },
     });
   };
 
@@ -409,28 +432,28 @@ const TrainingProgramsTab = () => {
     try {
       const blob = await trainingProgramsApi.exportToCSV();
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.style.display = 'none';
+      const a = document.createElement("a");
+      a.style.display = "none";
       a.href = url;
-      a.download = 'training_programs.csv';
+      a.download = "training_programs.csv";
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      
+
       setAlertModal({
         isOpen: true,
         title: "Export Successful",
         message: "Training programs data has been exported successfully.",
-        type: "success"
+        type: "success",
       });
     } catch (error) {
-      console.error('Error exporting data:', error);
+      console.error("Error exporting data:", error);
       setAlertModal({
         isOpen: true,
         title: "Export Error",
         message: "Failed to export data. Please try again.",
-        type: "error"
+        type: "error",
       });
     }
   };
@@ -455,7 +478,7 @@ const TrainingProgramsTab = () => {
   });
 
   const closeAlertModal = () => {
-    setAlertModal(prev => ({ ...prev, isOpen: false }));
+    setAlertModal((prev) => ({ ...prev, isOpen: false }));
   };
 
   const renderProgramsContent = () => (
@@ -463,10 +486,14 @@ const TrainingProgramsTab = () => {
       {filteredPrograms.length > 0 ? (
         filteredPrograms.map((program) => {
           const isExpanded = expandedPrograms.includes(program.id);
-          const enrollmentPercentage = (program.currentEnrollments / program.maxParticipants) * 100;
+          const enrollmentPercentage =
+            (program.currentEnrollments / program.maxParticipants) * 100;
 
           return (
-            <div key={program.id} className="bg-white border border-gray-200 rounded-lg hover:shadow-lg transition-shadow">
+            <div
+              key={program.id}
+              className="bg-white border border-gray-200 rounded-lg hover:shadow-lg transition-shadow"
+            >
               <div className="flex flex-col lg:flex-row">
                 {/* Program Image */}
                 <div className="lg:w-1/4">
@@ -481,7 +508,11 @@ const TrainingProgramsTab = () => {
                       }}
                     />
                     <div className="absolute top-3 left-3">
-                      <span className={`px-2 py-1 rounded-full text-xs font-bold border ${getStatusColor(program.status)} flex items-center`}>
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-bold border ${getStatusColor(
+                          program.status
+                        )} flex items-center`}
+                      >
                         {getStatusIcon(program.status)}
                         <span className="ml-1">{program.status}</span>
                       </span>
@@ -511,7 +542,9 @@ const TrainingProgramsTab = () => {
                         <div className="space-y-2">
                           <div className="flex items-center text-gray-600 text-sm">
                             <FileText className="w-4 h-4 mr-2 text-indigo-600" />
-                            <span className="font-medium">{program.category}</span>
+                            <span className="font-medium">
+                              {program.category}
+                            </span>
                           </div>
                           <div className="flex items-center text-gray-600 text-sm">
                             <Clock className="w-4 h-4 mr-2 text-indigo-600" />
@@ -530,11 +563,16 @@ const TrainingProgramsTab = () => {
                         <div className="space-y-2">
                           <div className="flex items-center text-gray-600 text-sm">
                             <Users className="w-4 h-4 mr-2 text-indigo-600" />
-                            <span>{program.currentEnrollments}/{program.maxParticipants} enrolled</span>
+                            <span>
+                              {program.currentEnrollments}/
+                              {program.maxParticipants} enrolled
+                            </span>
                           </div>
                           <div className="flex items-center text-gray-600 text-sm">
                             <Calendar className="w-4 h-4 mr-2 text-indigo-600" />
-                            <span>{program.startDate} - {program.endDate}</span>
+                            <span>
+                              {program.startDate} - {program.endDate}
+                            </span>
                           </div>
                           <div className="flex items-center text-gray-600 text-sm">
                             <Award className="w-4 h-4 mr-2 text-indigo-600" />
@@ -550,13 +588,18 @@ const TrainingProgramsTab = () => {
                       {/* Enrollment Progress */}
                       <div className="mb-4">
                         <div className="flex justify-between items-center mb-1">
-                          <span className="text-sm text-gray-600">{enrollmentPercentage.toFixed(1)}%</span>
+                          <span className="text-sm text-gray-600">
+                            {enrollmentPercentage.toFixed(1)}%
+                          </span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">
                           <div
                             className={`h-2 rounded-full ${
-                              enrollmentPercentage >= 80 ? "bg-green-600" :
-                              enrollmentPercentage >= 60 ? "bg-yellow-500" : "bg-blue-600"
+                              enrollmentPercentage >= 80
+                                ? "bg-green-600"
+                                : enrollmentPercentage >= 60
+                                ? "bg-yellow-500"
+                                : "bg-blue-600"
                             }`}
                             style={{ width: `${enrollmentPercentage}%` }}
                           />
@@ -566,7 +609,9 @@ const TrainingProgramsTab = () => {
                       <div className="mb-4">
                         <p className="text-gray-600 text-sm leading-relaxed">
                           {program.description.substring(0, 200)}
-                          {program.description.length > 200 && !isExpanded && "..."}
+                          {program.description.length > 200 &&
+                            !isExpanded &&
+                            "..."}
                         </p>
                         {program.description.length > 200 && (
                           <button
@@ -582,46 +627,66 @@ const TrainingProgramsTab = () => {
                       {isExpanded && (
                         <div className="mt-4 pt-4 border-t border-gray-200 space-y-4">
                           <div className="bg-gray-50 p-4 rounded-lg">
-                            <h4 className="font-medium text-gray-900 mb-2">Full Description</h4>
+                            <h4 className="font-medium text-gray-900 mb-2">
+                              Full Description
+                            </h4>
                             <p className="text-gray-600 text-sm whitespace-pre-line">
                               {program.description}
                             </p>
                           </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {program.prerequisites && program.prerequisites.length > 0 && (
-                              <div className="bg-white p-4 rounded-lg border border-gray-200">
-                                <h4 className="font-medium text-gray-900 mb-2">Prerequisites</h4>
-                                <ul className="space-y-1 text-sm text-gray-600">
-                                  {program.prerequisites.map((req, index) => (
-                                    <li key={index}>• {req}</li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
+                            {program.prerequisites &&
+                              program.prerequisites.length > 0 && (
+                                <div className="bg-white p-4 rounded-lg border border-gray-200">
+                                  <h4 className="font-medium text-gray-900 mb-2">
+                                    Prerequisites
+                                  </h4>
+                                  <ul className="space-y-1 text-sm text-gray-600">
+                                    {program.prerequisites.map((req, index) => (
+                                      <li key={index}>• {req}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
 
-                            {program.learningOutcomes && program.learningOutcomes.length > 0 && (
-                              <div className="bg-white p-4 rounded-lg border border-gray-200">
-                                <h4 className="font-medium text-gray-900 mb-2">Learning Outcomes</h4>
-                                <ul className="space-y-1 text-sm text-gray-600">
-                                  {program.learningOutcomes.map((outcome, index) => (
-                                    <li key={index}>• {outcome}</li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
+                            {program.learningOutcomes &&
+                              program.learningOutcomes.length > 0 && (
+                                <div className="bg-white p-4 rounded-lg border border-gray-200">
+                                  <h4 className="font-medium text-gray-900 mb-2">
+                                    Learning Outcomes
+                                  </h4>
+                                  <ul className="space-y-1 text-sm text-gray-600">
+                                    {program.learningOutcomes.map(
+                                      (outcome, index) => (
+                                        <li key={index}>• {outcome}</li>
+                                      )
+                                    )}
+                                  </ul>
+                                </div>
+                              )}
                           </div>
 
                           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                            <h4 className="font-medium text-blue-900 mb-2">Certificate Information</h4>
+                            <h4 className="font-medium text-blue-900 mb-2">
+                              Certificate Information
+                            </h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                               <div>
-                                <span className="font-medium text-blue-800">Certificate Type:</span>
-                                <p className="text-blue-700">{program.certificationType}</p>
+                                <span className="font-medium text-blue-800">
+                                  Certificate Type:
+                                </span>
+                                <p className="text-blue-700">
+                                  {program.certificationType}
+                                </p>
                               </div>
                               <div>
-                                <span className="font-medium text-blue-800">CME Credits:</span>
-                                <p className="text-blue-700">{program.cmeCredits} credits</p>
+                                <span className="font-medium text-blue-800">
+                                  CME Credits:
+                                </span>
+                                <p className="text-blue-700">
+                                  {program.cmeCredits} credits
+                                </p>
                               </div>
                             </div>
                           </div>
@@ -630,8 +695,12 @@ const TrainingProgramsTab = () => {
                     </div>
 
                     <div className="text-right">
-                      <div className="text-2xl font-bold text-gray-900">${program.price}</div>
-                      <div className="text-sm text-gray-600">{program.currency}</div>
+                      <div className="text-2xl font-bold text-gray-900">
+                        ${program.price}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        {program.currency}
+                      </div>
                       <div className="text-xs text-gray-500 mt-1">
                         Registration deadline: {program.registrationDeadline}
                       </div>
@@ -657,7 +726,7 @@ const TrainingProgramsTab = () => {
                       )}
                     </button>
 
-                    <button 
+                    <button
                       onClick={() => handleEditProgram(program)}
                       className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center text-sm font-medium transition-colors"
                     >
@@ -665,7 +734,7 @@ const TrainingProgramsTab = () => {
                       Edit Program
                     </button>
 
-                    <button 
+                    <button
                       onClick={() => setSelectedTab("registrations")}
                       className="border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center text-sm font-medium transition-colors"
                     >
@@ -676,7 +745,9 @@ const TrainingProgramsTab = () => {
                     <div className="relative">
                       <select
                         value={program.status}
-                        onChange={(e) => handleStatusChange(program.id, e.target.value)}
+                        onChange={(e) =>
+                          handleStatusChange(program.id, e.target.value)
+                        }
                         className="border border-gray-300 px-3 py-2 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                       >
                         <option value="Published">Published</option>
@@ -693,11 +764,15 @@ const TrainingProgramsTab = () => {
                           : "border-gray-300 hover:bg-gray-50"
                       }`}
                     >
-                      <Star className={`w-4 h-4 mr-2 ${program.isFeatured ? "fill-current" : ""}`} />
+                      <Star
+                        className={`w-4 h-4 mr-2 ${
+                          program.isFeatured ? "fill-current" : ""
+                        }`}
+                      />
                       {program.isFeatured ? "Unfeature" : "Feature"}
                     </button>
 
-                    <button 
+                    <button
                       onClick={() => handleDeleteProgram(program.id)}
                       className="border border-red-300 text-red-600 px-4 py-2 rounded-lg hover:bg-red-50 flex items-center text-sm font-medium transition-colors"
                     >
@@ -711,7 +786,9 @@ const TrainingProgramsTab = () => {
                     <div className="flex flex-wrap gap-4 text-xs text-gray-500">
                       <span>Created: {program.createdAt}</span>
                       <span>Last Updated: {program.updatedAt}</span>
-                      <span>Registration Deadline: {program.registrationDeadline}</span>
+                      <span>
+                        Registration Deadline: {program.registrationDeadline}
+                      </span>
                       <span>ID: #{program.id}</span>
                     </div>
                   </div>
@@ -731,7 +808,7 @@ const TrainingProgramsTab = () => {
               ? "No programs match your search criteria."
               : `No programs in the ${selectedTab} category.`}
           </p>
-          <button 
+          <button
             onClick={handleCreateProgram}
             className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 font-medium"
           >
@@ -763,26 +840,29 @@ const TrainingProgramsTab = () => {
                   Training Programs Management
                 </h2>
                 <p className="text-gray-600 mt-1">
-                  Manage training programs, workshops, conferences and track registrations
+                  Manage training programs, workshops, conferences and track
+                  registrations
                 </p>
               </div>
               <div className="flex gap-3">
-                <button 
+                <button
                   onClick={refreshData}
                   disabled={loading}
                   className="border border-indigo-600 text-indigo-600 px-4 py-2 rounded-lg hover:bg-indigo-50 flex items-center font-medium transition-colors disabled:opacity-50"
                 >
-                  <RefreshCw className={`w-5 h-5 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                  <RefreshCw
+                    className={`w-5 h-5 mr-2 ${loading ? "animate-spin" : ""}`}
+                  />
                   Refresh
                 </button>
-                <button 
+                <button
                   onClick={handleExportData}
                   className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center font-medium transition-colors"
                 >
                   <Download className="w-5 h-5 mr-2" />
                   Export
                 </button>
-                <button 
+                <button
                   onClick={handleCreateProgram}
                   className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 flex items-center font-medium transition-colors"
                 >
@@ -805,11 +885,32 @@ const TrainingProgramsTab = () => {
             <nav className="flex space-x-8 overflow-x-auto">
               {[
                 { id: "all", label: "All", count: programs.length },
-                { id: "published", label: "Published", count: programs.filter((p) => p.status === "Published").length },
-                { id: "drafts", label: "Drafts", count: programs.filter((p) => p.status === "Draft").length },
-                { id: "archived", label: "Archived", count: programs.filter((p) => p.status === "Archived").length },
-                { id: "featured", label: "Featured", count: programs.filter((p) => p.isFeatured).length },
-                { id: "registrations", label: "Registrations", count: registrations.length },
+                {
+                  id: "published",
+                  label: "Published",
+                  count: programs.filter((p) => p.status === "Published")
+                    .length,
+                },
+                {
+                  id: "drafts",
+                  label: "Drafts",
+                  count: programs.filter((p) => p.status === "Draft").length,
+                },
+                {
+                  id: "archived",
+                  label: "Archived",
+                  count: programs.filter((p) => p.status === "Archived").length,
+                },
+                {
+                  id: "featured",
+                  label: "Featured",
+                  count: programs.filter((p) => p.isFeatured).length,
+                },
+                {
+                  id: "registrations",
+                  label: "Registrations",
+                  count: registrations.length,
+                },
                 { id: "analytics", label: "Analytics", count: 0 },
               ].map((tab) => (
                 <button
@@ -821,7 +922,8 @@ const TrainingProgramsTab = () => {
                       : "border-transparent text-gray-500 hover:text-gray-700"
                   }`}
                 >
-                  {tab.label} {tab.count > 0 && tab.id !== "analytics" && `(${tab.count})`}
+                  {tab.label}{" "}
+                  {tab.count > 0 && tab.id !== "analytics" && `(${tab.count})`}
                 </button>
               ))}
             </nav>
@@ -869,7 +971,8 @@ const TrainingProgramsTab = () => {
                     Training Programs Analytics
                   </h3>
                   <p className="text-gray-600">
-                    Comprehensive analytics and insights about your training programs
+                    Comprehensive analytics and insights about your training
+                    programs
                   </p>
                 </div>
                 <AnalyticsTab analyticsData={analyticsData} />
@@ -881,7 +984,8 @@ const TrainingProgramsTab = () => {
                     Program Registrations
                   </h3>
                   <p className="text-gray-600">
-                    Manage and track all participant registrations across your programs
+                    Manage and track all participant registrations across your
+                    programs
                   </p>
                 </div>
                 <RegistrationsTab
@@ -899,19 +1003,29 @@ const TrainingProgramsTab = () => {
 
         {/* Quick Stats Dashboard */}
         <div className="bg-white border border-gray-300 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Overview</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Quick Overview
+          </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center p-4 rounded-lg bg-indigo-50">
-              <div className="text-2xl font-bold text-indigo-800">{analyticsData.totalPrograms}</div>
+              <div className="text-2xl font-bold text-indigo-800">
+                {analyticsData.totalPrograms}
+              </div>
               <div className="text-sm text-indigo-600">Total Programs</div>
             </div>
             <div className="text-center p-4 rounded-lg bg-green-50">
-              <div className="text-2xl font-bold text-green-800">{analyticsData.totalEnrollments}</div>
+              <div className="text-2xl font-bold text-green-800">
+                {analyticsData.totalEnrollments}
+              </div>
               <div className="text-sm text-green-600">Total Enrollments</div>
             </div>
             <div className="text-center p-4 rounded-lg bg-yellow-50">
-              <div className="text-2xl font-bold text-yellow-800">{registrations.length}</div>
-              <div className="text-sm text-yellow-600">Active Registrations</div>
+              <div className="text-2xl font-bold text-yellow-800">
+                {registrations.length}
+              </div>
+              <div className="text-sm text-yellow-600">
+                Active Registrations
+              </div>
             </div>
             <div className="text-center p-4 rounded-lg bg-purple-50">
               <div className="text-2xl font-bold text-purple-800">
@@ -947,4 +1061,4 @@ const TrainingProgramsTab = () => {
   );
 };
 
-export default TrainingProgramsTab
+export default TrainingProgramsTab;

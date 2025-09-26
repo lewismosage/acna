@@ -128,6 +128,16 @@ export interface CreateWorkshopRegistrationInput {
   country?: string;
 }
 
+export interface WorkshopRegistrationResponse {
+  success: boolean;
+  message: string;
+  data?: WorkshopRegistration;
+  registration_data?: any;
+  payment_required?: boolean;
+  amount?: number;
+  workshop_id?: number;
+}
+
 // Helper function to get authentication headers
 const getAuthHeaders = (): Record<string, string> => {
   const token = localStorage.getItem('access_token');
@@ -609,7 +619,7 @@ export const workshopsApi = {
     return Array.isArray(data) ? data.map(normalizeWorkshopRegistration) : [];
   },
 
-  createRegistration: async (data: CreateWorkshopRegistrationInput): Promise<WorkshopRegistration> => {
+  createRegistration: async (data: CreateWorkshopRegistrationInput): Promise<WorkshopRegistrationResponse> => {
   // Convert camelCase to snake_case for backend
   const backendData = {
     workshop: data.workshop,
@@ -632,8 +642,67 @@ export const workshopsApi = {
   });
   
   const result = await handleResponse(response);
-  return normalizeWorkshopRegistration(result);
+  return result;
 },
+
+  createPaymentSession: async (workshopId: number, registrationData: any, amount: number): Promise<{ sessionId: string }> => {
+    const response = await fetch(`${API_BASE_URL}/workshops/payment/create-checkout-session/`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        workshop_id: workshopId,
+        registration_data: registrationData,
+        amount: amount,
+      }),
+    });
+    
+    return handleResponse(response);
+  },
+
+  verifyPayment: async (sessionId: string): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/workshops/payment/verify/?session_id=${sessionId}`, {
+      headers: getAuthHeaders(),
+    });
+    
+    return handleResponse(response);
+  },
+
+  downloadInvoice: async (sessionId: string): Promise<void> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/workshops/payment/invoice/?session_id=${sessionId}`, {
+        method: 'GET',
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+      
+      // Get the filename from the Content-Disposition header
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = 'workshop_invoice.pdf';
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+        }
+      }
+      
+      // Create blob and download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading workshop invoice:', error);
+      throw error;
+    }
+  },
 
   updateRegistration: async (id: number, data: Partial<CreateWorkshopRegistrationInput>): Promise<WorkshopRegistration> => {
     // Convert camelCase to snake_case for backend

@@ -2,7 +2,7 @@
 from rest_framework import serializers
 from .models import (
     Workshop, WorkshopPrerequisite, WorkshopMaterial,
-    CollaborationSubmission, CollaborationSkill, WorkshopRegistration
+    CollaborationSubmission, CollaborationSkill, WorkshopRegistration, WorkshopPayment
 )
 
 class WorkshopPrerequisiteSerializer(serializers.ModelSerializer):
@@ -312,9 +312,9 @@ class CreateWorkshopRegistrationSerializer(serializers.ModelSerializer):
         
         # Set default payment status based on registration type
         if data.get('registration_type') == 'Free':
-            data['payment_status'] = 'Free'
+            data['payment_status'] = 'free'
         elif not hasattr(self, 'initial_data') or 'payment_status' not in self.initial_data:
-            data['payment_status'] = 'Pending'
+            data['payment_status'] = 'pending'
         
         return data
     
@@ -322,8 +322,19 @@ class CreateWorkshopRegistrationSerializer(serializers.ModelSerializer):
         # Set default payment status if not provided
         if 'payment_status' not in validated_data:
             if validated_data.get('registration_type') == 'Free':
-                validated_data['payment_status'] = 'Free'
+                validated_data['payment_status'] = 'free'
             else:
-                validated_data['payment_status'] = 'Pending'
+                validated_data['payment_status'] = 'pending'
         
         return super().create(validated_data)
+
+
+class WorkshopPaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WorkshopPayment
+        fields = [
+            'id', 'workshop', 'registration', 'amount', 'currency',
+            'stripe_checkout_session_id', 'status', 'payment_type',
+            'registration_type', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']

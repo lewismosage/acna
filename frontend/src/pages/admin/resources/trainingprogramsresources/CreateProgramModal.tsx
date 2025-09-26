@@ -17,17 +17,25 @@ import ReviewStep from "./ReviewStep";
 import AlertModal from "../../../../components/common/AlertModal";
 
 // Import API and types
-import { trainingProgramsApi, TrainingProgram, CreateTrainingProgramInput } from "../../../../services/trainingProgramsApi";
+import {
+  TrainingProgram,
+  CreateTrainingProgramInput,
+} from "../../../../services/trainingProgramsApi";
 
 // Types
 type ProgramStatus = "Published" | "Draft" | "Archived";
-type ProgramType = "Conference" | "Workshop" | "Fellowship" | "Online Course" | "Masterclass";
+type ProgramType =
+  | "Conference"
+  | "Workshop"
+  | "Fellowship"
+  | "Online Course"
+  | "Masterclass";
 type ProgramFormat = "In-person" | "Virtual" | "Hybrid";
 
 interface CreateProgramModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (program: TrainingProgram) => void;
+  onSubmit: (programData: CreateTrainingProgramInput) => void;
   editingProgram?: TrainingProgram;
 }
 
@@ -113,8 +121,8 @@ const CreateProgramModal: React.FC<CreateProgramModalProps> = ({
     learningOutcomes: [""],
     certificationType: "CME Certificate",
     cmeCredits: "",
-    schedule: [{ day: "Day 1", time: "", activity: "", speaker: "" }],
-    speakers: [{ name: "", title: "", organization: "", bio: "" }],
+    schedule: [],
+    speakers: [],
     topics: [""],
     targetAudience: ["Healthcare Providers"],
     language: "English",
@@ -132,12 +140,12 @@ const CreateProgramModal: React.FC<CreateProgramModalProps> = ({
     isOpen: boolean;
     title: string;
     message: string;
-    type?: 'success' | 'error' | 'warning' | 'info';
+    type?: "success" | "error" | "warning" | "info";
   }>({
     isOpen: false,
-    title: '',
-    message: '',
-    type: 'info'
+    title: "",
+    message: "",
+    type: "info",
   });
 
   const steps = [
@@ -169,17 +177,42 @@ const CreateProgramModal: React.FC<CreateProgramModalProps> = ({
         currency: editingProgram.currency || "USD",
         imageFile: null,
         imageUrl: editingProgram.imageUrl || "",
-        prerequisites: editingProgram.prerequisites && editingProgram.prerequisites.length > 0 ? editingProgram.prerequisites : [""],
-        learningOutcomes: editingProgram.learningOutcomes && editingProgram.learningOutcomes.length > 0 ? editingProgram.learningOutcomes : [""],
-        certificationType: editingProgram.certificationType || "CME Certificate",
+        prerequisites:
+          editingProgram.prerequisites &&
+          editingProgram.prerequisites.length > 0
+            ? editingProgram.prerequisites
+            : [""],
+        learningOutcomes:
+          editingProgram.learningOutcomes &&
+          editingProgram.learningOutcomes.length > 0
+            ? editingProgram.learningOutcomes
+            : [""],
+        certificationType:
+          editingProgram.certificationType || "CME Certificate",
         cmeCredits: editingProgram.cmeCredits?.toString() || "",
-        schedule: (editingProgram.schedule && editingProgram.schedule.length > 0) ? editingProgram.schedule : [{ day: "Day 1", time: "", activity: "", speaker: "" }],
-        speakers: (editingProgram.speakers && editingProgram.speakers.length > 0) ? editingProgram.speakers : [{ name: "", title: "", organization: "", bio: "" }],
-        topics: (editingProgram.topics && editingProgram.topics.length > 0) ? editingProgram.topics : [""],
-        targetAudience: (editingProgram.targetAudience && editingProgram.targetAudience.length > 0) ? editingProgram.targetAudience : ["Healthcare Providers"],
+        schedule:
+          editingProgram.schedule && editingProgram.schedule.length > 0
+            ? editingProgram.schedule
+            : [],
+        speakers:
+          editingProgram.speakers && editingProgram.speakers.length > 0
+            ? editingProgram.speakers
+            : [],
+        topics:
+          editingProgram.topics && editingProgram.topics.length > 0
+            ? editingProgram.topics
+            : [""],
+        targetAudience:
+          editingProgram.targetAudience &&
+          editingProgram.targetAudience.length > 0
+            ? editingProgram.targetAudience
+            : ["Healthcare Providers"],
         language: editingProgram.language || "English",
         timezone: editingProgram.timezone || "GMT",
-        materials: (editingProgram.materials && editingProgram.materials.length > 0) ? editingProgram.materials : [""],
+        materials:
+          editingProgram.materials && editingProgram.materials.length > 0
+            ? editingProgram.materials
+            : [""],
         assessmentMethod: editingProgram.assessmentMethod || "None",
         passingScore: editingProgram.passingScore?.toString() || "",
       });
@@ -208,8 +241,8 @@ const CreateProgramModal: React.FC<CreateProgramModalProps> = ({
         learningOutcomes: [""],
         certificationType: "CME Certificate",
         cmeCredits: "",
-        schedule: [{ day: "Day 1", time: "", activity: "", speaker: "" }],
-        speakers: [{ name: "", title: "", organization: "", bio: "" }],
+        schedule: [],
+        speakers: [],
         topics: [""],
         targetAudience: ["Healthcare Providers"],
         language: "English",
@@ -233,32 +266,49 @@ const CreateProgramModal: React.FC<CreateProgramModalProps> = ({
 
     if (step === 1) {
       if (!formData.title.trim()) newErrors.title = "Program title is required";
-      if (!formData.description.trim()) newErrors.description = "Description is required";
+      if (!formData.description.trim())
+        newErrors.description = "Description is required";
       if (!formData.category) newErrors.category = "Category is required";
-      if (!formData.instructor.trim()) newErrors.instructor = "Instructor is required";
-      if (!formData.duration.trim()) newErrors.duration = "Duration is required";
-      if (!formData.maxParticipants.trim()) newErrors.maxParticipants = "Maximum participants is required";
+      if (!formData.instructor.trim())
+        newErrors.instructor = "Instructor is required";
+      if (!formData.duration.trim())
+        newErrors.duration = "Duration is required";
+      if (!formData.location.trim())
+        newErrors.location = "Location is required";
+      if (!formData.maxParticipants.trim())
+        newErrors.maxParticipants = "Maximum participants is required";
       if (!formData.price.trim()) newErrors.price = "Price is required";
     }
 
     if (step === 2) {
       if (!formData.startDate) newErrors.startDate = "Start date is required";
       if (!formData.endDate) newErrors.endDate = "End date is required";
-      if (!formData.registrationDeadline) newErrors.registrationDeadline = "Registration deadline is required";
-      if (formData.startDate && formData.endDate && new Date(formData.startDate) > new Date(formData.endDate)) {
+      if (!formData.registrationDeadline)
+        newErrors.registrationDeadline = "Registration deadline is required";
+      if (
+        formData.startDate &&
+        formData.endDate &&
+        new Date(formData.startDate) > new Date(formData.endDate)
+      ) {
         newErrors.endDate = "End date must be after start date";
       }
-      if (formData.registrationDeadline && formData.startDate && new Date(formData.registrationDeadline) > new Date(formData.startDate)) {
-        newErrors.registrationDeadline = "Registration deadline must be before start date";
+      if (
+        formData.registrationDeadline &&
+        formData.startDate &&
+        new Date(formData.registrationDeadline) > new Date(formData.startDate)
+      ) {
+        newErrors.registrationDeadline =
+          "Registration deadline must be before start date";
       }
     }
 
     if (step === 3) {
-      if (formData.prerequisites.filter(p => p.trim()).length === 0) {
+      if (formData.prerequisites.filter((p) => p.trim()).length === 0) {
         newErrors.prerequisites = "At least one prerequisite is required";
       }
-      if (formData.learningOutcomes.filter(o => o.trim()).length === 0) {
-        newErrors.learningOutcomes = "At least one learning outcome is required";
+      if (formData.learningOutcomes.filter((o) => o.trim()).length === 0) {
+        newErrors.learningOutcomes =
+          "At least one learning outcome is required";
       }
     }
 
@@ -271,7 +321,7 @@ const CreateProgramModal: React.FC<CreateProgramModalProps> = ({
       ...prev,
       [field]: value,
     }));
-  
+
     if (errors[field]) {
       setErrors((prev) => ({
         ...prev,
@@ -283,13 +333,17 @@ const CreateProgramModal: React.FC<CreateProgramModalProps> = ({
   const handleArrayChange = (field: string, index: number, value: string) => {
     setFormData((prev) => ({
       ...prev,
-      [field]: (prev[field as keyof FormData] as string[]).map((item, i) => 
-        (i === index ? value : item)
+      [field]: (prev[field as keyof FormData] as string[]).map((item, i) =>
+        i === index ? value : item
       ),
     }));
   };
 
-  const handleScheduleChange = (index: number, field: keyof ScheduleItem, value: string) => {
+  const handleScheduleChange = (
+    index: number,
+    field: keyof ScheduleItem,
+    value: string
+  ) => {
     setFormData((prev) => ({
       ...prev,
       schedule: prev.schedule.map((item, i) =>
@@ -298,7 +352,11 @@ const CreateProgramModal: React.FC<CreateProgramModalProps> = ({
     }));
   };
 
-  const handleSpeakerChange = (index: number, field: keyof Speaker, value: string) => {
+  const handleSpeakerChange = (
+    index: number,
+    field: keyof Speaker,
+    value: string
+  ) => {
     setFormData((prev) => ({
       ...prev,
       speakers: prev.speakers.map((item, i) =>
@@ -310,7 +368,12 @@ const CreateProgramModal: React.FC<CreateProgramModalProps> = ({
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+      const allowedTypes = [
+        "image/jpeg",
+        "image/png",
+        "image/gif",
+        "image/webp",
+      ];
       if (!allowedTypes.includes(file.type)) {
         setErrors({
           ...errors,
@@ -339,12 +402,19 @@ const CreateProgramModal: React.FC<CreateProgramModalProps> = ({
     setCurrentStep((prev) => Math.max(prev - 1, 1));
   };
 
-  const showAlert = (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
+  const showAlert = (
+    title: string,
+    message: string,
+    type: "success" | "error" | "warning" | "info" = "info"
+  ) => {
     setAlertModal({ isOpen: true, title, message, type });
   };
 
   const handleSubmit = async () => {
     if (!validateStep(3)) return;
+
+    // Prevent double submission
+    if (isSubmitting) return;
 
     setIsSubmitting(true);
     setUploadProgress(10);
@@ -368,53 +438,42 @@ const CreateProgramModal: React.FC<CreateProgramModalProps> = ({
         registrationDeadline: formData.registrationDeadline,
         price: parseFloat(formData.price) || 0,
         currency: formData.currency,
-        prerequisites: formData.prerequisites.filter(p => p.trim()),
-        learningOutcomes: formData.learningOutcomes.filter(o => o.trim()),
+        prerequisites: formData.prerequisites.filter((p) => p.trim()),
+        learningOutcomes: formData.learningOutcomes.filter((o) => o.trim()),
         certificationType: formData.certificationType,
         cmeCredits: parseInt(formData.cmeCredits) || 0,
         imageFile: formData.imageFile,
-        schedule: formData.schedule.filter(s => s.activity.trim()),
-        speakers: formData.speakers.filter(s => s.name.trim()),
-        topics: formData.topics.filter(t => t.trim()),
+        schedule: formData.schedule.filter(
+          (s) => s.activity.trim() && s.time.trim()
+        ),
+        speakers: formData.speakers.filter(
+          (s) => s.name.trim() && s.bio.trim()
+        ),
+        topics: formData.topics.filter((t) => t.trim()),
         targetAudience: formData.targetAudience,
         language: formData.language,
         timezone: formData.timezone,
-        materials: formData.materials.filter(m => m.trim()),
+        materials: formData.materials.filter((m) => m.trim()),
         assessmentMethod: formData.assessmentMethod,
-        passingScore: formData.passingScore ? parseInt(formData.passingScore) : undefined,
+        passingScore: formData.passingScore
+          ? parseInt(formData.passingScore)
+          : undefined,
       };
 
       setUploadProgress(50);
 
-      let result: TrainingProgram;
-      
-      if (editingProgram) {
-        // Update existing program
-        result = await trainingProgramsApi.update(editingProgram.id, submissionData);
-        showAlert("Success", "Training program updated successfully!", "success");
-      } else {
-        // Create new program
-        result = await trainingProgramsApi.create(submissionData);
-        showAlert("Success", "Training program created successfully!", "success");
-      }
-
       setUploadProgress(100);
-      
-      // Call the parent's onSubmit callback
-      onSubmit(result);
-      
-      // Close modal after a brief delay
-      setTimeout(() => {
-        onClose();
-        setUploadProgress(0);
-      }, 1500);
 
+      // Call the parent's onSubmit callback with the submission data
+      // The parent component will handle the actual API call and modal closing
+      onSubmit(submissionData);
     } catch (error) {
-      console.error('Error submitting program:', error);
-      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+      console.error("Error preparing program data:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "An unexpected error occurred";
       showAlert(
-        "Error", 
-        `Failed to ${editingProgram ? 'update' : 'create'} program: ${errorMessage}`, 
+        "Error",
+        `Failed to prepare program data: ${errorMessage}`,
         "error"
       );
       setUploadProgress(0);
@@ -508,7 +567,9 @@ const CreateProgramModal: React.FC<CreateProgramModalProps> = ({
           <div className="bg-indigo-50 px-6 py-4 border-b border-indigo-200 flex items-center justify-between">
             <h2 className="text-2xl font-bold text-indigo-900 flex items-center">
               <BookOpen className="w-6 h-6 mr-3" />
-              {editingProgram ? "Edit Training Program" : "Create Training Program"}
+              {editingProgram
+                ? "Edit Training Program"
+                : "Create Training Program"}
             </h2>
             <button
               onClick={onClose}
@@ -576,7 +637,11 @@ const CreateProgramModal: React.FC<CreateProgramModalProps> = ({
               ) : (
                 <button
                   type="button"
-                  onClick={handleSubmit}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleSubmit();
+                  }}
                   disabled={isSubmitting}
                   className={`px-8 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium flex items-center ${
                     isSubmitting ? "opacity-75 cursor-not-allowed" : ""

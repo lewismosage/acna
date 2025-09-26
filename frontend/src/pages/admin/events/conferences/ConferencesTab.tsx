@@ -783,7 +783,11 @@ const ConferencesTab: React.FC<ConferencesTabProps> = ({
               {
                 id: "registrations",
                 label: "Registrations",
-                count: registrations?.length || 0,
+                count: conferences.reduce((total, conf) => {
+                  const confRegistrations =
+                    conf.conference_registrations || conf.registrations || [];
+                  return total + confRegistrations.length;
+                }, 0),
               },
             ].map((tab) => (
               <button

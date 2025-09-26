@@ -1,7 +1,7 @@
 # serializers.py - Improved version
 
 from rest_framework import serializers
-from .models import TrainingProgram, Registration, ScheduleItem, Speaker
+from .models import TrainingProgram, Registration, ScheduleItem, Speaker, TrainingProgramPayment
 import json
 import logging
 
@@ -539,3 +539,14 @@ class TrainingProgramAnalyticsSerializer(serializers.Serializer):
             'upcomingPrograms': data.get('upcoming_programs', 0),
             'topPrograms': data.get('top_programs', []),
         }
+
+
+class TrainingProgramPaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TrainingProgramPayment
+        fields = [
+            'id', 'program', 'registration', 'amount', 'currency',
+            'stripe_checkout_session_id', 'status', 'payment_type',
+            'registration_type', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']

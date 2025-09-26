@@ -69,6 +69,8 @@ import PaymentError from "./pages/payment/PaymentError";
 import ConferencePaymentSuccess from "./pages/payment/ConferencePaymentSuccess";
 import ConferencePaymentCanceled from "./pages/payment/ConferencePaymentCanceled";
 import ConferencePaymentError from "./pages/payment/ConferencePaymentError";
+import WorkshopPaymentSuccess from "./pages/payment/WorkshopPaymentSuccess";
+import WorkshopPaymentCanceled from "./pages/payment/WorkshopPaymentCanceled";
 import ACNAMemberDashboard from "./pages/membershippages/portal/ACNAMemberDashboard";
 import AdminDashboard from "./pages/admin/dashboard/AdminDashboard";
 import UnsubscribePage from "./pages/other/Unsubscribe";
@@ -320,6 +322,14 @@ function App() {
             <Route
               path="/conference-payment-error"
               element={<ConferencePaymentError />}
+            />
+            <Route
+              path="/workshop-payment-success"
+              element={<WorkshopPaymentSuccess />}
+            />
+            <Route
+              path="/workshop-payment-canceled"
+              element={<WorkshopPaymentCanceled />}
             />
           </Route>
         </Routes>

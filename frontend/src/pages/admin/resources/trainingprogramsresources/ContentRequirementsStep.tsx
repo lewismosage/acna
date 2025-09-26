@@ -36,19 +36,19 @@ const ContentRequirementsStep: React.FC<ContentRequirementsStepProps> = ({
   onImageUpload,
 }) => {
   const certificateTypes = [
-    "CME Certificate", 
-    "CPD Certificate", 
-    "Completion Certificate", 
-    "Professional Certificate", 
-    "Fellowship Certificate"
+    "CME Certificate",
+    "CPD Certificate",
+    "Completion Certificate",
+    "Professional Certificate",
+    "Fellowship Certificate",
   ];
   const assessmentMethods = [
-    "None", 
-    "Quiz", 
-    "Assignment", 
-    "Presentation", 
-    "Practical Exam", 
-    "Case Study"
+    { value: "None", label: "None" },
+    { value: "Quiz", label: "Quiz" },
+    { value: "Assignment", label: "Assignment" },
+    { value: "Presentation", label: "Presentation" },
+    { value: "Practical", label: "Practical Exam" },
+    { value: "Combined", label: "Combined Assessment" },
   ];
 
   const addArrayItem = (field: string, defaultValue = "") => {
@@ -58,7 +58,10 @@ const ContentRequirementsStep: React.FC<ContentRequirementsStepProps> = ({
 
   const removeArrayItem = (field: string, index: number) => {
     const currentArray = formData[field as keyof FormData] as string[];
-    onInputChange(field, currentArray.filter((_, i) => i !== index));
+    onInputChange(
+      field,
+      currentArray.filter((_, i) => i !== index)
+    );
   };
 
   const renderArrayField = (
@@ -76,7 +79,9 @@ const ContentRequirementsStep: React.FC<ContentRequirementsStepProps> = ({
           <input
             type="text"
             value={item}
-            onChange={(e) => onArrayChange(field as string, index, e.target.value)}
+            onChange={(e) =>
+              onArrayChange(field as string, index, e.target.value)
+            }
             className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             placeholder={placeholder}
           />
@@ -107,17 +112,25 @@ const ContentRequirementsStep: React.FC<ContentRequirementsStepProps> = ({
 
   return (
     <div className="space-y-6">
-      <h3 className="text-xl font-bold text-gray-900 mb-6">Content & Requirements</h3>
+      <h3 className="text-xl font-bold text-gray-900 mb-6">
+        Content & Requirements
+      </h3>
 
       {/* Cover Image */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Program Cover Image</label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Program Cover Image
+        </label>
         <div className="flex items-center gap-4">
           <label className="flex flex-col items-center justify-center w-32 h-48 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-indigo-500 transition-colors">
             {formData.imageFile || formData.imageUrl ? (
               <div className="relative w-full h-full">
                 <img
-                  src={formData.imageFile ? URL.createObjectURL(formData.imageFile) : formData.imageUrl}
+                  src={
+                    formData.imageFile
+                      ? URL.createObjectURL(formData.imageFile)
+                      : formData.imageUrl
+                  }
                   alt="Program cover"
                   className="w-full h-full object-cover rounded-lg"
                 />
@@ -136,8 +149,12 @@ const ContentRequirementsStep: React.FC<ContentRequirementsStepProps> = ({
             ) : (
               <>
                 <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                <span className="text-sm text-gray-600 text-center px-2">Upload Cover</span>
-                <span className="text-xs text-gray-400 text-center px-2">JPEG, PNG, WebP</span>
+                <span className="text-sm text-gray-600 text-center px-2">
+                  Upload Cover
+                </span>
+                <span className="text-xs text-gray-400 text-center px-2">
+                  JPEG, PNG, WebP
+                </span>
               </>
             )}
             <input
@@ -148,42 +165,74 @@ const ContentRequirementsStep: React.FC<ContentRequirementsStepProps> = ({
             />
           </label>
         </div>
-        {errors.coverImage && <p className="text-red-500 text-sm mt-1">{errors.coverImage}</p>}
-        <p className="text-gray-500 text-sm mt-1">Recommended: 400x600px, max 10MB</p>
+        {errors.coverImage && (
+          <p className="text-red-500 text-sm mt-1">{errors.coverImage}</p>
+        )}
+        <p className="text-gray-500 text-sm mt-1">
+          Recommended: 400x600px, max 10MB
+        </p>
       </div>
 
       {/* Prerequisites */}
-      {renderArrayField("prerequisites", "Prerequisites", "Medical degree, 2+ years experience", true)}
+      {renderArrayField(
+        "prerequisites",
+        "Prerequisites",
+        "Medical degree, 2+ years experience",
+        true
+      )}
 
       {/* Learning Outcomes */}
-      {renderArrayField("learningOutcomes", "Learning Outcomes", "Latest advances in pediatric neurology", true)}
+      {renderArrayField(
+        "learningOutcomes",
+        "Learning Outcomes",
+        "Latest advances in pediatric neurology",
+        true
+      )}
 
       {/* Topics Covered */}
-      {renderArrayField("topics", "Main Topics Covered", "Epilepsy management, Cerebral palsy assessment")}
+      {renderArrayField(
+        "topics",
+        "Main Topics Covered",
+        "Epilepsy management, Cerebral palsy assessment"
+      )}
 
       {/* Materials Provided */}
-      {renderArrayField("materials", "Materials Provided", "Course handbook, Video recordings, Assessment tools")}
+      {renderArrayField(
+        "materials",
+        "Materials Provided",
+        "Course handbook, Video recordings, Assessment tools"
+      )}
 
       {/* Certification Information */}
       <div className="bg-gray-50 p-4 rounded-lg space-y-4">
-        <h4 className="font-medium text-gray-900">Certification & Assessment</h4>
-        
+        <h4 className="font-medium text-gray-900">
+          Certification & Assessment
+        </h4>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Certificate Type</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Certificate Type
+            </label>
             <select
               value={formData.certificationType}
-              onChange={(e) => onInputChange("certificationType", e.target.value)}
+              onChange={(e) =>
+                onInputChange("certificationType", e.target.value)
+              }
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             >
               {certificateTypes.map((type) => (
-                <option key={type} value={type}>{type}</option>
+                <option key={type} value={type}>
+                  {type}
+                </option>
               ))}
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">CME Credits</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              CME Credits
+            </label>
             <input
               type="number"
               value={formData.cmeCredits}
@@ -197,21 +246,29 @@ const ContentRequirementsStep: React.FC<ContentRequirementsStepProps> = ({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Assessment Method</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Assessment Method
+            </label>
             <select
               value={formData.assessmentMethod}
-              onChange={(e) => onInputChange("assessmentMethod", e.target.value)}
+              onChange={(e) =>
+                onInputChange("assessmentMethod", e.target.value)
+              }
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             >
               {assessmentMethods.map((method) => (
-                <option key={method} value={method}>{method}</option>
+                <option key={method.value} value={method.value}>
+                  {method.label}
+                </option>
               ))}
             </select>
           </div>
 
           {formData.assessmentMethod !== "None" && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Passing Score (%)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Passing Score (%)
+              </label>
               <input
                 type="number"
                 value={formData.passingScore}
@@ -232,7 +289,9 @@ const ContentRequirementsStep: React.FC<ContentRequirementsStepProps> = ({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Status
+            </label>
             <select
               value={formData.status}
               onChange={(e) => onInputChange("status", e.target.value)}
@@ -257,7 +316,9 @@ const ContentRequirementsStep: React.FC<ContentRequirementsStepProps> = ({
                   <Star className="w-4 h-4 mr-1 text-yellow-500" />
                   Featured Program
                 </span>
-                <p className="text-xs text-gray-500">Display prominently in listings</p>
+                <p className="text-xs text-gray-500">
+                  Display prominently in listings
+                </p>
               </div>
             </label>
           </div>

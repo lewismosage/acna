@@ -241,7 +241,6 @@ const normalizeRegistration = (backendRegistration: any): Registration => {
 const prepareFormData = (data: CreateTrainingProgramInput): FormData => {
   const formData = new FormData();
   
-  console.log('Preparing form data from:', data);
   
   // Helper to safely add string values
   const addStringField = (key: string, value: any, required: boolean = false) => {
@@ -249,12 +248,7 @@ const prepareFormData = (data: CreateTrainingProgramInput): FormData => {
       const stringValue = String(value).trim();
       if (stringValue || !required) {
         formData.append(key, stringValue);
-        console.log(`Added ${key}:`, stringValue);
-      } else if (required) {
-        console.warn(`Required field ${key} is empty`);
       }
-    } else if (required) {
-      console.warn(`Required field ${key} is null/undefined`);
     }
   };
   
@@ -264,14 +258,11 @@ const prepareFormData = (data: CreateTrainingProgramInput): FormData => {
       const numericValue = Number(value);
       if (!isNaN(numericValue)) {
         formData.append(key, String(numericValue));
-        console.log(`Added ${key}:`, numericValue);
       } else {
         formData.append(key, String(defaultValue));
-        console.warn(`Invalid numeric value for ${key}, using default:`, defaultValue);
       }
     } else {
       formData.append(key, String(defaultValue));
-      console.log(`Added ${key} (default):`, defaultValue);
     }
   };
   
@@ -280,10 +271,8 @@ const prepareFormData = (data: CreateTrainingProgramInput): FormData => {
     if (Array.isArray(value)) {
       const filteredArray = value.filter(item => item && String(item).trim());
       formData.append(key, JSON.stringify(filteredArray));
-      console.log(`Added ${key}:`, filteredArray);
     } else {
       formData.append(key, JSON.stringify([]));
-      console.log(`Added ${key} (empty array)`);
     }
   };
   
@@ -320,7 +309,6 @@ const prepareFormData = (data: CreateTrainingProgramInput): FormData => {
   
   // Add boolean field
   formData.append('isFeatured', String(Boolean(data.isFeatured)));
-  console.log('Added isFeatured:', Boolean(data.isFeatured));
   
   // Add array fields
   addArrayField('prerequisites', data.prerequisites);
@@ -332,14 +320,12 @@ const prepareFormData = (data: CreateTrainingProgramInput): FormData => {
   // Add complex objects
   if (data.schedule && Array.isArray(data.schedule)) {
     formData.append('schedule', JSON.stringify(data.schedule));
-    console.log('Added schedule:', data.schedule);
   } else {
     formData.append('schedule', JSON.stringify([]));
   }
   
   if (data.speakers && Array.isArray(data.speakers)) {
     formData.append('speakers', JSON.stringify(data.speakers));
-    console.log('Added speakers:', data.speakers);
   } else {
     formData.append('speakers', JSON.stringify([]));
   }
@@ -347,10 +333,8 @@ const prepareFormData = (data: CreateTrainingProgramInput): FormData => {
   // Add file if present
   if (data.imageFile && data.imageFile instanceof File) {
     formData.append('image', data.imageFile);
-    console.log('Added image file:', data.imageFile.name);
   }
   
-  console.log('Form data preparation completed');
   return formData;
 };
 
@@ -402,7 +386,6 @@ export const trainingProgramsApi = {
 
   create: async (data: CreateTrainingProgramInput): Promise<TrainingProgram> => {
     try {
-      console.log('Creating training program with data:', data);
       
       // Validate required fields before sending
       const requiredFields = ['title', 'description', 'category', 'instructor', 'startDate', 'endDate', 'registrationDeadline'];
@@ -443,7 +426,6 @@ export const trainingProgramsApi = {
       });
       
       const result = await handleResponse(response);
-      console.log('Training program created successfully:', result);
       return normalizeTrainingProgram(result);
     } catch (error) {
       console.error('Error creating training program:', error);

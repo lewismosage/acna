@@ -170,10 +170,11 @@ class CollaborationSkill(models.Model):
 
 class WorkshopRegistration(models.Model):
     PAYMENT_STATUS_CHOICES = [
-        ('Pending', 'Pending'),
-        ('Paid', 'Paid'),
-        ('Free', 'Free'),
-        ('Failed', 'Failed'),
+        ('pending', 'Pending'),
+        ('paid', 'Paid'),
+        ('free', 'Free'),
+        ('failed', 'Failed'),
+        ('refunded', 'Refunded'),
     ]
     
     REGISTRATION_TYPE_CHOICES = [
@@ -202,7 +203,7 @@ class WorkshopRegistration(models.Model):
     payment_status = models.CharField(
         max_length=10, 
         choices=PAYMENT_STATUS_CHOICES,
-        default='Pending'
+        default='pending'
     )
     amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     country = models.CharField(max_length=100, blank=True)
@@ -218,3 +219,51 @@ class WorkshopRegistration(models.Model):
     @property
     def full_name(self):
         return f"{self.first_name} {self.last_name}"
+
+
+class WorkshopPayment(models.Model):
+    """Model to track workshop payment transactions"""
+    
+    PAYMENT_TYPES = (
+        ('registration', 'Registration Fee'),
+        ('late_fee', 'Late Registration Fee'),
+    )
+    
+    PAYMENT_STATUSES = (
+        ('pending', 'Pending'),
+        ('succeeded', 'Succeeded'),
+        ('failed', 'Failed'),
+        ('canceled', 'Canceled'),
+        ('refunded', 'Refunded'),
+    )
+    
+    workshop = models.ForeignKey(
+        Workshop,
+        on_delete=models.CASCADE,
+        related_name='payments'
+    )
+    registration = models.ForeignKey(
+        WorkshopRegistration,
+        on_delete=models.CASCADE,
+        related_name='payments'
+    )
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    currency = models.CharField(max_length=3, default='USD')
+    stripe_checkout_session_id = models.CharField(max_length=255, unique=True)
+    status = models.CharField(max_length=20, choices=PAYMENT_STATUSES, default='pending')
+    payment_type = models.CharField(max_length=20, choices=PAYMENT_TYPES, default='registration')
+    registration_type = models.CharField(max_length=20, default='regular')
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['workshop', 'status']),
+            models.Index(fields=['stripe_checkout_session_id']),
+        ]
+    
+    def __str__(self):
+        return f"Payment for {self.registration.full_name} - {self.workshop.title}"

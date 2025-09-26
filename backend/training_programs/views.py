@@ -4,6 +4,8 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework.views import APIView
+from rest_framework.permissions import AllowAny
 from django.db.models import Count, Sum, Q, F, Avg
 from django.utils import timezone
 from datetime import timedelta, date
@@ -14,19 +16,24 @@ from django.db import transaction
 import logging
 import json
 import csv
+import stripe
 import traceback
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
 
-from .models import TrainingProgram, Registration, ScheduleItem, Speaker
+from .models import TrainingProgram, Registration, ScheduleItem, Speaker, TrainingProgramPayment
 from .serializers import (
     TrainingProgramSerializer,
     RegistrationSerializer,
-    TrainingProgramAnalyticsSerializer
+    TrainingProgramAnalyticsSerializer,
+    TrainingProgramPaymentSerializer
 )
 
 logger = logging.getLogger(__name__)
+
+# Configure Stripe
+stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
 class TrainingProgramViewSet(viewsets.ModelViewSet):
@@ -188,10 +195,8 @@ class TrainingProgramViewSet(viewsets.ModelViewSet):
                     processed_data[backend_key] = str(value).strip()
 
         # Handle file uploads
-        if files:
-            if 'image' in files:
-                processed_data['image'] = files['image']
-                logger.info(f"Image file added: {files['image'].name}")
+        if files and 'image' in files:
+            processed_data['image'] = files['image']
 
         # Ensure all required fields have values
         for field, default_value in required_fields.items():
@@ -713,12 +718,36 @@ class RegistrationViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_409_CONFLICT
                 )
 
-            # Check if program is full
-            if program.is_full:
-                # Create with waitlisted status
-                serializer.validated_data['status'] = 'Waitlisted'
-
-            registration = serializer.save()
+            # Check if payment is required
+            amount = program.price or 0
+            
+            if amount > 0:
+                # Payment required - validate data but don't save yet
+                # Convert validated data to dict and remove non-serializable objects
+                registration_data = dict(serializer.validated_data)
+                # Remove the program object as it's not JSON serializable
+                if 'program' in registration_data:
+                    del registration_data['program']
+                
+                # Return payment info without creating registration
+                return Response({
+                    'success': True,
+                    'message': 'Registration data validated. Payment required.',
+                    'registration_data': registration_data,
+                    'payment_required': True,
+                    'amount': float(amount),
+                    'program_id': program.id
+                }, status=status.HTTP_200_OK)
+            else:
+                # No payment required - create registration immediately
+                # Check if program is full
+                if program.is_full:
+                    # Create with waitlisted status
+                    serializer.validated_data['status'] = 'Waitlisted'
+                
+                registration = serializer.save()
+                registration.payment_status = 'free'
+                registration.save()
             
             # Send confirmation email
             try:
@@ -899,5 +928,241 @@ The {getattr(settings, 'COMPANY_NAME', 'Our Company')} Team
             logger.error(f"Error exporting registrations: {str(e)}")
             return Response(
                 {'error': 'Failed to export registrations'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class TrainingProgramPaymentView(APIView):
+    """Handle training program payment creation"""
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        """Create Stripe checkout session for training program payment"""
+        try:
+            program_id = request.data.get('program_id')
+            registration_data = request.data.get('registration_data')
+            amount = request.data.get('amount')
+            
+            if not all([program_id, registration_data, amount]):
+                return Response(
+                    {'error': 'Missing required fields'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Get program
+            try:
+                program = TrainingProgram.objects.get(id=program_id)
+            except TrainingProgram.DoesNotExist:
+                return Response(
+                    {'error': 'Training program not found'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            # Create Stripe checkout session
+            session = stripe.checkout.Session.create(
+                payment_method_types=['card'],
+                line_items=[{
+                    'price_data': {
+                        'currency': 'usd',
+                        'product_data': {
+                            'name': f'Training Program Registration: {program.title}',
+                            'description': f'Registration for {program.title}',
+                        },
+                        'unit_amount': int(float(amount) * 100),  # Convert to cents
+                    },
+                    'quantity': 1,
+                }],
+                mode='payment',
+                success_url=f'{settings.FRONTEND_URL}/training-program-payment-success?session_id={{CHECKOUT_SESSION_ID}}',
+                cancel_url=f'{settings.FRONTEND_URL}/training-program-payment-canceled?program_id={program_id}',
+                metadata={
+                    'program_id': str(program_id),
+                    'registration_data': json.dumps(registration_data),
+                    'registration_type': registration_data.get('registration_type', 'regular'),
+                }
+            )
+            
+            return Response({'sessionId': session.id})
+            
+        except Exception as e:
+            logger.error(f"Error creating training program payment session: {str(e)}")
+            return Response(
+                {'error': 'Failed to create payment session'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class TrainingProgramPaymentWebhook(APIView):
+    """Handle Stripe webhook for training program payments"""
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        """Process Stripe webhook events"""
+        try:
+            payload = request.body
+            sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
+            
+            # Verify webhook signature
+            try:
+                event = stripe.Webhook.construct_event(
+                    payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
+                )
+            except ValueError:
+                return Response({'error': 'Invalid payload'}, status=400)
+            except stripe.error.SignatureVerificationError:
+                return Response({'error': 'Invalid signature'}, status=400)
+            
+            # Handle the event
+            if event['type'] == 'checkout.session.completed':
+                session = event['data']['object']
+                
+                # Get metadata
+                program_id = session['metadata']['program_id']
+                registration_data = json.loads(session['metadata']['registration_data'])
+                registration_type = session['metadata']['registration_type']
+                
+                # Get program
+                program = TrainingProgram.objects.get(id=program_id)
+                
+                # Create registration
+                registration = Registration.objects.create(
+                    program=program,
+                    participant_name=registration_data['participant_name'],
+                    participant_email=registration_data['participant_email'],
+                    participant_phone=registration_data.get('participant_phone', ''),
+                    organization=registration_data.get('organization', ''),
+                    profession=registration_data.get('profession', ''),
+                    experience=registration_data.get('experience', '1-2 years'),
+                    status='Confirmed',
+                    payment_status='paid',
+                    special_requests=registration_data.get('special_requests', ''),
+                )
+                
+                # Create payment record
+                TrainingProgramPayment.objects.create(
+                    program=program,
+                    registration=registration,
+                    amount=float(session['amount_total']) / 100,
+                    currency=session['currency'],
+                    stripe_checkout_session_id=session['id'],
+                    status='succeeded',
+                    payment_type='registration',
+                    registration_type=registration_type,
+                )
+                
+                # Update program enrollment count
+                program.current_enrollments += 1
+                program.save(update_fields=['current_enrollments'])
+                
+                # Send confirmation email
+                try:
+                    self.send_training_program_payment_confirmation(registration, program, session)
+                    logger.info(f"Training program payment confirmation sent for registration {registration.id}")
+                except Exception as e:
+                    logger.error(f"Failed to send training program payment confirmation: {str(e)}")
+            
+            return Response({'status': 'success'})
+            
+        except Exception as e:
+            logger.error(f"Training program payment webhook error: {str(e)}")
+            return Response(
+                {'error': 'Webhook processing failed'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    def send_training_program_payment_confirmation(self, registration, program, session):
+        """Send training program payment confirmation email"""
+        subject = f"Payment Confirmation: {program.title}"
+        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@example.com')
+        to = [registration.participant_email]
+
+        context = {
+            'registration': registration,
+            'program': program,
+            'session': session,
+            'company_name': getattr(settings, 'COMPANY_NAME', 'African Consortium for Neurology in Africa'),
+            'frontend_url': getattr(settings, 'FRONTEND_URL', 'http://localhost:3000'),
+            'contact_email': getattr(settings, 'CONTACT_EMAIL', 'contact@acna.org')
+        }
+
+        try:
+            # Simple text email
+            text_content = f"""Dear {registration.participant_name},
+
+Thank you for your payment and registration for the training program: {program.title}
+
+Payment Details:
+- Amount: ${float(session['amount_total']) / 100:.2f}
+- Payment ID: {session['id']}
+- Status: Paid
+
+Program Details:
+- Start Date: {program.start_date}
+- End Date: {program.end_date}
+- Duration: {program.duration}
+- Format: {program.format}
+- Location: {program.location}
+
+Your registration has been confirmed. You will receive further details closer to the program start date.
+
+If you have any questions, please contact us at {context['contact_email']}.
+
+Best regards,
+The {context['company_name']} Team
+"""
+
+            # Try to send HTML email if templates exist, otherwise send plain text
+            try:
+                html_content = render_to_string("training_programs/emails/payment_confirmation.html", context)
+                msg = EmailMultiAlternatives(subject, text_content, from_email, to)
+                msg.attach_alternative(html_content, "text/html")
+                msg.send()
+            except Exception:
+                # Fallback to plain text email
+                from django.core.mail import send_mail
+                send_mail(subject, text_content, from_email, to, fail_silently=False)
+            
+            logger.info(f"Training program payment confirmation sent to {registration.participant_email}")
+            
+        except Exception as e:
+            logger.error(f"Failed to send training program payment confirmation to {registration.participant_email}: {str(e)}")
+            raise
+
+
+class TrainingProgramPaymentVerify(APIView):
+    """Verify training program payment status"""
+    permission_classes = [AllowAny]
+    
+    def get(self, request):
+        """Verify payment status using session ID"""
+        session_id = request.query_params.get('session_id')
+        if not session_id:
+            return Response(
+                {'error': 'Session ID is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            # Get payment record
+            payment = TrainingProgramPayment.objects.get(
+                stripe_checkout_session_id=session_id
+            )
+            
+            return Response({
+                'success': True,
+                'payment': TrainingProgramPaymentSerializer(payment).data,
+                'registration': RegistrationSerializer(payment.registration).data,
+                'program': TrainingProgramSerializer(payment.program).data,
+            })
+            
+        except TrainingProgramPayment.DoesNotExist:
+            return Response(
+                {'error': 'Payment not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            logger.error(f"Error verifying training program payment: {str(e)}")
+            return Response(
+                {'error': 'Failed to verify payment'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )

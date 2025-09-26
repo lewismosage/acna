@@ -246,9 +246,11 @@ class Registration(models.Model):
     ]
     
     PAYMENT_STATUS_CHOICES = [
-        ('Pending', 'Pending'),
-        ('Paid', 'Paid'),
-        ('Refunded', 'Refunded'),
+        ('pending', 'Pending'),
+        ('paid', 'Paid'),
+        ('free', 'Free'),
+        ('failed', 'Failed'),
+        ('refunded', 'Refunded'),
     ]
     
     EXPERIENCE_CHOICES = [
@@ -281,7 +283,7 @@ class Registration(models.Model):
     
     # Registration Status
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
-    payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='Pending')
+    payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='pending')
     
     # Additional Information
     special_requests = models.TextField(blank=True, help_text="Any special requests or requirements")
@@ -337,3 +339,51 @@ class Registration(models.Model):
     def program_title(self):
         """Get program title for API compatibility"""
         return self.program.title if self.program else ""
+
+
+class TrainingProgramPayment(models.Model):
+    """Model to track training program payment transactions"""
+    
+    PAYMENT_TYPES = (
+        ('registration', 'Registration Fee'),
+        ('late_fee', 'Late Registration Fee'),
+    )
+    
+    PAYMENT_STATUSES = (
+        ('pending', 'Pending'),
+        ('succeeded', 'Succeeded'),
+        ('failed', 'Failed'),
+        ('canceled', 'Canceled'),
+        ('refunded', 'Refunded'),
+    )
+    
+    program = models.ForeignKey(
+        TrainingProgram,
+        on_delete=models.CASCADE,
+        related_name='payments'
+    )
+    registration = models.ForeignKey(
+        Registration,
+        on_delete=models.CASCADE,
+        related_name='payments'
+    )
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    currency = models.CharField(max_length=3, default='USD')
+    stripe_checkout_session_id = models.CharField(max_length=255, unique=True)
+    status = models.CharField(max_length=20, choices=PAYMENT_STATUSES, default='pending')
+    payment_type = models.CharField(max_length=20, choices=PAYMENT_TYPES, default='registration')
+    registration_type = models.CharField(max_length=20, default='regular')
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['program', 'status']),
+            models.Index(fields=['stripe_checkout_session_id']),
+        ]
+    
+    def __str__(self):
+        return f"Payment for {self.registration.participant_name} - {self.program.title}"
