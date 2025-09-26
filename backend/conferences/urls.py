@@ -1,6 +1,11 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import ConferenceViewSet
+from .views import (
+    ConferenceViewSet, 
+    ConferencePaymentView, 
+    ConferencePaymentWebhook, 
+    ConferencePaymentVerify
+)
 
 router = DefaultRouter()
 router.register(r'conferences', ConferenceViewSet, basename='conference')
@@ -21,4 +26,15 @@ urlpatterns = [
     path('conferences/<int:pk>/upload_image/', 
          ConferenceViewSet.as_view({'post': 'upload_image'}), 
          name='conference-upload-image'),
+    
+    # Conference Payment endpoints
+    path('conferences/payment/create-checkout-session/', 
+         ConferencePaymentView.as_view(), 
+         name='conference-payment-checkout'),
+    path('conferences/payment/webhook/', 
+         ConferencePaymentWebhook.as_view(), 
+         name='conference-payment-webhook'),
+    path('conferences/payment/verify/', 
+         ConferencePaymentVerify.as_view(), 
+         name='conference-payment-verify'),
 ]

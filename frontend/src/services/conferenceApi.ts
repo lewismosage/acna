@@ -57,6 +57,17 @@ export interface Registration {
   registered_at: string;
 }
 
+export interface RegistrationResponse {
+  success: boolean;
+  message: string;
+  data?: Registration;
+  registration_data?: any;
+  payment_required?: boolean;
+  amount?: number;
+  registration_id?: number;
+  conference_id?: number;
+}
+
 export interface Conference {
   id?: number;
   title: string;
@@ -418,7 +429,7 @@ export const conferencesApi = {
   addRegistration: async (
   conferenceId: number,
   data: Omit<Registration, 'id' | 'full_name'>
-): Promise<Registration> => {
+): Promise<RegistrationResponse> => {
   try {
     // Include conference ID in the payload
     const payload = {
@@ -464,6 +475,63 @@ export const conferencesApi = {
       return response.json();
     } catch (error) {
       console.error(`Error updating conference ${id} status:`, error);
+      throw error;
+    }
+  },
+
+  // Conference Payment API
+  createPaymentSession: async (conferenceId: number, registrationData: any): Promise<{ sessionId: string }> => {
+    try {
+      const response = await fetch(`${CONFERENCES_API_URL}/payment/create-checkout-session/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conference_id: conferenceId,
+          registration_data: registrationData,
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+      
+      return response.json();
+    } catch (error) {
+      console.error('Error creating conference payment session:', error);
+      throw error;
+    }
+  },
+
+  verifyPayment: async (sessionId: string): Promise<{
+    status: string;
+    payment_status: string;
+    amount: number;
+    currency: string;
+    registration_type: string;
+    conference: {
+      id: number;
+      title: string;
+      date: string;
+      location: string;
+    };
+    registration: {
+      id: number;
+      name: string;
+      email: string;
+      organization: string;
+    };
+    invoice_number: string;
+  }> => {
+    try {
+      const response = await fetch(`${CONFERENCES_API_URL}/payment/verify/?session_id=${sessionId}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+      return response.json();
+    } catch (error) {
+      console.error('Error verifying conference payment:', error);
       throw error;
     }
   },

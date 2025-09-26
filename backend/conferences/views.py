@@ -1,17 +1,19 @@
 from rest_framework import viewsets, status
+from rest_framework.views import APIView
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.db.models import Count, Sum, Q
 from django.utils import timezone
 from datetime import timedelta
-from .models import Conference, Speaker, Session, Registration, ConferenceView
+from .models import Conference, Speaker, Session, Registration, ConferenceView, ConferencePayment
 from .serializers import (
     ConferenceSerializer,
     SpeakerSerializer,
     SessionSerializer,
     RegistrationSerializer,
-    ConferenceAnalyticsSerializer
+    ConferenceAnalyticsSerializer,
+    ConferencePaymentSerializer
 )
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
@@ -28,8 +30,12 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.template import TemplateDoesNotExist
 from django.conf import settings
+import stripe
 
 logger = logging.getLogger(__name__)
+
+# Configure Stripe
+stripe.api_key = settings.STRIPE_SECRET_KEY
 
 class ConferenceViewSet(viewsets.ModelViewSet):
     queryset = Conference.objects.all().order_by('-date')
@@ -406,25 +412,60 @@ class ConferenceViewSet(viewsets.ModelViewSet):
             request_data = request.data.copy()
             request_data['conference'] = conference.id
             
-            serializer = RegistrationSerializer(data=request_data)
+            # Check if payment is required BEFORE creating registration
+            registration_type = request_data.get('registration_type', 'regular')
+            amount = self.get_registration_amount(conference, registration_type)
             
-            if serializer.is_valid():
-                registration = serializer.save()
+            if amount > 0:
+                # Payment required - validate data but don't save yet
+                serializer = RegistrationSerializer(data=request_data)
                 
-                # Send confirmation email
-                try:
-                    self.send_registration_confirmation(registration, conference)
-                    logger.info(f"Confirmation email sent for registration {registration.id}")
-                except Exception as e:
-                    logger.error(f"Failed to send confirmation email: {str(e)}")
-                    # Don't fail the registration if email fails
+                if serializer.is_valid():
+                    # Convert validated data to dict and remove non-serializable objects
+                    registration_data = dict(serializer.validated_data)
+                    # Remove the conference object as it's not JSON serializable
+                    if 'conference' in registration_data:
+                        del registration_data['conference']
+                    
+                    # Return payment info without creating registration 
+                    return Response({
+                        'success': True,
+                        'message': 'Registration data validated. Payment required.',
+                        'registration_data': registration_data,
+                        'payment_required': True,
+                        'amount': amount,
+                        'conference_id': conference.id
+                    }, status=status.HTTP_200_OK)
+                else:
+                    return Response({
+                        'success': False,
+                        'error': 'Validation failed',
+                        'details': serializer.errors
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                # No payment required - create registration immediately
+                serializer = RegistrationSerializer(data=request_data)
                 
-                # Return success response
-                return Response({
-                    'success': True,
-                    'message': 'Registration successful! A confirmation email has been sent.',
-                    'data': serializer.data
-                }, status=status.HTTP_201_CREATED)
+                if serializer.is_valid():
+                    registration = serializer.save()
+                    registration.payment_status = 'paid'
+                    registration.save()
+                    
+                    # Send confirmation email
+                    try:
+                        self.send_registration_confirmation(registration, conference)
+                        logger.info(f"Confirmation email sent for registration {registration.id}")
+                    except Exception as e:
+                        logger.error(f"Failed to send confirmation email: {str(e)}")
+                        # Don't fail the registration if email fails
+                    
+                    # Return success response
+                    return Response({
+                        'success': True,
+                        'message': 'Registration successful! A confirmation email has been sent.',
+                        'data': serializer.data,
+                        'payment_required': False
+                    }, status=status.HTTP_201_CREATED)
             
             # Handle duplicate email error specifically
             if 'email' in serializer.errors and 'already registered' in str(serializer.errors['email']):
@@ -448,6 +489,20 @@ class ConferenceViewSet(viewsets.ModelViewSet):
                 'error': 'Internal server error',
                 'message': 'Failed to process registration. Please try again later.'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def get_registration_amount(self, conference, registration_type):
+        """Get the amount for the registration type"""
+        if registration_type == 'early_bird' and conference.early_bird_fee:
+            return float(conference.early_bird_fee)
+        elif registration_type == 'regular' and conference.regular_fee:
+            return float(conference.regular_fee)
+        elif registration_type == 'student' and conference.regular_fee:
+            # Student discount - 50% off regular fee
+            return float(conference.regular_fee) * 0.5
+        elif registration_type in ['speaker', 'sponsor']:
+            # Speakers and sponsors typically don't pay
+            return 0
+        return 0
 
     @action(detail=False, methods=['post'])
     def upload_image(self, request):
@@ -611,3 +666,279 @@ The {context['company_name']} Team
         except Exception as e:
             logger.error(f"Failed to send conference registration confirmation to {registration.email}: {str(e)}")
             raise
+
+
+class ConferencePaymentView(APIView):
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        """Create a Stripe checkout session for conference registration payment"""
+        try:
+            conference_id = request.data.get('conference_id')
+            registration_data = request.data.get('registration_data')
+            
+            if not conference_id or not registration_data:
+                return Response(
+                    {'error': 'Conference ID and registration data are required'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            try:
+                conference = Conference.objects.get(id=conference_id)
+            except Conference.DoesNotExist:
+                return Response(
+                    {'error': 'Conference not found'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            # Calculate the amount based on registration type
+            registration_type = registration_data.get('registration_type', 'regular')
+            amount = self.get_registration_amount(conference, registration_type)
+            
+            if amount <= 0:
+                return Response(
+                    {'error': 'No payment required for this registration type'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Create Stripe checkout session
+            session = stripe.checkout.Session.create(
+                payment_method_types=['card'],
+                line_items=[{
+                    'price_data': {
+                        'currency': 'usd',
+                        'product_data': {
+                            'name': f'{conference.title} Registration',
+                            'description': f'{registration_type.title()} registration for {conference.title}',
+                        },
+                        'unit_amount': int(amount * 100),  # Convert to cents
+                    },
+                    'quantity': 1,
+                }],
+                mode='payment',
+                metadata={
+                    'conference_id': conference.id,
+                    'registration_type': registration_type,
+                    'registration_data': json.dumps(registration_data),
+                },
+                customer_email=registration_data.get('email'),
+                success_url=f'{settings.FRONTEND_URL}/conference-payment-success?session_id={{CHECKOUT_SESSION_ID}}',
+                cancel_url=f'{settings.FRONTEND_URL}/conference-payment-canceled?conference_id={conference.id}',
+            )
+            
+            return Response({'sessionId': session.id})
+            
+        except Exception as e:
+            logger.error(f"Conference payment checkout error: {str(e)}")
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    
+    def get_registration_amount(self, conference, registration_type):
+        """Get the amount for the registration type"""
+        if registration_type == 'early_bird' and conference.early_bird_fee:
+            return float(conference.early_bird_fee)
+        elif registration_type == 'regular' and conference.regular_fee:
+            return float(conference.regular_fee)
+        elif registration_type == 'student' and conference.regular_fee:
+            # Student discount - 50% off regular fee
+            return float(conference.regular_fee) * 0.5
+        elif registration_type in ['speaker', 'sponsor']:
+            # Speakers and sponsors typically don't pay
+            return 0
+        return 0
+
+
+class ConferencePaymentWebhook(APIView):
+    def post(self, request):
+        """Handle Stripe webhook for conference payments"""
+        payload = request.body
+        sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
+        
+        try:
+            event = stripe.Webhook.construct_event(
+                payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
+            )
+            logger.info(f"Received Stripe event: {event['type']}")
+            
+            if event['type'] == 'checkout.session.completed':
+                session = event['data']['object']
+                logger.info(f"Processing conference checkout.session.completed: {session['id']}")
+                self.handle_conference_payment_completed(session)
+                
+            return Response({'status': 'success'}, status=200)
+            
+        except ValueError as e:
+            logger.error(f"Invalid payload: {str(e)}")
+            return Response({'error': str(e)}, status=400)
+        except stripe.error.SignatureVerificationError as e:
+            logger.error(f"Invalid signature: {str(e)}")
+            return Response({'error': str(e)}, status=400)
+        except Exception as e:
+            logger.error(f"Conference payment webhook error: {str(e)}", exc_info=True)
+            return Response({'error': str(e)}, status=500)
+    
+    def handle_conference_payment_completed(self, session):
+        """Handle successful conference payment"""
+        try:
+            # Get registration data from session metadata
+            registration_data = json.loads(session.metadata.get('registration_data', '{}'))
+            conference_id = session.metadata.get('conference_id')
+            registration_type = session.metadata.get('registration_type')
+            
+            if not registration_data or not conference_id:
+                logger.error(f"Missing registration data or conference ID in session {session.id}")
+                return
+            
+            # Get conference
+            try:
+                conference = Conference.objects.get(id=conference_id)
+            except Conference.DoesNotExist:
+                logger.error(f"Conference {conference_id} not found for session {session.id}")
+                return
+            
+            # Create registration
+            registration_data['conference'] = conference.id
+            registration_data['payment_status'] = 'paid'
+            registration_data['registered_at'] = timezone.now().isoformat()
+            
+            serializer = RegistrationSerializer(data=registration_data)
+            if serializer.is_valid():
+                registration = serializer.save()
+                
+                # Create payment record
+                ConferencePayment.objects.create(
+                    conference=conference,
+                    registration=registration,
+                    amount=float(session.amount_total) / 100,  # Convert from cents
+                    currency=session.currency.upper(),
+                    stripe_checkout_session_id=session.id,
+                    status='succeeded',
+                    payment_type='conference_registration',
+                    registration_type=registration_type
+                )
+                
+                # Send confirmation email
+                self.send_conference_payment_confirmation(registration, conference, session)
+                
+                logger.info(f"Conference registration created successfully: {registration.id}")
+            else:
+                logger.error(f"Failed to create registration: {serializer.errors}")
+            
+        except Exception as e:
+            logger.error(f"Error handling conference payment completion: {str(e)}", exc_info=True)
+    
+    def send_conference_payment_confirmation(self, registration, conference, session):
+        """Send conference payment confirmation email"""
+        subject = f"Payment Confirmation: {conference.title}"
+        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@example.com')
+        to = [registration.email]
+        
+        context = {
+            'registration': registration,
+            'conference': conference,
+            'amount': float(session.amount_total) / 100,
+            'currency': session.currency.upper(),
+            'company_name': getattr(settings, 'COMPANY_NAME', 'African Child Neurology Association'),
+            'contact_email': getattr(settings, 'CONTACT_EMAIL', 'info@acna.org')
+        }
+        
+        try:
+            # Try to send HTML email if templates exist
+            try:
+                html_content = render_to_string("conferences/emails/payment_confirmation.html", context)
+                text_content = render_to_string("conferences/emails/payment_confirmation.txt", context)
+                
+                msg = EmailMultiAlternatives(subject, text_content, from_email, to)
+                msg.attach_alternative(html_content, "text/html")
+                msg.send()
+                
+            except TemplateDoesNotExist:
+                # Fallback to plain text email
+                text_content = f"""Dear {registration.first_name} {registration.last_name},
+
+Thank you for your payment for the conference: {conference.title}
+
+Payment Details:
+- Amount: ${context['amount']} {context['currency']}
+- Registration Type: {registration.registration_type.title()}
+- Payment Status: Succeeded
+
+Conference Details:
+- Date: {conference.date}
+- Location: {conference.location}
+- Venue: {conference.venue or 'To be announced'}
+
+Your registration is now confirmed. You will receive further details closer to the conference date.
+
+If you have any questions, please contact us at {context['contact_email']}.
+
+Best regards,
+The {context['company_name']} Team
+"""
+            
+            from django.core.mail import send_mail
+            send_mail(subject, text_content, from_email, to, fail_silently=False)
+            
+            logger.info(f"Conference payment confirmation sent to {payment.registration.email}")
+        
+        except Exception as e:
+            logger.error(f"Failed to send conference payment confirmation to {payment.registration.email}: {str(e)}")
+
+
+class ConferencePaymentVerify(APIView):
+    permission_classes = [AllowAny]
+    
+    def get(self, request):
+        """Verify conference payment status"""
+        session_id = request.query_params.get('session_id')
+        if not session_id:
+            return Response(
+                {'error': 'Session ID is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            # Find payment by session ID
+            payment = ConferencePayment.objects.get(
+                stripe_checkout_session_id=session_id
+            )
+            
+            # Retrieve Stripe session
+            session = stripe.checkout.Session.retrieve(session_id)
+            
+            response_data = {
+                'status': 'success',
+                'payment_status': payment.status,
+                'amount': float(payment.amount),
+                'currency': payment.currency,
+                'registration_type': payment.registration_type,
+                'conference': {
+                    'id': payment.conference.id,
+                    'title': payment.conference.title,
+                    'date': payment.conference.date,
+                    'location': payment.conference.location
+                },
+                'registration': {
+                    'id': payment.registration.id,
+                    'name': payment.registration.full_name,
+                    'email': payment.registration.email,
+                    'organization': payment.registration.organization
+                },
+                'invoice_number': session.invoice or session.payment_intent,
+            }
+            
+            return Response(response_data)
+            
+        except ConferencePayment.DoesNotExist:
+            return Response(
+                {'error': 'Payment not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            logger.error(f"Conference payment verification error: {str(e)}")
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )

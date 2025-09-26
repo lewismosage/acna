@@ -201,6 +201,36 @@ class Registration(models.Model):
     def __str__(self):
         return f"{self.full_name} - {self.conference.title}"
 
+class ConferencePayment(models.Model):
+    PAYMENT_TYPES = (
+        ('conference_registration', 'Conference Registration'),
+    )
+    
+    PAYMENT_STATUSES = (
+        ('pending', 'Pending'),
+        ('succeeded', 'Succeeded'),
+        ('failed', 'Failed'),
+        ('refunded', 'Refunded'),
+    )
+
+    conference = models.ForeignKey(Conference, on_delete=models.CASCADE, related_name='payments')
+    registration = models.ForeignKey(Registration, on_delete=models.CASCADE, related_name='payments')
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    currency = models.CharField(max_length=3, default='USD')
+    stripe_checkout_session_id = models.CharField(max_length=255, unique=True)
+    status = models.CharField(max_length=20, choices=PAYMENT_STATUSES, default='pending')
+    payment_type = models.CharField(max_length=30, choices=PAYMENT_TYPES, default='conference_registration')
+    registration_type = models.CharField(max_length=20, choices=Registration.REGISTRATION_TYPES)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Conference Payment"
+        verbose_name_plural = "Conference Payments"
+
+    def __str__(self):
+        return f"{self.registration.full_name} - {self.conference.title} - ${self.amount}"
+
 class ConferenceView(models.Model):
     conference = models.ForeignKey(Conference, on_delete=models.CASCADE)
     ip_address = models.GenericIPAddressField()

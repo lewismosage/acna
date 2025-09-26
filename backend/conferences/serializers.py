@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Conference, Speaker, Session, Registration
+from .models import Conference, Speaker, Session, Registration, ConferencePayment
 from django.core.files.base import ContentFile
 import base64
 import uuid
@@ -198,6 +198,16 @@ class ConferenceSerializer(serializers.ModelSerializer):
             return instance
         except Exception as e:
             raise serializers.ValidationError(f"Error updating conference: {str(e)}")
+
+class ConferencePaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ConferencePayment
+        fields = [
+            'id', 'conference', 'registration', 'amount', 'currency',
+            'stripe_checkout_session_id', 'status', 'payment_type',
+            'registration_type', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
 
 class ConferenceAnalyticsSerializer(serializers.Serializer):
     total_conferences = serializers.IntegerField()

@@ -66,6 +66,9 @@ import PaymentPage from "./pages/payment/PaymentPage";
 import PaymentSuccess from "./pages/payment/PaymentSuccess";
 import PaymentCanceled from "./pages/payment/PaymentCanceled";
 import PaymentError from "./pages/payment/PaymentError";
+import ConferencePaymentSuccess from "./pages/payment/ConferencePaymentSuccess";
+import ConferencePaymentCanceled from "./pages/payment/ConferencePaymentCanceled";
+import ConferencePaymentError from "./pages/payment/ConferencePaymentError";
 import ACNAMemberDashboard from "./pages/membershippages/portal/ACNAMemberDashboard";
 import AdminDashboard from "./pages/admin/dashboard/AdminDashboard";
 import UnsubscribePage from "./pages/other/Unsubscribe";
@@ -170,7 +173,10 @@ function App() {
               element={<ResearchPaperDetailPage />}
             />
             <Route path="/training-programs" element={<TrainingPrograms />} />
-            <Route path="/training-programs/:id" element={<TrainingProgramDetailPage />}/>
+            <Route
+              path="/training-programs/:id"
+              element={<TrainingProgramDetailPage />}
+            />
             <Route
               path="/case-studies-and-fact-sheets"
               element={<FactSheetsAndCaseStudies />}
@@ -197,7 +203,10 @@ function App() {
               element={<PatientCareDetail />}
             />
             <Route path="/policy-briefs" element={<PolicyBriefs />} />
-            <Route path="/policy-briefs/:id" element={<PolicyBeliefDetailPage />} />
+            <Route
+              path="/policy-briefs/:id"
+              element={<PolicyBeliefDetailPage />}
+            />
             <Route path="/journal-watch" element={<JournalWatch />} />
             <Route
               path="/journal-watch/:id"
@@ -276,7 +285,10 @@ function App() {
             {/* Admin Pages */}
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin/forgot-password" element={<ForgotPassword />} />
-            <Route path="/admin/reset-password/:token" element={<ResetPassword />} />
+            <Route
+              path="/admin/reset-password/:token"
+              element={<ResetPassword />}
+            />
             <Route path="/admin/signup" element={<AdminSignUp />} />
             {/* Forum Pages */}
             <Route path="/forum" element={<ForumComponent />} />
@@ -285,7 +297,10 @@ function App() {
               path="/forum/:forumId/post/:postId"
               element={<PostReply />}
             />
-            <Route path="/forum/:forumId/thread/:threadSlug" element={<PostReply />} />
+            <Route
+              path="/forum/:forumId/thread/:threadSlug"
+              element={<PostReply />}
+            />
             <Route path="forum-guidelines" element={<ForumGuidelines />} />
             {/* Payment Pages */}
             <Route path="/verification" element={<VerificationPage />} />
@@ -293,6 +308,19 @@ function App() {
             <Route path="/payment-success" element={<PaymentSuccess />} />
             <Route path="/payment-canceled" element={<PaymentCanceled />} />
             <Route path="/payment-error" element={<PaymentError />} />
+            {/* Conference Payment Pages */}
+            <Route
+              path="/conference-payment-success"
+              element={<ConferencePaymentSuccess />}
+            />
+            <Route
+              path="/conference-payment-canceled"
+              element={<ConferencePaymentCanceled />}
+            />
+            <Route
+              path="/conference-payment-error"
+              element={<ConferencePaymentError />}
+            />
           </Route>
         </Routes>
       </Router>
