@@ -32,48 +32,35 @@ import { SignOutModal } from "../settings/SignOutModal";
 import { useAuth } from "../../../services/AuthContext";
 import LoadingSpinner from "../../../components/common/LoadingSpinner";
 import NewsManagement from "../newsupdates/newsmanagement/NewsManagement";
+import AdminNotifications from "./AdminNotifications";
+import adminApi from "../../../services/adminApi";
+import { conferencesApi } from "../../../services/conferenceApi";
+import { workshopsApi } from "../../../services/workshopAPI";
+import { trainingProgramsApi } from "../../../services/trainingProgramsApi";
+import { careersApi } from "../../../services/careersAPI";
+import { abstractApi } from "../../../services/abstractApi";
+import { educationalResourcesApi } from "../../../services/educationalResourcesApi";
+import { publicationsApi } from "../../../services/publicationsAPI";
 
-// Mock data for demo purposes
-const mockMemberStats = {
-  totalMembers: 1248,
-  activeMembers: 1156,
-  newThisMonth: 34,
-  pendingApprovals: 8,
-};
-
-const mockFinancialStats = {
-  totalRevenue: 45680,
-  monthlyRevenue: 3420,
-  pendingPayments: 12,
-  donations: 2340,
-};
-
-const mockRecentActivity = [
-  {
-    action: "New Member Registration",
-    user: "Dr. Sarah Johnson",
-    time: "2 hours ago",
-    status: "pending",
-  },
-  {
-    action: "Payment Received",
-    user: "Dr. Michael Chen",
-    time: "4 hours ago",
-    status: "completed",
-  },
-  {
-    action: "Event Registration",
-    user: "Dr. Amara Okafor",
-    time: "6 hours ago",
-    status: "completed",
-  },
-  {
-    action: "Content Published",
-    user: "Admin User",
-    time: "1 day ago",
-    status: "completed",
-  },
-];
+// Real data interface
+interface DashboardStats {
+  totalMembers: number;
+  activeMembers: number;
+  newThisMonth: number;
+  pendingApprovals: number;
+  totalRevenue: number;
+  monthlyRevenue: number;
+  pendingPayments: number;
+  donations: number;
+  totalEvents: number;
+  totalWorkshops: number;
+  totalTrainingPrograms: number;
+  totalJobApplications: number;
+  totalVolunteerSubmissions: number;
+  totalAbstracts: number;
+  totalCaseStudies: number;
+  totalPublications: number;
+}
 
 // Stats Card Component
 const StatsCard = ({
@@ -163,36 +150,36 @@ const QuickActionsPanel = ({ setActiveTab }: any) => (
 );
 
 // Dashboard Overview Tab
-const DashboardOverview = ({ setActiveTab }: any) => (
+const DashboardOverview = ({ stats }: any) => (
   <>
     {/* Stats Grid */}
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
       <StatsCard
         title="Total Members"
-        value={mockMemberStats.totalMembers}
-        subtitle={`${mockMemberStats.activeMembers} active`}
+        value={stats.totalMembers}
+        subtitle={`${stats.activeMembers} active`}
         icon={Users}
         color="blue"
         trend="+8% this month"
       />
       <StatsCard
         title="Monthly Revenue"
-        value={`$${mockFinancialStats.monthlyRevenue}`}
-        subtitle={`$${mockFinancialStats.totalRevenue} total`}
+        value={`$${stats.monthlyRevenue.toLocaleString()}`}
+        subtitle={`$${stats.totalRevenue.toLocaleString()} total`}
         icon={DollarSign}
         color="green"
         trend="+12% from last month"
       />
       <StatsCard
         title="Pending Approvals"
-        value={mockMemberStats.pendingApprovals}
+        value={stats.pendingApprovals}
         subtitle="New registrations"
         icon={Clock}
         color="orange"
       />
       <StatsCard
         title="This Month"
-        value={mockMemberStats.newThisMonth}
+        value={stats.newThisMonth}
         subtitle="New members"
         icon={UserCheck}
         color="purple"
@@ -200,53 +187,44 @@ const DashboardOverview = ({ setActiveTab }: any) => (
       />
     </div>
 
-    {/* Recent Activity */}
-    <div className="bg-white border border-gray-300 rounded-lg">
-      <div className="bg-gray-100 px-4 py-2 border-b border-gray-300 flex items-center justify-between">
-        <h2 className="font-semibold text-gray-800">Recent Activity</h2>
-        <button
-          onClick={() => setActiveTab("reports")}
-          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-        >
-          View All →
-        </button>
-      </div>
-      <div className="p-4">
-        <div className="space-y-3">
-          {mockRecentActivity.map((activity, index) => (
-            <div
-              key={index}
-              className="flex items-center justify-between p-3 border border-gray-200 rounded"
-            >
-              <div className="flex items-center">
-                <div
-                  className={`w-2 h-2 rounded-full mr-3 ${
-                    activity.status === "pending"
-                      ? "bg-orange-400"
-                      : "bg-green-400"
-                  }`}
-                />
-                <div>
-                  <p className="font-medium text-sm">{activity.action}</p>
-                  <p className="text-xs text-gray-600">
-                    {activity.user} • {activity.time}
-                  </p>
-                </div>
-              </div>
-              <span
-                className={`px-2 py-1 rounded text-xs font-medium ${
-                  activity.status === "pending"
-                    ? "bg-orange-100 text-orange-800"
-                    : "bg-green-100 text-green-800"
-                }`}
-              >
-                {activity.status}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
+    {/* Additional Stats Grid */}
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <StatsCard
+        title="Total Events"
+        value={stats.totalEvents}
+        subtitle="Conferences & Workshops"
+        icon={Calendar}
+        color="indigo"
+      />
+      <StatsCard
+        title="Training Programs"
+        value={stats.totalTrainingPrograms}
+        subtitle="Active programs"
+        icon={FileText}
+        color="purple"
+      />
+      <StatsCard
+        title="Job Applications"
+        value={stats.totalJobApplications}
+        subtitle="This month"
+        icon={BarChart3}
+        color="red"
+      />
+      <StatsCard
+        title="Research Submissions"
+        value={
+          stats.totalAbstracts +
+          stats.totalCaseStudies +
+          stats.totalPublications
+        }
+        subtitle="Abstracts, cases, publications"
+        icon={Newspaper}
+        color="teal"
+      />
     </div>
+
+    {/* Recent Activity - Now using AdminNotifications component */}
+    <AdminNotifications />
   </>
 );
 
@@ -256,12 +234,101 @@ const AdminDashboard = () => {
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState<DashboardStats>({
+    totalMembers: 0,
+    activeMembers: 0,
+    newThisMonth: 0,
+    pendingApprovals: 0,
+    totalRevenue: 0,
+    monthlyRevenue: 0,
+    pendingPayments: 0,
+    donations: 0,
+    totalEvents: 0,
+    totalWorkshops: 0,
+    totalTrainingPrograms: 0,
+    totalJobApplications: 0,
+    totalVolunteerSubmissions: 0,
+    totalAbstracts: 0,
+    totalCaseStudies: 0,
+    totalPublications: 0,
+  });
   const [adminName, setAdminName] = useState({
     firstName: "Admin",
     lastName: "User",
   });
   const { admin, isAdmin, logout } = useAuth();
   const navigate = useNavigate();
+
+  const fetchDashboardStats = async () => {
+    try {
+      // Fetch all data in parallel
+      const [
+        members,
+        conferences,
+        workshops,
+        trainingPrograms,
+        jobApplications,
+        volunteerSubmissions,
+        abstracts,
+        caseStudies,
+        publications,
+      ] = await Promise.all([
+        adminApi.get("/users/members/"),
+        conferencesApi.getAll(),
+        workshopsApi.getAll(),
+        trainingProgramsApi.getAll(),
+        careersApi.getAllApplications(),
+        careersApi.getAllVolunteers(),
+        abstractApi.getAbstracts(),
+        educationalResourcesApi.getAll(),
+        publicationsApi.getAll(),
+      ]);
+
+      // Calculate current month stats
+      const currentMonth = new Date().getMonth();
+      const currentYear = new Date().getFullYear();
+
+      const newMembersThisMonth = members.data.filter((member: any) => {
+        const memberDate = new Date(member.created_at);
+        return (
+          memberDate.getMonth() === currentMonth &&
+          memberDate.getFullYear() === currentYear
+        );
+      }).length;
+
+      const activeMembers = members.data.filter(
+        (member: any) => member.is_active
+      ).length;
+      const pendingApprovals = members.data.filter(
+        (member: any) => !member.is_verified
+      ).length;
+
+      // Calculate revenue (simplified - you might want to fetch from financial APIs)
+      const totalRevenue = 0; // This would come from financial APIs
+      const monthlyRevenue = 0; // This would come from financial APIs
+
+      setStats({
+        totalMembers: members.data.length,
+        activeMembers,
+        newThisMonth: newMembersThisMonth,
+        pendingApprovals,
+        totalRevenue,
+        monthlyRevenue,
+        pendingPayments: 0, // This would come from financial APIs
+        donations: 0, // This would come from financial APIs
+        totalEvents: conferences.length + workshops.length,
+        totalWorkshops: workshops.length,
+        totalTrainingPrograms: trainingPrograms.length,
+        totalJobApplications: jobApplications.length,
+        totalVolunteerSubmissions: volunteerSubmissions.length,
+        totalAbstracts: abstracts.length,
+        totalCaseStudies: caseStudies.length,
+        totalPublications: publications.length,
+      });
+    } catch (error) {
+      console.error("Error fetching dashboard stats:", error);
+    }
+  };
 
   useEffect(() => {
     if (isAdmin === undefined) return;
@@ -273,6 +340,7 @@ const AdminDashboard = () => {
         firstName: admin?.first_name || "Admin",
         lastName: admin?.last_name || "User",
       });
+      fetchDashboardStats();
     }
     setIsLoading(false);
   }, [isAdmin, admin, navigate]);
@@ -302,7 +370,7 @@ const AdminDashboard = () => {
   const renderTabContent = () => {
     switch (activeTab) {
       case "dashboard":
-        return <DashboardOverview setActiveTab={setActiveTab} />;
+        return <DashboardOverview stats={stats} />;
       case "members":
         return <MembersManagement />;
       case "resources":
