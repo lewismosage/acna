@@ -18,7 +18,6 @@ const AdminAwardsManagement = () => {
 
   // State for data from API
   const [awardWinners, setAwardWinners] = useState<AwardWinner[]>([]);
-  const [nominees, setNominees] = useState<Nominee[]>([]);
   const [awardCategories, setAwardCategories] = useState<AwardCategory[]>([]);
   const [nominations, setNominations] = useState<AwardNomination[]>([]);
   const [approvedNominees, setApprovedNominees] = useState<Nominee[]>([]);
@@ -38,9 +37,8 @@ const AdminAwardsManagement = () => {
     setError(null);
     
     try {
-      const [winnersData, nomineesData, categoriesData, nominationsData, approvedNomineesData] = await Promise.all([
+      const [winnersData, categoriesData, nominationsData, approvedNomineesData] = await Promise.all([
         awardsApi.getWinners({ search: debouncedSearchTerm }),
-        awardsApi.getNominees({ status: 'Approved', source: 'admin,suggested' }),
         awardsApi.getCategories({ search: debouncedSearchTerm }),
         awardsApi.getNominations({ search: debouncedSearchTerm }),
         // Add this line to fetch approved nominees for the poll
@@ -48,7 +46,6 @@ const AdminAwardsManagement = () => {
       ]);
 
       setAwardWinners(winnersData);
-      setNominees(nomineesData);
       setAwardCategories(categoriesData);
       setNominations(nominationsData);
       // Add this state for approved nominees
@@ -84,8 +81,11 @@ const AdminAwardsManagement = () => {
   // Handle declaring winner
   const handleDeclareWinner = async (nominee: Nominee, category: AwardCategory) => {
     try {
+      console.log('Starting winner declaration process for:', nominee.name, 'in category:', category.title);
+      
       // Create the winner
-      await awardsApi.createWinner({
+      console.log('Creating winner record...');
+      const winner = await awardsApi.createWinner({
         name: nominee.name,
         title: `${category.title} Winner`,
         location: nominee.location || 'Africa',
@@ -95,14 +95,18 @@ const AdminAwardsManagement = () => {
         status: 'Active', 
         imageUrl: nominee.imageUrl || ''
       });
+      console.log('Winner created successfully:', winner);
 
       // Only update nominee status if it's a real nominee (positive ID)
       if (nominee.id > 0) {
+        console.log('Updating nominee status to Winner for ID:', nominee.id);
         await awardsApi.updateNominee(nominee.id, { 
           status: 'Winner' as const 
         });
+        console.log('Nominee status updated successfully');
       } else {
         // For virtual nominees (negative IDs), create a real nominee record first
+        console.log('Creating real nominee record for virtual nominee...');
         const realNominee = await awardsApi.createNominee({
           name: nominee.name,
           institution: nominee.institution,
@@ -120,9 +124,15 @@ const AdminAwardsManagement = () => {
         console.log('Created real nominee record:', realNominee);
       }
       
+      console.log('Refreshing all data...');
       await fetchAllData();
+      console.log('Winner declaration process completed successfully');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to declare winner');
+      console.error('Error in handleDeclareWinner:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to declare winner';
+      setError(errorMessage);
+      // Re-throw the error so the calling component can handle it
+      throw new Error(errorMessage);
     }
   };
 

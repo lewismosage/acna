@@ -1,7 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import { Trophy, ChevronDown, ChevronUp, Award, Users, BarChart3, Crown, Medal, X, FileText, Mail, User, Building, MapPin, Award as AwardIcon, Link as LinkIcon } from 'lucide-react';
-import { AwardCategory, Nominee, AwardNomination, AwardWinner } from '../../../../services/awardsApi'; 
-import AlertModal from '../../../../components/common/AlertModal';
+import React, { useState, useEffect } from "react";
+import {
+  Trophy,
+  ChevronDown,
+  ChevronUp,
+  Award,
+  Users,
+  BarChart3,
+  Crown,
+  Medal,
+  X,
+  FileText,
+  User,
+  Award as AwardIcon,
+  Link as LinkIcon,
+} from "lucide-react";
+import {
+  AwardCategory,
+  Nominee,
+  AwardNomination,
+  AwardWinner,
+} from "../../../../services/awardsApi";
+import AlertModal from "../../../../components/common/AlertModal";
 
 interface PollData {
   nominee: Nominee;
@@ -33,11 +52,17 @@ const PollTab: React.FC<PollTabProps> = ({
   searchTerm,
   loading,
   onDeclareWinner,
-  awardWinners
+  awardWinners,
 }) => {
-  const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set());
-  const [categoryPollData, setCategoryPollData] = useState<CategoryPollData[]>([]);
-  const [selectedNominations, setSelectedNominations] = useState<AwardNomination[]>([]);
+  const [expandedCategories, setExpandedCategories] = useState<Set<number>>(
+    new Set()
+  );
+  const [categoryPollData, setCategoryPollData] = useState<CategoryPollData[]>(
+    []
+  );
+  const [selectedNominations, setSelectedNominations] = useState<
+    AwardNomination[]
+  >([]);
   const [showNominationsModal, setShowNominationsModal] = useState(false);
   const [selectedNominee, setSelectedNominee] = useState<Nominee | null>(null);
 
@@ -46,15 +71,15 @@ const PollTab: React.FC<PollTabProps> = ({
     isOpen: boolean;
     title: string;
     message: string;
-    type: 'info' | 'warning' | 'error' | 'success' | 'confirm';
+    type: "info" | "warning" | "error" | "success" | "confirm";
     onConfirm?: () => void;
     confirmText?: string;
     cancelText?: string;
   }>({
     isOpen: false,
-    title: '',
-    message: '',
-    type: 'info'
+    title: "",
+    message: "",
+    type: "info",
   });
 
   // State to track winner declaration context
@@ -63,84 +88,96 @@ const PollTab: React.FC<PollTabProps> = ({
     category: AwardCategory | null;
   }>({
     poll: null,
-    category: null
+    category: null,
   });
 
   useEffect(() => {
-    const processedData: CategoryPollData[] = categories.map(category => {
-      // Get approved nominees for this category (from both sources)
-      const categoryNominees = nominees.filter(nominee => 
-        nominee.category === category.id && nominee.status === 'Approved'
-      );
-
-      // Get nominations for this category
-      const categoryNominations = nominations.filter(nomination => 
-        nomination.awardCategory === category.id
-      );
-
-      // Process polls data
-      const nomineeVoteMap = new Map<number, { nominee: Nominee; nominations: AwardNomination[] }>();
-
-      // Initialize with nominees
-      categoryNominees.forEach(nominee => {
-        nomineeVoteMap.set(nominee.id, { nominee, nominations: [] });
-      });
-
-      // Add nominations and count votes
-      categoryNominations.forEach(nomination => {
-        // Find matching nominee by name (for cases where nominee might not be in nominees list yet)
-        const matchingNominee = Array.from(nomineeVoteMap.values()).find(item => 
-          item.nominee.name.toLowerCase() === nomination.nomineeName.toLowerCase()
+    const processedData: CategoryPollData[] = categories
+      .map((category) => {
+        // Get approved nominees for this category (from both sources)
+        const categoryNominees = nominees.filter(
+          (nominee) =>
+            nominee.category === category.id && nominee.status === "Approved"
         );
 
-        if (matchingNominee) {
-          matchingNominee.nominations.push(nomination);
-        } else {
-          // Create virtual nominee from nomination data if not found
-          const virtualNominee: Nominee = {
-            id: -nomination.id, // Negative ID to avoid conflicts
-            name: nomination.nomineeName,
-            institution: nomination.nomineeInstitution,
-            specialty: nomination.nomineeSpecialty,
-            category: nomination.awardCategory,
-            categoryTitle: category.title,
-            achievement: nomination.achievementSummary,
-            email: nomination.nomineeEmail,
-            phone: '',
-            location: nomination.nomineeLocation,
-            imageUrl: '',
-            status: 'Approved',
-            suggestedBy: nomination.nominatorName,
-            suggestedDate: nomination.submissionDate,
-            createdAt: nomination.createdAt,
-            updatedAt: nomination.updatedAt,
-            source: 'suggested'
-          };
-          
-          nomineeVoteMap.set(virtualNominee.id, { 
-            nominee: virtualNominee, 
-            nominations: [nomination] 
-          });
-        }
-      });
+        // Get nominations for this category
+        const categoryNominations = nominations.filter(
+          (nomination) => nomination.awardCategory === category.id
+        );
 
-      const totalVotes = Array.from(nomineeVoteMap.values()).reduce((sum, item) => 
-        sum + item.nominations.length, 0
-      );
+        // Process polls data
+        const nomineeVoteMap = new Map<
+          number,
+          { nominee: Nominee; nominations: AwardNomination[] }
+        >();
 
-      const polls: PollData[] = Array.from(nomineeVoteMap.values()).map(item => ({
-        nominee: item.nominee,
-        voteCount: item.nominations.length,
-        nominations: item.nominations,
-        percentage: totalVotes > 0 ? (item.nominations.length / totalVotes) * 100 : 0
-      })).sort((a, b) => b.voteCount - a.voteCount);
+        // Initialize with nominees
+        categoryNominees.forEach((nominee) => {
+          nomineeVoteMap.set(nominee.id, { nominee, nominations: [] });
+        });
 
-      return {
-        category,
-        polls,
-        totalVotes
-      };
-    }).filter(categoryData => categoryData.polls.length > 0 || searchTerm);
+        // Add nominations and count votes
+        categoryNominations.forEach((nomination) => {
+          // Find matching nominee by name (for cases where nominee might not be in nominees list yet)
+          const matchingNominee = Array.from(nomineeVoteMap.values()).find(
+            (item) =>
+              item.nominee.name.toLowerCase() ===
+              nomination.nomineeName.toLowerCase()
+          );
+
+          if (matchingNominee) {
+            matchingNominee.nominations.push(nomination);
+          } else {
+            // Create virtual nominee from nomination data if not found
+            const virtualNominee: Nominee = {
+              id: -nomination.id, // Negative ID to avoid conflicts
+              name: nomination.nomineeName,
+              institution: nomination.nomineeInstitution,
+              specialty: nomination.nomineeSpecialty,
+              category: nomination.awardCategory,
+              categoryTitle: category.title,
+              achievement: nomination.achievementSummary,
+              email: nomination.nomineeEmail,
+              phone: "",
+              location: nomination.nomineeLocation,
+              imageUrl: "",
+              status: "Approved",
+              suggestedBy: nomination.nominatorName,
+              suggestedDate: nomination.submissionDate,
+              createdAt: nomination.createdAt,
+              updatedAt: nomination.updatedAt,
+              source: "suggested",
+            };
+
+            nomineeVoteMap.set(virtualNominee.id, {
+              nominee: virtualNominee,
+              nominations: [nomination],
+            });
+          }
+        });
+
+        const totalVotes = Array.from(nomineeVoteMap.values()).reduce(
+          (sum, item) => sum + item.nominations.length,
+          0
+        );
+
+        const polls: PollData[] = Array.from(nomineeVoteMap.values())
+          .map((item) => ({
+            nominee: item.nominee,
+            voteCount: item.nominations.length,
+            nominations: item.nominations,
+            percentage:
+              totalVotes > 0 ? (item.nominations.length / totalVotes) * 100 : 0,
+          }))
+          .sort((a, b) => b.voteCount - a.voteCount);
+
+        return {
+          category,
+          polls,
+          totalVotes,
+        };
+      })
+      .filter((categoryData) => categoryData.polls.length > 0 || searchTerm);
 
     setCategoryPollData(processedData);
   }, [categories, nominees, nominations, searchTerm]);
@@ -155,47 +192,88 @@ const PollTab: React.FC<PollTabProps> = ({
     setExpandedCategories(newExpanded);
   };
 
-  const isAlreadyWinner = (nominee: Nominee, category: AwardCategory): boolean => {
-    return awardWinners.some(winner => 
-      winner.name.toLowerCase() === nominee.name.toLowerCase() && 
-      winner.category === category.id &&
-      winner.status === 'Active'
+  const isAlreadyWinner = (
+    nominee: Nominee,
+    category: AwardCategory
+  ): boolean => {
+    return awardWinners.some(
+      (winner) =>
+        winner.name.toLowerCase() === nominee.name.toLowerCase() &&
+        winner.category === category.id &&
+        winner.status === "Active"
     );
   };
 
   const handleDeclareWinner = (poll: PollData, category: AwardCategory) => {
+    console.log(
+      "Setting pending winner declaration:",
+      poll.nominee.name,
+      category.title
+    );
     setPendingWinnerDeclaration({ poll, category });
+
+    const handleConfirm = () => {
+      confirmDeclareWinner(poll, category);
+    };
+
     showAlert(
-      'Declare Winner',
+      "Declare Winner",
       `Are you sure you want to declare "${poll.nominee.name}" as the winner of "${category.title}"?\n\nThis action will officially announce them as the award recipient.`,
-      'confirm',
-      () => confirmDeclareWinner(),
-      'Declare Winner',
-      'Cancel'
+      "confirm",
+      handleConfirm,
+      "Declare Winner",
+      "Cancel"
     );
   };
 
-  const confirmDeclareWinner = async () => {
-    if (pendingWinnerDeclaration.poll && pendingWinnerDeclaration.category) {
-      try {
-        await onDeclareWinner(pendingWinnerDeclaration.poll.nominee, pendingWinnerDeclaration.category);
-        
-        // Show success message
-        showAlert(
-          'Winner Declared!',
-          `${pendingWinnerDeclaration.poll.nominee.name} has been successfully declared as the winner of ${pendingWinnerDeclaration.category.title}.`,
-          'success'
-        );
-      } catch (error) {
-        // Show error message
-        showAlert(
-          'Error',
-          'There was an error declaring the winner. Please try again.',
-          'error'
-        );
-      } finally {
-        setPendingWinnerDeclaration({ poll: null, category: null });
-      }
+  const cancelDeclareWinner = () => {
+    setPendingWinnerDeclaration({ poll: null, category: null });
+    closeAlert();
+  };
+
+  const confirmDeclareWinner = async (
+    poll: PollData,
+    category: AwardCategory
+  ) => {
+    console.log(
+      "confirmDeclareWinner called with:",
+      poll.nominee.name,
+      category.title
+    );
+    try {
+      console.log(
+        "Declaring winner:",
+        poll.nominee.name,
+        "for category:",
+        category.title
+      );
+      await onDeclareWinner(poll.nominee, category);
+
+      // Close the confirmation modal first
+      closeAlert();
+
+      // Show success message
+      showAlert(
+        "Winner Declared!",
+        `${poll.nominee.name} has been successfully declared as the winner of ${category.title}.`,
+        "success"
+      );
+    } catch (error) {
+      console.error("Error declaring winner:", error);
+
+      // Close the confirmation modal first
+      closeAlert();
+
+      // Show error message
+      showAlert(
+        "Error",
+        `There was an error declaring the winner: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }. Please try again.`,
+        "error"
+      );
+    } finally {
+      setPendingWinnerDeclaration({ poll: null, category: null });
     }
   };
 
@@ -207,18 +285,26 @@ const PollTab: React.FC<PollTabProps> = ({
 
   const getRankIcon = (index: number) => {
     switch (index) {
-      case 0: return <Crown className="w-5 h-5 text-yellow-500" />;
-      case 1: return <Medal className="w-5 h-5 text-gray-400" />;
-      case 2: return <Medal className="w-5 h-5 text-yellow-600" />;
-      default: return <span className="w-5 h-5 flex items-center justify-center text-sm font-bold text-gray-500">#{index + 1}</span>;
+      case 0:
+        return <Crown className="w-5 h-5 text-yellow-500" />;
+      case 1:
+        return <Medal className="w-5 h-5 text-gray-400" />;
+      case 2:
+        return <Medal className="w-5 h-5 text-yellow-600" />;
+      default:
+        return (
+          <span className="w-5 h-5 flex items-center justify-center text-sm font-bold text-gray-500">
+            #{index + 1}
+          </span>
+        );
     }
   };
 
   // Helper function to show alert modal
   const showAlert = (
-    title: string, 
-    message: string, 
-    type: 'info' | 'warning' | 'error' | 'success' | 'confirm' = 'info', 
+    title: string,
+    message: string,
+    type: "info" | "warning" | "error" | "success" | "confirm" = "info",
     onConfirm?: () => void,
     confirmText?: string,
     cancelText?: string
@@ -230,29 +316,32 @@ const PollTab: React.FC<PollTabProps> = ({
       type,
       onConfirm,
       confirmText,
-      cancelText
+      cancelText,
     });
   };
 
   const closeAlert = () => {
     setAlertModal({
       isOpen: false,
-      title: '',
-      message: '',
-      type: 'info'
+      title: "",
+      message: "",
+      type: "info",
     });
-    // Clear pending winner declaration when modal closes
-    if (alertModal.type === 'confirm') {
-      setPendingWinnerDeclaration({ poll: null, category: null });
-    }
+    // Don't clear pending winner declaration here - let confirmDeclareWinner handle it
   };
 
-  const filteredCategoryData = categoryPollData.filter(categoryData =>
-    categoryData.category.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    categoryData.polls.some(poll => 
-      poll.nominee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      poll.nominee.institution.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+  const filteredCategoryData = categoryPollData.filter(
+    (categoryData) =>
+      categoryData.category.title
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      categoryData.polls.some(
+        (poll) =>
+          poll.nominee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          poll.nominee.institution
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase())
+      )
   );
 
   if (loading) {
@@ -281,13 +370,18 @@ const PollTab: React.FC<PollTabProps> = ({
         {filteredCategoryData.length > 0 ? (
           <div className="space-y-4">
             {filteredCategoryData.map((categoryData) => {
-              const isExpanded = expandedCategories.has(categoryData.category.id);
+              const isExpanded = expandedCategories.has(
+                categoryData.category.id
+              );
               const topCandidate = categoryData.polls[0];
 
               return (
-                <div key={categoryData.category.id} className="bg-white border border-gray-200 rounded-lg shadow-sm">
+                <div
+                  key={categoryData.category.id}
+                  className="bg-white border border-gray-200 rounded-lg shadow-sm"
+                >
                   {/* Category Header */}
-                  <div 
+                  <div
                     className="p-6 cursor-pointer hover:bg-gray-50"
                     onClick={() => toggleCategory(categoryData.category.id)}
                   >
@@ -302,7 +396,7 @@ const PollTab: React.FC<PollTabProps> = ({
                         <p className="text-gray-600 text-sm mb-3">
                           {categoryData.category.description}
                         </p>
-                        
+
                         <div className="flex items-center gap-6 text-sm text-gray-600">
                           <div className="flex items-center">
                             <Users className="w-4 h-4 mr-1" />
@@ -315,7 +409,8 @@ const PollTab: React.FC<PollTabProps> = ({
                           {topCandidate && (
                             <div className="flex items-center">
                               <Trophy className="w-4 h-4 mr-1 text-yellow-500" />
-                              Leading: {topCandidate.nominee.name} ({topCandidate.voteCount} votes)
+                              Leading: {topCandidate.nominee.name} (
+                              {topCandidate.voteCount} votes)
                             </div>
                           )}
                         </div>
@@ -335,10 +430,12 @@ const PollTab: React.FC<PollTabProps> = ({
                     <div className="border-t border-gray-200 p-6 bg-gray-50">
                       <div className="space-y-4">
                         {categoryData.polls.map((poll, index) => (
-                          <div 
-                            key={poll.nominee.id} 
+                          <div
+                            key={poll.nominee.id}
                             className={`bg-white rounded-lg p-4 border ${
-                              index === 0 ? 'border-yellow-300 bg-yellow-50' : 'border-gray-200'
+                              index === 0
+                                ? "border-yellow-300 bg-yellow-50"
+                                : "border-gray-200"
                             }`}
                           >
                             <div className="flex items-start justify-between mb-3">
@@ -346,21 +443,22 @@ const PollTab: React.FC<PollTabProps> = ({
                                 <div className="flex-shrink-0">
                                   {getRankIcon(index)}
                                 </div>
-                                
+
                                 {/* Nominee Image */}
                                 <div className="flex-shrink-0">
                                   {poll.nominee.imageUrl ? (
                                     <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-gray-200 bg-gray-50">
-                                      <img 
-                                        src={poll.nominee.imageUrl} 
+                                      <img
+                                        src={poll.nominee.imageUrl}
                                         alt={poll.nominee.name}
                                         className="w-full h-full object-cover"
                                         onError={(e) => {
                                           const img = e.currentTarget;
-                                          const fallback = img.nextElementSibling as HTMLElement;
-                                          img.style.display = 'none';
+                                          const fallback =
+                                            img.nextElementSibling as HTMLElement;
+                                          img.style.display = "none";
                                           if (fallback) {
-                                            fallback.style.display = 'flex';
+                                            fallback.style.display = "flex";
                                           }
                                         }}
                                       />
@@ -376,21 +474,32 @@ const PollTab: React.FC<PollTabProps> = ({
                                 </div>
 
                                 <div className="flex-1">
-                                  <h5 className={`font-bold text-gray-900 ${index === 0 ? 'text-lg' : ''}`}>
+                                  <h5
+                                    className={`font-bold text-gray-900 ${
+                                      index === 0 ? "text-lg" : ""
+                                    }`}
+                                  >
                                     {poll.nominee.name}
                                   </h5>
                                   <p className="text-sm text-gray-600">
-                                    {poll.nominee.institution} • {poll.nominee.specialty}
+                                    {poll.nominee.institution} •{" "}
+                                    {poll.nominee.specialty}
                                   </p>
                                   {poll.nominee.location && (
-                                    <p className="text-xs text-gray-500">{poll.nominee.location}</p>
+                                    <p className="text-xs text-gray-500">
+                                      {poll.nominee.location}
+                                    </p>
                                   )}
                                 </div>
                               </div>
                               <div className="text-right">
-                                <div className={`text-2xl font-bold ${
-                                  index === 0 ? 'text-yellow-600' : 'text-gray-600'
-                                }`}>
+                                <div
+                                  className={`text-2xl font-bold ${
+                                    index === 0
+                                      ? "text-yellow-600"
+                                      : "text-gray-600"
+                                  }`}
+                                >
                                   {poll.voteCount}
                                 </div>
                                 <div className="text-xs text-gray-500">
@@ -402,11 +511,15 @@ const PollTab: React.FC<PollTabProps> = ({
                             {/* Progress Bar */}
                             <div className="mb-3">
                               <div className="w-full bg-gray-200 rounded-full h-2">
-                                <div 
+                                <div
                                   className={`h-2 rounded-full ${
-                                    index === 0 ? 'bg-yellow-500' : 'bg-gray-400'
+                                    index === 0
+                                      ? "bg-yellow-500"
+                                      : "bg-gray-400"
                                   }`}
-                                  style={{ width: `${Math.max(poll.percentage, 2)}%` }}
+                                  style={{
+                                    width: `${Math.max(poll.percentage, 2)}%`,
+                                  }}
                                 ></div>
                               </div>
                             </div>
@@ -415,8 +528,11 @@ const PollTab: React.FC<PollTabProps> = ({
                             {poll.nominee.achievement && (
                               <div className="mb-3">
                                 <p className="text-sm text-gray-700 leading-relaxed">
-                                  {poll.nominee.achievement.length > 150 
-                                    ? `${poll.nominee.achievement.substring(0, 150)}...` 
+                                  {poll.nominee.achievement.length > 150
+                                    ? `${poll.nominee.achievement.substring(
+                                        0,
+                                        150
+                                      )}...`
                                     : poll.nominee.achievement}
                                 </p>
                               </div>
@@ -425,10 +541,11 @@ const PollTab: React.FC<PollTabProps> = ({
                             {/* Action Buttons */}
                             <div className="flex justify-between items-center pt-3 border-t border-gray-200">
                               <div className="text-xs text-gray-500">
-                                {poll.nominations.length} nomination{poll.nominations.length !== 1 ? 's' : ''}
+                                {poll.nominations.length} nomination
+                                {poll.nominations.length !== 1 ? "s" : ""}
                               </div>
                               <div className="flex gap-2">
-                                <button 
+                                <button
                                   onClick={() => handleViewNominations(poll)}
                                   className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded hover:bg-blue-200"
                                 >
@@ -436,7 +553,10 @@ const PollTab: React.FC<PollTabProps> = ({
                                 </button>
                                 {index === 0 && poll.voteCount > 0 && (
                                   <>
-                                    {isAlreadyWinner(poll.nominee, categoryData.category) ? (
+                                    {isAlreadyWinner(
+                                      poll.nominee,
+                                      categoryData.category
+                                    ) ? (
                                       <button
                                         disabled
                                         className="text-xs bg-green-100 text-green-600 px-3 py-1 rounded cursor-not-allowed opacity-75"
@@ -445,7 +565,12 @@ const PollTab: React.FC<PollTabProps> = ({
                                       </button>
                                     ) : (
                                       <button
-                                        onClick={() => handleDeclareWinner(poll, categoryData.category)}
+                                        onClick={() =>
+                                          handleDeclareWinner(
+                                            poll,
+                                            categoryData.category
+                                          )
+                                        }
                                         className="text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
                                       >
                                         Declare Winner
@@ -474,10 +599,12 @@ const PollTab: React.FC<PollTabProps> = ({
         ) : (
           <div className="text-center py-12">
             <Trophy className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No active polls</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              No active polls
+            </h3>
             <p className="text-gray-500">
-              {searchTerm 
-                ? "No polls match your search criteria." 
+              {searchTerm
+                ? "No polls match your search criteria."
                 : "No nominees have been added to polls yet."}
             </p>
           </div>
@@ -494,16 +621,17 @@ const PollTab: React.FC<PollTabProps> = ({
                     <div className="flex-shrink-0">
                       {selectedNominee?.imageUrl ? (
                         <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-gray-200 bg-gray-50">
-                          <img 
-                            src={selectedNominee.imageUrl} 
+                          <img
+                            src={selectedNominee.imageUrl}
                             alt={selectedNominee.name}
                             className="w-full h-full object-cover"
                             onError={(e) => {
                               const img = e.currentTarget;
-                              const fallback = img.nextElementSibling as HTMLElement;
-                              img.style.display = 'none';
+                              const fallback =
+                                img.nextElementSibling as HTMLElement;
+                              img.style.display = "none";
                               if (fallback) {
-                                fallback.style.display = 'flex';
+                                fallback.style.display = "flex";
                               }
                             }}
                           />
@@ -521,7 +649,7 @@ const PollTab: React.FC<PollTabProps> = ({
                       Nominations for {selectedNominee?.name}
                     </h3>
                   </div>
-                  <button 
+                  <button
                     onClick={() => {
                       setShowNominationsModal(false);
                       setSelectedNominations([]);
@@ -532,17 +660,20 @@ const PollTab: React.FC<PollTabProps> = ({
                     <X className="w-6 h-6" />
                   </button>
                 </div>
-                
+
                 {selectedNominations.length > 0 ? (
                   <div className="space-y-6">
                     {selectedNominations.map((nomination, index) => (
-                      <div key={nomination.id} className="border border-gray-200 rounded-lg p-6">
+                      <div
+                        key={nomination.id}
+                        className="border border-gray-200 rounded-lg p-6"
+                      >
                         <div className="flex justify-between items-start mb-4">
                           <h4 className="font-bold text-lg text-gray-900">
                             Nomination #{index + 1}
                           </h4>
                         </div>
-                        
+
                         <div className="grid md:grid-cols-2 gap-6">
                           {/* Nominator Information */}
                           <div>
@@ -553,20 +684,31 @@ const PollTab: React.FC<PollTabProps> = ({
                             <div className="space-y-2 text-sm">
                               <div>
                                 <span className="font-medium">Name:</span>
-                                <p className="text-gray-700">{nomination.nominatorName}</p>
+                                <p className="text-gray-700">
+                                  {nomination.nominatorName}
+                                </p>
                               </div>
                               <div>
                                 <span className="font-medium">Email:</span>
-                                <p className="text-gray-700">{nomination.nominatorEmail}</p>
+                                <p className="text-gray-700">
+                                  {nomination.nominatorEmail}
+                                </p>
                               </div>
                               <div>
-                                <span className="font-medium">Relationship to Nominee:</span>
-                                <p className="text-gray-700">{nomination.nominatorRelationship || 'Not specified'}</p>
+                                <span className="font-medium">
+                                  Relationship to Nominee:
+                                </span>
+                                <p className="text-gray-700">
+                                  {nomination.nominatorRelationship ||
+                                    "Not specified"}
+                                </p>
                               </div>
                               <div>
                                 <span className="font-medium">Submitted:</span>
                                 <p className="text-gray-700">
-                                  {new Date(nomination.submissionDate).toLocaleDateString()}
+                                  {new Date(
+                                    nomination.submissionDate
+                                  ).toLocaleDateString()}
                                 </p>
                               </div>
                             </div>
@@ -581,24 +723,36 @@ const PollTab: React.FC<PollTabProps> = ({
                             <div className="space-y-2 text-sm">
                               <div>
                                 <span className="font-medium">Name:</span>
-                                <p className="text-gray-700">{nomination.nomineeName}</p>
+                                <p className="text-gray-700">
+                                  {nomination.nomineeName}
+                                </p>
                               </div>
                               <div>
                                 <span className="font-medium">Email:</span>
-                                <p className="text-gray-700">{nomination.nomineeEmail || 'Not provided'}</p>
+                                <p className="text-gray-700">
+                                  {nomination.nomineeEmail || "Not provided"}
+                                </p>
                               </div>
                               <div>
-                                <span className="font-medium">Institution:</span>
-                                <p className="text-gray-700">{nomination.nomineeInstitution}</p>
+                                <span className="font-medium">
+                                  Institution:
+                                </span>
+                                <p className="text-gray-700">
+                                  {nomination.nomineeInstitution}
+                                </p>
                               </div>
                               <div>
                                 <span className="font-medium">Specialty:</span>
-                                <p className="text-gray-700">{nomination.nomineeSpecialty}</p>
+                                <p className="text-gray-700">
+                                  {nomination.nomineeSpecialty}
+                                </p>
                               </div>
                               {nomination.nomineeLocation && (
                                 <div>
                                   <span className="font-medium">Location:</span>
-                                  <p className="text-gray-700">{nomination.nomineeLocation}</p>
+                                  <p className="text-gray-700">
+                                    {nomination.nomineeLocation}
+                                  </p>
                                 </div>
                               )}
                             </div>
@@ -621,7 +775,9 @@ const PollTab: React.FC<PollTabProps> = ({
                         {/* Additional Information */}
                         {nomination.additionalInfo && (
                           <div className="mt-4">
-                            <h5 className="font-medium text-gray-900 mb-3">Additional Information</h5>
+                            <h5 className="font-medium text-gray-900 mb-3">
+                              Additional Information
+                            </h5>
                             <div className="bg-gray-50 p-4 rounded-lg">
                               <p className="text-sm text-gray-700 leading-relaxed">
                                 {nomination.additionalInfo}
@@ -639,9 +795,9 @@ const PollTab: React.FC<PollTabProps> = ({
                             </h5>
                             <div className="flex items-center">
                               <span className="text-sm text-blue-600 hover:text-blue-800">
-                                <a 
-                                  href={nomination.supportingDocuments} 
-                                  target="_blank" 
+                                <a
+                                  href={nomination.supportingDocuments}
+                                  target="_blank"
                                   rel="noopener noreferrer"
                                   className="flex items-center"
                                 >
@@ -685,12 +841,15 @@ const PollTab: React.FC<PollTabProps> = ({
         isOpen={alertModal.isOpen}
         onClose={closeAlert}
         onConfirm={alertModal.onConfirm}
+        onCancel={
+          alertModal.type === "confirm" ? cancelDeclareWinner : undefined
+        }
         title={alertModal.title}
         message={alertModal.message}
         type={alertModal.type}
         confirmText={alertModal.confirmText}
         cancelText={alertModal.cancelText}
-        showCancel={alertModal.type === 'confirm'}
+        showCancel={alertModal.type === "confirm"}
       />
     </>
   );
