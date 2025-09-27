@@ -214,14 +214,15 @@ const TrainingProgramDetailPage = () => {
   }
 
   const daysUntil = calculateDaysUntil(program.startDate);
+  const daysUntilDeadline = calculateDaysUntil(program.registrationDeadline);
   const enrollmentPercentage =
     program.maxParticipants > 0
       ? (program.currentEnrollments / program.maxParticipants) * 100
       : 0;
   const spotsLeft = program.maxParticipants - program.currentEnrollments;
   const isRegistrationOpen =
-    daysUntil &&
-    daysUntil > 0 &&
+    daysUntilDeadline &&
+    daysUntilDeadline > 0 &&
     spotsLeft > 0 &&
     program.status === "Published";
 
@@ -454,7 +455,11 @@ const TrainingProgramDetailPage = () => {
               { key: "overview", label: "Overview" },
               { key: "curriculum", label: "Curriculum & Schedule" },
               { key: "instructors", label: "Instructors & Speakers" },
-              { key: "register", label: "Register", count: spotsLeft },
+              {
+                key: "register",
+                label: "Register",
+                count: isRegistrationOpen ? spotsLeft : 0,
+              },
             ].map((tab) => (
               <button
                 key={tab.key}
@@ -863,7 +868,7 @@ const TrainingProgramDetailPage = () => {
                   <p className="text-yellow-700 mb-4">
                     {spotsLeft <= 0
                       ? "This program is currently full. Please check back for future offerings."
-                      : daysUntil && daysUntil <= 0
+                      : daysUntilDeadline && daysUntilDeadline <= 0
                       ? "Registration has closed for this program."
                       : "Registration is not currently open for this program."}
                   </p>
@@ -1221,9 +1226,14 @@ const TrainingProgramDetailPage = () => {
                       <div className="text-blue-800 font-medium">
                         {formatDate(program.registrationDeadline)}
                       </div>
-                      {daysUntil && (
+                      {daysUntilDeadline && daysUntilDeadline > 0 && (
                         <div className="text-sm text-blue-600 mt-1">
-                          {daysUntil} days remaining
+                          {daysUntilDeadline} days remaining
+                        </div>
+                      )}
+                      {daysUntilDeadline && daysUntilDeadline <= 0 && (
+                        <div className="text-sm text-red-600 mt-1">
+                          Registration closed
                         </div>
                       )}
                     </div>
